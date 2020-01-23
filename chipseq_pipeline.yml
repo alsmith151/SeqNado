@@ -1,0 +1,24 @@
+queue: batchq
+threads: 12
+memory: 4G
+trim:
+    options: --paired --length 21
+bowtie2:
+    options: --very-sensitive
+    index: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome  
+genome:
+    size: 2864785220
+    fasta: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa
+    fai: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa.fai
+    chrom_sizes: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/chr_sizes.txt
+macs2:
+    options:
+bigwig:
+    smoothing_window: 200
+hub:
+    publoc: /public/asmith/chip_seq_reprocessed/
+    name: MLL_ChIP-seq
+    genome: hg19
+    short: MLL ChIP seq hub
+    long: MLL ChIP seq hub re-mapped and re-peak called for consisency
+    email: alastair.smith@ndcls.ox.ac.uk
