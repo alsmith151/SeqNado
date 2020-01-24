@@ -75,23 +75,35 @@ def trim_reads_paired(infiles, outfile):
 
 @follows(mkdir('bam'), trim_reads_single)
 @transform(trim_reads_single, 
-           regex(r'trimmed/(.*)_trimmed.fastq.gz'), 
+           regex(r'trimmed/(.*)_trimmed.fq.gz'), 
            r'bam/\1.bam')
 def align_reads_single(infile, outfile):
     ''' Aligns digested fq files using bowtie2'''
     
-    options = P.PARAMS['bowtie2_options'] if P.PARAMS['bowtie2_options'] else ''
+    sorted_bam = outfile.replace('.bam', '_sorted.bam')
+    options = ''
+    blacklist= None
         
-    statement = '''bowtie2 -x %(bowtie2_index)s -U %(infile)s 
-                    -p %(threads)s %(options)s 
-                    | samtools view -bS > %(outfile)s 2> %(outfile)s.log
-                    && samtools sort %(outfile)s -o %(outfile)s.sorted.bam -m 2G -@ %(threads)s
-                    && mv %(outfile)s.sorted.bam %(outfile)s'''
-    P.run(statement, 
+    if P.PARAMS['bowtie2_options']:
+        options = P.PARAMS['bowtie2_options']
+    
+    if P.PARAMS['genome_blacklist']:
+        blacklist = P.PARAMS['genome_blacklist']
+    
+    
+    statement = ['bowtie2 -x %(bowtie2_index)s -U %(infile)s -p %(threads)s %(options)s |',
+                 'samtools view -b - > %(outfile)s &&',
+                 'samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s &&']
+    
+    if blacklist:
+        # Uses bedtools intersect to remove blacklisted regions
+        statement.append('bedtools intersect -v -a %(blacklist)s -b %(sorted_bam)s > %(outfile)s')
+    else:
+        statement.append('mv %(sorted_bam)s %(outfile)s')
+    
+    P.run(' '.join(statement), 
           job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'],
-          job_memory='20G')
-
+          job_threads=P.PARAMS['threads'])
    
 @follows(mkdir('bam'), trim_reads_paired)
 @collate('trimmed/*.fq.gz', 
@@ -105,16 +117,26 @@ def align_reads_paired(infiles, outfile):
     fq1, fq2 = infiles   
     sorted_bam = outfile.replace('.bam', '_sorted.bam')
     options = ''
+    blacklist= None
         
     if P.PARAMS['bowtie2_options']:
         options = P.PARAMS['bowtie2_options']
     
-    cmd = '''bowtie2 -x %(bowtie2_index)s -1 %(fq1)s -2 %(fq2)s -p %(threads)s %(options)s |
-             samtools view -b - > %(outfile)s &&
-             samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s &&
-             mv %(sorted_bam)s %(outfile)s'''
-
-    P.run(cmd, 
+    if P.PARAMS['genome_blacklist']:
+        blacklist = P.PARAMS['genome_blacklist']
+    
+    
+    statement = ['bowtie2 -x %(bowtie2_index)s -1 %(fq1)s -2 %(fq2)s -p %(threads)s %(options)s |',
+                 'samtools view -b - > %(outfile)s &&',
+                 'samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s &&']
+    
+    if blacklist:
+        # Uses bedtools intersect to remove blacklisted regions
+        statement.append('bedtools intersect -v -a %(blacklist)s -b %(sorted_bam)s > %(outfile)s')
+    else:
+        statement.append('mv %(sorted_bam)s %(outfile)s')
+    
+    P.run(' '.join(statement), 
           job_queue=P.PARAMS['queue'], 
           job_threads=P.PARAMS['threads'])
 
