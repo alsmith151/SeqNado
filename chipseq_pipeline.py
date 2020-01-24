@@ -97,7 +97,8 @@ def align_reads_single(infile, outfile):
     
     if blacklist:
         # Uses bedtools intersect to remove blacklisted regions
-        statement.append('bedtools intersect -v -a %(blacklist)s -b %(sorted_bam)s > %(outfile)s')
+        statement.append('''bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
+                          rm %(sorted_bam)s''')
     else:
         statement.append('mv %(sorted_bam)s %(outfile)s')
     
@@ -132,7 +133,8 @@ def align_reads_paired(infiles, outfile):
     
     if blacklist:
         # Uses bedtools intersect to remove blacklisted regions
-        statement.append('bedtools intersect -v -a %(blacklist)s -b %(sorted_bam)s > %(outfile)s')
+        statement.append('''bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
+                          rm %(sorted_bam)s''')
     else:
         statement.append('mv %(sorted_bam)s %(outfile)s')
     
