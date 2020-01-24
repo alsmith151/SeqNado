@@ -2,7 +2,7 @@ queue: batchq
 threads: 12
 memory: 4G
 trim:
-    options: --paired --length 21
+    options: --length 21
 bowtie2:
     options: --very-sensitive
     index: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome  
