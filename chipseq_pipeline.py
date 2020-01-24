@@ -49,24 +49,55 @@ def multiqc_reads (infile, outfile):
     
     
 @follows(mkdir('trimmed'))
-@collate(r'*.fastq.gz',
-         regex(r'(.*)_[1|2].fastq.gz'), 
-         r'trimmed/\1_1_val_1.fq.gz')
-def trim_reads(infiles, outfile):
-    '''Trim adaptor sequences using Trim-galore'''
-    fastq1, fastq2 = infiles
-    statement = '''trim_galore --cores %(threads)s %(trim_options)s -o trimmed 
-                     %(fastq1)s %(fastq2)s'''
+@transform('*.fastq.gz', 
+           regex(r'(?!.*_.*_[12])^(.*).fastq.gz'), # Regex negates any filenames matching the paired pattern
+           r'trimmed/\1_trimmed.fq.gz')
+def trim_reads_single(infile, outfile):
+    
+    statement = '''trim_galore --cores %(threads)s %(trim_options)s 
+                  -o trimmed %(infile)s'''
     P.run(statement, 
           job_queue=P.PARAMS['queue'], 
           job_threads=P.PARAMS['threads'])
+
+@collate(r'*.fastq.gz',
+         regex(r'(.*)_[1|2].fastq.gz'), 
+         r'trimmed/\1_1_val_1.fq.gz')
+def trim_reads_paired(infiles, outfile):
+    '''Trim adaptor sequences using Trim-galore in paired end mode'''
+    fastq1, fastq2 = infiles
+    statement = '''trim_galore --cores %(threads)s --paired %(trim_options)s 
+                  -o trimmed %(fastq1)s %(fastq2)s'''
+    P.run(statement, 
+          job_queue=P.PARAMS['queue'], 
+          job_threads=P.PARAMS['threads'])
+
+
+@follows(mkdir('bam'), trim_reads_single)
+@transform(trim_reads_single, 
+           regex(r'trimmed/(.*)_trimmed.fastq.gz'), 
+           r'bam/\1.bam')
+def align_reads_single(infile, outfile):
+    ''' Aligns digested fq files using bowtie2'''
     
-    
-@follows(mkdir('bam'), trim_reads)
+    options = P.PARAMS['bowtie2_options'] if P.PARAMS['bowtie2_options'] else ''
+        
+    statement = '''bowtie2 -x %(bowtie2_index)s -U %(infile)s 
+                    -p %(threads)s %(options)s 
+                    | samtools view -bS > %(outfile)s 2> %(outfile)s.log
+                    && samtools sort %(outfile)s -o %(outfile)s.sorted.bam -m 2G -@ %(threads)s
+                    && mv %(outfile)s.sorted.bam %(outfile)s'''
+    P.run(statement, 
+          job_queue=P.PARAMS['queue'], 
+          job_threads=P.PARAMS['threads'],
+          job_memory='20G')
+
+   
+@follows(mkdir('bam'), trim_reads_paired)
 @collate('trimmed/*.fq.gz', 
          regex(r'trimmed/(.*)_[1|2]_val_[1|2].fq.gz'), 
          r'bam/\1.bam')
-def align_reads(infiles, outfile):
+def align_reads_paired(infiles, outfile):
     
     ''' Aligns fq files using bowtie2 before conversion to bam file using
         Samtools view. Bam file is then sorted and the unsorted bam file is replaced'''
@@ -88,7 +119,9 @@ def align_reads(infiles, outfile):
           job_threads=P.PARAMS['threads'])
 
 
-@transform(align_reads, regex(r'bam/(.*).bam'), r'bam/\1.bam.bai')
+@transform([align_reads_single, align_reads_paired], 
+           regex(r'bam/(.*).bam'),
+           r'bam/\1.bam.bai')
 def create_bam_file_index(infile, outfile):
     """Bam files are compressed. The index allows fast access to different
     slices of the file."""
@@ -98,7 +131,7 @@ def create_bam_file_index(infile, outfile):
           job_memory = P.PARAMS['memory'])
 
 
-@transform(align_reads, 
+@transform([align_reads_single, align_reads_paired], 
            regex(r'bam/(.*).bam'), 
            r'bam/\1.picard.metrics')
 def mapping_qc(infile, outfile):
@@ -126,7 +159,9 @@ def mapping_multiqc (infile, outfile):
 
 
 @follows(create_bam_file_index, mkdir('deduplicated'))    
-@transform(align_reads, regex(r'bam/(.*.bam)'), r'deduplicated/\1')
+@transform([align_reads_single, align_reads_paired],
+           regex(r'bam/(.*.bam)'),
+           r'deduplicated/\1')
 def remove_duplicates(infile, outfile):
     stats = outfile.replace('.bam', '_marked_duplicates.txt')
     statement = ' '.join(['picard MarkDuplicates',
@@ -143,8 +178,8 @@ def remove_duplicates(infile, outfile):
 
 
 @follows(mkdir('bigwigs'), create_bam_file_index, remove_duplicates)
-@transform(align_reads, regex(r'bam/(.*).bam'), r'bigwigs/\1.bigWig')
-def make_bigwig(infile, outfile):
+@transform(align_reads_paired, regex(r'bam/(.*).bam'), r'bigwigs/\1.bigWig')
+def make_bigwig_paired(infile, outfile):
     
     cmd = [ 'bamCoverage', 
             '-b', infile, 
@@ -162,6 +197,28 @@ def make_bigwig(infile, outfile):
           job_queue  = P.PARAMS['queue'],
           job_memory = P.PARAMS['memory'],
           job_threads=P.PARAMS['threads'],)
+    
+@follows(mkdir('bigwigs'), create_bam_file_index, remove_duplicates)
+@transform(align_reads_single, regex(r'bam/(.*).bam'), r'bigwigs/\1.bigWig')
+def make_bigwig_single(infile, outfile):
+    
+    cmd = [ 'bamCoverage', 
+            '-b', infile, 
+            '-o', outfile,
+            '-p', '%(threads)s',
+            '--effectiveGenomeSize', '%(genome_size)s',
+            '--normalizeUsing', 'BPM',
+            '--smoothLength', '%(bigwig_smoothing_window)s',
+            '--verbose']
+    
+    statement = ' '.join(cmd)
+    
+    P.run(statement,
+          job_queue  = P.PARAMS['queue'],
+          job_memory = P.PARAMS['memory'],
+          job_threads=P.PARAMS['threads'],)   
+    
+
 
 @follows(mkdir('peaks'))
 @transform(remove_duplicates, 
@@ -202,7 +259,11 @@ def convert_bed_to_bigbed(infile, outfile):
     P.run(statement,
           job_queue  = P.PARAMS['queue'])
         
-@follows(mkdir(hub_dir), mkdir(assembly_dir), make_bigwig, call_peaks)
+@follows(mkdir(hub_dir), 
+         mkdir(assembly_dir), 
+         make_bigwig_single, 
+         make_bigwig_paired, 
+         convert_bed_to_bigbed)
 @originate(os.path.join(hub_dir, 'hub.txt'))
 def generate_hub_metadata(outfile):
 
@@ -220,8 +281,6 @@ def generate_hub_metadata(outfile):
 
 @transform(generate_hub_metadata, regex(r'.*.txt'), 'hub_address.txt')
 def get_hub_address(infile, outfile):
-    
-    
     with open(outfile, 'w') as w:
         w.write(f'http://userweb.molbiol.ox.ac.uk/{os.path.abspath(infile).lstrip("/")}')
 
@@ -238,7 +297,10 @@ def generate_assembly_metadata(outfile):
 
 
 @follows(generate_hub_metadata, mkdir(assembly_dir))
-@merge([make_bigwig, convert_bed_to_bigbed], f'{assembly_dir}/trackDb.txt')
+@merge([make_bigwig_single, 
+        make_bigwig_paired,
+        convert_bed_to_bigbed], 
+       f'{assembly_dir}/trackDb.txt')
 def generate_trackdb_metadata(infiles, outfile):
     def get_track_data(fn):
         return {'track': fn,
@@ -266,7 +328,7 @@ def generate_trackdb_metadata(infiles, outfile):
             w.write('\n')
 
 @follows(generate_trackdb_metadata)
-@transform([make_bigwig, convert_bed_to_bigbed],
+@transform([make_bigwig_single, make_bigwig_paired, convert_bed_to_bigbed],
            regex(r'(peaks|bigwigs)/(.*)'),
            f'{assembly_dir}/' + r'\2')
 def link_hub_files(infile, outfile):
