@@ -258,7 +258,7 @@ def call_peaks(infile, outfile):
     control = glob.glob(f'deduplicated/{treatment_name}_input.bam')
     
     file_base = outfile.replace('_peaks.narrowPeak', '')
-    macs2_options = P.PARAMS['macs2_options'] if 'macs2_options' in P.PARAMS.keys() else ''
+    macs2_options = P.PARAMS['macs2_options'] if 'macs2_options' in P.PARAMS.keys() else ' '
     
     statement = '''macs2 callpeak %(macs2_options)s -g %(genome_size)s 
                   -t %(treatment)s -n %(file_base)s'''
