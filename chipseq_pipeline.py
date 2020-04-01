@@ -252,18 +252,21 @@ def make_bigwig_single(infile, outfile):
            r'peaks/\1_\2_peaks.narrowPeak')
 def call_peaks(infile, outfile):
     
-    treatment = infile[0]
-       
+    treatment = infile
     treatment_name = os.path.basename(treatment).split('_')[0]
-    control = glob.glob(f'deduplicated/{treatment_name}_input.bam')
-    
     file_base = outfile.replace('_peaks.narrowPeak', '')
-    macs2_options = P.PARAMS['macs2_options'] if 'macs2_options' in P.PARAMS.keys() else ' '
+    macs2_options = ' '
     
+    if P.PARAMS['macs2_options']:
+        macs2_options = P.PARAMS['macs2_options']
+
     statement = '''macs2 callpeak %(macs2_options)s -g %(genome_size)s 
                   -t %(treatment)s -n %(file_base)s'''
     
-    if control:
+    
+    control_files = glob.glob(f'deduplicated/{treatment_name}_input.bam')
+    if control_files:
+        control = control_files[0]
         statement += ' -c %(control)s'
       
 
