@@ -12,7 +12,7 @@ import os
 import re
 import gzip
 import seaborn as sns
-import pandas as pd
+import glob
 from cgatcore import pipeline as P
 from ruffus import mkdir, follows, transform, merge, originate, collate, split, regex, add_inputs, suffix
 
@@ -253,10 +253,9 @@ def make_bigwig_single(infile, outfile):
 def call_peaks(infile, outfile):
     
     treatment = infile[0]
-    
-    treatment_name = treatment.split('_')[0]
-    control = (pd.Series(os.listdir('deduplicated/'))
-                 .str.contains(f'{treatment_name}_input.bam')[0])
+       
+    treatment_name = os.path.basename(treatment).split('_')[0]
+    control = glob.glob(f'deduplicated/{treatment_name}_input.bam')
     
     file_base = outfile.replace('_peaks.narrowPeak', '')
     macs2_options = P.PARAMS['macs2_options'] if 'macs2_options' in P.PARAMS.keys() else ''
@@ -264,7 +263,7 @@ def call_peaks(infile, outfile):
     statement = '''macs2 callpeak %(macs2_options)s -g %(genome_size)s 
                   -t %(treatment)s -n %(file_base)s'''
     
-    if os.path.exists(control):
+    if control:
         statement += ' -c %(control)s'
       
 
