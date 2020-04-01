@@ -84,10 +84,10 @@ def align_reads_single(infile, outfile):
     options = ''
     blacklist= None
         
-    if P.PARAMS['bowtie2_options']:
+    if 'bowtie2_options' in P.PARAMS.keys():
         options = P.PARAMS['bowtie2_options']
     
-    if P.PARAMS['genome_blacklist']:
+    if 'genome_blacklist' in P.PARAMS.keys():
         blacklist = P.PARAMS['genome_blacklist']
     
     
@@ -98,7 +98,7 @@ def align_reads_single(infile, outfile):
     if blacklist:
         # Uses bedtools intersect to remove blacklisted regions
         statement.append('''bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
-                          rm %(sorted_bam)s''')
+                          rm -f %(sorted_bam)s''')
     else:
         statement.append('mv %(sorted_bam)s %(outfile)s')
     
@@ -120,10 +120,10 @@ def align_reads_paired(infiles, outfile):
     options = ''
     blacklist= None
         
-    if P.PARAMS['bowtie2_options']:
+    if 'bowtie2_options' in P.PARAMS.keys():
         options = P.PARAMS['bowtie2_options']
     
-    if P.PARAMS['genome_blacklist']:
+    if 'genome_blacklist' in P.PARAMS.keys():
         blacklist = P.PARAMS['genome_blacklist']
     
     
@@ -134,7 +134,7 @@ def align_reads_paired(infiles, outfile):
     if blacklist:
         # Uses bedtools intersect to remove blacklisted regions
         statement.append('''bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
-                          rm %(sorted_bam)s''')
+                          rm -f %(sorted_bam)s''')
     else:
         statement.append('mv %(sorted_bam)s %(outfile)s')
     
@@ -332,6 +332,8 @@ def generate_trackdb_metadata(infiles, outfile):
                 'shortLabel': fn,
                 'longLabel': fn,
                 'type': f'{fn.split(".")[-1]}',
+                'autoscale': 'on',
+                'windowingFunction': 'mean',
                 }
      
     # Generate all separate tracks
