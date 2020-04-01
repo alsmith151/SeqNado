@@ -9,8 +9,10 @@ Created on Thu Jan 23 10:47:03 2020
 # import packages
 import sys
 import os
+import re
 import gzip
 import seaborn as sns
+import pandas as pd
 from cgatcore import pipeline as P
 from ruffus import mkdir, follows, transform, merge, originate, collate, split, regex, add_inputs, suffix
 
@@ -247,12 +249,14 @@ def make_bigwig_single(infile, outfile):
 @follows(mkdir('peaks'))
 @transform(remove_duplicates, 
            regex(r'deduplicated/(.*)_(?!input|Input|INPUT)(.*).bam'),
-           add_inputs(r'deduplicated/\1_input.bam'),
            r'peaks/\1_\2_peaks.narrowPeak')
 def call_peaks(infile, outfile):
     
     treatment = infile[0]
-    control= infile[1]
+    
+    treatment_name = treatment.split('_')[0]
+    control = (pd.Series(os.listdir('deduplicated/'))
+                 .str.contains(f'{treatment_name}_input.bam')[0])
     
     file_base = outfile.replace('_peaks.narrowPeak', '')
     macs2_options = P.PARAMS['macs2_options'] if 'macs2_options' in P.PARAMS.keys() else ''
