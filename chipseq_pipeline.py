@@ -255,12 +255,12 @@ def call_peaks(infile, outfile):
     control= infile[1]
     
     file_base = outfile.replace('_peaks.narrowPeak', '')
-    macs2_options = P.PARAMS['macs2_options'] if P.PARAMS['macs2_options'] else ''
+    macs2_options = P.PARAMS['macs2_options'] if 'macs2_options' in P.PARAMS.keys() else ''
     
     statement = '''macs2 callpeak %(macs2_options)s -g %(genome_size)s 
                   -t %(treatment)s -n %(file_base)s'''
     
-    if control:
+    if os.path.exists(control):
         statement += ' -c %(control)s'
       
 
