@@ -30,11 +30,10 @@ class NGSRun():
         self.urls = []
         self.fq_files=[]
         self.metadata = self.get_metadata()
+        self.is_paired = False
         
         if len(self.metadata['fastq_ftp']) == 2:
             self.is_paired = True
-        else:
-            self.ispaired = False
         
 
     def _download_from_url(self, url):
@@ -95,7 +94,10 @@ class GeoNGS():
             
         Entrez.email = self.email
         record = Entrez.read(Entrez.esearch('sra', self.acc))
-        uid = record['IdList'][0]
+        try:
+            uid = record['IdList'][0]
+        except Exception as e:
+            print(f'Error {e} occured at {self.acc}')
         records = Entrez.esummary(db='sra', id=uid, retmode='xml')
         
         s = BeautifulSoup(records, features='lxml')

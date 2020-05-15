@@ -14,14 +14,17 @@ import gzip
 import seaborn as sns
 import glob
 from cgatcore import pipeline as P
-from ruffus import mkdir, follows, transform, merge, originate, collate, split, regex, add_inputs, suffix
+from ruffus import mkdir, follows, transform, merge, originate, collate, split, regex, add_inputs, suffix, active_if
 
 # Read in parameter file
 P.get_parameters('chipseq_pipeline.yml')
 
 # Global variables
+use_lanceotron = True if P.PARAMS['use_lanceotron'] else False
+use_macs2 = True if not use_lanceotron else False
 hub_dir = os.path.join(P.PARAMS["hub_publoc"], P.PARAMS['hub_name'])
 assembly_dir = os.path.join(hub_dir, P.PARAMS['hub_genome'])
+
 
 
 '''Requires input files to be in the format: .*_[input|.*]_[1|2]'''
@@ -83,11 +86,10 @@ def align_reads_single(infile, outfile):
     ''' Aligns digested fq files using bowtie2'''
     
     sorted_bam = outfile.replace('.bam', '_sorted.bam')
-    options = ''
-    blacklist= None
+    blacklist = ''
         
     if 'bowtie2_options' in P.PARAMS.keys():
-        options = P.PARAMS['bowtie2_options']
+        options = P.PARAMS['bowtie2_options'] if P.PARAMS['bowtie2_options'] else ' '
     
     if 'genome_blacklist' in P.PARAMS.keys():
         blacklist = P.PARAMS['genome_blacklist']
@@ -247,6 +249,7 @@ def make_bigwig_single(infile, outfile):
 
 
 @follows(mkdir('peaks'))
+@active_if(use_macs2)
 @transform(remove_duplicates, 
            regex(r'deduplicated/(.*)_(?!input|Input|INPUT)(.*).bam'),
            r'peaks/\1_\2_peaks.narrowPeak')
@@ -274,6 +277,34 @@ def call_peaks(infile, outfile):
           job_queue  = P.PARAMS['queue'],
           job_memory = P.PARAMS['memory'])
 
+
+
+@active_if(use_lanceotron)
+@transform([make_bigwig_paired, make_bigwig_single],
+           regex(r'bigwigs/(.*)_(?!input|Input|INPUT)(.*).bigWig'),
+           r'peaks/\1_\2_lanceotron_peaks.bed')
+def call_peaks_lanceotron(infile, outfile):
+    
+    lanceotron_options = ' '
+    if P.PARAMS['lanceotron_options']:
+        lanceotron_options = P.PARAMS['lanceotron_options']
+    
+    
+    base_name = os.path.basename(infile).replace('.bigWig', '')
+    dir_name = f'peaks/{base_name.replace("_lanceotron_peaks.bed", "")}/'
+    
+    statement = '''python /t1-data/user/lhentges/lanceotron/lanceotron_genome.py
+                   %(lanceotron_options)s -f %(dir_name)s %(infile)s &&
+                   cat %(dir_name)s/merge/*.bed | sort -k1,1 -k2,2n |
+                   cut -f 1-3 > %(outfile)s'''
+    
+    P.run(statement,
+          job_queue  = P.PARAMS['queue'],
+          job_memory = P.PARAMS['memory'],
+          job_condaenv = 'dl')
+
+
+@active_if(use_macs2)
 @transform(call_peaks, regex(r'peaks/(.*).narrowPeak'), r'peaks/\1.bed')
 def convert_narrowpeak_to_bed(infile, outfile):
     
@@ -282,7 +313,9 @@ def convert_narrowpeak_to_bed(infile, outfile):
     P.run(statement,
           job_queue  = P.PARAMS['queue'])
     
-@transform(convert_narrowpeak_to_bed, regex(r'peaks/(.*).bed'), r'peaks/\1.bigBed')    
+@transform([convert_narrowpeak_to_bed, call_peaks_lanceotron],
+           regex(r'peaks/(.*).bed'),
+           r'peaks/\1.bigBed')    
 def convert_bed_to_bigbed(infile, outfile):
     
     statement = '''bedToBigBed %(infile)s %(genome_chrom_sizes)s %(outfile)s'''

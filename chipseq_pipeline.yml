@@ -1,6 +1,7 @@
 queue: batchq
 threads: 12
 memory: 4G
+use_lanceotron: True
 trim:
     options: --length 21
 bowtie2:
@@ -13,12 +14,14 @@ genome:
     chrom_sizes: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/chr_sizes.txt
 macs2:
     options:
+lanceotron:
+    options: -t 4 -w 400 -m /t1-data/user/lhentges/lanceotron/models/baseModel_categories.h5 -c 12
 bigwig:
     smoothing_window: 200
 hub:
     publoc: /public/asmith/chip_seq_reprocessed/
-    name: MLL_ChIP-seq
+    name: ChIP-seq_reprocessed
     genome: hg19
-    short: MLL ChIP seq hub
-    long: MLL ChIP seq hub re-mapped and re-peak called for consisency
+    short: ChIP seq hub
+    long: ChIP seq hub re-mapped and re-peak called for consisency
     email: alastair.smith@ndcls.ox.ac.uk
