@@ -300,8 +300,8 @@ def call_peaks_lanceotron(infile, outfile):
     
     P.run(statement,
           job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'],
-          job_condaenv = 'dl')
+          job_memory = P.PARAMS['memory']
+         )
 
 
 @active_if(use_macs2)
