@@ -15,16 +15,23 @@ import seaborn as sns
 import glob
 from cgatcore import pipeline as P
 from ruffus import mkdir, follows, transform, merge, originate, collate, split, regex, add_inputs, suffix, active_if
+from cgatcore.iotools import zap_file
+import click
 
 # Read in parameter file
 P.get_parameters('chipseq_pipeline.yml')
 
 # Global variables
 use_lanceotron = True if P.PARAMS['use_lanceotron'] else False
-use_macs2 = True if not use_lanceotron else False
+use_macs3 = True if not use_lanceotron else False
 hub_dir = os.path.join(P.PARAMS["hub_publoc"], P.PARAMS['hub_name'])
 assembly_dir = os.path.join(hub_dir, P.PARAMS['hub_genome'])
 
+# Hack to enable slurm cluster
+P.PARAMS['cluster_queue_manager'] = 'slurm'
+P.PARAMS["conda_env"] = P.PARAMS.get(
+    "conda_env", os.path.basename(os.environ["CONDA_PREFIX"])
+)
 
 
 '''Requires input files to be in the format: .*_[input|.*]_[1|2]'''
@@ -38,7 +45,8 @@ def qc_reads(infile, outfile):
     statement = 'fastqc -q -t %(threads)s --nogroup %(infile)s --outdir fastqc'
     P.run(statement, 
           job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'])
+          job_threads=P.PARAMS['threads'],
+          job_condaenv=P.PARAMS["conda_env"])
 
 
 @follows(mkdir('report'))
@@ -50,7 +58,8 @@ def multiqc_reads (infile, outfile):
                    multiqc fastqc/ -o report -n readqc_report.html'''
     P.run(statement, 
           job_queue=P.PARAMS['queue'], 
-          job_memory='16G')
+          job_memory='16G',
+          job_condaenv=P.PARAMS["conda_env"])
     
     
 @follows(mkdir('trimmed'))
@@ -63,7 +72,9 @@ def trim_reads_single(infile, outfile):
                   -o trimmed %(infile)s'''
     P.run(statement, 
           job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'])
+          job_threads=P.PARAMS['threads'],
+          job_condaenv=P.PARAMS["conda_env"])
+    
 
 @collate(r'*.fastq.gz',
          regex(r'(.*)_[1|2].fastq.gz'), 
@@ -75,8 +86,9 @@ def trim_reads_paired(infiles, outfile):
                   -o trimmed %(fastq1)s %(fastq2)s'''
     P.run(statement, 
           job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'])
-
+          job_threads=P.PARAMS['threads'],
+          job_condaenv=P.PARAMS["conda_env"])
+    
 
 @follows(mkdir('bam'), trim_reads_single)
 @transform(trim_reads_single, 
@@ -97,18 +109,23 @@ def align_reads_single(infile, outfile):
     
     statement = ['bowtie2 -x %(bowtie2_index)s -U %(infile)s -p %(threads)s %(options)s |',
                  'samtools view -b - > %(outfile)s &&',
-                 'samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s &&']
+                 'samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s']
     
     if blacklist:
         # Uses bedtools intersect to remove blacklisted regions
-        statement.append('''bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
+        statement.append(''' && bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
                           rm -f %(sorted_bam)s''')
     else:
-        statement.append('mv %(sorted_bam)s %(outfile)s')
+        statement.append('&& mv %(sorted_bam)s %(outfile)s')
     
     P.run(' '.join(statement), 
           job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'])
+          job_threads=P.PARAMS['threads'],
+          job_condaenv=P.PARAMS["conda_env"])
+    
+    zap_file(infile)
+
+
    
 @follows(mkdir('bam'), trim_reads_paired)
 @collate('trimmed/*.fq.gz', 
@@ -124,7 +141,7 @@ def align_reads_paired(infiles, outfile):
     options = ''
     blacklist= None
         
-    if 'bowtie2_options' in P.PARAMS.keys():
+    if P.PARAMS.get('bowtie2_options') not in [None, 'None', '']:
         options = P.PARAMS['bowtie2_options']
     
     if 'genome_blacklist' in P.PARAMS.keys():
@@ -133,30 +150,35 @@ def align_reads_paired(infiles, outfile):
     
     statement = ['bowtie2 -x %(bowtie2_index)s -1 %(fq1)s -2 %(fq2)s -p %(threads)s %(options)s |',
                  'samtools view -b - > %(outfile)s &&',
-                 'samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s &&']
+                 'samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s']
     
     if blacklist:
         # Uses bedtools intersect to remove blacklisted regions
-        statement.append('''bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
+        statement.append('''&& bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
                           rm -f %(sorted_bam)s''')
     else:
-        statement.append('mv %(sorted_bam)s %(outfile)s')
+        statement.append('&& mv %(sorted_bam)s %(outfile)s')
     
     P.run(' '.join(statement), 
           job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'])
+          job_threads=P.PARAMS['threads'],
+          job_condaenv=P.PARAMS["conda_env"])
+    
+    for fn in infiles:
+        zap_file(fn)
 
 
 @transform([align_reads_single, align_reads_paired], 
-           regex(r'bam/(.*).bam'),
-           r'bam/\1.bam.bai')
+           regex(r'bam/(.*)'),
+           r'bam/\1.bai')
 def create_bam_file_index(infile, outfile):
     """Bam files are compressed. The index allows fast access to different
     slices of the file."""
-    statement = 'samtools index %(infile)s %(outfile)s'
+    statement = 'samtools index %(infile)s'
     P.run(statement,
           job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'])
+          job_memory = P.PARAMS['memory'],
+          job_condaenv=P.PARAMS["conda_env"])
 
 
 @transform([align_reads_single, align_reads_paired], 
@@ -173,7 +195,8 @@ def mapping_qc(infile, outfile):
     statement = ' '.join(cmd)
          
     P.run(statement, 
-          job_queue=P.PARAMS['queue'])
+          job_queue=P.PARAMS['queue'],
+          job_condaenv=P.PARAMS["conda_env"])
 
 @merge(mapping_qc, 'report/mapping_report.html')
 def mapping_multiqc (infile, outfile):
@@ -183,14 +206,15 @@ def mapping_multiqc (infile, outfile):
                    multiqc bam/ -o report -n mapping_report.html'''
     P.run(statement, 
           job_queue=P.PARAMS['queue'], 
-          job_memory='16G')
+          job_memory='16G',
+          job_condaenv=P.PARAMS["conda_env"])
 
 
-@follows(create_bam_file_index, mkdir('deduplicated'))    
-@transform([align_reads_single, align_reads_paired],
-           regex(r'bam/(.*.bam)'),
+@follows(create_bam_file_index, mkdir('deduplicated'), mkdir('tmp'))    
+@transform(align_reads_paired,
+           regex(r'bam/(.*)'),
            r'deduplicated/\1')
-def remove_duplicates(infile, outfile):
+def remove_duplicates_paired(infile, outfile):
     stats = outfile.replace('.bam', '_marked_duplicates.txt')
     statement = ' '.join(['picard MarkDuplicates',
                           'I=%(infile)s',
@@ -198,59 +222,75 @@ def remove_duplicates(infile, outfile):
                           'M=%(stats)s',
                           'REMOVE_DUPLICATES=true',
                           'REMOVE_SEQUENCING_DUPLICATES=true',
-                          'CREATE_INDEX=true'])
+                          'CREATE_INDEX=true',
+                          'TMP_DIR=tmp/'])
     P.run(statement,
           job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'])
+          job_memory = P.PARAMS['memory'],
+          job_condaenv=P.PARAMS["conda_env"])
+
+@follows(create_bam_file_index, mkdir('deduplicated'), mkdir('tmp'))    
+@transform(align_reads_single,
+           regex(r'bam/(.*)'),
+           r'deduplicated/\1')
+def remove_duplicates_single(infile, outfile):
+    stats = outfile.replace('.bam', '_marked_duplicates.txt')
+    statement = ' '.join(['picard MarkDuplicates',
+                          'I=%(infile)s',
+                          'O=%(outfile)s',
+                          'M=%(stats)s',
+                          'REMOVE_DUPLICATES=true',
+                          'REMOVE_SEQUENCING_DUPLICATES=true',
+                          'CREATE_INDEX=true',
+                          'TMP_DIR=tmp/'])
+    P.run(statement,
+          job_queue  = P.PARAMS['queue'],
+          job_memory = P.PARAMS['memory'],
+          job_condaenv=P.PARAMS["conda_env"])
 
 
 
-@follows(mkdir('bigwigs'), create_bam_file_index, remove_duplicates)
-@transform(align_reads_paired, regex(r'bam/(.*).bam'), r'bigwigs/\1.bigWig')
+@follows(mkdir('bigwigs'))
+@transform(remove_duplicates_paired, regex(r'deduplicated/(.*).bam'), r'bigwigs/\1.bigWig')
 def make_bigwig_paired(infile, outfile):
     
     cmd = [ 'bamCoverage', 
             '-b', infile, 
             '-o', outfile,
             '-p', '%(threads)s',
-            '--effectiveGenomeSize', '%(genome_size)s',
-            '--normalizeUsing', 'BPM',
-            '--smoothLength', '%(bigwig_smoothing_window)s',
-            '--extendReads',
-            '--verbose']
+            '%(bigwig_options)s']
     
     statement = ' '.join(cmd)
     
     P.run(statement,
           job_queue  = P.PARAMS['queue'],
           job_memory = P.PARAMS['memory'],
-          job_threads=P.PARAMS['threads'],)
+          job_threads=P.PARAMS['threads'],
+          job_condaenv=P.PARAMS["conda_env"])
     
-@follows(mkdir('bigwigs'), create_bam_file_index, remove_duplicates)
-@transform(align_reads_single, regex(r'bam/(.*).bam'), r'bigwigs/\1.bigWig')
+@follows(mkdir('bigwigs'))
+@transform(remove_duplicates_single, regex(r'deduplicated/(.*).bam'), r'bigwigs/\1.bigWig')
 def make_bigwig_single(infile, outfile):
     
     cmd = [ 'bamCoverage', 
             '-b', infile, 
             '-o', outfile,
             '-p', '%(threads)s',
-            '--effectiveGenomeSize', '%(genome_size)s',
-            '--normalizeUsing', 'BPM',
-            '--smoothLength', '%(bigwig_smoothing_window)s',
-            '--verbose']
+            '%(bigwig_options)s']
     
     statement = ' '.join(cmd)
     
     P.run(statement,
           job_queue  = P.PARAMS['queue'],
           job_memory = P.PARAMS['memory'],
-          job_threads=P.PARAMS['threads'],)   
+          job_threads=P.PARAMS['threads'],
+          job_condaenv=P.PARAMS["conda_env"])   
     
 
 
 @follows(mkdir('peaks'))
-@active_if(use_macs2)
-@transform(remove_duplicates, 
+@active_if(use_macs3)
+@transform([remove_duplicates_single, remove_duplicates_paired], 
            regex(r'deduplicated/(.*)_(?!input|Input|INPUT)(.*).bam'),
            r'peaks/\1_\2_peaks.narrowPeak')
 def call_peaks(infile, outfile):
@@ -258,12 +298,12 @@ def call_peaks(infile, outfile):
     treatment = infile
     treatment_name = os.path.basename(treatment).split('_')[0]
     file_base = outfile.replace('_peaks.narrowPeak', '')
-    macs2_options = ' '
+    macs_options = ' '
     
-    if P.PARAMS['macs2_options']:
-        macs2_options = P.PARAMS['macs2_options']
+    if P.PARAMS['macs_options']:
+        macs_options = P.PARAMS['macs2_options']
 
-    statement = '''macs2 callpeak %(macs2_options)s -g %(genome_size)s 
+    statement = '''macs3 callpeak %(macs_options)s -g %(genome_size)s 
                   -t %(treatment)s -n %(file_base)s'''
     
     
@@ -275,7 +315,8 @@ def call_peaks(infile, outfile):
 
     P.run(statement,
           job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'])
+          job_memory = P.PARAMS['memory'],
+          job_condaenv=P.PARAMS["conda_env"])
 
 
 
@@ -292,26 +333,58 @@ def call_peaks_lanceotron(infile, outfile):
     
     base_name = os.path.basename(infile).replace('.bigWig', '')
     dir_name = f'peaks/{base_name.replace("_lanceotron_peaks.bed", "")}/'
+
+
+    # Switching to using a filtered peakset (currently 18.11.20 using all called)
+    # Columns of called peaks are:
+    header = ['chrom',
+             'start',
+             'end',
+             'H3K4me1_score',
+             'noise_score',
+             'ATAC_score',
+             'H3K4me3_score',
+             'TF_score',
+             'H3K27ac_score']
     
-    statement = '''python /t1-data/user/lhentges/lanceotron/lanceotron_genome.py
+    tsv_header = ' '.join(header)
+
+
+    
+    statement = '''rm -rf %(dir_name)s/merge/ &&
+                   python /t1-data/user/lhentges/lanceotron/lanceotron_genome.py
                    %(lanceotron_options)s -f %(dir_name)s %(infile)s &&
-                   cat %(dir_name)s/merge/*.bed | sort -k1,1 -k2,2n |
-                   cut -f 1-3 > %(outfile)s'''
+                   cat %(dir_name)s/merge/*.bed
+                   '''
+    
+    if P.PARAMS.get('lanceotron_filter') not in [None, '', 'None']:
+
+        statement += '''| python /home/nuffmed/asmith/Data/Projects/chipseq_pipeline/filter_tsv.py
+                        -
+                        --col_names %(tsv_header)s
+                        -q "%(lanceotron_filter)s"
+                        '''
+
+    statement += '| sort -k1,1 -k2,2n | cut -f 1-3 > %(outfile)s'
+
+                   
     
     P.run(statement,
           job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory']
+          job_memory = P.PARAMS['memory'],
+          job_condaenv=P.PARAMS["conda_env"]
          )
 
 
-@active_if(use_macs2)
+@active_if(use_macs3)
 @transform(call_peaks, regex(r'peaks/(.*).narrowPeak'), r'peaks/\1.bed')
 def convert_narrowpeak_to_bed(infile, outfile):
     
     statement = '''awk '{OFS="\\t"; print $1,$2,$3,$4}' %(infile)s > %(outfile)s'''
     
     P.run(statement,
-          job_queue  = P.PARAMS['queue'])
+          job_queue  = P.PARAMS['queue'],
+          job_condaenv=P.PARAMS["conda_env"])
     
 @transform([convert_narrowpeak_to_bed, call_peaks_lanceotron],
            regex(r'peaks/(.*).bed'),
@@ -320,7 +393,8 @@ def convert_bed_to_bigbed(infile, outfile):
     
     statement = '''bedToBigBed %(infile)s %(genome_chrom_sizes)s %(outfile)s'''
     P.run(statement,
-          job_queue  = P.PARAMS['queue'])
+          job_queue  = P.PARAMS['queue'],
+          job_condaenv=P.PARAMS["conda_env"])
         
 @follows(mkdir(hub_dir), 
          mkdir(assembly_dir), 
@@ -402,8 +476,14 @@ def link_hub_files(infile, outfile):
     os.symlink(infile_fp, outfile)
 
 
+
+def run_pipeline():
+    sys.exit( P.main(sys.argv) )
+
+
 if __name__ == "__main__":
     sys.exit( P.main(sys.argv) )
+    
 
 
 
