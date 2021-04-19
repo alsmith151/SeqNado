@@ -1,0 +1,21 @@
+name: chip
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  - cgatcore
+  - bowtie2
+  - samtools
+  - deeptools
+  - trim-galore
+  - macs2
+  - macs3
+  - fastqc
+  - multiqc
+  - trackhub
+  - seaborn
+  - click
+  
