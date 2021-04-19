@@ -12,10 +12,12 @@ dependencies:
   - deeptools
   - trim-galore
   - macs2
-  - macs3
   - fastqc
   - multiqc
   - trackhub
   - seaborn
   - click
   - ucsc-bigbedtobed
+
+pip:
+  - macs3
