@@ -27,7 +27,7 @@ from ruffus import (
     active_if,
 )
 from cgatcore.iotools import zap_file
-from .utils import is_none, is_on
+from utils import is_none, is_on
 
 
 ##################
@@ -420,4 +420,13 @@ def make_ucsc_hub(infile, outfile):
 
 
 if __name__ == "__main__":
-    sys.exit(P.main(sys.argv))
+    
+    if ("-h" in sys.argv or "--help" in sys.argv):  # If --help then just run the pipeline without setup
+        P.main(sys.argv)
+    
+    elif not 'make' in sys.argv:
+        P.main(sys.argv)
+    
+    elif 'make' in sys.argv:
+        fastq_format()
+        P.main(sys.argv)
