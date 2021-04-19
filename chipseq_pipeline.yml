@@ -1,27 +1,107 @@
-queue: batchq
-threads: 12
-memory: 4G
-use_lanceotron: True
-trim:
-    options: --length 21
-bowtie2:
-    options: --very-sensitive
-    index: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome  
+###################################
+# Essential configuration options #
+###################################
+
 genome:
-    size: 2864785220
-    fasta: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa
-    fai: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa.fai
-    chrom_sizes: /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/chr_sizes.txt
-macs2:
-    options:
-lanceotron:
-    options: -t 4 -w 400 -m /t1-data/user/lhentges/lanceotron/models/baseModel_categories.h5 -c 12
+    
+    # Name of genome. UCSC genome names are prefered. Custom names are accepted if chrom_sizes are provided
+    name: mm9
+
+    # Path to blacklisted regions bed file. Entry can be left blank.
+    blacklist: 
+
+aligner:
+
+    # Aligner to use. Both bowtie and bowtie2 are supported but bowtie2 is prefered.
+    aligner: bowtie2
+
+    # Path to indicies for the specified aligner (default = bowtie2)
+    # Note: Do not include .Number|rev.bt2
+    # e.g. /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome
+    index: PATH_TO_ALIGNER_INDICIES
+
+    # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
+    options: -p 6 --very-sensitive
+
+alignments:
+
+    # Determines if duplicates are removed from bam files
+    deduplicate: True
+
+    # Options passed to deeptools alignmentSieve. Note: DO NOT include --ignore-duplicates.
+    filter_options:
+
+
 bigwig:
-    smoothing_window: 200
+
+    # Turns of bigwig generation
+    create: True
+
+    # Options passed to deeptools BamCoverage
+    options: -extendReads -bs 1 --normalizeUsing RPKM
+
+peaks:
+    # Determines if peaks are called or not
+    call: True
+    
+    # Determines peak caller
+    caller: macs3
+
+    # Peak caller options. NOTE: Must include the genome -g option with the correct genome size or name.
+    # e.g. -g hs 
+    options:
+
+
 hub:
-    publoc: /public/asmith/chip_seq_reprocessed/
-    name: ChIP-seq_reprocessed
-    genome: hg19
-    short: ChIP seq hub
-    long: ChIP seq hub re-mapped and re-peak called for consisency
-    email: alastair.smith@ndcls.ox.ac.uk
+    
+    # Determines if hub is created or not.
+    # True|False 
+    create: True
+    
+    # Url/IP of server to host bigWigs
+    url: http://userweb.molbiol.ox.ac.uk/
+    
+    # Location of publically accessible location on the server
+    dir: HUB_DIR 
+    
+    # Name for the hub (UCSC required)
+    name: chipseq_test 
+    
+    # Short hub name (UCSC required)
+    short: chipseq new pipeline 
+    
+    # Long hub name (UCSC required)
+    long: chipseq processed with the new python pipeline 
+    
+    # Email address (UCSC required)
+    email: alastair.smith@ndcls.ox.ac.uk 
+    
+
+#############################
+# Essential cluster options #
+#############################
+
+pipeline:
+
+    # Cluster manager used. e.g. SLURM, SunGrid Engine, etc.
+    cluster_queue_manager: slurm
+
+    # Name of queue to use. This will be cluster specific.
+    cluster_queue: batch
+    
+    # Maximum number of cores to use per task. (~ 4 works best)
+    n_cores: 4
+
+    # Maximum memory avalible per job.
+    memory: 8G
+
+
+############
+# OPTIONAL #
+############
+
+trim:
+
+    # Options passed to trim_galore
+    options: --length 21 
+

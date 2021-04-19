@@ -37,12 +37,9 @@ from .utils import is_none, is_on
 # Read in parameter file
 P.get_parameters("chipseq_pipeline.yml")
 
-# Global variables
-CALL_PEAKS = False
-CREATE_HUB = False
 
 # Small edits to config to enable cluster usage
-P.PARAMS["cluster_queue_manager"] = P.PARAMS.get("pipeline_queue_manager")
+P.PARAMS["cluster_queue_manager"] = P.PARAMS.get("pipeline_cluster_queue_manager")
 P.PARAMS["conda_env"] = os.path.basename(os.environ["CONDA_PREFIX"])
 
 # Make sure that params dict is typed correctly
@@ -51,6 +48,13 @@ for key in P.PARAMS:
         P.PARAMS[key] = None
     elif is_on(P.PARAMS):
         P.PARAMS[key] = True
+
+
+# Global variables
+CREATE_BIGWIGS = P.PARAMS.get('bigwigs_create')
+CALL_PEAKS = P.PARAMS.get('peaks_call')
+CREATE_HUB = P.PARAMS.get('hub_create')
+
 
 
 def fastq_format():
