@@ -1,509 +1,419 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jan 23 10:47:03 2020
+Pipeline to process ChIP-seq data from fastq to bigWig generation.
 
-@author: asmith
+In order to run correctly, input files are required to be in the format: 
+
+SampleName1_(Input|AntibodyUsed)_(R)1|2.fastq.gz
+
 """
 
 # import packages
 import sys
 import os
-import re
-import gzip
 import seaborn as sns
 import glob
 from cgatcore import pipeline as P
-from ruffus import mkdir, follows, transform, merge, originate, collate, split, regex, add_inputs, suffix, active_if
+from ruffus import (
+    mkdir,
+    follows,
+    transform,
+    merge,
+    originate,
+    collate,
+    regex,
+    add_inputs,
+    active_if,
+)
 from cgatcore.iotools import zap_file
-import click
+from .utils import is_none, is_on
+
+
+##################
+# Pipeline setup #
+##################
 
 # Read in parameter file
-P.get_parameters('chipseq_pipeline.yml')
+P.get_parameters("chipseq_pipeline.yml")
 
 # Global variables
-use_lanceotron = True if P.PARAMS['use_lanceotron'] else False
-use_macs3 = True if not use_lanceotron else False
-hub_dir = os.path.join(P.PARAMS["hub_publoc"], P.PARAMS['hub_name'])
-assembly_dir = os.path.join(hub_dir, P.PARAMS['hub_genome'])
+CALL_PEAKS = False
+CREATE_HUB = False
 
-# Hack to enable slurm cluster
-P.PARAMS['cluster_queue_manager'] = 'slurm'
-P.PARAMS["conda_env"] = P.PARAMS.get(
-    "conda_env", os.path.basename(os.environ["CONDA_PREFIX"])
-)
+# Small edits to config to enable cluster usage
+P.PARAMS["cluster_queue_manager"] = P.PARAMS.get("pipeline_queue_manager")
+P.PARAMS["conda_env"] = os.path.basename(os.environ["CONDA_PREFIX"])
+
+# Make sure that params dict is typed correctly
+for key in P.PARAMS:
+    if is_none(P.PARAMS[key]):
+        P.PARAMS[key] = None
+    elif is_on(P.PARAMS):
+        P.PARAMS[key] = True
 
 
-'''Requires input files to be in the format: .*_[input|.*]_[1|2]'''
+def fastq_format():
+    """Ensures that all fastq are named correctly
+    """
 
-@follows(mkdir('fastqc'))
-@transform('*.fastq.gz', 
-           regex(r'(.*).fastq.gz'), 
-           r'fastqc/\1_fastqc.zip')
+    if os.path.exists('fastq'):
+        os.mkdir('fastq')
+
+    fastqs = dict()
+    for fq in glob.glob('*.fastq*'):
+        fq_renamed =  (fq.replace('Input', 'input')
+                        .replace('INPUT', 'input'))
+        
+        fastqs[os.path.abspath(fq)] = os.path.join('fastq', fq_renamed)
+
+    for src, dest in fastqs.items():
+        if not os.path.exists(dest):
+            os.symlink(src, dest)
+
+
+#############
+# Read QC   #
+#############
+
+
+@follows(mkdir("statistics"), mkdir("statistics/fastqc"))
+@transform("*.fastq.gz", regex(r"(.*).fastq.gz"), r"fastqc/\1_fastqc.zip")
 def qc_reads(infile, outfile):
-    '''Quality control of raw sequencing reads'''
-    statement = 'fastqc -q -t %(threads)s --nogroup %(infile)s --outdir fastqc'
-    P.run(statement, 
-          job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'],
-          job_condaenv=P.PARAMS["conda_env"])
+
+    """Quality control of raw sequencing reads"""
+
+    statement = "fastqc -q -t %(pipeline_n_cores)s --nogroup %(infile)s --outdir statstics/fastqc"
+
+    P.run(
+        statement,
+        job_queue=P.PARAMS["queue"],
+        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
-@follows(mkdir('report'))
-@merge(qc_reads, 'report/readqc_report.html')
-def multiqc_reads (infile, outfile):
-    '''Collate fastqc reports into single report using multiqc'''
-    statement = '''export LC_ALL=en_US.UTF-8 &&
+@merge(qc_reads, "statistics/readqc_report.html")
+def multiqc_reads(infile, outfile):
+    """Collate fastqc reports into single report using multiqc"""
+
+    statement = """export LC_ALL=en_US.UTF-8 &&
                    export LANG=en_US.UTF-8 &&
-                   multiqc fastqc/ -o report -n readqc_report.html'''
-    P.run(statement, 
-          job_queue=P.PARAMS['queue'], 
-          job_memory='16G',
-          job_condaenv=P.PARAMS["conda_env"])
-    
-    
-@follows(mkdir('trimmed'))
-@transform('*.fastq.gz', 
-           regex(r'(?!.*_.*_[12])^(.*).fastq.gz'), # Regex negates any filenames matching the paired pattern
-           r'trimmed/\1_trimmed.fq.gz')
-def trim_reads_single(infile, outfile):
-    
-    statement = '''trim_galore --cores %(threads)s %(trim_options)s 
-                  -o trimmed %(infile)s'''
-    P.run(statement, 
-          job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'],
-          job_condaenv=P.PARAMS["conda_env"])
-    
+                   multiqc statistics/fastqc/ -o statistics -n readqc_report.html"""
+    P.run(
+        statement,
+        job_queue=P.PARAMS["queue"],
+        job_memory="2G",
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
-@collate(r'*.fastq.gz',
-         regex(r'(.*)_[1|2].fastq.gz'), 
-         r'trimmed/\1_1_val_1.fq.gz')
-def trim_reads_paired(infiles, outfile):
-    '''Trim adaptor sequences using Trim-galore in paired end mode'''
-    fastq1, fastq2 = infiles
-    statement = '''trim_galore --cores %(threads)s --paired %(trim_options)s 
-                  -o trimmed %(fastq1)s %(fastq2)s'''
-    P.run(statement, 
-          job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'],
-          job_condaenv=P.PARAMS["conda_env"])
-    
 
-@follows(mkdir('bam'), trim_reads_single)
-@transform(trim_reads_single, 
-           regex(r'trimmed/(.*)_trimmed.fq.gz'), 
-           r'bam/\1.bam')
-def align_reads_single(infile, outfile):
-    ''' Aligns digested fq files using bowtie2'''
-    
-    sorted_bam = outfile.replace('.bam', '_sorted.bam')
-    blacklist = ''
-        
-    if 'bowtie2_options' in P.PARAMS.keys():
-        options = P.PARAMS['bowtie2_options'] if P.PARAMS['bowtie2_options'] else ' '
-    
-    if 'genome_blacklist' in P.PARAMS.keys():
-        blacklist = P.PARAMS['genome_blacklist']
-    
-    
-    statement = ['bowtie2 -x %(bowtie2_index)s -U %(infile)s -p %(threads)s %(options)s |',
-                 'samtools view -b - > %(outfile)s &&',
-                 'samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s']
-    
+######################
+# Fastq processing   #
+######################
+
+
+@follows(mkdir("statistics/trimming/data"))
+@collate(
+    "fastq/*.fastq*",
+    regex(r"(.*)_[12].fastq(?:.gz)?"),
+    r"ccanalyser_preprocessing/trimmed/\1_1_val_1.fq.gz",
+)
+def fastq_trim(infiles, outfile):
+
+    """Trim adaptor sequences from fastq files using trim_galore"""
+
+    fq1, fq2 = infiles
+    fq1_basename, fq2_basename = os.path.basename(fq1), os.path.basename(fq2)
+
+    outdir = os.path.dirname(outfile)
+    trim_options = (
+        P.PARAMS["trim_options"] if not is_none(P.PARAMS["trim_options"]) else ""
+    )
+    statement = """trim_galore
+                   --cores %(pipeline_n_cores)s
+                   --paired %(trim_options)s
+                   --gzip
+                   --dont_gzip
+                   -o %(outdir)s
+                   %(fq1)s
+                   %(fq2)s
+                   && mv ccanalyser_preprocessing/trimmed/%(fq1_basename)s_trimming_report.txt statistics/trimming/data
+                   && mv ccanalyser_preprocessing/trimmed/%(fq2_basename)s_trimming_report.txt statistics/trimming/data
+                   """
+    P.run(
+        statement,
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+
+###############
+# Alignment   #
+###############
+
+
+@follows(mkdir("bam"), fastq_trim)
+@collate(
+    "trimmed/*.fq*", regex(r"trimmed/(.*)_[1|2]_val_[1|2].fq(?:.gz)?"), r"bam/\1.bam"
+)
+def fastq_align(infiles, outfile):
+
+    """Aligns fq files using bowtie2 before conversion to bam file using
+    Samtools view. Bam file is then sorted and the unsorted bam file is replaced"""
+
+    fq1, fq2 = infiles
+    basename = os.path.basename(outfile).replace(".bam")
+    sorted_bam = outfile.replace(".bam", "_sorted.bam")
+
+    aligner = P.PARAMS.get("aligner_aligner", "bowtie2")
+    aligner_options = P.PARAMS.get("aligner_options", "")
+    blacklist = P.PARAMS.get("genome_blacklist", "")
+
+    statement = [
+        "%(aligner_aligner)s %(aligner_index)s -1 %(fq1)s -2 %(fq2)s %(options)s "
+        "2> statistics/alignment/%(basename)s.log |",
+        "samtools view -b - > %(outfile)s &&",
+        "samtools sort -@ %(pipeline_n_cores)s -m 5G -o %(sorted_bam)s %(outfile)s",
+    ]
+
     if blacklist:
         # Uses bedtools intersect to remove blacklisted regions
-        statement.append(''' && bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
-                          rm -f %(sorted_bam)s''')
-    else:
-        statement.append('&& mv %(sorted_bam)s %(outfile)s')
-    
-    P.run(' '.join(statement), 
-          job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'],
-          job_condaenv=P.PARAMS["conda_env"])
-    
-    zap_file(infile)
+        statement.append(
+            "&& bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s"
+        )
+        statement.append("&& rm -f %(sorted_bam)s")
 
-
-   
-@follows(mkdir('bam'), trim_reads_paired)
-@collate('trimmed/*.fq.gz', 
-         regex(r'trimmed/(.*)_[1|2]_val_[1|2].fq.gz'), 
-         r'bam/\1.bam')
-def align_reads_paired(infiles, outfile):
-    
-    ''' Aligns fq files using bowtie2 before conversion to bam file using
-        Samtools view. Bam file is then sorted and the unsorted bam file is replaced'''
-    
-    fq1, fq2 = infiles   
-    sorted_bam = outfile.replace('.bam', '_sorted.bam')
-    options = ''
-    blacklist= None
-        
-    if P.PARAMS.get('bowtie2_options') not in [None, 'None', '']:
-        options = P.PARAMS['bowtie2_options']
-    
-    if 'genome_blacklist' in P.PARAMS.keys():
-        blacklist = P.PARAMS['genome_blacklist']
-    
-    
-    statement = ['bowtie2 -x %(bowtie2_index)s -1 %(fq1)s -2 %(fq2)s -p %(threads)s %(options)s |',
-                 'samtools view -b - > %(outfile)s &&',
-                 'samtools sort -@ %(threads)s -m 5G -o %(sorted_bam)s %(outfile)s']
-    
-    if blacklist:
-        # Uses bedtools intersect to remove blacklisted regions
-        statement.append('''&& bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s &&
-                          rm -f %(sorted_bam)s''')
     else:
-        statement.append('&& mv %(sorted_bam)s %(outfile)s')
-    
-    P.run(' '.join(statement), 
-          job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'],
-          job_condaenv=P.PARAMS["conda_env"])
-    
+        statement.append("&& mv %(sorted_bam)s %(outfile)s")
+
+    P.run(
+        " ".join(statement),
+        job_queue=P.PARAMS["queue"],
+        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+    # Zeros the trimmed fastq files
     for fn in infiles:
         zap_file(fn)
 
 
-@transform([align_reads_single, align_reads_paired], 
-           regex(r'bam/(.*)'),
-           r'bam/\1.bai')
-def create_bam_file_index(infile, outfile):
-    """Bam files are compressed. The index allows fast access to different
-    slices of the file."""
-    statement = 'samtools index %(infile)s'
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'],
-          job_condaenv=P.PARAMS["conda_env"])
+@transform(fastq_align, regex(r"bam/(.*)"), r"bam/\1.bai")
+def create_bam_index(infile, outfile):
+    """Creates an index for the bam file"""
+
+    statement = "samtools index %(infile)s"
+
+    P.run(
+        statement,
+        job_queue=P.PARAMS["queue"],
+        job_memory=P.PARAMS["memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
-@transform([align_reads_single, align_reads_paired], 
-           regex(r'bam/(.*).bam'), 
-           r'bam/\1.picard.metrics')
-def mapping_qc(infile, outfile):
-    '''Uses picard CollectAlignmentSummaryMetrics to get mapping information.'''
-    
-    cmd = ['picard CollectAlignmentSummaryMetrics',
-           'R=%(genome_fasta)s I=%(infile)s O=%(outfile)s',
-           '&> %(outfile)s.log',
-           ]
-    
-    statement = ' '.join(cmd)
-         
-    P.run(statement, 
-          job_queue=P.PARAMS['queue'],
-          job_condaenv=P.PARAMS["conda_env"])
+##############
+# Mapping QC #
+##############
 
-@merge(mapping_qc, 'report/mapping_report.html')
-def mapping_multiqc (infile, outfile):
-    '''Combines mapping metrics using multiqc'''
-    statement = '''export LC_ALL=en_US.UTF-8 &&
+
+@originate("report/mapping_report.html")
+def alignments_multiqc(infile, outfile):
+
+    """Combines mapping metrics using multiqc"""
+
+    statement = """export LC_ALL=en_US.UTF-8 &&
                    export LANG=en_US.UTF-8 &&
-                   multiqc bam/ -o report -n mapping_report.html'''
-    P.run(statement, 
-          job_queue=P.PARAMS['queue'], 
-          job_memory='16G',
-          job_condaenv=P.PARAMS["conda_env"])
+                   multiqc statistics/alignment/ -o report -n alignment_report.html"""
+    P.run(
+        statement,
+        job_queue=P.PARAMS["queue"],
+        job_memory="2G",
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
-@follows(create_bam_file_index, mkdir('deduplicated'), mkdir('tmp'))    
-@transform(align_reads_paired,
-           regex(r'bam/(.*)'),
-           r'deduplicated/\1')
-def remove_duplicates_paired(infile, outfile):
-    stats = outfile.replace('.bam', '_marked_duplicates.txt')
-    statement = ' '.join(['picard MarkDuplicates',
-                          'I=%(infile)s',
-                          'O=%(outfile)s',
-                          'M=%(stats)s',
-                          'REMOVE_DUPLICATES=true',
-                          'REMOVE_SEQUENCING_DUPLICATES=true',
-                          'CREATE_INDEX=true',
-                          'TMP_DIR=tmp/'])
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'],
-          job_condaenv=P.PARAMS["conda_env"])
-
-@follows(create_bam_file_index, mkdir('deduplicated'), mkdir('tmp'))    
-@transform(align_reads_single,
-           regex(r'bam/(.*)'),
-           r'deduplicated/\1')
-def remove_duplicates_single(infile, outfile):
-    stats = outfile.replace('.bam', '_marked_duplicates.txt')
-    statement = ' '.join(['picard MarkDuplicates',
-                          'I=%(infile)s',
-                          'O=%(outfile)s',
-                          'M=%(stats)s',
-                          'REMOVE_DUPLICATES=true',
-                          'REMOVE_SEQUENCING_DUPLICATES=true',
-                          'CREATE_INDEX=true',
-                          'TMP_DIR=tmp/'])
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'],
-          job_condaenv=P.PARAMS["conda_env"])
+#####################
+# Remove duplicates #
+#####################
 
 
+@follows(create_bam_index, mkdir("bam_processed"))
+@transform(fastq_align, regex(r"bam/(.*.bam)"), r"bam_processed/\1")
+def alignments_filter(infile, outfile):
+    """Remove duplicate fragments from bam file."""
 
-@follows(mkdir('bigwigs'))
-@transform(remove_duplicates_paired, regex(r'deduplicated/(.*).bam'), r'bigwigs/\1.bigWig')
-def make_bigwig_paired(infile, outfile):
-    
-    cmd = [ 'bamCoverage', 
-            '-b', infile, 
-            '-o', outfile,
-            '-p', '%(threads)s',
-            '%(bigwig_options)s']
-    
-    statement = ' '.join(cmd)
-    
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'],
-          job_threads=P.PARAMS['threads'],
-          job_condaenv=P.PARAMS["conda_env"])
-    
-@follows(mkdir('bigwigs'))
-@transform(remove_duplicates_single, regex(r'deduplicated/(.*).bam'), r'bigwigs/\1.bigWig')
-def make_bigwig_single(infile, outfile):
-    
-    cmd = [ 'bamCoverage', 
-            '-b', infile, 
-            '-o', outfile,
-            '-p', '%(threads)s',
-            '%(bigwig_options)s']
-    
-    statement = ' '.join(cmd)
-    
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'],
-          job_threads=P.PARAMS['threads'],
-          job_condaenv=P.PARAMS["conda_env"])   
-    
+    alignments_deduplicate = (
+        "--ignoreDuplicates" if P.PARAMS.get("alignments_deduplicate") else ""
+    )
+    alignments_filter_options = P.PARAMS.get("alignment_filter_options", "")
 
+    if alignments_deduplicate or alignments_filter_options:
 
-@follows(mkdir('peaks'))
-@active_if(use_macs3)
-@transform([remove_duplicates_single, remove_duplicates_paired], 
-           regex(r'deduplicated/(.*)_(?!input|Input|INPUT)(.*).bam'),
-           r'peaks/\1_\2_peaks.narrowPeak')
-def call_peaks(infile, outfile):
-    
-    treatment = infile
-    treatment_name = os.path.basename(treatment).split('_')[0]
-    file_base = outfile.replace('_peaks.narrowPeak', '')
-    macs_options = ' '
-    
-    if P.PARAMS['macs_options']:
-        macs_options = P.PARAMS['macs2_options']
+        statement = [
+            "alignmentSieve",
+            "-b",
+            infile,
+            "-o",
+            outfile,
+            "-p",
+            "%(pipeline_n_cores)s",
+            alignments_deduplicate,
+            alignments_filter_options,
+            "&& samtools sort -o %(outfile)s.tmp %(outfile)s -@ %(pipeline_n_cores)s",
+            "&& mv %(outfile)s.tmp %(outfile)s",
+            "&& samtools index %(outfile)s",
+            "&& rm -f %(outfile)s.tmp",
+        ]
 
-    statement = '''macs3 callpeak %(macs_options)s -g %(genome_size)s 
-                  -t %(treatment)s -n %(file_base)s'''
-    
-    
-    control_files = glob.glob(f'deduplicated/{treatment_name}_input.bam')
-    if control_files:
-        control = control_files[0]
-        statement += ' -c %(control)s'
-      
+    else:
+        infile_abspath = os.path.abspath(infile)
+        statement = [
+            "ln -s %(infile_abspath)s %(outfile)s",
+            "&& ln -s %(infile_abspath)s.bai %(outfile)s.bai",
+        ]
 
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'],
-          job_condaenv=P.PARAMS["conda_env"])
+    P.run(
+        " ".join(statement),
+        job_queue=P.PARAMS["queue"],
+        job_memory=P.PARAMS["memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
-
-@active_if(use_lanceotron)
-@transform([make_bigwig_paired, make_bigwig_single],
-           regex(r'bigwigs/(.*)_(?!input|Input|INPUT)(.*).bigWig'),
-           r'peaks/\1_\2_lanceotron_peaks.bed')
-def call_peaks_lanceotron(infile, outfile):
-    
-    lanceotron_options = ' '
-    if P.PARAMS['lanceotron_options']:
-        lanceotron_options = P.PARAMS['lanceotron_options']
-    
-    
-    base_name = os.path.basename(infile).replace('.bigWig', '')
-    dir_name = f'peaks/{base_name.replace("_lanceotron_peaks.bed", "")}/'
+###########
+# BigWigs #
+###########
 
 
-    # Switching to using a filtered peakset (currently 18.11.20 using all called)
-    # Columns of called peaks are:
-    header = ['chrom',
-             'start',
-             'end',
-             'H3K4me1_score',
-             'noise_score',
-             'ATAC_score',
-             'H3K4me3_score',
-             'TF_score',
-             'H3K27ac_score']
-    
-    tsv_header = ' '.join(header)
+@follows(mkdir("bigwigs"))
+@transform(alignments_filter, regex(r"deduplicated/(.*).bam"), r"bigwigs/\1.bigWig")
+def alignments_pileup(infile, outfile):
+
+    cmd = [
+        "bamCoverage",
+        "-b",
+        infile,
+        "-o",
+        outfile,
+        "-p",
+        "%(pipeline_n_cores)s",
+        "%(bigwig_options)s",
+    ]
+
+    statement = " ".join(cmd)
+
+    P.run(
+        statement,
+        job_queue=P.PARAMS["queue"],
+        job_memory=P.PARAMS["memory"],
+        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
-    
-    statement = '''rm -rf %(dir_name)s/merge/ &&
-                   python /t1-data/user/lhentges/lanceotron/lanceotron_genome.py
-                   %(lanceotron_options)s -f %(dir_name)s %(infile)s &&
-                   cat %(dir_name)s/merge/*.bed
-                   '''
-    
-    if P.PARAMS.get('lanceotron_filter') not in [None, '', 'None']:
+##############
+# Call peaks #
+##############
 
-        statement += '''| python /home/nuffmed/asmith/Data/Projects/chipseq_pipeline/filter_tsv.py
-                        -
-                        --col_names %(tsv_header)s
-                        -q "%(lanceotron_filter)s"
-                        '''
+@active_if(P.PARAMS.get('peaks_call'))
+@follows(mkdir("peaks"))
+@transform(
+    alignments_filter,
+    regex(r"bam_processed/(.*)_(?!input)(.*).bam"),
+    r"peaks/\1_\2_peaks.narrowPeak",
+    extras=[r'\1', r'\2']
+)
+def call_peaks(infile, outfile, samplename, antibody):
 
-    statement += '| sort -k1,1 -k2,2n | cut -f 1-3 > %(outfile)s'
+    peaks_options = P.PARAMS.get('peaks_options')
+    input_file = f'bam_processed/{samplename}_input.bam'
 
-                   
-    
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_memory = P.PARAMS['memory'],
-          job_condaenv=P.PARAMS["conda_env"]
-         )
+    statement = ['%(peaks_caller)s callpeak -t %(infile)s -n %(samplename)s_%(antibody)s --outdir peaks/']
+
+    if os.path.exists(input_file):
+        statement.append('-c %(input_file)s')
+
+    P.run(
+        statement,
+        job_queue=P.PARAMS["queue"],
+        job_memory=P.PARAMS["memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
-@active_if(use_macs3)
-@transform(call_peaks, regex(r'peaks/(.*).narrowPeak'), r'peaks/\1.bed')
+#######################
+# UCSC hub generation #
+#######################
+
+@transform(call_peaks, regex(r"peaks/(.*).narrowPeak"), r"peaks/\1.bed")
 def convert_narrowpeak_to_bed(infile, outfile):
-    
-    statement = '''awk '{OFS="\\t"; print $1,$2,$3,$4}' %(infile)s > %(outfile)s'''
-    
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_condaenv=P.PARAMS["conda_env"])
-    
-@transform([convert_narrowpeak_to_bed, call_peaks_lanceotron],
-           regex(r'peaks/(.*).bed'),
-           r'peaks/\1.bigBed')    
+
+    statement = """awk '{OFS="\\t"; print $1,$2,$3,$4}' %(infile)s > %(outfile)s"""
+
+    P.run(statement, job_queue=P.PARAMS["queue"], job_condaenv=P.PARAMS["conda_env"])
+
+
+@transform(
+    convert_narrowpeak_to_bed,
+    regex(r"peaks/(.*).bed"),
+    r"peaks/\1.bigBed",
+)
 def convert_bed_to_bigbed(infile, outfile):
+
+    statement = """bedToBigBed %(infile)s %(genome_chrom_sizes)s %(outfile)s"""
+    P.run(statement, job_queue=P.PARAMS["queue"], job_condaenv=P.PARAMS["conda_env"])
+
+
+
+@merge([alignments_pileup, convert_bed_to_bigbed], 
+           regex(r'(.*).(?:bigWig|bigBed)'), 
+           os.path.join(P.PARAMS.get("hub_dir", ""), P.PARAMS.get("hub_name", "") + ".hub.txt"),
+       )
+def make_ucsc_hub(infile, outfile):
+
+    import trackhub
+
+    hub, genomes_file, genome, trackdb = trackhub.default_hub(
+            hub_name=P.PARAMS["hub_name"],
+            short_label=P.PARAMS.get("hub_short"),
+            long_label=P.PARAMS.get("hub_long"),
+            email=P.PARAMS["hub_email"],
+            genome=P.PARAMS["genome_name"],
+        )
     
-    statement = '''bedToBigBed %(infile)s %(genome_chrom_sizes)s %(outfile)s'''
-    P.run(statement,
-          job_queue  = P.PARAMS['queue'],
-          job_condaenv=P.PARAMS["conda_env"])
+    bigwigs = [fn for fn in infile if '.bigWig' in fn]
+    bigbeds = [fn for fn in infile if '.bigBed' in fn]
+
+    for bw in bigwigs:
         
-@follows(mkdir(hub_dir), 
-         mkdir(assembly_dir), 
-         make_bigwig_single, 
-         make_bigwig_paired, 
-         convert_bed_to_bigbed)
-@originate(os.path.join(hub_dir, 'hub.txt'))
-def generate_hub_metadata(outfile):
+        track = trackhub.Track(
+        name=os.path.basename(bw).replace('.bigWig', ''), 
+        source=bw,      # filename to build this track from
+        visibility='full',  # shows the full signal
+        color='128,0,5',    # brick red
+        autoScale='on',     # allow the track to autoscale
+        tracktype='bigWig', # required when making a track
+        )
 
-    content = {'hub': P.PARAMS['hub_name'],
-               'shortLabel': P.PARAMS['hub_short'] if P.PARAMS['hub_short'] else P.PARAMS['hub_name'],
-               'longLabel': P.PARAMS['hub_long'] if P.PARAMS['hub_long'] else P.PARAMS['hub_name'],
-               'genomesFile': 'genomes.txt',
-               'email': P.PARAMS['hub_email'],
-               'descriptionUrl': f'http://userweb.molbiol.ox.ac.uk/{P.PARAMS["hub_publoc"].strip("/")}',
-               }
-
-    with open(outfile, 'w') as w:
-        for label, info in content.items():
-            w.write(f'{label} {info}\n')
-
-@transform(generate_hub_metadata, regex(r'.*.txt'), 'hub_address.txt')
-def get_hub_address(infile, outfile):
-    with open(outfile, 'w') as w:
-        w.write(f'http://userweb.molbiol.ox.ac.uk/{os.path.abspath(infile).lstrip("/")}')
-
-@follows(generate_hub_metadata)
-@originate(os.path.join(hub_dir, 'genomes.txt'))
-def generate_assembly_metadata(outfile):
-
-    content = {'genome': P.PARAMS['hub_genome'],
-               'trackDb': os.path.join(P.PARAMS['hub_genome'], 'trackDb.txt')}
-
-    with open(outfile, 'w') as w:
-        for label, info in content.items():
-            w.write(f'{label} {info}\n')
-
-
-@follows(generate_hub_metadata, mkdir(assembly_dir))
-@merge([make_bigwig_single, 
-        make_bigwig_paired,
-        convert_bed_to_bigbed], 
-       f'{assembly_dir}/trackDb.txt')
-def generate_trackdb_metadata(infiles, outfile):
-    def get_track_data(fn):
-        return {'track': fn,
-                'bigDataUrl': f'http://userweb.molbiol.ox.ac.uk/{(os.path.join(assembly_dir, fn)).lstrip("/")}',
-                'shortLabel': fn,
-                'longLabel': fn,
-                'type': f'{fn.split(".")[-1]}',
-                'autoscale': 'on',
-                'windowingFunction': 'mean',
-                }
-     
-    # Generate all separate tracks
-    bigwig_tracks_all = [get_track_data(os.path.basename(fn)) for fn in infiles]
+        trackdb.add_tracks(track)
     
-    # Add colours to tracks
-    colors = sns.color_palette('husl', len(bigwig_tracks_all))
-    for track, color in zip(bigwig_tracks_all, colors):
-        track['color'] = ','.join([str(c * 255) for c in color])
+    for bb in bigbeds:
+        track = trackhub.Track(
+        name=os.path.basename(bb).replace('.bigBed', ''), 
+        source=bb,      # filename to build this track from
+        color='0,0,0',    # brick red
+        tracktype='bigBed', # required when making a track
+        )
+
+        trackdb.add_tracks(track)
     
-    
-    # Write track data separated
-    with open(outfile, 'w') as w:
-        for track in bigwig_tracks_all:
-            for label, data in track.items():
-                w.write(f'{label} {data}\n')
-            # Need to separate each track with a new line
-            w.write('\n')
 
-@follows(generate_trackdb_metadata)
-@transform([make_bigwig_single, make_bigwig_paired, convert_bed_to_bigbed],
-           regex(r'(peaks|bigwigs)/(.*)'),
-           f'{assembly_dir}/' + r'\2')
-def link_hub_files(infile, outfile):
-        
-    infile_fp = os.path.abspath(infile)
-    os.symlink(infile_fp, outfile)
+    trackhub.upload.stage_hub(hub, P.PARAMS['hub_dir'])
 
-
-
-def run_pipeline():
-    sys.exit( P.main(sys.argv) )
 
 
 if __name__ == "__main__":
-    sys.exit( P.main(sys.argv) )
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    sys.exit(P.main(sys.argv))
