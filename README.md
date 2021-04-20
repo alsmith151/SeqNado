@@ -47,10 +47,12 @@ export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so
 1. Create a working directory
 
 
-To run the pipeline you will need to create a working directory for the pipeline run::
+To run the pipeline you will need to create a working directory for the pipeline run:
 
-   mkdir RS411_EPZ5676/
-   cd RS411_EPZ5676/
+```
+mkdir RS411_EPZ5676/
+cd RS411_EPZ5676/
+```
 
 The pipeline will be executed here and all files will be generated
 in this directory.
@@ -69,11 +71,13 @@ wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config.yml
 
 This [yaml](https://yaml.org/spec/1.2/spec.html) file can be edited using standard text editors e.g.
 
-    # To use gedit
-    gedit config.yml
+```
+# To use gedit
+gedit config.yml
 
-    # To use nano
-    nano config.yml
+# To use nano
+nano config.yml
+```
 
 
 
