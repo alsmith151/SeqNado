@@ -50,7 +50,6 @@ for key in P.PARAMS:
     elif is_on(P.PARAMS):
         P.PARAMS[key] = True
 
-breakpoint()
 # Global variables
 CREATE_BIGWIGS = P.PARAMS.get('bigwig_create')
 CALL_PEAKS = P.PARAMS.get('peaks_call')
