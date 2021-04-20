@@ -61,7 +61,7 @@ def fastq_format():
     """Ensures that all fastq are named correctly
     """
 
-    if os.path.exists('fastq'):
+    if not os.path.exists('fastq'):
         os.mkdir('fastq')
 
     fastqs = dict()
