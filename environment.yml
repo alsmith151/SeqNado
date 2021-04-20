@@ -1,4 +1,4 @@
-name: chip
+name: ngs
 channels:
   - bioconda
   - conda-forge
