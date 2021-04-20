@@ -66,7 +66,7 @@ def set_up():
 
 def test_pipeline():
 
-    cmd = "chipseq_pipeline make --local -p 4"
+    cmd = "ngs-pipeline make --local -p 4"
     completed = subprocess.run(cmd.split())
 
     assert completed.returncode == 0
