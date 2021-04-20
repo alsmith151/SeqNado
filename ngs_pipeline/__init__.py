@@ -15,7 +15,7 @@ def cli(mode, pipeline_options, help=False):
     '''Runs the data processing pipeline'''   
 
     cmd = ['python', 
-           f'{dir_package}/chipseq_pipeline.py', 
+           f'{dir_package}/ngs_pipeline.py', 
            mode,
            ]
     
