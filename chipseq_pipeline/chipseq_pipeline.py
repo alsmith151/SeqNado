@@ -35,7 +35,7 @@ from utils import is_none, is_on
 ##################
 
 # Read in parameter file
-P.get_parameters("chipseq_pipeline.yml")
+P.get_parameters("config.yml")
 
 
 # Small edits to config to enable cluster usage
@@ -87,11 +87,11 @@ def qc_reads(infile, outfile):
 
     """Quality control of raw sequencing reads"""
 
-    statement = "fastqc -q -t %(pipeline_n_cores)s --nogroup %(infile)s --outdir statstics/fastqc"
+    statement = "fastqc -q -t %(pipeline_n_cores)s --nogroup %(infile)s --outdir statistics/fastqc"
 
     P.run(
         statement,
-        job_queue=P.PARAMS["queue"],
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -106,7 +106,7 @@ def multiqc_reads(infile, outfile):
                    multiqc statistics/fastqc/ -o statistics -n readqc_report.html"""
     P.run(
         statement,
-        job_queue=P.PARAMS["queue"],
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory="2G",
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -132,7 +132,7 @@ def fastq_trim(infiles, outfile):
 
     outdir = os.path.dirname(outfile)
     trim_options = P.PARAMS.get("trim_options", '')
-    
+
     statement = """trim_galore
                    --cores %(pipeline_n_cores)s
                    --paired %(trim_options)s
@@ -144,6 +144,7 @@ def fastq_trim(infiles, outfile):
                    && mv ccanalyser_preprocessing/trimmed/%(fq1_basename)s_trimming_report.txt statistics/trimming/data
                    && mv ccanalyser_preprocessing/trimmed/%(fq2_basename)s_trimming_report.txt statistics/trimming/data
                    """
+    
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
@@ -193,7 +194,7 @@ def fastq_align(infiles, outfile):
 
     P.run(
         " ".join(statement),
-        job_queue=P.PARAMS["queue"],
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -211,8 +212,8 @@ def create_bam_index(infile, outfile):
 
     P.run(
         statement,
-        job_queue=P.PARAMS["queue"],
-        job_memory=P.PARAMS["memory"],
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -223,7 +224,7 @@ def create_bam_index(infile, outfile):
 
 
 @originate("report/mapping_report.html")
-def alignments_multiqc(infile, outfile):
+def alignments_multiqc(outfile):
 
     """Combines mapping metrics using multiqc"""
 
@@ -232,7 +233,7 @@ def alignments_multiqc(infile, outfile):
                    multiqc statistics/alignment/ -o report -n alignment_report.html"""
     P.run(
         statement,
-        job_queue=P.PARAMS["queue"],
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory="2G",
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -280,8 +281,8 @@ def alignments_filter(infile, outfile):
 
     P.run(
         " ".join(statement),
-        job_queue=P.PARAMS["queue"],
-        job_memory=P.PARAMS["memory"],
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -310,8 +311,8 @@ def alignments_pileup(infile, outfile):
 
     P.run(
         statement,
-        job_queue=P.PARAMS["queue"],
-        job_memory=P.PARAMS["memory"],
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -341,8 +342,8 @@ def call_peaks(infile, outfile, samplename, antibody):
 
     P.run(
         statement,
-        job_queue=P.PARAMS["queue"],
-        job_memory=P.PARAMS["memory"],
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -356,7 +357,7 @@ def convert_narrowpeak_to_bed(infile, outfile):
 
     statement = """awk '{OFS="\\t"; print $1,$2,$3,$4}' %(infile)s > %(outfile)s"""
 
-    P.run(statement, job_queue=P.PARAMS["queue"], job_condaenv=P.PARAMS["conda_env"])
+    P.run(statement, job_queue=P.PARAMS["pipeline_cluster_queue"], job_condaenv=P.PARAMS["conda_env"])
 
 
 @transform(
@@ -367,7 +368,7 @@ def convert_narrowpeak_to_bed(infile, outfile):
 def convert_bed_to_bigbed(infile, outfile):
 
     statement = """bedToBigBed %(infile)s %(genome_chrom_sizes)s %(outfile)s"""
-    P.run(statement, job_queue=P.PARAMS["queue"], job_condaenv=P.PARAMS["conda_env"])
+    P.run(statement, job_queue=P.PARAMS["pipeline_cluster_queue"], job_condaenv=P.PARAMS["conda_env"])
 
 
 
