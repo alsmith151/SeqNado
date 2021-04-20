@@ -131,9 +131,8 @@ def fastq_trim(infiles, outfile):
     fq1_basename, fq2_basename = os.path.basename(fq1), os.path.basename(fq2)
 
     outdir = os.path.dirname(outfile)
-    trim_options = (
-        P.PARAMS["trim_options"] if not is_none(P.PARAMS["trim_options"]) else ""
-    )
+    trim_options = P.PARAMS.get("trim_options", '')
+    
     statement = """trim_galore
                    --cores %(pipeline_n_cores)s
                    --paired %(trim_options)s
