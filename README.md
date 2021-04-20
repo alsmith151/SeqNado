@@ -22,17 +22,14 @@ cd ngs_pipeline
 3. Generate a new conda environment using the environment.yml file.
 
 ```
-    
-    conda env create -f environment.yml
-    conda activate ngs
-
+conda env create -f environment.yml
+conda activate ngs
 ```
 
 4. Install the pipeline:
 
 ```
 pip install .
-
 ```
 
 5. If you intend to use a cluster e.g. SLURM add the path to the DRMAA interface to your .bashrc:
@@ -44,7 +41,6 @@ echo "export DRMAA_LIBRARY_PATH=/<full-path>/libdrmaa.so" >> ~/.bashrc
 
 # For CBRG users the command to use is:
 export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so
-
 ```
 
 
