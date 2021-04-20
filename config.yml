@@ -38,11 +38,13 @@ bigwig:
     create: True
 
     # Options passed to deeptools BamCoverage
-    options: -extendReads -bs 1 --normalizeUsing RPKM
+    # These need to be replaced
+    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
+    options: BAM_COVERAGE_OPTIONS
 
 peaks:
     # Determines if peaks are called or not
-    call: True
+    call: False
     
     # Determines peak caller
     caller: macs3
