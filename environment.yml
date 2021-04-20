@@ -18,7 +18,7 @@ dependencies:
   - seaborn
   - click
   - ucsc-bigbedtobed
-  - wget
 
 pip:
   - macs3
+  - wget
