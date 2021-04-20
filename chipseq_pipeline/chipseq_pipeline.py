@@ -28,6 +28,7 @@ from ruffus import (
 )
 from cgatcore.iotools import zap_file
 from utils import is_none, is_on
+import re
 
 
 ##################
@@ -294,7 +295,7 @@ def alignments_filter(infile, outfile):
 
 
 @follows(mkdir("bigwigs"))
-@transform(alignments_filter, regex(r"deduplicated/(.*).bam"), r"bigwigs/\1.bigWig")
+@transform(alignments_filter, regex(r".*/(.*).bam"), r"bigwigs/\1.bigWig")
 def alignments_pileup(infile, outfile):
 
     cmd = [
@@ -327,19 +328,24 @@ def alignments_pileup(infile, outfile):
 @follows(mkdir("peaks"))
 @transform(
     alignments_filter,
-    regex(r"bam_processed/(.*)_(?!input)(.*).bam"),
-    r"peaks/\1_\2_peaks.narrowPeak",
-    extras=[r'\1', r'\2']
+    regex(r'.*/(.*?)(?<!input).bam'),
+    r"peaks/\1_peaks.narrowPeak",
 )
-def call_peaks(infile, outfile, samplename, antibody):
+def call_peaks(infile, outfile):
 
     peaks_options = P.PARAMS.get('peaks_options')
-    input_file = f'bam_processed/{samplename}_input.bam'
+    statement = ['%(peaks_caller)s callpeak -t %(infile)s -n %(outfile)s --outdir peaks/']
 
-    statement = ['%(peaks_caller)s callpeak -t %(infile)s -n %(samplename)s_%(antibody)s --outdir peaks/']
+    chipseq_match = re.match(r'.*/(.*)_(.*).bam', infile)
 
-    if os.path.exists(input_file):
-        statement.append('-c %(input_file)s')
+    if chipseq_match:
+        samplename = chipseq_match.group(1)
+        antibody = chipseq_match.group(2)
+        control_file = f'bam_processed/{samplename}_input.bam'
+        
+        if os.path.exists(control_file):
+            statement.append('-c %(input_file)s')
+   
 
     P.run(
         statement,
@@ -423,11 +429,11 @@ def make_ucsc_hub(infile, outfile, *args):
 if __name__ == "__main__":
     
     if ("-h" in sys.argv or "--help" in sys.argv):  # If --help then just run the pipeline without setup
-        P.main(sys.argv)
+        sys.exit(P.main(sys.argv))
     
     elif not 'make' in sys.argv:
-        P.main(sys.argv)
+        sys.exit(P.main(sys.argv))
     
     elif 'make' in sys.argv:
         fastq_format()
-        P.main(sys.argv)
+        sys.exit(P.main(sys.argv))
