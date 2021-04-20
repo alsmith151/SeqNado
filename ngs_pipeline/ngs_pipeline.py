@@ -56,24 +56,23 @@ CREATE_BIGWIGS = P.PARAMS.get('bigwigs_create')
 CALL_PEAKS = P.PARAMS.get('peaks_call')
 CREATE_HUB = P.PARAMS.get('hub_create')
 
+    
+# Ensures that all fastq are named correctly
 
-def fastq_format():
-    """Ensures that all fastq are named correctly
-    """
 
-    if not os.path.exists('fastq'):
-        os.mkdir('fastq')
+if not os.path.exists('fastq'):
+    os.mkdir('fastq')
 
-    fastqs = dict()
-    for fq in glob.glob('*.fastq*'):
-        fq_renamed =  (fq.replace('Input', 'input')
-                        .replace('INPUT', 'input'))
-        
-        fastqs[os.path.abspath(fq)] = os.path.join('fastq', fq_renamed)
+fastqs = dict()
+for fq in glob.glob('*.fastq*'):
+    fq_renamed =  (fq.replace('Input', 'input')
+                    .replace('INPUT', 'input'))
+    
+    fastqs[os.path.abspath(fq)] = os.path.join('fastq', fq_renamed)
 
-    for src, dest in fastqs.items():
-        if not os.path.exists(dest):
-            os.symlink(src, dest)
+for src, dest in fastqs.items():
+    if not os.path.exists(dest):
+        os.symlink(src, dest)
 
 
 #############
