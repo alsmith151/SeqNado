@@ -378,7 +378,7 @@ def convert_bed_to_bigbed(infile, outfile):
     P.run(statement, job_queue=P.PARAMS["pipeline_cluster_queue"], job_condaenv=P.PARAMS["conda_env"])
 
 
-
+@follows(fastq_align, alignments_pileup, alignments_multiqc)
 @merge([alignments_pileup, convert_bed_to_bigbed], 
         regex(r'(.*).(?:bigWig|bigBed)'), 
         os.path.join(P.PARAMS.get("hub_dir", ""), P.PARAMS.get("hub_name", "") + ".hub.txt"),
