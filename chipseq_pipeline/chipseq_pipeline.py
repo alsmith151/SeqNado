@@ -56,7 +56,6 @@ CALL_PEAKS = P.PARAMS.get('peaks_call')
 CREATE_HUB = P.PARAMS.get('hub_create')
 
 
-
 def fastq_format():
     """Ensures that all fastq are named correctly
     """
@@ -82,7 +81,7 @@ def fastq_format():
 
 
 @follows(mkdir("statistics"), mkdir("statistics/fastqc"))
-@transform("*.fastq.gz", regex(r"(.*).fastq.gz"), r"fastqc/\1_fastqc.zip")
+@transform("*.fastq.gz", regex(r"(.*).fastq.gz"), r"statistics/fastqc/\1_fastqc.zip")
 def qc_reads(infile, outfile):
 
     """Quality control of raw sequencing reads"""
@@ -117,11 +116,11 @@ def multiqc_reads(infile, outfile):
 ######################
 
 
-@follows(mkdir("statistics/trimming/data"))
+@follows(mkdir('trimmed'), mkdir("statistics/trimming/data"))
 @collate(
     "fastq/*.fastq*",
-    regex(r"(.*)_[12].fastq(?:.gz)?"),
-    r"ccanalyser_preprocessing/trimmed/\1_1_val_1.fq.gz",
+    regex(r"fastq/(.*)_[12].fastq(?:.gz)?"),
+    r"trimmed/\1_1_val_1.fq",
 )
 def fastq_trim(infiles, outfile):
 
@@ -130,7 +129,7 @@ def fastq_trim(infiles, outfile):
     fq1, fq2 = infiles
     fq1_basename, fq2_basename = os.path.basename(fq1), os.path.basename(fq2)
 
-    outdir = os.path.dirname(outfile)
+    outdir = 'trimmed'
     trim_options = P.PARAMS.get("trim_options", '')
 
     statement = """trim_galore
@@ -141,8 +140,6 @@ def fastq_trim(infiles, outfile):
                    -o %(outdir)s
                    %(fq1)s
                    %(fq2)s
-                   && mv ccanalyser_preprocessing/trimmed/%(fq1_basename)s_trimming_report.txt statistics/trimming/data
-                   && mv ccanalyser_preprocessing/trimmed/%(fq2_basename)s_trimming_report.txt statistics/trimming/data
                    """
     
     P.run(
@@ -158,17 +155,21 @@ def fastq_trim(infiles, outfile):
 ###############
 
 
-@follows(mkdir("bam"), fastq_trim)
+@follows(mkdir("bam"), mkdir('statistics/alignment'), fastq_trim)
 @collate(
-    "trimmed/*.fq*", regex(r"trimmed/(.*)_[1|2]_val_[1|2].fq(?:.gz)?"), r"bam/\1.bam"
+    "trimmed/*.fq", regex(r"trimmed/(.*)_[12]_val_[12].fq"), r"bam/\1.bam"
 )
 def fastq_align(infiles, outfile):
+    """
+    Aligns fq files.
 
-    """Aligns fq files using bowtie2 before conversion to bam file using
-    Samtools view. Bam file is then sorted and the unsorted bam file is replaced"""
+    Uses bowtie2 before conversion to bam file using Samtools view. 
+    Bam file is then sorted and the unsorted bam file is replaced.
+    
+    """
 
     fq1, fq2 = infiles
-    basename = os.path.basename(outfile).replace(".bam")
+    basename = os.path.basename(outfile).replace(".bam", '')
     sorted_bam = outfile.replace(".bam", "_sorted.bam")
 
     aligner = P.PARAMS.get("aligner_aligner", "bowtie2")
@@ -176,9 +177,9 @@ def fastq_align(infiles, outfile):
     blacklist = P.PARAMS.get("genome_blacklist", "")
 
     statement = [
-        "%(aligner_aligner)s %(aligner_index)s -1 %(fq1)s -2 %(fq2)s %(options)s "
-        "2> statistics/alignment/%(basename)s.log |",
-        "samtools view -b - > %(outfile)s &&",
+        "%(aligner_aligner)s -x %(aligner_index)s -1 %(fq1)s -2 %(fq2)s %(aligner_options)s",
+        "--met-file statistics/alignment/%(basename)s.log |",
+        "samtools view - -b > %(outfile)s &&",
         "samtools sort -@ %(pipeline_n_cores)s -m 5G -o %(sorted_bam)s %(outfile)s",
     ]
 
@@ -222,8 +223,8 @@ def create_bam_index(infile, outfile):
 # Mapping QC #
 ##############
 
-
-@originate("report/mapping_report.html")
+@follows(fastq_align)
+@originate("statistics/mapping_report.html")
 def alignments_multiqc(outfile):
 
     """Combines mapping metrics using multiqc"""
@@ -373,10 +374,10 @@ def convert_bed_to_bigbed(infile, outfile):
 
 
 @merge([alignments_pileup, convert_bed_to_bigbed], 
-           regex(r'(.*).(?:bigWig|bigBed)'), 
-           os.path.join(P.PARAMS.get("hub_dir", ""), P.PARAMS.get("hub_name", "") + ".hub.txt"),
+        regex(r'(.*).(?:bigWig|bigBed)'), 
+        os.path.join(P.PARAMS.get("hub_dir", ""), P.PARAMS.get("hub_name", "") + ".hub.txt"),
        )
-def make_ucsc_hub(infile, outfile):
+def make_ucsc_hub(infile, outfile, *args):
 
     import trackhub
 
