@@ -56,24 +56,21 @@ CREATE_BIGWIGS = P.PARAMS.get('bigwigs_create')
 CALL_PEAKS = P.PARAMS.get('peaks_call')
 CREATE_HUB = P.PARAMS.get('hub_create')
 
+    
+# Ensures that all fastq are named correctly
+if not os.path.exists('fastq'):
+    os.mkdir('fastq')
 
-def fastq_format():
-    """Ensures that all fastq are named correctly
-    """
+fastqs = dict()
+for fq in glob.glob('*.fastq*'):
+    fq_renamed =  (fq.replace('Input', 'input')
+                    .replace('INPUT', 'input'))
+    
+    fastqs[os.path.abspath(fq)] = os.path.join('fastq', fq_renamed)
 
-    if not os.path.exists('fastq'):
-        os.mkdir('fastq')
-
-    fastqs = dict()
-    for fq in glob.glob('*.fastq*'):
-        fq_renamed =  (fq.replace('Input', 'input')
-                        .replace('INPUT', 'input'))
-        
-        fastqs[os.path.abspath(fq)] = os.path.join('fastq', fq_renamed)
-
-    for src, dest in fastqs.items():
-        if not os.path.exists(dest):
-            os.symlink(src, dest)
+for src, dest in fastqs.items():
+    if not os.path.exists(dest):
+        os.symlink(src, dest)
 
 
 #############
@@ -293,7 +290,7 @@ def alignments_filter(infile, outfile):
 # BigWigs #
 ###########
 
-
+@active_if(CREATE_BIGWIGS)
 @follows(mkdir("bigwigs"))
 @transform(alignments_filter, regex(r".*/(.*).bam"), r"bigwigs/\1.bigWig")
 def alignments_pileup(infile, outfile):
@@ -324,7 +321,7 @@ def alignments_pileup(infile, outfile):
 # Call peaks #
 ##############
 
-@active_if(P.PARAMS.get('peaks_call'))
+@active_if(CALL_PEAKS)
 @follows(mkdir("peaks"))
 @transform(
     alignments_filter,
@@ -378,7 +375,8 @@ def convert_bed_to_bigbed(infile, outfile):
     P.run(statement, job_queue=P.PARAMS["pipeline_cluster_queue"], job_condaenv=P.PARAMS["conda_env"])
 
 
-
+@active_if(CREATE_HUB)
+@follows(fastq_align, alignments_pileup, alignments_multiqc)
 @merge([alignments_pileup, convert_bed_to_bigbed], 
         regex(r'(.*).(?:bigWig|bigBed)'), 
         os.path.join(P.PARAMS.get("hub_dir", ""), P.PARAMS.get("hub_name", "") + ".hub.txt"),
@@ -435,5 +433,4 @@ if __name__ == "__main__":
         sys.exit(P.main(sys.argv))
     
     elif 'make' in sys.argv:
-        fastq_format()
         sys.exit(P.main(sys.argv))
