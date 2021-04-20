@@ -117,7 +117,7 @@ def multiqc_reads(infile, outfile):
 @follows(mkdir('trimmed'), mkdir("statistics/trimming/data"))
 @collate(
     "fastq/*.fastq*",
-    regex(r"fastq/(.*)_[12].fastq(?:.gz)?"),
+    regex(r"fastq/(.*)_R?[12].fastq(?:.gz)?"),
     r"trimmed/\1_1_val_1.fq",
 )
 def fastq_trim(infiles, outfile):
