@@ -22,5 +22,10 @@ install_requires=['paramiko>=2.7.1',
                   'drmaa',
                   'click',
                   'trackhub',
-                  'seaborn']
+                  'seaborn',
+                  'macs2',
+                  'macs3',
+                  'deeptools',
+                  'wget',
+                  ]
 )
