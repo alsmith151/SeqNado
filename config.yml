@@ -5,7 +5,7 @@
 genome:
     
     # Name of genome. UCSC genome names are prefered. Custom names are accepted if chrom_sizes are provided
-    name: mm9
+    name: GENOME_NAME
 
     # Path to blacklisted regions bed file. Entry can be left blank.
     blacklist: 
@@ -21,7 +21,7 @@ aligner:
     index: PATH_TO_ALIGNER_INDICIES
 
     # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
-    options: -p 6 --very-sensitive
+    options: -p 4
 
 alignments:
 
@@ -49,7 +49,7 @@ peaks:
 
     # Peak caller options. NOTE: Must include the genome -g option with the correct genome size or name.
     # e.g. -g hs 
-    options:
+    options: -g hs
 
 
 hub:
