@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-name='chipseq_pipeline',
+name='ngs_pipeline',
 version='0.0.1',
 author='asmith',
 author_email='alastair.smith@ndcls.ox.ac.uk',
 packages=find_packages(),
-entry_points={'console_scripts': ['chipseq_pipeline = chipseq_pipeline:cli']},
+entry_points={'console_scripts': ['ngs-pipeline = ngs_pipeline:cli']},
 include_package_data=True,
-url='https://github.com/alsmith151/chipseq_pipeline',
+url='https://github.com/alsmith151/ngs_pipeline',
 license='LICENSE',
 description='Chipseq pipeline based on cgat-core (ruffus)',
 long_description=open('README.md').read(),
