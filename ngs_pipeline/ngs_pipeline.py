@@ -293,7 +293,7 @@ def alignments_filter(infile, outfile):
 # BigWigs #
 ###########
 
-
+@active_if(CREATE_BIGWIGS)
 @follows(mkdir("bigwigs"))
 @transform(alignments_filter, regex(r".*/(.*).bam"), r"bigwigs/\1.bigWig")
 def alignments_pileup(infile, outfile):
@@ -324,7 +324,7 @@ def alignments_pileup(infile, outfile):
 # Call peaks #
 ##############
 
-@active_if(P.PARAMS.get('peaks_call'))
+@active_if(CALL_PEAKS)
 @follows(mkdir("peaks"))
 @transform(
     alignments_filter,
@@ -378,6 +378,7 @@ def convert_bed_to_bigbed(infile, outfile):
     P.run(statement, job_queue=P.PARAMS["pipeline_cluster_queue"], job_condaenv=P.PARAMS["conda_env"])
 
 
+@active_if(CREATE_HUB)
 @follows(fastq_align, alignments_pileup, alignments_multiqc)
 @merge([alignments_pileup, convert_bed_to_bigbed], 
         regex(r'(.*).(?:bigWig|bigBed)'), 
