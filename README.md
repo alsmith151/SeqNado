@@ -42,6 +42,121 @@ echo "export DRMAA_LIBRARY_PATH=/<full-path>/libdrmaa.so" >> ~/.bashrc
 export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so
 ```
 
+## Running the pipeline
+
+1. Create a working directory
+
+
+To run the pipeline you will need to create a working directory for the pipeline run::
+
+   mkdir RS411_EPZ5676/
+   cd RS411_EPZ5676/
+
+The pipeline will be executed here and all files will be generated
+in this directory.
+
+2. Get and edit the pipeline configuration file.
+
+The configuration file [config.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config.yml) enables 
+parameterisation of the pipeline run with user specific settings. Furthermore,
+it also provides paths to essential files for the pipeline run (e.g., bowtie2 indices).
+The paths supplied do not have to be in the same directory as the pipeline.
+
+A copy of config.yml can be downloaded from GitHub using:
+```
+wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config.yml
+```
+
+This [yaml](https://yaml.org/spec/1.2/spec.html) file can be edited using standard text editors e.g.
+
+    # To use gedit
+    gedit config.yml
+
+    # To use nano
+    nano config.yml
+
+
+
+3.  Copy or link fastq files into the working directory
+
+The pipeline requires that fastq files are paired and in any of these formats:
+
+For ChIP-seq:
+
+Note that the underscore is needed to identify pairs for peak calling
+
+* samplename1_Antibody_R1.fastq.gz
+* samplename1_Antibody_R2.fastq.gz
+* samplename1_Input_1.fastq
+* samplename1_Input_2.fastq
+
+For ATAC-seq: 
+
+Note the absence of an underscore separating the filename.
+
+* sample-name-1_R1.fastq.gz
+* sample-name-1_R2.fastq.gz
+* sample-name-1_1.fastq
+* sample-name1_2.fastq
+
+
+
+All FASTQ files present in the directory will be processed by the pipeline in parallel and
+original FASTQ files will not be modified. If new FASTQ files are added to a pre-run pipeline,
+only the new files will be processed.
+
+Copy:
+```
+cp PATH_TO_FASTQ/example_R1.fastq.gz
+```
+
+Symlink:
+```
+# Be sure to use the absolute path for symlinks
+ln -s /ABSOLUTE_PATH_TO_FASTQ/example_R1.fastq.gz
+```
+
+4. Running the pipeline
+
+After copying/linking FASTQ files into the working directory and configuring the copy of
+config.yml in the working directory for the current experiment, the pipeline can be run with:
+
+```
+ngs-pipeline 
+```
+
+There are several options to visualise which tasks will be performed by the pipeline
+before running. 
+
+The tasks to be performed can be examined with:
+```    
+# Shows the tasks to be performed
+ngs-pipeline show 
+
+# Plots a directed graph using graphviz
+ngs-pipeline plot
+```
+
+If you are happy with the tasks to be performed, the full pipeline run can be launched with:
+
+```
+# If using all default settings and using a cluster
+ngs-pipeline make
+
+# Higher verbosity
+ngs-pipeline make -v 5
+
+# If not using a cluster, run in local mode.
+ngs-pipeline make --local -p 4
+
+# Avoiding network disconnections
+nohup ngs-pipeline make &
+```
+
+See `cgat-core Read the Docs <https://cgat-core.readthedocs.io/en/latest/getting_started/Examples.html>`_ for additional
+information.
+
+
 
 
 
