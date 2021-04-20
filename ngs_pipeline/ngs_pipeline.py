@@ -181,7 +181,7 @@ def fastq_align(infiles, outfile):
         "%(aligner_aligner)s -x %(aligner_index)s -1 %(fq1)s -2 %(fq2)s %(aligner_options)s",
         "--met-file statistics/alignment/%(basename)s.log |",
         "samtools view - -b > %(outfile)s &&",
-        "samtools sort -@ %(pipeline_n_cores)s -m 5G -o %(sorted_bam)s %(outfile)s",
+        "samtools sort -@ %(pipeline_n_cores)s -o %(sorted_bam)s %(outfile)s",
     ]
 
     if blacklist:
