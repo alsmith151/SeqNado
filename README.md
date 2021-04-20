@@ -5,8 +5,7 @@ Pipeline based on cgat-core (ruffus wrapper) to process ChIP-seq and ATAC-seq da
 ## Installation
 
 1. Install conda if it has not been already using the [conda install instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html#install-linux-silent)
-
-1b. (Optional) Install mamba. Mamba is a drop-in replacement for conda that is **much** faster than conda. All "conda" commands can be replaced with "mamba" for a significant speedup.
+   (Optional) Install mamba. Mamba is a drop-in replacement for conda that is **much** faster than conda. All "conda" commands can be replaced with "mamba" for a   significant speedup.
 
 ```
 conda install mamba
