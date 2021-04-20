@@ -58,8 +58,6 @@ CREATE_HUB = P.PARAMS.get('hub_create')
 
     
 # Ensures that all fastq are named correctly
-
-
 if not os.path.exists('fastq'):
     os.mkdir('fastq')
 
@@ -435,5 +433,4 @@ if __name__ == "__main__":
         sys.exit(P.main(sys.argv))
     
     elif 'make' in sys.argv:
-        fastq_format()
         sys.exit(P.main(sys.argv))
