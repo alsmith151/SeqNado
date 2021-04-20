@@ -1,0 +1,24 @@
+name: ngs
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  - cgatcore
+  - bowtie2
+  - samtools
+  - deeptools
+  - trim-galore
+  - macs2
+  - fastqc
+  - multiqc
+  - trackhub
+  - seaborn
+  - click
+  - ucsc-bigbedtobed
+  - pybigwig
+pip:
+  - macs3
+  - wget
