@@ -177,8 +177,7 @@ def fastq_align(infiles, outfile):
     blacklist = P.PARAMS.get("genome_blacklist", "")
 
     statement = [
-        "%(aligner_aligner)s -x %(aligner_index)s -1 %(fq1)s -2 %(fq2)s %(aligner_options)s",
-        "--met-file statistics/alignment/%(basename)s.log |",
+        "%(aligner_aligner)s -x %(aligner_index)s -1 %(fq1)s -2 %(fq2)s %(aligner_options)s |",
         "samtools view - -b > %(outfile)s &&",
         "samtools sort -@ %(pipeline_n_cores)s -o %(sorted_bam)s %(outfile)s",
     ]
@@ -222,6 +221,12 @@ def create_bam_index(infile, outfile):
 ##############
 # Mapping QC #
 ##############
+
+
+
+
+
+
 
 @follows(fastq_align, multiqc_reads)
 @originate("statistics/mapping_report.html")
