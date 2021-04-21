@@ -223,7 +223,7 @@ def create_bam_index(infile, outfile):
 ##############
 
 @follows(fastq_align)
-@transform(fastq_align, regex(r'*/(.*).bam'), r'statistics/alignment/\1')
+@transform(fastq_align, regex(r'.*/(.*).bam'), r'statistics/alignment/\1')
 def alignment_statistics(infile, outfile):
 
     statement = """samtools stats %(infile)s > %(outfile)s"""
