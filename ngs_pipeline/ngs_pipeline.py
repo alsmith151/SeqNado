@@ -50,9 +50,8 @@ for key in P.PARAMS:
     elif is_on(P.PARAMS):
         P.PARAMS[key] = True
 
-
 # Global variables
-CREATE_BIGWIGS = P.PARAMS.get('bigwigs_create')
+CREATE_BIGWIGS = P.PARAMS.get('bigwig_create')
 CALL_PEAKS = P.PARAMS.get('peaks_call')
 CREATE_HUB = P.PARAMS.get('hub_create')
 
@@ -64,7 +63,10 @@ if not os.path.exists('fastq'):
 fastqs = dict()
 for fq in glob.glob('*.fastq*'):
     fq_renamed =  (fq.replace('Input', 'input')
-                    .replace('INPUT', 'input'))
+                    .replace('INPUT', 'input')
+                    .replace('R1.fastq', '1.fastq')
+                    .replace('R2.fastq', '2.fastq')
+                    )
     
     fastqs[os.path.abspath(fq)] = os.path.join('fastq', fq_renamed)
 
@@ -117,7 +119,7 @@ def multiqc_reads(infile, outfile):
 @follows(mkdir('trimmed'), mkdir("statistics/trimming/data"))
 @collate(
     "fastq/*.fastq*",
-    regex(r"fastq/(.*)_[12].fastq(?:.gz)?"),
+    regex(r"fastq/(.*)_R?[12].fastq(?:.gz)?"),
     r"trimmed/\1_1_val_1.fq",
 )
 def fastq_trim(infiles, outfile):
@@ -221,7 +223,7 @@ def create_bam_index(infile, outfile):
 # Mapping QC #
 ##############
 
-@follows(fastq_align)
+@follows(fastq_align, multiqc_reads)
 @originate("statistics/mapping_report.html")
 def alignments_multiqc(outfile):
 
@@ -291,8 +293,8 @@ def alignments_filter(infile, outfile):
 ###########
 
 @active_if(CREATE_BIGWIGS)
-@follows(mkdir("bigwigs"))
-@transform(alignments_filter, regex(r".*/(.*).bam"), r"bigwigs/\1.bigWig")
+@follows(mkdir("bigwigs"), alignments_filter)
+@transform('bam_processed/*.bam', regex(r"bam_processed/(.*).bam"), r"bigwigs/\1.bigWig")
 def alignments_pileup(infile, outfile):
 
     cmd = [
@@ -378,7 +380,7 @@ def convert_bed_to_bigbed(infile, outfile):
 @active_if(CREATE_HUB)
 @follows(fastq_align, alignments_pileup, alignments_multiqc)
 @merge([alignments_pileup, convert_bed_to_bigbed], 
-        regex(r'(.*).(?:bigWig|bigBed)'), 
+        regex(r'.*'), 
         os.path.join(P.PARAMS.get("hub_dir", ""), P.PARAMS.get("hub_name", "") + ".hub.txt"),
        )
 def make_ucsc_hub(infile, outfile, *args):
