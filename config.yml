@@ -59,7 +59,10 @@ hub:
     # Determines if hub is created or not.
     # True|False 
     create: True
-    
+
+    # Will append to an existing hub
+    append: False
+
     # Url/IP of server to host bigWigs
     url: http://userweb.molbiol.ox.ac.uk/
     
