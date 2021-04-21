@@ -235,7 +235,7 @@ def alignment_statistics(infile, outfile):
     )
 
 
-@follows(fastq_align, multiqc_reads)
+@follows(fastq_align, multiqc_reads, alignment_statistics)
 @originate("statistics/mapping_report.html")
 def alignments_multiqc(outfile):
 
