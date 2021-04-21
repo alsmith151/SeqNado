@@ -223,7 +223,7 @@ def create_bam_index(infile, outfile):
 ##############
 
 @follows(fastq_align)
-@transform(fastq_align, regex(r'.*/(.*).bam'), r'statistics/alignment/\1')
+@transform(fastq_align, regex(r'.*/(.*).bam'), r'statistics/alignment/\1.txt')
 def alignment_statistics(infile, outfile):
 
     statement = """samtools stats %(infile)s > %(outfile)s"""
@@ -243,7 +243,7 @@ def alignments_multiqc(outfile):
 
     statement = """export LC_ALL=en_US.UTF-8 &&
                    export LANG=en_US.UTF-8 &&
-                   multiqc statistics/alignment/ -o report -n alignment_report.html"""
+                   multiqc statistics/alignment/ -o statistics -n alignmentqc_report.html"""
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
