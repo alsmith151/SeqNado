@@ -386,15 +386,38 @@ def convert_bed_to_bigbed(infile, outfile):
 def make_ucsc_hub(infile, outfile, *args):
 
     import trackhub
+    import pickle
+    import shutil
 
-    hub, genomes_file, genome, trackdb = trackhub.default_hub(
-            hub_name=P.PARAMS["hub_name"],
-            short_label=P.PARAMS.get("hub_short"),
-            long_label=P.PARAMS.get("hub_long"),
-            email=P.PARAMS["hub_email"],
-            genome=P.PARAMS["genome_name"],
-        )
+    hub_pkl_path =  os.path.join(P.PARAMS['hub_dir'], '.hub.pkl') 
+
+    if os.path.exists(hub_pkl_path) and P.PARAMS.get('hub_append'):
+
+        # Extract previous hub data
+        with open(hub_pkl_path, 'rb') as pkl:
+            hub, genomes_file, genome, trackdb = pickle.load(pkl)
+        
+        # Delete previously staged hub
+
+        # Delete symlinks and track db
+        for fn in glob.glob(os.path.join(P.PARAMS['hub_dir'], P.PARAMS['genome_name'] + '*')):
+            os.unlink(fn)
+        
+        # Delete hub metadata
+        os.unlink(os.path.join(P.PARAMS['hub_dir'], P.PARAMS['hub_name'] + '.hub.txt'))
+        os.unlink(os.path.join(P.PARAMS['hub_dir'], P.PARAMS['hub_name'] + '.genomes.txt'))
+            
+    else:
+
+        hub, genomes_file, genome, trackdb = trackhub.default_hub(
+                hub_name=P.PARAMS["hub_name"],
+                short_label=P.PARAMS.get("hub_short"),
+                long_label=P.PARAMS.get("hub_long"),
+                email=P.PARAMS["hub_email"],
+                genome=P.PARAMS["genome_name"],
+            )
     
+        
     bigwigs = [fn for fn in infile if '.bigWig' in fn]
     bigbeds = [fn for fn in infile if '.bigBed' in fn]
 
@@ -422,7 +445,12 @@ def make_ucsc_hub(infile, outfile, *args):
         trackdb.add_tracks(track)
     
 
+    # Move hub to public directory
     trackhub.upload.stage_hub(hub, P.PARAMS['hub_dir'])
+
+    # Save pickle file with data
+    with open(hub_pkl_path, 'wb') as pkl:
+        pickle.dump([hub, genomes_file, genome, trackdb])
 
 
 
