@@ -177,8 +177,7 @@ def fastq_align(infiles, outfile):
     blacklist = P.PARAMS.get("genome_blacklist", "")
 
     statement = [
-        "%(aligner_aligner)s -x %(aligner_index)s -1 %(fq1)s -2 %(fq2)s %(aligner_options)s",
-        "--met-file statistics/alignment/%(basename)s.log |",
+        "%(aligner_aligner)s -x %(aligner_index)s -1 %(fq1)s -2 %(fq2)s %(aligner_options)s |",
         "samtools view - -b > %(outfile)s &&",
         "samtools sort -@ %(pipeline_n_cores)s -o %(sorted_bam)s %(outfile)s",
     ]
@@ -223,7 +222,20 @@ def create_bam_index(infile, outfile):
 # Mapping QC #
 ##############
 
-@follows(fastq_align, multiqc_reads)
+@follows(fastq_align)
+@transform(fastq_align, regex(r'.*/(.*).bam'), r'statistics/alignment/\1.txt')
+def alignment_statistics(infile, outfile):
+
+    statement = """samtools stats %(infile)s > %(outfile)s"""
+    P.run(
+        statement,
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory="2G",
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+
+@follows(fastq_align, multiqc_reads, alignment_statistics)
 @originate("statistics/mapping_report.html")
 def alignments_multiqc(outfile):
 
@@ -231,7 +243,7 @@ def alignments_multiqc(outfile):
 
     statement = """export LC_ALL=en_US.UTF-8 &&
                    export LANG=en_US.UTF-8 &&
-                   multiqc statistics/alignment/ -o report -n alignment_report.html"""
+                   multiqc statistics/alignment/ -o statistics -n alignmentqc_report.html"""
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
