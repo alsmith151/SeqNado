@@ -222,10 +222,17 @@ def create_bam_index(infile, outfile):
 # Mapping QC #
 ##############
 
+@follows(fastq_align)
+@transform(fastq_align, regex(r'*/(.*).bam'), r'statistics/alignment/\1')
+def alignment_statistics(infile, outfile):
 
-
-
-
+    statement = """samtools stats %(infile)s > %(outfile)s"""
+    P.run(
+        statement,
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory="2G",
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
 @follows(fastq_align, multiqc_reads)
