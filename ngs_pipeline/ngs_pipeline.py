@@ -134,7 +134,7 @@ def fastq_trim(infiles, outfile):
     cores = P.PARAMS['pipeline_n_cores'] if int(P.PARAMS['pipeline_n_cores']) <= 8 else '8'
 
     statement = """trim_galore
-                   --cores %(pipeline_n_cores)s
+                   --cores %(cores)s
                    --paired %(trim_options)s
                    --dont_gzip
                    -o %(outdir)s
