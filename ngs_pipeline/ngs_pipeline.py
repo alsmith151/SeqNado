@@ -135,7 +135,6 @@ def fastq_trim(infiles, outfile):
     statement = """trim_galore
                    --cores %(pipeline_n_cores)s
                    --paired %(trim_options)s
-                   --gzip
                    --dont_gzip
                    -o %(outdir)s
                    %(fq1)s
