@@ -262,10 +262,11 @@ def alignments_multiqc(outfile):
 def alignments_filter(infile, outfile):
     """Remove duplicate fragments from bam file."""
 
+    breakpoint()
     alignments_deduplicate = (
         "--ignoreDuplicates" if P.PARAMS.get("alignments_deduplicate") else ""
     )
-    alignments_filter_options = P.PARAMS.get("alignment_filter_options", "")
+    alignments_filter_options = P.PARAMS.get("alignments_filter_options", "")
 
     if alignments_deduplicate or alignments_filter_options:
 
