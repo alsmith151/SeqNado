@@ -267,7 +267,6 @@ def alignments_filter(infile, outfile):
     )
     alignments_filter_options = P.PARAMS.get("alignments_filter_options")
 
-    breakpoint()
     if alignments_deduplicate or alignments_filter_options:
 
         statement = [
