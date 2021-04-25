@@ -355,7 +355,7 @@ def call_peaks(infile, outfile):
         control_file = f'bam_processed/{samplename}_input.bam'
         
         if os.path.exists(control_file):
-            statement.append('-c %(input_file)s')
+            statement.append(f'-c {control_file}')
    
 
     P.run(
