@@ -157,7 +157,7 @@ ngs-pipeline make --local -p 4
 nohup ngs-pipeline make &
 ```
 
-See [cgat-core Read the Docs](https://cgat-core.readthedocs.io/en/latest/getting_started/Examples.html>) for additional
+See [cgat-core Read the Docs](https://cgat-core.readthedocs.io/en/latest/getting_started/Examples.html) for additional
 information.
 
 
