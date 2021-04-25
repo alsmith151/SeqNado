@@ -263,10 +263,11 @@ def alignments_filter(infile, outfile):
     """Remove duplicate fragments from bam file."""
 
     alignments_deduplicate = (
-        "--ignoreDuplicates" if P.PARAMS.get("alignments_deduplicate") else ""
+        "--ignoreDuplicates" if P.PARAMS.get("alignments_deduplicate") else " "
     )
-    alignments_filter_options = P.PARAMS.get("alignments_filter_options", "")
+    alignments_filter_options = P.PARAMS.get("alignments_filter_options")
 
+    breakpoint()
     if alignments_deduplicate or alignments_filter_options:
 
         statement = [
@@ -278,7 +279,7 @@ def alignments_filter(infile, outfile):
             "-p",
             "%(pipeline_n_cores)s",
             alignments_deduplicate,
-            alignments_filter_options,
+            alignments_filter_options if alignments_filter_options else " ",
             "&& samtools sort -o %(outfile)s.tmp %(outfile)s -@ %(pipeline_n_cores)s",
             "&& mv %(outfile)s.tmp %(outfile)s",
             "&& samtools index %(outfile)s",
