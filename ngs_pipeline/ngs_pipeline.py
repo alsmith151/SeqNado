@@ -364,7 +364,7 @@ def call_peaks(infile, outfile):
             statement.append(f"-c {control_file}")
 
     P.run(
-        statement,
+        " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
