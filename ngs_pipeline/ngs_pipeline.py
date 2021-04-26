@@ -351,7 +351,7 @@ def alignments_pileup(infile, outfile):
 def call_peaks(infile, outfile):
 
     peaks_options = P.PARAMS.get("peaks_options")
-    statement = ["%(peaks_caller)s callpeak -t %(infile)s -n %(outfile)s"]
+    statement = "%(peaks_caller)s callpeak -t %(infile)s -n %(outfile)s "
 
     chipseq_match = re.match(r".*/(.*)_(.*).bam", infile)
 
@@ -361,10 +361,10 @@ def call_peaks(infile, outfile):
         control_file = f"bam_processed/{samplename}_input.bam"
 
         if os.path.exists(control_file):
-            statement.append(f"-c {control_file}")
+            statement += f"-c {control_file}"
 
     P.run(
-        " ".join(statement),
+        statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
