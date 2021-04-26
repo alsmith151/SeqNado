@@ -351,7 +351,8 @@ def alignments_pileup(infile, outfile):
 def call_peaks(infile, outfile):
 
     peaks_options = P.PARAMS.get("peaks_options")
-    statement = "%(peaks_caller)s callpeak -t %(infile)s -n %(outfile)s "
+    output_prefix = outfile.replace('.narrowPeak')
+    statement = "%(peaks_caller)s callpeak -t %(infile)s -n %(output_predix)s "
 
     chipseq_match = re.match(r".*/(.*)_(.*).bam", infile)
 
