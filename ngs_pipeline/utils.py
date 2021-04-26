@@ -35,25 +35,3 @@ def is_none(param: str) -> bool:
         return False
 
 
-def set_up_chromsizes():
-    """
-    Ensures that genome chromsizes are present.
-
-    If chromsizes are not provided this function attempts to download them from UCSC.
-    The P.PARAMS dictionary is updated with the location of the chromsizes.
-
-    """
-
-    assert P.PARAMS.get("genome_name"), "Genome name has not been provided."
-
-    if not is_none(P.PARAMS["genome_chrom_sizes"]):
-        pass
-
-    elif os.path.exists("chrom_sizes.txt.tmp"):
-        P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
-
-    else:
-        from pybedtools.helpers import get_chromsizes_from_ucsc
-
-        get_chromsizes_from_ucsc(P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
-        P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
