@@ -352,7 +352,7 @@ def call_peaks(infile, outfile):
 
     peaks_options = P.PARAMS.get("peaks_options")
     output_prefix = outfile.replace('.narrowPeak', '')
-    statement = "%(peaks_caller)s callpeak -t %(infile)s -n %(output_predix)s "
+    statement = "%(peaks_caller)s callpeak -t %(infile)s -n %(output_prefix)s "
 
     chipseq_match = re.match(r".*/(.*)_(.*).bam", infile)
 
