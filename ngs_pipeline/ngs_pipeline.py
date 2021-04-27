@@ -27,6 +27,7 @@ from ruffus import (
     active_if,
 )
 from cgatcore.iotools import zap_file
+import pybedtools
 from utils import is_none, is_on
 import re
 
@@ -90,7 +91,7 @@ def set_up_chromsizes():
 
     assert P.PARAMS.get("genome_name"), "Genome name has not been provided."
 
-    if not is_none(P.PARAMS["genome_chrom_sizes"]):
+    if P.PARAMS.get("genome_chrom_sizes"):
         pass
 
     elif os.path.exists("chrom_sizes.txt.tmp"):
