@@ -39,7 +39,7 @@ echo "export DRMAA_LIBRARY_PATH=/<full-path>/libdrmaa.so" >> ~/.bashrc
 
 
 # For CBRG users the command to use is:
-export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so
+echo "export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so" >> ~/.bashrc
 ```
 
 ## Running the pipeline
