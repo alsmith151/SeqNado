@@ -27,5 +27,5 @@ install_requires=['paramiko>=2.7.1',
                   'macs3',
                   'deeptools',
                   'wget',
-                  ]
+                  'pybedtools']
 )

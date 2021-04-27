@@ -19,6 +19,9 @@ dependencies:
   - click
   - ucsc-bigbedtobed
   - pybigwig
+  - pybedtools
+  - ucsc-fetchchromsizes
+  - ucsc-bedtobigbed
 pip:
   - macs3
   - wget

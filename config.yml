@@ -8,7 +8,11 @@ genome:
     name: GENOME_NAME
 
     # Path to blacklisted regions bed file. Entry can be left blank.
-    blacklist: 
+    blacklist:
+
+    # Will be downloaded automatically if this is a UCSC genome. Else must supply a two columned chrom sizes file.
+    # Genome fasta index files (.fai) can also be used.
+    chrom_sizes:  
 
 aligner:
 
