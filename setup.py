@@ -25,7 +25,6 @@ install_requires=['paramiko>=2.7.1',
                   'seaborn',
                   'deeptools',
                   'wget',
-                  'pybedtools',
                   'gevent',
                   'pyyaml']
 )
