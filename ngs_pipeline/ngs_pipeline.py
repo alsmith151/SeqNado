@@ -12,6 +12,7 @@ SampleName1_(Input|AntibodyUsed)_(R)1|2.fastq.gz
 # import packages
 import sys
 import os
+from cgatcore.pipeline.parameters import PARAMS
 import seaborn as sns
 import glob
 from cgatcore import pipeline as P
@@ -28,7 +29,7 @@ from ruffus import (
 )
 from cgatcore.iotools import zap_file
 import pybedtools
-from utils import is_none, is_on
+from .utils import is_none, is_on
 import re
 
 
@@ -55,6 +56,8 @@ for key in P.PARAMS:
 CREATE_BIGWIGS = P.PARAMS.get("bigwig_create")
 CALL_PEAKS = P.PARAMS.get("peaks_call")
 CREATE_HUB = P.PARAMS.get("hub_create")
+USE_HOMER = P.PARAMS.get('homer_use')
+USE_DEEPTOOLS = P.PARAMS.get('deeptools_use')
 
 
 # Ensures that all fastq are named correctly
@@ -247,6 +250,23 @@ def create_bam_index(infile, outfile):
     )
 
 
+@follows(mkdir('tag/'))
+@transform(fastq_align, regex(r"bam/(.*)"), r'tag/\1')
+def create_tag_directory(infile, outfile):
+
+    statement = ["makeTagDirectory",
+                 outfile,
+                 P.PARAMS['homer_tagdir_options'],
+                 infile,
+                 ]
+    
+    P.run(
+        ' '.join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
 ##############
 # Mapping QC #
 ##############
@@ -335,12 +355,12 @@ def alignments_filter(infile, outfile):
 ###########
 
 
-@active_if(CREATE_BIGWIGS)
+@active_if(CREATE_BIGWIGS and USE_DEEPTOOLS)
 @follows(mkdir("bigwigs"), alignments_filter)
 @transform(
-    "bam_processed/*.bam", regex(r"bam_processed/(.*).bam"), r"bigwigs/\1.bigWig"
+    alignments_filter, regex(r"bam_processed/(.*).bam"), r"bigwigs/\1.bigWig"
 )
-def alignments_pileup(infile, outfile):
+def alignments_pileup_deeptools(infile, outfile):
 
     cmd = [
         "bamCoverage",
@@ -362,6 +382,14 @@ def alignments_pileup(infile, outfile):
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
+
+
+
+
+
+
+
+
 
 
 ##############
