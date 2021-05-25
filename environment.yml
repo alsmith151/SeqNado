@@ -25,4 +25,5 @@ dependencies:
   - ucsc-fetchchromsizes
   - ucsc-bedtobigbed
   - ucsc-bedgraphtobigwig
+  - homer
   
