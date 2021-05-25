@@ -22,8 +22,6 @@ dependencies:
   - click
   - ucsc-bigbedtobed
   - pybigwig
-  - pybedtools
-  - pysam
   - ucsc-fetchchromsizes
   - ucsc-bedtobigbed
   - ucsc-bedgraphtobigwig
