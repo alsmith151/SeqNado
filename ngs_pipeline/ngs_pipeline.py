@@ -28,7 +28,6 @@ from ruffus import (
     active_if,
 )
 from cgatcore.iotools import zap_file
-import pybedtools
 from .utils import is_none, is_on
 import re
 
@@ -102,7 +101,7 @@ def set_up_chromsizes():
         P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
 
     else:
-        from pybedtools.helpers import get_chromsizes_from_ucsc
+        from .utils import get_chromsizes_from_ucsc
 
         get_chromsizes_from_ucsc(P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
         P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
