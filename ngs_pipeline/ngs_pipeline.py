@@ -250,23 +250,6 @@ def create_bam_index(infile, outfile):
     )
 
 
-@follows(mkdir('tag/'))
-@transform(fastq_align, regex(r"bam/(.*)"), r'tag/\1')
-def create_tag_directory(infile, outfile):
-
-    statement = ["makeTagDirectory",
-                 outfile,
-                 P.PARAMS['homer_tagdir_options'],
-                 infile,
-                 ]
-    
-    P.run(
-        ' '.join(statement),
-        job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_memory=P.PARAMS["pipeline_memory"],
-        job_condaenv=P.PARAMS["conda_env"],
-    )
-
 ##############
 # Mapping QC #
 ##############
@@ -349,6 +332,24 @@ def alignments_filter(infile, outfile):
         job_condaenv=P.PARAMS["conda_env"],
     )
 
+@follows(mkdir('tag/'))
+@transform(alignments_filter, regex(r"bam/(.*)"), r'tag/\1')
+def create_tag_directory(infile, outfile):
+
+    statement = ["makeTagDirectory",
+                 outfile,
+                 P.PARAMS['homer_tagdir_options'],
+                 infile,
+                 ]
+    
+    P.run(
+        ' '.join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+
 
 ###########
 # BigWigs #
@@ -356,13 +357,13 @@ def alignments_filter(infile, outfile):
 
 
 @active_if(CREATE_BIGWIGS and USE_DEEPTOOLS)
-@follows(mkdir("bigwigs"), alignments_filter)
+@follows(mkdir("bigwigs/deeptools/"))
 @transform(
-    alignments_filter, regex(r"bam_processed/(.*).bam"), r"bigwigs/\1.bigWig"
+    alignments_filter, regex(r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1.bigWig"
 )
 def alignments_pileup_deeptools(infile, outfile):
 
-    cmd = [
+    statement = [
         "bamCoverage",
         "-b",
         infile,
@@ -373,24 +374,41 @@ def alignments_pileup_deeptools(infile, outfile):
         "%(bigwig_options)s",
     ]
 
-    statement = " ".join(cmd)
-
     P.run(
-        statement,
+        " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory=P.PARAMS["pipeline_memory"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
+@follows(mkdir("bigwigs/homer/"))
+@active_if(CREATE_BIGWIGS and USE_HOMER)
+@transform(create_tag_directory, regex(r'tag/(.*)'), r'bigwigs/homer/\1.bigWig', extras=[r'\1'])
+def alignments_pileup_homer(infile, outfile, tagdir_name):
 
+    outdir = os.path.dirname(outfile)
 
+    statement = ["makeBigWig.pl",
+                 infile,
+                 '-url',
+                 P.PARAMS['homer_makebigwig_url'],
+                 '-webdir',
+                 os.path.dirname(outfile)
+                 ]
+    
+    P.run(
+        " ".join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_pipeline_n_cores=1,
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
-
-
-
-
-
+    # Rename bigwigs to remove ucsc
+    bigwig_src = os.path.join(outdir, f'{tagdir_name}.ucsc.bigWig')
+    bigwig_dest = os.path.join(outdir, f'{tagdir_name}.bigWig')
+    os.rename(bigwig_src, bigwig_dest)
+    
 
 ##############
 # Call peaks #
