@@ -58,6 +58,7 @@ CALL_PEAKS = P.PARAMS.get("peaks_call")
 CREATE_HUB = P.PARAMS.get("hub_create")
 USE_HOMER = P.PARAMS.get('homer_use')
 USE_DEEPTOOLS = P.PARAMS.get('deeptools_use')
+USE_MACS = P.PARAMS.get('macs_use')
 
 
 # Ensures that all fastq are named correctly
@@ -415,14 +416,14 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
 ##############
 
 
-@active_if(CALL_PEAKS)
-@follows(mkdir("peaks"))
+@active_if(CALL_PEAKS and USE_MACS)
+@follows(mkdir("peaks/macs"))
 @transform(
     alignments_filter,
     regex(r".*/(.*?)(?<!input).bam"),
-    r"peaks/\1_peaks.narrowPeak",
+    r"peaks/macs/\1_peaks.narrowPeak",
 )
-def call_peaks(infile, outfile):
+def call_peaks_macs(infile, outfile):
 
     peaks_options = P.PARAMS.get("peaks_options")
     output_prefix = outfile.replace('_peaks.narrowPeak', '')
@@ -444,6 +445,54 @@ def call_peaks(infile, outfile):
         job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
     )
+
+@active_if(CALL_PEAKS and USE_HOMER)
+@follows(mkdir("peaks/homer"))
+@transform(
+    create_tag_directory,
+    regex(r".*/(.*?)(?<!input)"),
+    r"peaks/homer/\1_peaks.bed",
+)
+def call_peaks_homer(infile, outfile):
+
+
+    tmp = outfile.replace('.bed', '.txt')
+    statement = ["findPeaks", 
+                 infile,
+                 P.PARAMS['homer_findpeaks_options'],
+                 '-o',
+                 tmp]
+
+    
+    # Finds the matching input file if one extists
+    chipseq_match = re.match(r".*/(.*)_(.*)", infile)
+    if chipseq_match:
+        samplename = chipseq_match.group(1)
+        antibody = chipseq_match.group(2)
+        control = f"tag/{samplename}_input"
+
+        if os.path.exists(control):
+            statement.append(f"-i {control}")
+    
+
+    # Need to convert homer peak format to bed
+    statement.append(f"&& pos2bed.pl {tmp} -o {outfile}")
+
+
+    P.run(
+        " ".join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+    
+
+    statement = ""
+
+
+
+
 
 
 #######################
