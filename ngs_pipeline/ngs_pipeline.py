@@ -28,7 +28,7 @@ from ruffus import (
     active_if,
 )
 from cgatcore.iotools import zap_file
-from .utils import is_none, is_on
+from utils import is_none, is_on
 import re
 
 
@@ -101,7 +101,7 @@ def set_up_chromsizes():
         P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
 
     else:
-        from .utils import get_chromsizes_from_ucsc
+        from pybedtools.helpers import get_chromsizes_from_ucsc
 
         get_chromsizes_from_ucsc(P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
         P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
@@ -499,7 +499,7 @@ def call_peaks_homer(infile, outfile):
 #######################
 
 
-@transform(call_peaks, regex(r"peaks/(.*).narrowPeak"), r"peaks/\1.bed")
+@transform(call_peaks_macs, regex(r"peaks/(.*).narrowPeak"), r"peaks/\1.bed")
 def convert_narrowpeak_to_bed(infile, outfile):
 
     statement = """awk '{OFS="\\t"; print $1,$2,$3,$4}' %(infile)s > %(outfile)s"""
@@ -512,9 +512,9 @@ def convert_narrowpeak_to_bed(infile, outfile):
 
 
 @transform(
-    convert_narrowpeak_to_bed,
-    regex(r"peaks/(.*).bed"),
-    r"peaks/\1.bigBed",
+    [convert_narrowpeak_to_bed, call_peaks_homer],
+    regex(r"(.*)/(.*).bed"),
+    r"\1/\2.bigBed",
 )
 def convert_bed_to_bigbed(infile, outfile):
 
@@ -527,9 +527,9 @@ def convert_bed_to_bigbed(infile, outfile):
 
 
 @active_if(CREATE_HUB)
-@follows(fastq_align, alignments_pileup, alignments_multiqc)
+@follows(fastq_align, alignments_pileup_deeptools, alignments_pileup_homer, alignments_multiqc)
 @merge(
-    [alignments_pileup, convert_bed_to_bigbed],
+    [alignments_pileup_deeptools, alignments_pileup_homer, convert_bed_to_bigbed],
     regex(r".*"),
     os.path.join(
         P.PARAMS.get("hub_dir", ""), P.PARAMS.get("hub_name", "") + ".hub.txt"

@@ -26,5 +26,6 @@ install_requires=['paramiko>=2.7.1',
                   'deeptools',
                   'wget',
                   'gevent',
-                  'pyyaml']
+                  'pyyaml',
+                  'pybedtools']
 )

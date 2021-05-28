@@ -26,4 +26,5 @@ dependencies:
   - ucsc-bedtobigbed
   - ucsc-bedgraphtobigwig
   - homer
+  - pybedtools
   
