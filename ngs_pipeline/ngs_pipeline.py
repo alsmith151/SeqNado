@@ -426,7 +426,7 @@ def call_peaks_macs(infile, outfile):
 
 
     output_prefix = outfile.replace('_peaks.narrowPeak', '')
-    statement = ["%(peaks_caller)s",
+    statement = ["%(macs_caller)s",
                  "callpeak",
                  "-t", 
                  "%(infile)s" 
