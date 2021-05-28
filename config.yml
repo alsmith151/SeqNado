@@ -41,7 +41,7 @@ aligner:
 alignments:
 
     # Determines if duplicates are removed from bam files
-    deduplicate: True
+    deduplicate: False
 
     # Options passed to deeptools alignmentSieve. Note: DO NOT include --ignore-duplicates.
     filter_options:
