@@ -52,9 +52,9 @@ for key in P.PARAMS:
         P.PARAMS[key] = True
 
 # Global variables
-CREATE_BIGWIGS = P.PARAMS.get("bigwig_create")
-CALL_PEAKS = P.PARAMS.get("peaks_call")
-CREATE_HUB = P.PARAMS.get("hub_create")
+CREATE_BIGWIGS = P.PARAMS.get("run_options_bigwigs")
+CALL_PEAKS = P.PARAMS.get("run_options_peaks")
+CREATE_HUB = P.PARAMS.get("run_options_hub")
 USE_HOMER = P.PARAMS.get('homer_use')
 USE_DEEPTOOLS = P.PARAMS.get('deeptools_use')
 USE_MACS = P.PARAMS.get('macs_use')
@@ -338,7 +338,7 @@ def create_tag_directory(infile, outfile):
 
     statement = ["makeTagDirectory",
                  outfile,
-                 P.PARAMS['homer_tagdir_options'],
+                 P.PARAMS['homer_tagdir_options'] or ' ',
                  infile,
                  ]
     
@@ -371,7 +371,7 @@ def alignments_pileup_deeptools(infile, outfile):
         outfile,
         "-p",
         "%(pipeline_n_cores)s",
-        "%(bigwig_options)s",
+        P.PARAMS.get('deeptools_bamcoverage_options') or ' ',
     ]
 
     P.run(
@@ -392,7 +392,7 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
     statement = ["makeBigWig.pl",
                  infile,
                  '-url',
-                 P.PARAMS['homer_makebigwig_options'],
+                 P.PARAMS.get('homer_makebigwig_options') or ' ',
                  '-webdir',
                  os.path.dirname(outfile)
                  ]
@@ -424,9 +424,16 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
 )
 def call_peaks_macs(infile, outfile):
 
-    peaks_options = P.PARAMS.get("peaks_options")
+
     output_prefix = outfile.replace('_peaks.narrowPeak', '')
-    statement = "%(peaks_caller)s callpeak -t %(infile)s -n %(output_prefix)s "
+    statement = ["%(peaks_caller)s",
+                 "callpeak",
+                 "-t", 
+                 "%(infile)s" 
+                 "-n",
+                 "%(output_prefix)s",
+                 P.PARAMS.get('macs_options') or ' ',
+    ]
 
     chipseq_match = re.match(r".*/(.*)_(.*).bam", infile)
 
@@ -458,11 +465,13 @@ def call_peaks_homer(infile, outfile):
     tmp = outfile.replace('.bed', '.txt')
     statement = ["findPeaks", 
                  infile,
-                 P.PARAMS['homer_findpeaks_options'],
+                 P.PARAMS['homer_findpeaks_options'] or ' ',
                  '-o',
                  tmp]
 
     
+
+
     # Finds the matching input file if one extists
     chipseq_match = re.match(r".*/(.*)_(.*)", infile)
     if chipseq_match:
