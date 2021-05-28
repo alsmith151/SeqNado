@@ -392,7 +392,7 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
     statement = ["makeBigWig.pl",
                  infile,
                  '-url',
-                 P.PARAMS['homer_makebigwig_url'],
+                 P.PARAMS['homer_makebigwig_options'],
                  '-webdir',
                  os.path.dirname(outfile)
                  ]
@@ -484,13 +484,6 @@ def call_peaks_homer(infile, outfile):
         job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
     )
-
-    
-
-    statement = ""
-
-
-
 
 
 
