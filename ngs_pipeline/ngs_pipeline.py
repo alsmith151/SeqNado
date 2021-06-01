@@ -433,9 +433,10 @@ def call_peaks_macs(infile, outfile):
         "%(macs_caller)s",
         "callpeak",
         "-t",
-        "%(infile)s" "-n",
+        "%(infile)s",
+        "-n",
         "%(output_prefix)s",
-        P.PARAMS.get("macs_options") or " ",
+        P.PARAMS.get("macs_callpeak_options") or " ",
     ]
 
     chipseq_match = re.match(r".*/(.*)_(.*).bam", infile)
