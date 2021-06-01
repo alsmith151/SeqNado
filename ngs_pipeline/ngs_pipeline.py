@@ -333,7 +333,7 @@ def alignments_filter(infile, outfile):
 
 @active_if(USE_HOMER)
 @follows(mkdir("tag/"))
-@transform(alignments_filter, regex(r"bam/(.*)"), r"tag/\1")
+@transform(alignments_filter, regex(r".*/(.*)"), r"tag/\1")
 def create_tag_directory(infile, outfile):
 
     statement = [
