@@ -12,6 +12,7 @@ SampleName1_(Input|AntibodyUsed)_(R)1|2.fastq.gz
 # import packages
 import sys
 import os
+from cgatcore.pipeline.parameters import PARAMS
 import seaborn as sns
 import glob
 from cgatcore import pipeline as P
@@ -333,7 +334,7 @@ def alignments_filter(infile, outfile):
 
 @active_if(USE_HOMER)
 @follows(mkdir("tag/"))
-@transform(alignments_filter, regex(r".*/(.*)"), r"tag/\1")
+@transform(alignments_filter, regex(r".*/(.*).bam"), r"tag/\1")
 def create_tag_directory(infile, outfile):
 
     statement = [
@@ -386,7 +387,7 @@ def alignments_pileup_deeptools(infile, outfile):
 @follows(mkdir("bigwigs/homer/"))
 @active_if(CREATE_BIGWIGS and USE_HOMER)
 @transform(
-    create_tag_directory, regex(r"tag/(.*)"), r"bigwigs/homer/\1.bigWig", extras=[r"\1"]
+    create_tag_directory, regex(r".*/(.*)"), r"bigwigs/homer/\1.bigWig", extras=[r"\1"]
 )
 def alignments_pileup_homer(infile, outfile, tagdir_name):
 
@@ -395,8 +396,9 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
     statement = [
         "makeBigWig.pl",
         infile,
+        P.PARAMS['genome_name'],
         "-url",
-        P.PARAMS.get("homer_makebigwig_options") or " ",
+        P.PARAMS.get("homer_makebigwig_options") or "INSERT_URL_HERE",
         "-webdir",
         os.path.dirname(outfile),
     ]
@@ -408,10 +410,15 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
         job_condaenv=P.PARAMS["conda_env"],
     )
 
-    # Rename bigwigs to remove ucsc
-    bigwig_src = os.path.join(outdir, f"{tagdir_name}.ucsc.bigWig")
-    bigwig_dest = os.path.join(outdir, f"{tagdir_name}.bigWig")
-    os.rename(bigwig_src, bigwig_dest)
+    try:
+        # Rename bigwigs to remove ucsc
+        bigwig_src = os.path.join(outdir, f"{tagdir_name}.ucsc.bigWig")
+        bigwig_dest = os.path.join(outdir, f"{tagdir_name}.bigWig")
+        os.rename(bigwig_src, bigwig_dest)
+    except OSError:
+        pass
+
+    
 
 
 ##############
@@ -461,8 +468,8 @@ def call_peaks_macs(infile, outfile):
 @follows(mkdir("peaks/homer"))
 @transform(
     create_tag_directory,
-    regex(r".*/(.*?)(?<!input)"),
-    r"peaks/homer/\1_peaks.bed",
+    regex(r".*/(?!.*_input)(.*)"),
+    r"peaks/homer/\1.bed",
 )
 def call_peaks_homer(infile, outfile):
 
