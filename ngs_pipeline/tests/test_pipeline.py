@@ -47,6 +47,7 @@ def set_up():
         "PATH_TO_ALIGNER_INDICIES": f"{dir_data}/grch38_1kgmaj",
         "HUB_DIR": dir_tests_run,
         "BAM_COVERAGE_OPTIONS": "-r chr1:1000:2000",
+        "MACS_OPTIONS": "--nomodel --extsize 147"
     }
 
     with open(f"{dir_repo}/config.yml", "r") as r:
@@ -68,6 +69,8 @@ def test_pipeline():
 
     cmd = "ngs-pipeline make --local -p 4"
     completed = subprocess.run(cmd.split())
+
+    breakpoint()
 
     assert completed.returncode == 0
     assert os.path.exists("trimmed/test-rs411_h3k27ac_1_val_1.fq")
