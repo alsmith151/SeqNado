@@ -82,7 +82,7 @@ macs:
 
     # Peak caller options. NOTE: Must include the genome -g option with the correct genome size or name.
     # e.g. -g hs 
-    options: -g hs
+    callpeak_options: MACS_OPTIONS
 
 
 hub:
