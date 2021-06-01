@@ -2,3 +2,5 @@
 .vscode
 **/__pycache__
 .pytest_cache
+ngs_pipeline/tests/pipeline/
+**.bt2
