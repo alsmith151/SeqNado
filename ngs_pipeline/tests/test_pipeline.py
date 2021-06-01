@@ -70,11 +70,10 @@ def test_pipeline():
     cmd = "ngs-pipeline make --local -p 4"
     completed = subprocess.run(cmd.split())
 
-    breakpoint()
-
     assert completed.returncode == 0
     assert os.path.exists("trimmed/test-rs411_h3k27ac_1_val_1.fq")
     assert os.path.exists("bam/test-rs411_h3k27ac.bam")
     assert os.path.exists("bam_processed/test-rs411_h3k27ac.bam")
-    assert os.path.exists('bigwigs/test-rs411_h3k27ac.bigWig')
+    assert os.path.exists('bigwigs/deeptools/test-rs411_h3k27ac.bigWig')
+    assert os.path.exists('bigwigs/homer/test-rs411_h3k27ac.bigWig')
 
