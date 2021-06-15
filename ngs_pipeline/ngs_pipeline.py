@@ -396,7 +396,7 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
     statement = [
         "makeBigWig.pl",
         infile,
-        P.PARAMS['genome_name'],
+        P.PARAMS["genome_name"],
         "-url",
         P.PARAMS.get("homer_makebigwig_options") or "INSERT_URL_HERE",
         "-webdir",
@@ -417,8 +417,6 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
         os.rename(bigwig_src, bigwig_dest)
     except OSError:
         pass
-
-    
 
 
 ##############
@@ -589,13 +587,15 @@ def make_ucsc_hub(infile, outfile, *args):
 
         trackdb.add_tracks(track)
 
-
     # Stage the hub
     trackhub.upload.stage_hub(hub=hub, staging="hub_tmp_dir")
 
     # Copy to the new location
     shutil.copytree(
-        "hub_tmp_dir", P.PARAMS["hub_dir"], dirs_exist_ok=True, symlinks=P.PARAMS.get("hub_symlink", False)
+        "hub_tmp_dir",
+        P.PARAMS["hub_dir"],
+        dirs_exist_ok=True,
+        symlinks=P.PARAMS.get("hub_symlink", False),
     )
 
     # Delete the staged hub
@@ -603,17 +603,14 @@ def make_ucsc_hub(infile, outfile, *args):
 
 
 @follows(
-    
-        alignments_pileup_homer,
-        alignments_pileup_homer,
-        call_peaks_homer,
-        call_peaks_macs,
-    
+    alignments_pileup_homer,
+    alignments_pileup_homer,
+    call_peaks_homer,
+    call_peaks_macs,
 )
-@originate('pipeline_complete.txt')
+@originate("pipeline_complete.txt")
 def full(outfile):
     touch_file(outfile)
-    
 
 
 if __name__ == "__main__":
