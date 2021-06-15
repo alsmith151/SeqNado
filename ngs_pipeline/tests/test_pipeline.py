@@ -76,4 +76,5 @@ def test_pipeline():
     assert os.path.exists("bam_processed/test-rs411_h3k27ac.bam")
     assert os.path.exists('bigwigs/deeptools/test-rs411_h3k27ac.bigWig')
     assert os.path.exists('bigwigs/homer/test-rs411_h3k27ac.bigWig')
+    assert os.path.exists("peaks/homer/test-rs411_h3k27ac.bed")
 
