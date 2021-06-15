@@ -86,13 +86,7 @@ macs:
 
 
 hub:
-
-    # Will append to an existing hub
-    append: False
-
-    # Url/IP of server to host bigWigs
-    url: http://userweb.molbiol.ox.ac.uk/
-    
+   
     # Location of publically accessible location on the server
     dir: HUB_DIR 
     
@@ -107,6 +101,9 @@ hub:
     
     # Email address (UCSC required)
     email: alastair.smith@ndcls.ox.ac.uk 
+
+    # Determines if files are symlinked or copied to the public directory
+    symlink: False
     
 
 #############################
