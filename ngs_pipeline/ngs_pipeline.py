@@ -550,7 +550,6 @@ def convert_bed_to_bigbed(infile, outfile):
 def make_ucsc_hub(infile, outfile, *args):
 
     import trackhub
-    import pickle
     import shutil
 
     hub, genomes_file, genome, trackdb = trackhub.default_hub(
