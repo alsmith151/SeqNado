@@ -143,13 +143,14 @@ def rename_fastq(infile, outfile):
     for to_replace, rep in replacements.items():
         infile_corrected_naming = infile_corrected_naming.replace(to_replace, rep)
     
-    os.symlink(os.path.abspath(infile), f'fastq/{infile_corrected_naming}')
+    if not os.path.exists(f'fastq/{infile_corrected_naming}'):
+        os.symlink(os.path.abspath(infile), f'fastq/{infile_corrected_naming}')
 
 
 
-@follows(mkdir("trimmed"), mkdir("statistics/trimming/data"))
+@follows(mkdir("trimmed"), mkdir("statistics/trimming/data"), rename_fastq)
 @collate(
-    rename_fastq,
+    "fastq/*.fastq.gz",
     regex(r"fastq/(.*)_R?[12].fastq(?:.gz)?"),
     r"trimmed/\1_1_val_1.fq",
 )
