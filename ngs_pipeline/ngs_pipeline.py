@@ -12,7 +12,7 @@ SampleName1_(Input|AntibodyUsed)_(R)1|2.fastq.gz
 # import packages
 import sys
 import os
-from cgatcore.pipeline.parameters import PARAMS
+from ruffus.ruffus_utility import suffix
 import seaborn as sns
 import glob
 from cgatcore import pipeline as P
@@ -41,7 +41,8 @@ P.get_parameters("config.yml")
 
 
 # Small edits to config to enable cluster usage
-P.PARAMS["cluster_queue_manager"] = P.PARAMS.get("pipeline_cluster_queue_manager")
+P.PARAMS["cluster_queue_manager"] = P.PARAMS.get(
+    "pipeline_cluster_queue_manager")
 P.PARAMS["conda_env"] = os.path.basename(os.environ["CONDA_PREFIX"])
 
 # Make sure that params dict is typed correctly
@@ -59,25 +60,6 @@ USE_HOMER = P.PARAMS.get("homer_use")
 USE_DEEPTOOLS = P.PARAMS.get("deeptools_use")
 USE_MACS = P.PARAMS.get("macs_use")
 
-
-# Ensures that all fastq are named correctly
-if not os.path.exists("fastq"):
-    os.mkdir("fastq")
-
-fastqs = dict()
-for fq in glob.glob("*.fastq*"):
-    fq_renamed = (
-        fq.replace("Input", "input")
-        .replace("INPUT", "input")
-        .replace("R1.fastq", "1.fastq")
-        .replace("R2.fastq", "2.fastq")
-    )
-
-    fastqs[os.path.abspath(fq)] = os.path.join("fastq", fq_renamed)
-
-for src, dest in fastqs.items():
-    if not os.path.exists(dest):
-        os.symlink(src, dest)
 
 ###################
 # Setup functions #
@@ -104,7 +86,8 @@ def set_up_chromsizes():
     else:
         from pybedtools.helpers import get_chromsizes_from_ucsc
 
-        get_chromsizes_from_ucsc(P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
+        get_chromsizes_from_ucsc(
+            P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
         P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
 
 
@@ -116,7 +99,6 @@ def set_up_chromsizes():
 @follows(mkdir("statistics"), mkdir("statistics/fastqc"))
 @transform("*.fastq.gz", regex(r"(.*).fastq.gz"), r"statistics/fastqc/\1_fastqc.zip")
 def qc_reads(infile, outfile):
-
     """Quality control of raw sequencing reads"""
 
     statement = "fastqc -q -t %(pipeline_n_cores)s --nogroup %(infile)s --outdir statistics/fastqc"
@@ -148,15 +130,30 @@ def multiqc_reads(infile, outfile):
 # Fastq processing   #
 ######################
 
+@follows(mkdir("fastq"))
+@transform("*.fastq*", suffix('.fastq.gz'), r'fastq/\1.fastq.gz')
+def rename_fastq(infile, outfile):
+
+    replacements = {'Input': 'input', 
+                    'R1.fastq': '1.fastq',
+                    'R2.fastq': '2.fastq', 
+                    'INPUT': 'input', }
+    
+    infile_corrected_naming = infile
+    for to_replace, rep in replacements.items():
+        infile_corrected_naming = infile_corrected_naming.replace(to_replace, rep)
+    
+    os.symlink(os.path.abspath(infile), f'fastq/{infile_corrected_naming}')
+
+
 
 @follows(mkdir("trimmed"), mkdir("statistics/trimming/data"))
 @collate(
-    "fastq/*.fastq*",
+    rename_fastq,
     regex(r"fastq/(.*)_R?[12].fastq(?:.gz)?"),
     r"trimmed/\1_1_val_1.fq",
 )
 def fastq_trim(infiles, outfile):
-
     """Trim adaptor sequences from fastq files using trim_galore"""
 
     fq1, fq2 = infiles
@@ -165,7 +162,8 @@ def fastq_trim(infiles, outfile):
     outdir = "trimmed"
     trim_options = P.PARAMS.get("trim_options", "")
     cores = (
-        P.PARAMS["pipeline_n_cores"] if int(P.PARAMS["pipeline_n_cores"]) <= 8 else "8"
+        P.PARAMS["pipeline_n_cores"] if int(
+            P.PARAMS["pipeline_n_cores"]) <= 8 else "8"
     )
 
     statement = """trim_galore
@@ -272,7 +270,6 @@ def alignment_statistics(infile, outfile):
 @follows(fastq_align, multiqc_reads, alignment_statistics)
 @originate("statistics/mapping_report.html")
 def alignments_multiqc(outfile):
-
     """Combines mapping metrics using multiqc"""
 
     statement = """export LC_ALL=en_US.UTF-8 &&
@@ -360,7 +357,8 @@ def create_tag_directory(infile, outfile):
 @active_if(CREATE_BIGWIGS and USE_DEEPTOOLS)
 @follows(mkdir("bigwigs/deeptools/"))
 @transform(
-    alignments_filter, regex(r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1.bigWig"
+    alignments_filter, regex(
+        r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1_deeptools.bigWig"
 )
 def alignments_pileup_deeptools(infile, outfile):
 
@@ -387,7 +385,7 @@ def alignments_pileup_deeptools(infile, outfile):
 @follows(mkdir("bigwigs/homer/"))
 @active_if(CREATE_BIGWIGS and USE_HOMER)
 @transform(
-    create_tag_directory, regex(r".*/(.*)"), r"bigwigs/homer/\1.bigWig", extras=[r"\1"]
+    create_tag_directory, regex(r".*/(.*)"), r"bigwigs/homer/\1_homer.bigWig", extras=[r"\1"]
 )
 def alignments_pileup_homer(infile, outfile, tagdir_name):
 
@@ -467,7 +465,7 @@ def call_peaks_macs(infile, outfile):
 @transform(
     create_tag_directory,
     regex(r".*/(?!.*_input)(.*)"),
-    r"peaks/homer/\1.bed",
+    r"peaks/homer/\1_homer.bed",
 )
 def call_peaks_homer(infile, outfile):
 
