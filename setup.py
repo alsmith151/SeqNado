@@ -23,9 +23,9 @@ install_requires=['paramiko>=2.7.1',
                   'click',
                   'trackhub',
                   'seaborn',
-                  'macs2',
-                  'macs3',
                   'deeptools',
                   'wget',
+                  'gevent',
+                  'pyyaml',
                   'pybedtools']
 )

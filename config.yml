@@ -2,6 +2,17 @@
 # Essential configuration options #
 ###################################
 
+run_options:
+    # Generate bigwigs. Set either homer_use == True or deeptools_use == True
+    bigwigs: True
+    
+    # Call peaks. Set either homer_use == True or macs_use == True
+    peaks: True
+    
+    # Create a UCSC hub. Any of homer_use, deeptools_use or macs_use must be set to True. 
+    hub: True
+
+
 genome:
     
     # Name of genome. UCSC genome names are prefered. Custom names are accepted if chrom_sizes are provided
@@ -12,7 +23,7 @@ genome:
 
     # Will be downloaded automatically if this is a UCSC genome. Else must supply a two columned chrom sizes file.
     # Genome fasta index files (.fai) can also be used.
-    chrom_sizes:  
+    chrom_sizes:
 
 aligner:
 
@@ -30,46 +41,52 @@ aligner:
 alignments:
 
     # Determines if duplicates are removed from bam files
-    deduplicate: True
+    deduplicate: False
 
     # Options passed to deeptools alignmentSieve. Note: DO NOT include --ignore-duplicates.
     filter_options:
 
 
-bigwig:
+homer:
+    # Determines if Homer is used for bigwig generation/peak calling.
+    # *Not* mutually exclusive with deeptools_use/macs_use.
+    use: True
 
-    # Turns of bigwig generation
-    create: True
+    # Options passed to homer makeTagDirectory
+    tagdir_options:
+    
+    # Options passed to homer makeBigWig.pl
+    # Do *Not* include --webdir as this is determined by the pipeline.
+    makebigwig_options:
+    
+    # Options passed to homer findPeaks
+    findpeaks_options:
+
+deeptools:
+    # Determines if deeptools is used for bigwig generation
+    # *Not* mutually exclusive with homer_use.
+    use: True
 
     # Options passed to deeptools BamCoverage
     # These need to be replaced
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
-    options: BAM_COVERAGE_OPTIONS
+    bamcoverage_options: BAM_COVERAGE_OPTIONS
 
-peaks:
+
+macs:
     # Determines if peaks are called or not
-    call: False
+    use: False
     
     # Determines peak caller
     caller: macs3
 
     # Peak caller options. NOTE: Must include the genome -g option with the correct genome size or name.
     # e.g. -g hs 
-    options: -g hs
+    callpeak_options: MACS_OPTIONS
 
 
 hub:
-    
-    # Determines if hub is created or not.
-    # True|False 
-    create: True
-
-    # Will append to an existing hub
-    append: False
-
-    # Url/IP of server to host bigWigs
-    url: http://userweb.molbiol.ox.ac.uk/
-    
+   
     # Location of publically accessible location on the server
     dir: HUB_DIR 
     
@@ -84,6 +101,9 @@ hub:
     
     # Email address (UCSC required)
     email: alastair.smith@ndcls.ox.ac.uk 
+
+    # Determines if files are symlinked or copied to the public directory
+    symlink: False
     
 
 #############################

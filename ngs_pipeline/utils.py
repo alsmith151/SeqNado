@@ -1,3 +1,4 @@
+
 def is_on(param: str) -> bool:
     """
     Returns True if parameter in "on" values
@@ -33,5 +34,4 @@ def is_none(param: str) -> bool:
         return True
     else:
         return False
-
 

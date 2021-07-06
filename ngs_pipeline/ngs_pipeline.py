@@ -12,6 +12,7 @@ SampleName1_(Input|AntibodyUsed)_(R)1|2.fastq.gz
 # import packages
 import sys
 import os
+from cgatcore.pipeline.parameters import PARAMS
 import seaborn as sns
 import glob
 from cgatcore import pipeline as P
@@ -26,8 +27,7 @@ from ruffus import (
     add_inputs,
     active_if,
 )
-from cgatcore.iotools import zap_file
-import pybedtools
+from cgatcore.iotools import zap_file, touch_file
 from utils import is_none, is_on
 import re
 
@@ -52,9 +52,12 @@ for key in P.PARAMS:
         P.PARAMS[key] = True
 
 # Global variables
-CREATE_BIGWIGS = P.PARAMS.get("bigwig_create")
-CALL_PEAKS = P.PARAMS.get("peaks_call")
-CREATE_HUB = P.PARAMS.get("hub_create")
+CREATE_BIGWIGS = P.PARAMS.get("run_options_bigwigs")
+CALL_PEAKS = P.PARAMS.get("run_options_peaks")
+CREATE_HUB = P.PARAMS.get("run_options_hub")
+USE_HOMER = P.PARAMS.get("homer_use")
+USE_DEEPTOOLS = P.PARAMS.get("deeptools_use")
+USE_MACS = P.PARAMS.get("macs_use")
 
 
 # Ensures that all fastq are named correctly
@@ -79,6 +82,7 @@ for src, dest in fastqs.items():
 ###################
 # Setup functions #
 ###################
+
 
 def set_up_chromsizes():
     """
@@ -292,9 +296,7 @@ def alignments_multiqc(outfile):
 def alignments_filter(infile, outfile):
     """Remove duplicate fragments from bam file."""
 
-    alignments_deduplicate = (
-        "--ignoreDuplicates" if P.PARAMS.get("alignments_deduplicate") else " "
-    )
+    alignments_deduplicate = P.PARAMS.get("alignments_deduplicate")
     alignments_filter_options = P.PARAMS.get("alignments_filter_options")
 
     if alignments_deduplicate or alignments_filter_options:
@@ -307,7 +309,7 @@ def alignments_filter(infile, outfile):
             outfile,
             "-p",
             "%(pipeline_n_cores)s",
-            alignments_deduplicate,
+            "--ignoreDuplicates" if alignments_deduplicate else "",
             alignments_filter_options if alignments_filter_options else " ",
             "&& samtools sort -o %(outfile)s.tmp %(outfile)s -@ %(pipeline_n_cores)s",
             "&& mv %(outfile)s.tmp %(outfile)s",
@@ -330,19 +332,39 @@ def alignments_filter(infile, outfile):
     )
 
 
+@active_if(USE_HOMER)
+@follows(mkdir("tag/"))
+@transform(alignments_filter, regex(r".*/(.*).bam"), r"tag/\1")
+def create_tag_directory(infile, outfile):
+
+    statement = [
+        "makeTagDirectory",
+        outfile,
+        P.PARAMS["homer_tagdir_options"] or " ",
+        infile,
+    ]
+
+    P.run(
+        " ".join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+
 ###########
 # BigWigs #
 ###########
 
 
-@active_if(CREATE_BIGWIGS)
-@follows(mkdir("bigwigs"), alignments_filter)
+@active_if(CREATE_BIGWIGS and USE_DEEPTOOLS)
+@follows(mkdir("bigwigs/deeptools/"))
 @transform(
-    "bam_processed/*.bam", regex(r"bam_processed/(.*).bam"), r"bigwigs/\1.bigWig"
+    alignments_filter, regex(r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1.bigWig"
 )
-def alignments_pileup(infile, outfile):
+def alignments_pileup_deeptools(infile, outfile):
 
-    cmd = [
+    statement = [
         "bamCoverage",
         "-b",
         infile,
@@ -350,13 +372,11 @@ def alignments_pileup(infile, outfile):
         outfile,
         "-p",
         "%(pipeline_n_cores)s",
-        "%(bigwig_options)s",
+        P.PARAMS.get("deeptools_bamcoverage_options") or " ",
     ]
 
-    statement = " ".join(cmd)
-
     P.run(
-        statement,
+        " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory=P.PARAMS["pipeline_memory"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
@@ -364,23 +384,65 @@ def alignments_pileup(infile, outfile):
     )
 
 
+@follows(mkdir("bigwigs/homer/"))
+@active_if(CREATE_BIGWIGS and USE_HOMER)
+@transform(
+    create_tag_directory, regex(r".*/(.*)"), r"bigwigs/homer/\1.bigWig", extras=[r"\1"]
+)
+def alignments_pileup_homer(infile, outfile, tagdir_name):
+
+    outdir = os.path.dirname(outfile)
+
+    statement = [
+        "makeBigWig.pl",
+        infile,
+        P.PARAMS["genome_name"],
+        "-url",
+        P.PARAMS.get("homer_makebigwig_options") or "INSERT_URL_HERE",
+        "-webdir",
+        os.path.dirname(outfile),
+    ]
+
+    P.run(
+        " ".join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_pipeline_n_cores=1,
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+    try:
+        # Rename bigwigs to remove ucsc
+        bigwig_src = os.path.join(outdir, f"{tagdir_name}.ucsc.bigWig")
+        bigwig_dest = os.path.join(outdir, f"{tagdir_name}.bigWig")
+        os.rename(bigwig_src, bigwig_dest)
+    except OSError:
+        pass
+
+
 ##############
 # Call peaks #
 ##############
 
 
-@active_if(CALL_PEAKS)
-@follows(mkdir("peaks"))
+@active_if(CALL_PEAKS and USE_MACS)
+@follows(mkdir("peaks/macs"))
 @transform(
     alignments_filter,
     regex(r".*/(.*?)(?<!input).bam"),
-    r"peaks/\1_peaks.narrowPeak",
+    r"peaks/macs/\1_peaks.narrowPeak",
 )
-def call_peaks(infile, outfile):
+def call_peaks_macs(infile, outfile):
 
-    peaks_options = P.PARAMS.get("peaks_options")
-    output_prefix = outfile.replace('_peaks.narrowPeak', '')
-    statement = "%(peaks_caller)s callpeak -t %(infile)s -n %(output_prefix)s "
+    output_prefix = outfile.replace("_peaks.narrowPeak", "")
+    statement = [
+        "%(macs_caller)s",
+        "callpeak",
+        "-t",
+        "%(infile)s",
+        "-n",
+        "%(output_prefix)s",
+        P.PARAMS.get("macs_callpeak_options") or " ",
+    ]
 
     chipseq_match = re.match(r".*/(.*)_(.*).bam", infile)
 
@@ -390,10 +452,49 @@ def call_peaks(infile, outfile):
         control_file = f"bam_processed/{samplename}_input.bam"
 
         if os.path.exists(control_file):
-            statement += f"-c {control_file}"
+            statement.append(f"-c {control_file}")
 
     P.run(
-        statement,
+        " ".join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+
+@active_if(CALL_PEAKS and USE_HOMER)
+@follows(mkdir("peaks/homer"))
+@transform(
+    create_tag_directory,
+    regex(r".*/(?!.*_input)(.*)"),
+    r"peaks/homer/\1.bed",
+)
+def call_peaks_homer(infile, outfile):
+
+    tmp = outfile.replace(".bed", ".txt")
+    statement = [
+        "findPeaks",
+        infile,
+        P.PARAMS["homer_findpeaks_options"] or " ",
+        "-o",
+        tmp,
+    ]
+
+    # Finds the matching input file if one extists
+    chipseq_match = re.match(r".*/(.*)_(.*)", infile)
+    if chipseq_match:
+        samplename = chipseq_match.group(1)
+        antibody = chipseq_match.group(2)
+        control = f"tag/{samplename}_input"
+
+        if os.path.exists(control):
+            statement.append(f"-i {control}")
+
+    # Need to convert homer peak format to bed
+    statement.append(f"&& pos2bed.pl {tmp} -o {outfile}")
+
+    P.run(
+        " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
@@ -405,7 +506,7 @@ def call_peaks(infile, outfile):
 #######################
 
 
-@transform(call_peaks, regex(r"peaks/(.*).narrowPeak"), r"peaks/\1.bed")
+@transform(call_peaks_macs, regex(r"peaks/(.*).narrowPeak"), r"peaks/\1.bed")
 def convert_narrowpeak_to_bed(infile, outfile):
 
     statement = """awk '{OFS="\\t"; print $1,$2,$3,$4}' %(infile)s > %(outfile)s"""
@@ -418,9 +519,9 @@ def convert_narrowpeak_to_bed(infile, outfile):
 
 
 @transform(
-    convert_narrowpeak_to_bed,
-    regex(r"peaks/(.*).bed"),
-    r"peaks/\1.bigBed",
+    [convert_narrowpeak_to_bed, call_peaks_homer],
+    regex(r"(.*)/(.*).bed"),
+    r"\1/\2.bigBed",
 )
 def convert_bed_to_bigbed(infile, outfile):
 
@@ -433,9 +534,14 @@ def convert_bed_to_bigbed(infile, outfile):
 
 
 @active_if(CREATE_HUB)
-@follows(fastq_align, alignments_pileup, alignments_multiqc)
+@follows(
+    fastq_align,
+    alignments_pileup_deeptools,
+    alignments_pileup_homer,
+    alignments_multiqc,
+)
 @merge(
-    [alignments_pileup, convert_bed_to_bigbed],
+    [alignments_pileup_deeptools, alignments_pileup_homer, convert_bed_to_bigbed],
     regex(r".*"),
     os.path.join(
         P.PARAMS.get("hub_dir", ""), P.PARAMS.get("hub_name", "") + ".hub.txt"
@@ -444,40 +550,15 @@ def convert_bed_to_bigbed(infile, outfile):
 def make_ucsc_hub(infile, outfile, *args):
 
     import trackhub
-    import pickle
     import shutil
 
-    hub_pkl_path = os.path.join(P.PARAMS["hub_dir"], ".hub.pkl")
-
-    if os.path.exists(hub_pkl_path) and P.PARAMS.get("hub_append"):
-
-        # Extract previous hub data
-        with open(hub_pkl_path, "rb") as pkl:
-            hub, genomes_file, genome, trackdb = pickle.load(pkl)
-
-        # Delete previously staged hub
-
-        # Delete symlinks and track db
-        for fn in glob.glob(
-            os.path.join(P.PARAMS["hub_dir"], P.PARAMS["genome_name"] + "*")
-        ):
-            os.unlink(fn)
-
-        # Delete hub metadata
-        os.unlink(os.path.join(P.PARAMS["hub_dir"], P.PARAMS["hub_name"] + ".hub.txt"))
-        os.unlink(
-            os.path.join(P.PARAMS["hub_dir"], P.PARAMS["hub_name"] + ".genomes.txt")
-        )
-
-    else:
-
-        hub, genomes_file, genome, trackdb = trackhub.default_hub(
-            hub_name=P.PARAMS["hub_name"],
-            short_label=P.PARAMS.get("hub_short"),
-            long_label=P.PARAMS.get("hub_long"),
-            email=P.PARAMS["hub_email"],
-            genome=P.PARAMS["genome_name"],
-        )
+    hub, genomes_file, genome, trackdb = trackhub.default_hub(
+        hub_name=P.PARAMS["hub_name"],
+        short_label=P.PARAMS.get("hub_short"),
+        long_label=P.PARAMS.get("hub_long"),
+        email=P.PARAMS["hub_email"],
+        genome=P.PARAMS["genome_name"],
+    )
 
     bigwigs = [fn for fn in infile if ".bigWig" in fn]
     bigbeds = [fn for fn in infile if ".bigBed" in fn]
@@ -505,12 +586,30 @@ def make_ucsc_hub(infile, outfile, *args):
 
         trackdb.add_tracks(track)
 
-    # Move hub to public directory
-    trackhub.upload.stage_hub(hub, P.PARAMS["hub_dir"])
+    # Stage the hub
+    trackhub.upload.stage_hub(hub=hub, staging="hub_tmp_dir")
 
-    # Save pickle file with data
-    with open(hub_pkl_path, "wb") as pkl:
-        pickle.dump([hub, genomes_file, genome, trackdb])
+    # Copy to the new location
+    shutil.copytree(
+        "hub_tmp_dir",
+        P.PARAMS["hub_dir"],
+        dirs_exist_ok=True,
+        symlinks=P.PARAMS.get("hub_symlink", False),
+    )
+
+    # Delete the staged hub
+    shutil.rmtree("hub_tmp_dir")
+
+
+@follows(
+    alignments_pileup_homer,
+    alignments_pileup_homer,
+    call_peaks_homer,
+    call_peaks_macs,
+)
+@originate("pipeline_complete.txt")
+def full(outfile):
+    touch_file(outfile)
 
 
 if __name__ == "__main__":

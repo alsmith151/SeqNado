@@ -47,6 +47,7 @@ def set_up():
         "PATH_TO_ALIGNER_INDICIES": f"{dir_data}/grch38_1kgmaj",
         "HUB_DIR": dir_tests_run,
         "BAM_COVERAGE_OPTIONS": "-r chr1:1000:2000",
+        "MACS_OPTIONS": "--nomodel --extsize 147"
     }
 
     with open(f"{dir_repo}/config.yml", "r") as r:
@@ -73,5 +74,7 @@ def test_pipeline():
     assert os.path.exists("trimmed/test-rs411_h3k27ac_1_val_1.fq")
     assert os.path.exists("bam/test-rs411_h3k27ac.bam")
     assert os.path.exists("bam_processed/test-rs411_h3k27ac.bam")
-    assert os.path.exists('bigwigs/test-rs411_h3k27ac.bigWig')
+    assert os.path.exists('bigwigs/deeptools/test-rs411_h3k27ac.bigWig')
+    assert os.path.exists('bigwigs/homer/test-rs411_h3k27ac.bigWig')
+    assert os.path.exists("peaks/homer/test-rs411_h3k27ac.bed")
 

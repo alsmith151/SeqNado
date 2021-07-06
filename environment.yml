@@ -6,6 +6,9 @@ channels:
 dependencies:
   - python=3.8
   - pip
+  - pip:
+    - macs3
+    - wget
   - cgatcore
   - bowtie2
   - samtools
@@ -19,9 +22,9 @@ dependencies:
   - click
   - ucsc-bigbedtobed
   - pybigwig
-  - pybedtools
   - ucsc-fetchchromsizes
   - ucsc-bedtobigbed
-pip:
-  - macs3
-  - wget
+  - ucsc-bedgraphtobigwig
+  - homer
+  - pybedtools
+  
