@@ -207,7 +207,7 @@ def fastq_trim_paired(infiles, outfile):
 ###############
 
 @follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_single)
-@transform("trimmed/*.fq", regex(r"trimmed/(.*).fq"), r"bam/\1.bam")
+@transform("trimmed/*.fq", regex(r"trimmed/(.*)_trimmed.fq"), r"bam/\1.bam")
 def fastq_align_single(infile, outfile):
     """
     Aligns fq files.
