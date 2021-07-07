@@ -593,7 +593,8 @@ def convert_bed_to_bigbed(infile, outfile):
 
 @active_if(CREATE_HUB)
 @follows(
-    fastq_align,
+    fastq_align_single,
+    fastq_align_paired,
     alignments_pileup_deeptools,
     alignments_pileup_homer,
     alignments_multiqc,
