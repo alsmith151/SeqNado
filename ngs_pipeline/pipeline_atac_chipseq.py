@@ -154,12 +154,15 @@ def multiqc_reads(infile, outfile):
            r'trimmed/\1_trimmed.fq.gz')
 def fastq_trim_single(infile, outfile):
     
-    statement = '''trim_galore --cores %(threads)s %(trim_options)s 
+    statement = '''trim_galore --cores %(pipeline_n_cores)s --dont_gzip %(trim_options)s 
                   -o trimmed %(infile)s'''
-    P.run(statement, 
-          job_queue=P.PARAMS['queue'], 
-          job_threads=P.PARAMS['threads'],
-          job_condaenv=P.PARAMS["conda_env"])
+   
+    P.run(
+        statement,
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
 
