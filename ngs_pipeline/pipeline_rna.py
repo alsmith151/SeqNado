@@ -48,6 +48,10 @@ for key in P.PARAMS:
 CREATE_BIGWIGS = P.PARAMS.get("run_options_bigwigs")
 CREATE_HUB = P.PARAMS.get("run_options_hub")
 
+#############
+# Pipeline  #
+#############
+
 
 @follows(mkdir("statistics"), mkdir("statistics/fastqc"))
 @transform("*.fastq.gz", regex(r"(.*).fastq.gz"), r"statistics/fastqc/\1_fastqc.zip")
@@ -246,9 +250,11 @@ def alignments_multiqc(outfile):
         job_condaenv=P.PARAMS["conda_env"],
     )
 
+
 ################
 # Count reads  #
 ################
+
 
 @follows(mkdir("featureCounts"))
 @merge(
@@ -260,17 +266,24 @@ def count_reads(infiles, outfile):
     fnames = " ".join(infiles)
     output = os.path.join("featureCounts", P.PARAMS["featureCounts_output"])
 
-    cmd = """featureCounts -a %(featureCounts_gtf)s 
+    statement = """featureCounts -a %(featureCounts_gtf)s 
              -o %(output)s -T %(pipeline_n_cores)s  
              %(featureCounts_options)s %(fnames)s"""
 
-    P.run(cmd, job_queue=P.PARAMS["queue"], job_threads=P.PARAMS["pipeline_n_cores"])
+    P.run(
+        statement,
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
 
 ###########
 # Bigwigs #
 ###########
 
-@follow(mkdir("bigwigs"))
+
+@follows(mkdir("bigwigs"))
 @transform(
     fastq_align,
     regex(r"bam/(.*.bam)"),
@@ -352,8 +365,6 @@ def make_ucsc_hub(infile, outfile, *args):
 
     # Delete the staged hub
     shutil.rmtree("hub_tmp_dir")
-
-
 
 
 if __name__ == "__main__":
