@@ -126,7 +126,9 @@ After copying/linking FASTQ files into the working directory and configuring the
 config.yml in the working directory for the current experiment, the pipeline can be run with:
 
 ```
-ngs-pipeline 
+ngs-pipeline atac # ATAC-seq samples
+ngs-pipeline chip # ChIP-seq/ChIPMentation
+ngs-pipeline rna # RNA-seq - Not fully tested 
 ```
 
 There are several options to visualise which tasks will be performed by the pipeline
@@ -135,26 +137,26 @@ before running.
 The tasks to be performed can be examined with:
 ```    
 # Shows the tasks to be performed
-ngs-pipeline show 
+ngs-pipeline atac show 
 
 # Plots a directed graph using graphviz
-ngs-pipeline plot
+ngs-pipeline atac plot
 ```
 
 If you are happy with the tasks to be performed, the full pipeline run can be launched with:
 
 ```
 # If using all default settings and using a cluster
-ngs-pipeline make
+ngs-pipeline atac make
 
 # Higher verbosity
-ngs-pipeline make -v 5
+ngs-pipeline atac make -v 5
 
 # If not using a cluster, run in local mode.
-ngs-pipeline make --local -p 4
+ngs-pipeline atac make --local -p 4
 
 # Avoiding network disconnections
-nohup ngs-pipeline make &
+nohup ngs-pipeline atac make &
 ```
 
 See [cgat-core Read the Docs](https://cgat-core.readthedocs.io/en/latest/getting_started/Examples.html) for additional
