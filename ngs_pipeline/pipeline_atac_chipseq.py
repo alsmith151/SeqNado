@@ -41,7 +41,8 @@ P.get_parameters(glob.glob("config_*.yml")[0])
 
 
 # Small edits to config to enable cluster usage
-P.PARAMS["cluster_queue_manager"] = P.PARAMS.get("pipeline_cluster_queue_manager")
+P.PARAMS["cluster_queue_manager"] = P.PARAMS.get(
+    "pipeline_cluster_queue_manager")
 P.PARAMS["conda_env"] = os.path.basename(os.environ["CONDA_PREFIX"])
 
 # Make sure that params dict is typed correctly
@@ -104,7 +105,8 @@ def set_up_chromsizes():
     else:
         from pybedtools.helpers import get_chromsizes_from_ucsc
 
-        get_chromsizes_from_ucsc(P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
+        get_chromsizes_from_ucsc(
+            P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
         P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
 
 
@@ -116,7 +118,6 @@ def set_up_chromsizes():
 @follows(mkdir("statistics"), mkdir("statistics/fastqc"))
 @transform("*.fastq.gz", regex(r"(.*).fastq.gz"), r"statistics/fastqc/\1_fastqc.zip")
 def qc_reads(infile, outfile):
-
     """Quality control of raw sequencing reads"""
 
     statement = "fastqc -q -t %(pipeline_n_cores)s --nogroup %(infile)s --outdir statistics/fastqc"
@@ -149,21 +150,26 @@ def multiqc_reads(infile, outfile):
 ######################
 
 @follows(mkdir('trimmed'))
-@transform('fastq/*.fastq*', 
-           regex(r'(?!.*_.*_[12])^(.*).fastq.gz'), # Regex negates any filenames matching the paired pattern
-           r'trimmed/\1_trimmed.fq.gz')
+@transform('fastq/*.fastq*',
+           # Regex negates any filenames matching the paired pattern
+           regex(r'(?!.*_.*_[12])^fastq/(.*).fastq.gz'),
+           r'trimmed/\1_trimmed.fq')
 def fastq_trim_single(infile, outfile):
-    
-    statement = '''trim_galore --cores %(pipeline_n_cores)s --dont_gzip %(trim_options)s 
-                  -o trimmed %(infile)s'''
-   
+
+    statement = '''trim_galore 
+                   --cores 
+                   %(pipeline_n_cores)s 
+                   --dont_gzip 
+                   %(trim_options)s 
+                   -o trimmed 
+                   %(infile)s'''
+
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
-
 
 
 @follows(mkdir("trimmed"), mkdir("statistics/trimming/data"))
@@ -173,7 +179,6 @@ def fastq_trim_single(infile, outfile):
     r"trimmed/\1_1_val_1.fq",
 )
 def fastq_trim_paired(infiles, outfile):
-
     """Trim adaptor sequences from fastq files using trim_galore"""
 
     fq1, fq2 = infiles
@@ -182,12 +187,14 @@ def fastq_trim_paired(infiles, outfile):
     outdir = "trimmed"
     trim_options = P.PARAMS.get("trim_options", "")
     cores = (
-        P.PARAMS["pipeline_n_cores"] if int(P.PARAMS["pipeline_n_cores"]) <= 8 else "8"
+        P.PARAMS["pipeline_n_cores"] if int(
+            P.PARAMS["pipeline_n_cores"]) <= 8 else "8"
     )
 
     statement = """trim_galore
                    --cores %(cores)s
-                   --paired %(trim_options)s
+                   --paired 
+                   %(trim_options)s
                    --dont_gzip
                    -o %(outdir)s
                    %(fq1)s
@@ -206,8 +213,8 @@ def fastq_trim_paired(infiles, outfile):
 # Alignment   #
 ###############
 
-@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_single)
-@transform("trimmed/*.fq", regex(r"trimmed/(.*)_trimmed.fq"), r"bam/\1.bam")
+@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_single, fastq_trim_paired)
+@transform(fastq_trim_single, regex(r"trimmed/(.*)_trimmed.fq"), r"bam/\1.bam")
 def fastq_align_single(infile, outfile):
     """
     Aligns fq files.
@@ -251,8 +258,7 @@ def fastq_align_single(infile, outfile):
     zap_file(infile)
 
 
-
-@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_paired)
+@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_paired, fastq_trim_single)
 @collate("trimmed/*.fq", regex(r"trimmed/(.*)_[12]_val_[12].fq"), r"bam/\1.bam")
 def fastq_align_paired(infiles, outfile):
     """
@@ -333,7 +339,6 @@ def alignment_statistics(infile, outfile):
 @follows(multiqc_reads, alignment_statistics)
 @originate("statistics/mapping_report.html")
 def alignments_multiqc(outfile):
-
     """Combines mapping metrics using multiqc"""
 
     statement = """export LC_ALL=en_US.UTF-8 &&
@@ -421,7 +426,8 @@ def create_tag_directory(infile, outfile):
 @active_if(CREATE_BIGWIGS and USE_DEEPTOOLS)
 @follows(mkdir("bigwigs/deeptools/"))
 @transform(
-    alignments_filter, regex(r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1.bigWig"
+    alignments_filter, regex(
+        r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1.bigWig"
 )
 def alignments_pileup_deeptools(infile, outfile):
 
