@@ -29,6 +29,7 @@ from ruffus import (
 from cgatcore.iotools import zap_file, touch_file
 from utils import is_none, is_on
 import re
+import glob
 
 
 ##################
@@ -36,7 +37,7 @@ import re
 ##################
 
 # Read in parameter file
-P.get_parameters("config.yml")
+P.get_parameters(glob.glob("config_*.yml")[0])
 
 
 # Small edits to config to enable cluster usage
