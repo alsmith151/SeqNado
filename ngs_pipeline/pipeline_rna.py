@@ -148,7 +148,6 @@ def fastq_align(infiles, outfile):
 
     statement_align = [
         "STAR",
-        "alignReads",
         "--genomeDir",
         P.PARAMS["aligner_index"],
         "--readFilesIn",
