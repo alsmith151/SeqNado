@@ -265,9 +265,9 @@ def count_reads(infiles, outfile):
     fnames = " ".join(infiles)
     output = os.path.join("featureCounts", P.PARAMS["featureCounts_output"])
 
-    statement = """featureCounts -a %(featureCounts_gtf)s 
+    statement = """featureCounts -a %(featurecounts_gtf)s 
              -o %(output)s -T %(pipeline_n_cores)s  
-             %(featureCounts_options)s %(fnames)s"""
+             %(featurecounts_options)s %(fnames)s"""
 
     P.run(
         statement,
