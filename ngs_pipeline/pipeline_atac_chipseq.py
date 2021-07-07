@@ -148,6 +148,20 @@ def multiqc_reads(infile, outfile):
 # Fastq processing   #
 ######################
 
+@follows(mkdir('trimmed'))
+@transform('fastq/*.fastq*', 
+           regex(r'(?!.*_.*_[12])^(.*).fastq.gz'), # Regex negates any filenames matching the paired pattern
+           r'trimmed/\1_trimmed.fq.gz')
+def fastq_trim_single(infile, outfile):
+    
+    statement = '''trim_galore --cores %(threads)s %(trim_options)s 
+                  -o trimmed %(infile)s'''
+    P.run(statement, 
+          job_queue=P.PARAMS['queue'], 
+          job_threads=P.PARAMS['threads'],
+          job_condaenv=P.PARAMS["conda_env"])
+
+
 
 @follows(mkdir("trimmed"), mkdir("statistics/trimming/data"))
 @collate(
@@ -155,7 +169,7 @@ def multiqc_reads(infile, outfile):
     regex(r"fastq/(.*)_R?[12].fastq(?:.gz)?"),
     r"trimmed/\1_1_val_1.fq",
 )
-def fastq_trim(infiles, outfile):
+def fastq_trim_paired(infiles, outfile):
 
     """Trim adaptor sequences from fastq files using trim_galore"""
 
@@ -189,10 +203,55 @@ def fastq_trim(infiles, outfile):
 # Alignment   #
 ###############
 
+@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_single)
+@transform("trimmed/*.fq", regex(r"trimmed/(.*).fq"), r"bam/\1.bam")
+def fastq_align_single(infile, outfile):
+    """
+    Aligns fq files.
 
-@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim)
+    Uses bowtie2 before conversion to bam file using Samtools view.
+    Bam file is then sorted and the unsorted bam file is replaced.
+
+    """
+
+    basename = os.path.basename(outfile).replace(".bam", "")
+    sorted_bam = outfile.replace(".bam", "_sorted.bam")
+
+    aligner = P.PARAMS.get("aligner_aligner", "bowtie2")
+    aligner_options = P.PARAMS.get("aligner_options", "")
+    blacklist = P.PARAMS.get("genome_blacklist", "")
+
+    statement = [
+        "%(aligner_aligner)s -x %(aligner_index)s -U %(infile)s %(aligner_options)s |",
+        "samtools view - -b > %(outfile)s &&",
+        "samtools sort -@ %(pipeline_n_cores)s -o %(sorted_bam)s %(outfile)s",
+    ]
+
+    if blacklist:
+        # Uses bedtools intersect to remove blacklisted regions
+        statement.append(
+            "&& bedtools intersect -v -b %(blacklist)s -a %(sorted_bam)s > %(outfile)s"
+        )
+        statement.append("&& rm -f %(sorted_bam)s")
+
+    else:
+        statement.append("&& mv %(sorted_bam)s %(outfile)s")
+
+    P.run(
+        " ".join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
+    # Zeros the trimmed fastq files
+    zap_file(infile)
+
+
+
+@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_paired)
 @collate("trimmed/*.fq", regex(r"trimmed/(.*)_[12]_val_[12].fq"), r"bam/\1.bam")
-def fastq_align(infiles, outfile):
+def fastq_align_paired(infiles, outfile):
     """
     Aligns fq files.
 
@@ -237,7 +296,7 @@ def fastq_align(infiles, outfile):
         zap_file(fn)
 
 
-@transform(fastq_align, regex(r"bam/(.*)"), r"bam/\1.bai")
+@transform([fastq_align_single, fastq_align_paired], regex(r"bam/(.*)"), r"bam/\1.bai")
 def create_bam_index(infile, outfile):
     """Creates an index for the bam file"""
 
@@ -256,8 +315,7 @@ def create_bam_index(infile, outfile):
 ##############
 
 
-@follows(fastq_align)
-@transform(fastq_align, regex(r".*/(.*).bam"), r"statistics/alignment/\1.txt")
+@transform([fastq_align_single, fastq_align_paired], regex(r".*/(.*).bam"), r"statistics/alignment/\1.txt")
 def alignment_statistics(infile, outfile):
 
     statement = """samtools stats %(infile)s > %(outfile)s"""
@@ -269,7 +327,7 @@ def alignment_statistics(infile, outfile):
     )
 
 
-@follows(fastq_align, multiqc_reads, alignment_statistics)
+@follows(multiqc_reads, alignment_statistics)
 @originate("statistics/mapping_report.html")
 def alignments_multiqc(outfile):
 
@@ -292,7 +350,7 @@ def alignments_multiqc(outfile):
 
 
 @follows(create_bam_index, mkdir("bam_processed"))
-@transform(fastq_align, regex(r"bam/(.*.bam)"), r"bam_processed/\1")
+@transform([fastq_align_single, fastq_align_paired], regex(r"bam/(.*.bam)"), r"bam_processed/\1")
 def alignments_filter(infile, outfile):
     """Remove duplicate fragments from bam file."""
 
