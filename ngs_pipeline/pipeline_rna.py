@@ -169,7 +169,7 @@ def fastq_align(infiles, outfile):
         str(P.PARAMS["pipeline_n_cores"]),
         "-o",
         outfile,
-        sorted_bam,
+        f'{sorted_bam}Aligned.out.bam',
     ]
 
     if blacklist:
