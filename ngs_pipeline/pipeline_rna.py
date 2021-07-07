@@ -30,7 +30,7 @@ from utils import is_none, is_on
 ##################
 
 # Read in parameter file
-P.get_parameters("config.yml")
+P.get_parameters("config_rna.yml")
 
 
 # Small edits to config to enable cluster usage
