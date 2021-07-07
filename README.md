@@ -59,14 +59,17 @@ in this directory.
 
 2. Get and edit the pipeline configuration file.
 
-The configuration file [config.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config.yml) enables 
+The configuration file [configX.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config_atac.yml) enables 
 parameterisation of the pipeline run with user specific settings. Furthermore,
 it also provides paths to essential files for the pipeline run (e.g., bowtie2 indices).
 The paths supplied do not have to be in the same directory as the pipeline.
 
 A copy of config.yml can be downloaded from GitHub using:
 ```
-wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config.yml
+wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_atac.yml # ATAC
+wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_chip.yml # ChIP
+wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_rna.yml  # RNA
+
 ```
 
 This [yaml](https://yaml.org/spec/1.2/spec.html) file can be edited using standard text editors e.g.
