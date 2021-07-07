@@ -195,6 +195,7 @@ def fastq_align(infiles, outfile):
         f'{" ".join(statement_align)} && {" ".join(statement_samtools)} && {statement_blacklist}',
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_memory="32G",
         job_condaenv=P.PARAMS["conda_env"],
     )
 
