@@ -6,9 +6,6 @@ run_options:
     # Generate bigwigs. Set either homer_use == True or deeptools_use == True
     bigwigs: True
     
-    # Call peaks. Set either homer_use == True or macs_use == True
-    peaks: True
-    
     # Create a UCSC hub. Any of homer_use, deeptools_use or macs_use must be set to True. 
     hub: True
 
@@ -22,9 +19,7 @@ genome:
 
 aligner:
 
-    # Path to indicies for the specified aligner (default = bowtie2)
-    # Note: Do not include .Number|rev.bt2
-    # e.g. /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome
+    # Path to STAR indicies
     index: PATH_TO_ALIGNER_INDICIES
 
     # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
@@ -33,7 +28,6 @@ aligner:
 
 deeptools:
     # Determines if deeptools is used for bigwig generation
-    # *Not* mutually exclusive with homer_use.
     use: True
 
     # Options passed to deeptools BamCoverage
@@ -42,8 +36,13 @@ deeptools:
     bamcoverage_options: BAM_COVERAGE_OPTIONS
 
 featurecounts:
+    # Path to GTF file for counting reads
     gtf: PATH_TO_GTF
+    
+    # Output path for featureCounts
     output: counts.csv
+    
+    # Options passed to featureCounts
     options: FEATURECOUNTS_OPTIONS 
 
 hub:
@@ -52,13 +51,13 @@ hub:
     dir: HUB_DIR 
     
     # Name for the hub (UCSC required)
-    name: chipseq_test 
+    name: rnaseq_test 
     
     # Short hub name (UCSC required)
-    short: chipseq new pipeline 
+    short: rnaseq new pipeline 
     
     # Long hub name (UCSC required)
-    long: chipseq processed with the new python pipeline 
+    long: rnaseq processed with the new python pipeline 
     
     # Email address (UCSC required)
     email: alastair.smith@ndcls.ox.ac.uk 
