@@ -60,6 +60,25 @@ USE_HOMER = P.PARAMS.get("homer_use")
 USE_DEEPTOOLS = P.PARAMS.get("deeptools_use")
 USE_MACS = P.PARAMS.get("macs_use")
 
+# Ensures that all fastq are named correctly
+if not os.path.exists("fastq"):
+    os.mkdir("fastq")
+
+fastqs = dict()
+for fq in glob.glob("*.fastq*"):
+    fq_renamed = (
+        fq.replace("Input", "input")
+        .replace("INPUT", "input")
+        .replace("R1.fastq", "1.fastq")
+        .replace("R2.fastq", "2.fastq")
+    )
+
+    fastqs[os.path.abspath(fq)] = os.path.join("fastq", fq_renamed)
+
+for src, dest in fastqs.items():
+    if not os.path.exists(dest):
+        os.symlink(src, dest)
+
 
 ###################
 # Setup functions #
