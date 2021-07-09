@@ -142,8 +142,6 @@ def fastq_align(infiles, outfile):
     basename = os.path.basename(outfile).replace(".bam", "")
     sorted_bam = outfile.replace(".bam", "_sorted.bam")
 
-    aligner = P.PARAMS.get("aligner_aligner", "STAR")
-    aligner_options = P.PARAMS.get("aligner_options", "")
     blacklist = P.PARAMS.get("genome_blacklist", "")
 
     statement_align = [
@@ -159,7 +157,7 @@ def fastq_align(infiles, outfile):
         "--runThreadN",
         str(P.PARAMS["pipeline_n_cores"]),
         "--outFileNamePrefix",
-        sorted_bam.replace(".bam", ""),
+        outfile.replace(".bam", ""),
         P.PARAMS["aligner_options"] or "",
     ]
     statement_samtools = [
@@ -168,8 +166,8 @@ def fastq_align(infiles, outfile):
         "-@",
         str(P.PARAMS["pipeline_n_cores"]),
         "-o",
-        outfile,
-        f'{sorted_bam}Aligned.out.bam',
+        sorted_bam,
+        f'{outfile.replace(".bam", "")}Aligned.out.bam',
     ]
 
     if blacklist:
@@ -192,7 +190,7 @@ def fastq_align(infiles, outfile):
         statement_blacklist = ["mv", sorted_bam, outfile]
 
     P.run(
-        f'{" ".join(statement_align)} && {" ".join(statement_samtools)} && {statement_blacklist}',
+        f'{" ".join(statement_align)} && {" ".join(statement_samtools)} && {" ".join(statement_blacklist)}',
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_memory="32G",
@@ -296,10 +294,15 @@ def alignments_pileup(infile, outfile):
     plus = outfile
     minus = outfile.replace("plus", "minus")
 
-    cmd = """bamCoverage -b %(infile)s -o %(plus)s --filterRNAstrand forward -p %(pipeline_n_cores)s &&
+    statement = """bamCoverage -b %(infile)s -o %(plus)s --filterRNAstrand forward -p %(pipeline_n_cores)s &&
              bamCoverage -b %(infile)s -o %(minus)s --filterRNAstrand reverse -p %(pipeline_n_cores)s"""
 
-    P.run(cmd, job_queue=P.PARAMS["queue"], job_threads=P.PARAMS["pipeline_n_cores"])
+    P.run(
+        statement,
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
 
 
 @active_if(CREATE_HUB)
