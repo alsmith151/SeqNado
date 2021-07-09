@@ -1,6 +1,6 @@
 # NGS Pipeline
 
-Pipeline based on cgat-core (ruffus wrapper) to process ChIP-seq and ATAC-seq data.
+Pipeline based on cgat-core (ruffus wrapper) to process ChIP-seq, ATAC-seq and RNA-seq data.
 
 ## Installation
 
