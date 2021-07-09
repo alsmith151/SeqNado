@@ -152,7 +152,7 @@ def multiqc_reads(infile, outfile):
 @follows(mkdir('trimmed'))
 @transform('fastq/*.fastq*',
            # Regex negates any filenames matching the paired pattern
-           regex(r'(?!.*_.*_[12])^fastq/(.*).fastq.gz'),
+           regex(r'(?!.*_[12])^fastq/(.*).fastq.gz'),
            r'trimmed/\1_trimmed.fq')
 def fastq_trim_single(infile, outfile):
 
