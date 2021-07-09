@@ -46,7 +46,7 @@ def set_up():
         "PATH_TO_ALIGNER_INDICIES": f"{indicies}/chr21",
         "HUB_DIR": dir_tests_run,
         "BAM_COVERAGE_OPTIONS": "",
-        "MACS_OPTIONS": ""
+        "MACS_OPTIONS": "-g 46709983"
     }
 
     with open(f"{dir_repo}/config_chip.yml", "r") as r:
