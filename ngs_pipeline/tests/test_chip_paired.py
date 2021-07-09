@@ -8,7 +8,7 @@ import subprocess
 
 path_file = os.path.abspath(__file__)
 dir_tests = os.path.dirname(path_file)
-dir_tests_run = os.path.join(dir_tests, "pipeline")
+dir_tests_run = os.path.join(dir_tests, "pipeline_chip_paired")
 dir_package = os.path.dirname(dir_tests)
 dir_repo = os.path.dirname(dir_package)
 dir_data_test = os.path.join(dir_package, "data", "test")
