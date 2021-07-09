@@ -454,24 +454,28 @@ def alignments_pileup_deeptools(infile, outfile):
 @follows(mkdir("bigwigs/homer/"))
 @active_if(CREATE_BIGWIGS and USE_HOMER)
 @transform(
-    create_tag_directory, regex(r".*/(.*)"), r"bigwigs/homer/\1.bigWig", extras=[r"\1"]
+    create_tag_directory, regex(r".*/(.*)"), r"bigwigs/homer/\1_homer.bigWig", extras=[r"\1"]
 )
 def alignments_pileup_homer(infile, outfile, tagdir_name):
 
     outdir = os.path.dirname(outfile)
 
-    statement = [
+    statement_bw = [
         "makeBigWig.pl",
         infile,
         P.PARAMS["genome_name"],
+        "-chromSizes",
+        P.PARAMS["genome_chrom_sizes"],
         "-url",
         P.PARAMS.get("homer_makebigwig_options") or "INSERT_URL_HERE",
         "-webdir",
-        os.path.dirname(outfile),
+        outdir,
     ]
 
+    statement_mv = ["&&", 'mv', outfile.replace('_homer.bigWig', '.ucsc.bigWig'), outfile]
+
     P.run(
-        " ".join(statement),
+        " ".join([*statement_bw, *statement_mv]),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_pipeline_n_cores=1,
         job_condaenv=P.PARAMS["conda_env"],
