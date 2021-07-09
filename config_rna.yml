@@ -12,7 +12,6 @@ run_options:
     # Create a UCSC hub. Any of homer_use, deeptools_use or macs_use must be set to True. 
     hub: True
 
-
 genome:
     
     # Name of genome. UCSC genome names are prefered. Custom names are accepted if chrom_sizes are provided
@@ -21,14 +20,7 @@ genome:
     # Path to blacklisted regions bed file. Entry can be left blank.
     blacklist:
 
-    # Will be downloaded automatically if this is a UCSC genome. Else must supply a two columned chrom sizes file.
-    # Genome fasta index files (.fai) can also be used.
-    chrom_sizes:
-
 aligner:
-
-    # Aligner to use. Both bowtie and bowtie2 are supported but bowtie2 is prefered.
-    aligner: bowtie2
 
     # Path to indicies for the specified aligner (default = bowtie2)
     # Note: Do not include .Number|rev.bt2
@@ -36,31 +28,8 @@ aligner:
     index: PATH_TO_ALIGNER_INDICIES
 
     # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
-    options: -p 4
+    options: 
 
-alignments:
-
-    # Determines if duplicates are removed from bam files
-    deduplicate: False
-
-    # Options passed to deeptools alignmentSieve. Note: DO NOT include --ignore-duplicates.
-    filter_options:
-
-
-homer:
-    # Determines if Homer is used for bigwig generation/peak calling.
-    # *Not* mutually exclusive with deeptools_use/macs_use.
-    use: True
-
-    # Options passed to homer makeTagDirectory
-    tagdir_options:
-    
-    # Options passed to homer makeBigWig.pl
-    # Do *Not* include --webdir as this is determined by the pipeline.
-    makebigwig_options:
-    
-    # Options passed to homer findPeaks
-    findpeaks_options:
 
 deeptools:
     # Determines if deeptools is used for bigwig generation
@@ -72,18 +41,10 @@ deeptools:
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
     bamcoverage_options: BAM_COVERAGE_OPTIONS
 
-
-macs:
-    # Determines if peaks are called or not
-    use: False
-    
-    # Determines peak caller
-    caller: macs3
-
-    # Peak caller options. NOTE: Must include the genome -g option with the correct genome size or name.
-    # e.g. -g hs 
-    callpeak_options: MACS_OPTIONS
-
+featurecounts:
+    gtf: /databank/igenomes/Homo_sapiens/UCSC/hg19/Annotation/Genes/genes.gtf 
+    output: RNA_seq_counts.csv
+    options: -s 1 
 
 hub:
    
@@ -133,4 +94,3 @@ trim:
 
     # Options passed to trim_galore
     options: --length 21 
-
