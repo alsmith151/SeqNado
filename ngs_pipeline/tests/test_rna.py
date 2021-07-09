@@ -57,7 +57,7 @@ def set_up():
         "BAM_COVERAGE_OPTIONS": "",
         "PATH_TO_GTF": os.path.join(dir_data_genome, "chr21.gtf"),
         "FEATURECOUNTS_OPTIONS": "-s 1",
-        "STAR_OPTIONS": "--runThreadN 4",
+        "STAR_OPTIONS": "",
     }
 
     with open(f"{dir_repo}/config_rna.yml", "r") as r:
