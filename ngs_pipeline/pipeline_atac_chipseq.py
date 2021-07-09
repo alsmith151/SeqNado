@@ -130,11 +130,6 @@ def multiqc_reads(infile, outfile):
 # Fastq processing   #
 ######################
 
-<<<<<<< HEAD:ngs_pipeline/ngs_pipeline.py
-@follows(mkdir("fastq"))
-@transform("*.fastq*", suffix('.fastq.gz'), r'fastq/\1.fastq.gz')
-def rename_fastq(infile, outfile):
-=======
 @follows(mkdir('trimmed'))
 @transform('fastq/*.fastq*',
            # Regex negates any filenames matching the paired pattern
@@ -157,33 +152,13 @@ def fastq_trim_single(infile, outfile):
         job_condaenv=P.PARAMS["conda_env"],
     )
 
->>>>>>> 0c52cb6f9efb8e1605703cc976b6ae8af193a628:ngs_pipeline/pipeline_atac_chipseq.py
-
-    replacements = {'Input': 'input', 
-                    'R1.fastq': '1.fastq',
-                    'R2.fastq': '2.fastq', 
-                    'INPUT': 'input', }
-    
-    infile_corrected_naming = infile
-    for to_replace, rep in replacements.items():
-        infile_corrected_naming = infile_corrected_naming.replace(to_replace, rep)
-    
-    if not os.path.exists(f'fastq/{infile_corrected_naming}'):
-        os.symlink(os.path.abspath(infile), f'fastq/{infile_corrected_naming}')
-
-
-
-@follows(mkdir("trimmed"), mkdir("statistics/trimming/data"), rename_fastq)
+@follows(mkdir("trimmed"), mkdir("statistics/trimming/data"))
 @collate(
     "fastq/*.fastq.gz",
     regex(r"fastq/(.*)_R?[12].fastq(?:.gz)?"),
     r"trimmed/\1_1_val_1.fq",
 )
-<<<<<<< HEAD:ngs_pipeline/ngs_pipeline.py
-def fastq_trim(infiles, outfile):
-=======
 def fastq_trim_paired(infiles, outfile):
->>>>>>> 0c52cb6f9efb8e1605703cc976b6ae8af193a628:ngs_pipeline/pipeline_atac_chipseq.py
     """Trim adaptor sequences from fastq files using trim_galore"""
 
     fq1, fq2 = infiles
@@ -432,12 +407,7 @@ def create_tag_directory(infile, outfile):
 @follows(mkdir("bigwigs/deeptools/"))
 @transform(
     alignments_filter, regex(
-<<<<<<< HEAD:ngs_pipeline/ngs_pipeline.py
-        r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1_deeptools.bigWig"
-=======
-        r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1.bigWig"
->>>>>>> 0c52cb6f9efb8e1605703cc976b6ae8af193a628:ngs_pipeline/pipeline_atac_chipseq.py
-)
+        r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1_deeptools.bigWig")
 def alignments_pileup_deeptools(infile, outfile):
 
     statement = [
