@@ -592,7 +592,9 @@ def convert_narrowpeak_to_bed(infile, outfile):
 )
 def convert_bed_to_bigbed(infile, outfile):
 
-    statement = """bedToBigBed %(infile)s %(genome_chrom_sizes)s %(outfile)s"""
+    statement = """cat %(infile)s 
+                   | sort -k1,1 -k2,2n > %(infile)s.tmp 
+                   && bedToBigBed %(infile)s.tmp %(genome_chrom_sizes)s %(outfile)s"""
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
