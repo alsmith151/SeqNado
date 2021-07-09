@@ -23,7 +23,7 @@ aligner:
     index: PATH_TO_ALIGNER_INDICIES
 
     # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
-    options: 
+    options: STAR_OPTIONS
 
 
 deeptools:
