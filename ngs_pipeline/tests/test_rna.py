@@ -52,7 +52,7 @@ def set_up():
     # Move and replace the config file
     replacements_dict = {
         "GENOME_NAME": "hg19",
-        "PATH_TO_ALIGNER_INDICIES": f"{indicies}/star",
+        "PATH_TO_ALIGNER_INDICIES": f"{indicies}",
         "HUB_DIR": dir_tests_run,
         "BAM_COVERAGE_OPTIONS": "",
         "PATH_TO_GTF": os.path.join(dir_data_genome, "chr21.gtf"),
