@@ -42,9 +42,9 @@ deeptools:
     bamcoverage_options: BAM_COVERAGE_OPTIONS
 
 featurecounts:
-    gtf: /databank/igenomes/Homo_sapiens/UCSC/hg19/Annotation/Genes/genes.gtf 
-    output: RNA_seq_counts.csv
-    options: -s 1 
+    gtf: PATH_TO_GTF
+    output: counts.csv
+    options: FEATURECOUNTS_OPTIONS 
 
 hub:
    
