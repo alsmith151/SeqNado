@@ -23,7 +23,7 @@ genome:
 
     # Will be downloaded automatically if this is a UCSC genome. Else must supply a two columned chrom sizes file.
     # Genome fasta index files (.fai) can also be used.
-    chrom_sizes:
+    chrom_sizes: CHROM_SIZES
 
 aligner:
 
@@ -75,7 +75,7 @@ deeptools:
 
 macs:
     # Determines if peaks are called or not
-    use: False
+    use: True
     
     # Determines peak caller
     caller: macs3
