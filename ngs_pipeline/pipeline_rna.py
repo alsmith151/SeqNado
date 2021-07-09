@@ -286,7 +286,7 @@ def count_reads(infiles, outfile):
 @follows(mkdir("bigwigs"))
 @transform(
     fastq_align,
-    regex(r"bam/(.*.bam)"),
+    regex(r"bam/(.*).bam"),
     r"bigwigs/\1_plus.bigWig",
 )
 def alignments_pileup(infile, outfile):
@@ -295,7 +295,7 @@ def alignments_pileup(infile, outfile):
     minus = outfile.replace("plus", "minus")
 
     statement = """bamCoverage -b %(infile)s -o %(plus)s --filterRNAstrand forward -p %(pipeline_n_cores)s &&
-             bamCoverage -b %(infile)s -o %(minus)s --filterRNAstrand reverse -p %(pipeline_n_cores)s"""
+                   bamCoverage -b %(infile)s -o %(minus)s --filterRNAstrand reverse -p %(pipeline_n_cores)s"""
 
     P.run(
         statement,
