@@ -27,4 +27,6 @@ dependencies:
   - ucsc-bedgraphtobigwig
   - homer
   - pybedtools
+  - subread 
+  - star
   

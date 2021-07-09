@@ -1,0 +1,95 @@
+###################################
+# Essential configuration options #
+###################################
+
+run_options:
+    # Generate bigwigs. Set either homer_use == True or deeptools_use == True
+    bigwigs: True
+    
+    # Create a UCSC hub. Any of homer_use, deeptools_use or macs_use must be set to True. 
+    hub: True
+
+genome:
+    
+    # Name of genome. UCSC genome names are prefered. Custom names are accepted if chrom_sizes are provided
+    name: GENOME_NAME
+
+    # Path to blacklisted regions bed file. Entry can be left blank.
+    blacklist:
+
+aligner:
+
+    # Path to STAR indicies
+    index: PATH_TO_ALIGNER_INDICIES
+
+    # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
+    options: STAR_OPTIONS
+
+
+deeptools:
+    # Determines if deeptools is used for bigwig generation
+    use: True
+
+    # Options passed to deeptools BamCoverage
+    # These need to be replaced
+    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage_options: BAM_COVERAGE_OPTIONS
+
+featurecounts:
+    # Path to GTF file for counting reads
+    gtf: PATH_TO_GTF
+    
+    # Output path for featureCounts
+    output: counts.csv
+    
+    # Options passed to featureCounts
+    options: FEATURECOUNTS_OPTIONS 
+
+hub:
+   
+    # Location of publically accessible location on the server
+    dir: HUB_DIR 
+    
+    # Name for the hub (UCSC required)
+    name: rnaseq_test 
+    
+    # Short hub name (UCSC required)
+    short: rnaseq new pipeline 
+    
+    # Long hub name (UCSC required)
+    long: rnaseq processed with the new python pipeline 
+    
+    # Email address (UCSC required)
+    email: alastair.smith@ndcls.ox.ac.uk 
+
+    # Determines if files are symlinked or copied to the public directory
+    symlink: False
+    
+
+#############################
+# Essential cluster options #
+#############################
+
+pipeline:
+
+    # Cluster manager used. e.g. SLURM, SunGrid Engine, etc.
+    cluster_queue_manager: slurm
+
+    # Name of queue to use. This will be cluster specific.
+    cluster_queue: batch
+    
+    # Maximum number of cores to use per task. (~ 4 works best)
+    n_cores: 4
+
+    # Maximum memory avalible per job.
+    memory: 8G
+
+
+############
+# OPTIONAL #
+############
+
+trim:
+
+    # Options passed to trim_galore
+    options: --length 21 

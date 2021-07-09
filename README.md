@@ -1,6 +1,6 @@
 # NGS Pipeline
 
-Pipeline based on cgat-core (ruffus wrapper) to process ChIP-seq and ATAC-seq data.
+Pipeline based on cgat-core (ruffus wrapper) to process ChIP-seq, ATAC-seq and RNA-seq data.
 
 ## Installation
 
@@ -59,14 +59,17 @@ in this directory.
 
 2. Get and edit the pipeline configuration file.
 
-The configuration file [config.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config.yml) enables 
+The configuration file [configX.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config_atac.yml) enables 
 parameterisation of the pipeline run with user specific settings. Furthermore,
 it also provides paths to essential files for the pipeline run (e.g., bowtie2 indices).
 The paths supplied do not have to be in the same directory as the pipeline.
 
 A copy of config.yml can be downloaded from GitHub using:
 ```
-wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config.yml
+wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_atac.yml # ATAC
+wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_chip.yml # ChIP
+wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_rna.yml  # RNA
+
 ```
 
 This [yaml](https://yaml.org/spec/1.2/spec.html) file can be edited using standard text editors e.g.
@@ -126,7 +129,9 @@ After copying/linking FASTQ files into the working directory and configuring the
 config.yml in the working directory for the current experiment, the pipeline can be run with:
 
 ```
-ngs-pipeline 
+ngs-pipeline atac # ATAC-seq samples
+ngs-pipeline chip # ChIP-seq/ChIPMentation
+ngs-pipeline rna # RNA-seq - Not fully tested 
 ```
 
 There are several options to visualise which tasks will be performed by the pipeline
@@ -135,26 +140,26 @@ before running.
 The tasks to be performed can be examined with:
 ```    
 # Shows the tasks to be performed
-ngs-pipeline show 
+ngs-pipeline atac show 
 
 # Plots a directed graph using graphviz
-ngs-pipeline plot
+ngs-pipeline atac plot
 ```
 
 If you are happy with the tasks to be performed, the full pipeline run can be launched with:
 
 ```
 # If using all default settings and using a cluster
-ngs-pipeline make
+ngs-pipeline atac make
 
 # Higher verbosity
-ngs-pipeline make -v 5
+ngs-pipeline atac make -v 5
 
 # If not using a cluster, run in local mode.
-ngs-pipeline make --local -p 4
+ngs-pipeline atac make --local -p 4
 
 # Avoiding network disconnections
-nohup ngs-pipeline make &
+nohup ngs-pipeline atac make &
 ```
 
 See [cgat-core Read the Docs](https://cgat-core.readthedocs.io/en/latest/getting_started/Examples.html) for additional

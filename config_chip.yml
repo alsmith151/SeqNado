@@ -1,0 +1,136 @@
+###################################
+# Essential configuration options #
+###################################
+
+run_options:
+    # Generate bigwigs. Set either homer_use == True or deeptools_use == True
+    bigwigs: True
+    
+    # Call peaks. Set either homer_use == True or macs_use == True
+    peaks: True
+    
+    # Create a UCSC hub. Any of homer_use, deeptools_use or macs_use must be set to True. 
+    hub: True
+
+
+genome:
+    
+    # Name of genome. UCSC genome names are prefered. Custom names are accepted if chrom_sizes are provided
+    name: GENOME_NAME
+
+    # Path to blacklisted regions bed file. Entry can be left blank.
+    blacklist:
+
+    # Will be downloaded automatically if this is a UCSC genome. Else must supply a two columned chrom sizes file.
+    # Genome fasta index files (.fai) can also be used.
+    chrom_sizes: CHROM_SIZES
+
+aligner:
+
+    # Aligner to use. Both bowtie and bowtie2 are supported but bowtie2 is prefered.
+    aligner: bowtie2
+
+    # Path to indicies for the specified aligner (default = bowtie2)
+    # Note: Do not include .Number|rev.bt2
+    # e.g. /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome
+    index: PATH_TO_ALIGNER_INDICIES
+
+    # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
+    options: -p 4
+
+alignments:
+
+    # Determines if duplicates are removed from bam files
+    deduplicate: False
+
+    # Options passed to deeptools alignmentSieve. Note: DO NOT include --ignore-duplicates.
+    filter_options:
+
+
+homer:
+    # Determines if Homer is used for bigwig generation/peak calling.
+    # *Not* mutually exclusive with deeptools_use/macs_use.
+    use: True
+
+    # Options passed to homer makeTagDirectory
+    tagdir_options:
+    
+    # Options passed to homer makeBigWig.pl
+    # Do *Not* include --webdir as this is determined by the pipeline.
+    makebigwig_options:
+    
+    # Options passed to homer findPeaks
+    findpeaks_options:
+
+deeptools:
+    # Determines if deeptools is used for bigwig generation
+    # *Not* mutually exclusive with homer_use.
+    use: True
+
+    # Options passed to deeptools BamCoverage
+    # These need to be replaced
+    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage_options: BAM_COVERAGE_OPTIONS
+
+
+macs:
+    # Determines if peaks are called or not
+    use: True
+    
+    # Determines peak caller
+    caller: macs3
+
+    # Peak caller options. NOTE: Must include the genome -g option with the correct genome size or name.
+    # e.g. -g hs 
+    callpeak_options: MACS_OPTIONS
+
+
+hub:
+   
+    # Location of publically accessible location on the server
+    dir: HUB_DIR 
+    
+    # Name for the hub (UCSC required)
+    name: chipseq_test 
+    
+    # Short hub name (UCSC required)
+    short: chipseq new pipeline 
+    
+    # Long hub name (UCSC required)
+    long: chipseq processed with the new python pipeline 
+    
+    # Email address (UCSC required)
+    email: alastair.smith@ndcls.ox.ac.uk 
+
+    # Determines if files are symlinked or copied to the public directory
+    symlink: False
+    
+
+#############################
+# Essential cluster options #
+#############################
+
+pipeline:
+
+    # Cluster manager used. e.g. SLURM, SunGrid Engine, etc.
+    cluster_queue_manager: slurm
+
+    # Name of queue to use. This will be cluster specific.
+    cluster_queue: batch
+    
+    # Maximum number of cores to use per task. (~ 4 works best)
+    n_cores: 4
+
+    # Maximum memory avalible per job.
+    memory: 8G
+
+
+############
+# OPTIONAL #
+############
+
+trim:
+
+    # Options passed to trim_galore
+    options: --length 21 
+
