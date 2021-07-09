@@ -28,4 +28,7 @@ def cli(method, mode, pipeline_options, help=False):
     if pipeline_options:
         cmd.extend(pipeline_options)
     
-    subprocess.run(cmd)
+    completed = subprocess.run(cmd)
+
+    if not completed.returncode == 0:
+        raise RuntimeError("Pipeline failed. Check the log.")
