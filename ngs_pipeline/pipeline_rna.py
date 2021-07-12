@@ -91,8 +91,8 @@ def multiqc_reads(infile, outfile):
 @follows(mkdir("trimmed"), mkdir("statistics/trimming/data"))
 @collate(
     "*.fastq.gz",
-    regex(r"(.*)_R?[12].fastq(?:.gz)?"),
-    r"trimmed/\1_1_val_1.fq",
+    regex(r"(.*)_(R)?[12].fastq(?:.gz)?"),
+    r"trimming/\1.completed",
 )
 def fastq_trim(infiles, outfile):
     """Trim adaptor sequences from fastq files using trim_galore"""
@@ -121,6 +121,8 @@ def fastq_trim(infiles, outfile):
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
+    touch_file(outfile)
+
 
 
 ###############
