@@ -5,7 +5,8 @@ Pipeline based on cgat-core (ruffus wrapper) to process ChIP-seq, ATAC-seq and R
 ## Installation
 
 1. Install conda if it has not been already using the [conda install instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html#install-linux-silent)
-   (Optional) Install mamba. Mamba is a drop-in replacement for conda that is **much** faster than conda. All "conda" commands can be replaced with "mamba" for a   significant speedup.
+
+1b. (Optional) Install mamba. Mamba is a drop-in replacement for conda that is **much** faster than conda. All "conda" commands can be replaced with "mamba" for a   significant speedup.
 
 ```
 conda install mamba
@@ -59,12 +60,12 @@ in this directory.
 
 2. Get and edit the pipeline configuration file.
 
-The configuration file [configX.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config_atac.yml) enables 
+The configuration file [config_X.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config_atac.yml) enables 
 parameterisation of the pipeline run with user specific settings. Furthermore,
 it also provides paths to essential files for the pipeline run (e.g., bowtie2 indices).
 The paths supplied do not have to be in the same directory as the pipeline.
 
-A copy of config.yml can be downloaded from GitHub using:
+A copy of config_X.yml can be downloaded from GitHub using:
 ```
 wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_atac.yml # ATAC
 wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_chip.yml # ChIP
@@ -82,8 +83,6 @@ gedit config.yml
 nano config.yml
 ```
 
-
-
 3.  Copy or link fastq files into the working directory
 
 The pipeline requires that fastq files are paired and in any of these formats:
@@ -99,14 +98,19 @@ Note that the underscore is needed to identify pairs for peak calling
 
 For ATAC-seq: 
 
-Note the absence of an underscore separating the filename.
+**Note the absence of an underscore separating the sample name.**
 
 * sample-name-1_R1.fastq.gz
 * sample-name-1_R2.fastq.gz
 * sample-name-1_1.fastq
-* sample-name1_2.fastq
+* sample-name-1_2.fastq
 
+For RNA-seq:
 
+* sample-name-1_R1.fastq.gz
+* sample-name-1_R2.fastq.gz
+* sample-name-1_1.fastq
+* sample-name-1_2.fastq
 
 All FASTQ files present in the directory will be processed by the pipeline in parallel and
 original FASTQ files will not be modified. If new FASTQ files are added to a pre-run pipeline,
