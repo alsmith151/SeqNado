@@ -92,7 +92,7 @@ def multiqc_reads(infile, outfile):
 @collate(
     "*.fastq.gz",
     regex(r"(.*)_(R)?[12].fastq(?:.gz)?"),
-    r"trimming/\1.completed",
+    r"trimmed/\1.completed",
 )
 def fastq_trim(infiles, outfile):
     """Trim adaptor sequences from fastq files using trim_galore"""
