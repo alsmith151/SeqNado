@@ -634,7 +634,7 @@ def make_ucsc_hub(infile, outfile, *args):
     )
 
     bigwigs = [fn for fn in infile if ".bigWig" in fn]
-    colours = {fn: sns.color_palette("hls", len(set(bigwigs))) for fn in bigwigs}
+    colours = dict(zip(bigwigs, sns.color_palette("hls", len(set(bigwigs)))))
     bigbeds = [fn for fn in infile if ".bigBed" in fn]
 
     for bw in bigwigs:
