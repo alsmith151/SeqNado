@@ -322,6 +322,7 @@ def make_ucsc_hub(infile, outfile, *args):
 
     import trackhub
     import shutil
+    import seaborn as sns
 
     hub, genomes_file, genome, trackdb = trackhub.default_hub(
         hub_name=P.PARAMS["hub_name"],
@@ -332,6 +333,12 @@ def make_ucsc_hub(infile, outfile, *args):
     )
 
     bigwigs = [fn for fn in infile if ".bigWig" in fn]
+    colours = {
+        fn.replace("plus", "").replace("minus", ""): sns.color_palette(
+            "hls", len(set(bigwigs))
+        )
+        for fn in bigwigs
+    }
     bigbeds = [fn for fn in infile if ".bigBed" in fn]
 
     for bw in bigwigs:
@@ -340,7 +347,7 @@ def make_ucsc_hub(infile, outfile, *args):
             name=os.path.basename(bw).replace(".bigWig", ""),
             source=bw,  # filename to build this track from
             visibility="full",  # shows the full signal
-            color="128,0,5",  # brick red
+            color=colours[bw.replace('plus', "").replace('minus')],  # brick red
             autoScale="on",  # allow the track to autoscale
             tracktype="bigWig",  # required when making a track
         )
