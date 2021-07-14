@@ -91,8 +91,8 @@ def multiqc_reads(infile, outfile):
 @follows(mkdir("trimmed"), mkdir("statistics/trimming/data"))
 @collate(
     "*.fastq.gz",
-    regex(r"(.*)_R?[12].fastq(?:.gz)?"),
-    r"trimmed/\1_1_val_1.fq",
+    regex(r"(.*)_(R)?[12].fastq(?:.gz)?"),
+    r"trimmed/\1.completed",
 )
 def fastq_trim(infiles, outfile):
     """Trim adaptor sequences from fastq files using trim_galore"""
@@ -121,6 +121,8 @@ def fastq_trim(infiles, outfile):
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
+    touch_file(outfile)
+
 
 
 ###############
@@ -129,7 +131,7 @@ def fastq_trim(infiles, outfile):
 
 
 @follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim)
-@collate("trimmed/*.fq", regex(r"trimmed/(.*)_[12]_val_[12].fq"), r"bam/\1.bam")
+@collate("trimmed/*.fq", regex(r"trimmed/(.*)_R?[12]_val_[12].fq"), r"bam/\1.bam")
 def fastq_align(infiles, outfile):
     """
     Aligns fq files.
@@ -254,7 +256,7 @@ def alignments_multiqc(outfile):
 ################
 
 
-@follows(mkdir("featureCounts"))
+@follows(mkdir("featureCounts"), fastq_align)
 @merge(
     fastq_align,
     f'featureCounts/{P.PARAMS["featurecounts_output"]}',
