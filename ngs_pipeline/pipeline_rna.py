@@ -347,7 +347,8 @@ def make_ucsc_hub(infile, outfile, *args):
             name=os.path.basename(bw).replace(".bigWig", ""),
             source=bw,  # filename to build this track from
             visibility="full",  # shows the full signal
-            color=colours[bw.replace('plus', "").replace('minus')],  # brick red
+            color=",".join(
+                    [str(int(x * 255)) for x in colours[bw.replace('plus', "").replace('minus')]]),  # brick red
             autoScale="on",  # allow the track to autoscale
             tracktype="bigWig",  # required when making a track
         )
