@@ -333,12 +333,8 @@ def make_ucsc_hub(infile, outfile, *args):
     )
 
     bigwigs = [fn for fn in infile if ".bigWig" in fn]
-    colours = {
-        fn.replace("plus", "").replace("minus", ""): sns.color_palette(
-            "hls", len(set(bigwigs))
-        )
-        for fn in bigwigs
-    }
+    colours = dict(zip([bw.replace('minus', '').replace('plus', '') for bw in bigwigs],
+                       sns.color_palette("hls", len(set(bigwigs)))))
     bigbeds = [fn for fn in infile if ".bigBed" in fn]
 
     for bw in bigwigs:
@@ -348,7 +344,7 @@ def make_ucsc_hub(infile, outfile, *args):
             source=bw,  # filename to build this track from
             visibility="full",  # shows the full signal
             color=",".join(
-                    [str(int(x * 255)) for x in colours[bw.replace('plus', "").replace('minus')]]),  # brick red
+                    [str(int(x * 255)) for x in colours[bw.replace('plus', "").replace('minus', '')]]),  # brick red
             autoScale="on",  # allow the track to autoscale
             tracktype="bigWig",  # required when making a track
         )
