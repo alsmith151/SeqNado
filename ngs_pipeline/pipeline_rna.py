@@ -124,7 +124,6 @@ def fastq_trim(infiles, outfile):
     touch_file(outfile)
 
 
-
 ###############
 # Alignment   #
 ###############
@@ -191,8 +190,13 @@ def fastq_align(infiles, outfile):
     else:
         statement_blacklist = ["mv", sorted_bam, outfile]
 
+    statement_clean_up = ["rm", "-f", f'{outfile.replace(".bam", "")}Aligned.out.bam']
+
     P.run(
-        f'{" ".join(statement_align)} && {" ".join(statement_samtools)} && {" ".join(statement_blacklist)}',
+        f'''{" ".join(statement_align)}     && 
+            {" ".join(statement_samtools)}  && 
+            {" ".join(statement_blacklist)} && 
+            {" ".join(statement_clean_up)}''',
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
         job_memory="32G",
@@ -335,8 +339,12 @@ def make_ucsc_hub(infile, outfile, *args):
     )
 
     bigwigs = [fn for fn in infile if ".bigWig" in fn]
-    colours = dict(zip([bw.replace('minus', '').replace('plus', '') for bw in bigwigs],
-                       sns.color_palette("hls", len(set(bigwigs)))))
+    colours = dict(
+        zip(
+            [bw.replace("minus", "").replace("plus", "") for bw in bigwigs],
+            sns.color_palette("hls", len(set(bigwigs))),
+        )
+    )
     bigbeds = [fn for fn in infile if ".bigBed" in fn]
 
     for bw in bigwigs:
@@ -346,7 +354,11 @@ def make_ucsc_hub(infile, outfile, *args):
             source=bw,  # filename to build this track from
             visibility="full",  # shows the full signal
             color=",".join(
-                    [str(int(x * 255)) for x in colours[bw.replace('plus', "").replace('minus', '')]]),  # brick red
+                [
+                    str(int(x * 255))
+                    for x in colours[bw.replace("plus", "").replace("minus", "")]
+                ]
+            ),  # brick red
             autoScale="on",  # allow the track to autoscale
             tracktype="bigWig",  # required when making a track
         )
