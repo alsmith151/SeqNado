@@ -536,7 +536,7 @@ def call_peaks_macs(infile, outfile):
 @transform(
     create_tag_directory,
     regex(r".*/(?!.*_input)(.*)"),
-    r"peaks/homer/\1_homer.bed",
+    r"peaks/homer/\1_homer_peaks.bed",
 )
 def call_peaks_homer(infile, outfile):
 
