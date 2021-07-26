@@ -16,14 +16,14 @@ run_options:
 genome:
     
     # Name of genome. UCSC genome names are prefered. Custom names are accepted if chrom_sizes are provided
-    name: GENOME_NAME
+    name: hg38
 
     # Path to blacklisted regions bed file. Entry can be left blank.
-    blacklist:
+    blacklist: ~/hg38-blacklist.v2.bed.gz
 
     # Will be downloaded automatically if this is a UCSC genome. Else must supply a two columned chrom sizes file.
     # Genome fasta index files (.fai) can also be used.
-    chrom_sizes:
+    chrom_sizes: /stopgap/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/chr_sizes.txt
 
 aligner:
 
@@ -33,16 +33,15 @@ aligner:
     # Path to indicies for the specified aligner (default = bowtie2)
     # Note: Do not include .Number|rev.bt2
     # e.g. /databank/igenomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome
-    index: PATH_TO_ALIGNER_INDICIES
+    index: /stopgap/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome
 
     # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
-    # Recommended to increase max insert (--maxins) above default (500)
     options: -p 4
 
 alignments:
 
     # Determines if duplicates are removed from bam files
-    deduplicate: False
+    deduplicate: True
 
     # Options passed to deeptools alignmentSieve. Note: DO NOT include --ignore-duplicates.
     filter_options:
@@ -54,15 +53,14 @@ homer:
     use: True
 
     # Options passed to homer makeTagDirectory
-    # -keepAll is suggested to retain multimapped reads, particularly for hg38 and GRCm38
     tagdir_options: -keepAll
     
     # Options passed to homer makeBigWig.pl
     # Do *Not* include --webdir as this is determined by the pipeline.
-    makebigwig_options:
+    makebigwig_options: 
     
     # Options passed to homer findPeaks
-    findpeaks_options:
+    findpeaks_options: -style histone
 
 deeptools:
     # Determines if deeptools is used for bigwig generation
@@ -72,7 +70,7 @@ deeptools:
     # Options passed to deeptools BamCoverage
     # These need to be replaced
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
-    bamcoverage_options: BAM_COVERAGE_OPTIONS
+    bamcoverage_options: --extendReads -bs 1 --normalizeUsing RPKM -p 4
 
 
 macs:
@@ -90,19 +88,19 @@ macs:
 hub:
    
     # Location of publically accessible location on the server
-    dir: HUB_DIR 
+    dir: /datashare/jharman/MYB_project/ChIP-seq/ChIP-SEM_H3K4me1
     
     # Name for the hub (UCSC required)
-    name: chipseq_test 
+    name: ChIP-SEM_H3K4me1
     
     # Short hub name (UCSC required)
-    short: chipseq new pipeline 
+    short: ChIP-SEM_H3K4me1 
     
     # Long hub name (UCSC required)
-    long: chipseq processed with the new python pipeline 
+    long: ChIP-SEM_H3K4me1 
     
     # Email address (UCSC required)
-    email: alastair.smith@ndcls.ox.ac.uk 
+    email: joe.harman@hertford.ox.ac.uk 
 
     # Determines if files are symlinked or copied to the public directory
     symlink: False

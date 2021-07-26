@@ -53,6 +53,7 @@ homer:
     use: True
 
     # Options passed to homer makeTagDirectory
+    # -keepAll is suggested to retain multimapped reads, particularly for hg38 and GRCm38
     tagdir_options:
     
     # Options passed to homer makeBigWig.pl
