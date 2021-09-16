@@ -88,7 +88,7 @@ macs:
 
 lanceotron:
     # Determines if peaks are called with lanceotron
-    use: False
+    use: True
 
     # Options passed to callPeaks[Input] command
     callpeak_options: -c 0.5 --format bed

@@ -90,7 +90,7 @@ lanceotron:
     use: False
 
     # Options passed to callPeaks[Input] command
-    callpeak_options: -c 0.5 --format bed
+    callpeak_options: -c 0.5
 
 
 hub:
