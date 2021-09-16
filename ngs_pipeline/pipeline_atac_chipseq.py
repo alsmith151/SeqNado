@@ -986,7 +986,8 @@ def call_peaks_lanceotron(infile, outfile):
         "%(infile)s",
         "-i %(control_file)s" if os.path.exists(control_file) else " ",
         "-f",
-        os.path.dirname(outfile), 
+        os.path.dirname(outfile),
+        "--format bed",
         P.PARAMS.get("lanceotron_callpeak_options") or " ",
     ]
 
