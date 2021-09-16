@@ -557,7 +557,9 @@ def call_peaks_lanceotron(infile, outfile):
         "-f",
         os.path.dirname(outfile),
         "--format bed",
+        "--skipheader",
         P.PARAMS.get("lanceotron_callpeak_options") or " ",
+
     ]
 
     P.run(
