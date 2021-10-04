@@ -179,7 +179,7 @@ def fastq_align(infiles, outfile):
             "-a",
             sorted_bam,
             "-b",
-            P.PARAMS["blacklist"],
+            blacklist,
             ">",
             outfile,
             "&&",
