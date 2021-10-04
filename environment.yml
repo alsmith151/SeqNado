@@ -4,9 +4,10 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
+  - python>=3.8
   - pip
   - pip:
+    - numpy>=1.20.0
     - macs3
     - wget
   - cgatcore
