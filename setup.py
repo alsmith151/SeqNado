@@ -27,8 +27,7 @@ install_requires=['paramiko>=2.7.1',
                   'wget',
                   'gevent',
                   'pyyaml',
-                  'pybedtools',
-                  "numpy>=1.2"],
+                  'pybedtools'],
                   
-extras_require = {"lanceotron": ["lanceotron"], "macs": ["macs2"]}
+extras_require = {"lanceotron": ["lanceotron"], "macs": ["macs2", "numpy>=1.2"]}
 )
