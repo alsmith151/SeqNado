@@ -79,7 +79,7 @@ macs:
     use: True
     
     # Determines peak caller
-    caller: macs3
+    caller: macs2
 
     # Peak caller options. NOTE: Must include the genome -g option with the correct genome size or name.
     # e.g. -g hs 
