@@ -76,7 +76,7 @@ deeptools:
 
 macs:
     # Determines if peaks are called or not
-    use: True
+    use: False
     
     # Determines peak caller
     caller: macs2
