@@ -80,11 +80,18 @@ macs:
     use: False
     
     # Determines peak caller
-    caller: macs3
+    caller: macs2
 
     # Peak caller options. NOTE: Must include the genome -g option with the correct genome size or name.
     # e.g. -g hs 
     callpeak_options: MACS_OPTIONS
+
+lanceotron:
+    # Determines if peaks are called with lanceotron
+    use: True
+
+    # Options passed to callPeaks[Input] command
+    callpeak_options: -c 0.5 --format bed
 
 
 hub:

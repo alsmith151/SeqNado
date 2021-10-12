@@ -4,17 +4,15 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
+  - python>=3.8
   - pip
   - pip:
-    - macs3
     - wget
   - cgatcore
   - bowtie2
   - samtools
   - deeptools
   - trim-galore
-  - macs2
   - fastqc
   - multiqc
   - trackhub
@@ -29,4 +27,5 @@ dependencies:
   - pybedtools
   - subread 
   - star
+  - numpy>=1.19
   

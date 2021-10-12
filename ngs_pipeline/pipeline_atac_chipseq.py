@@ -10,6 +10,8 @@ SampleName1_(Input|AntibodyUsed)_(R)1|2.fastq.gz
 """
 
 # import packages
+from genericpath import exists
+from posixpath import dirname
 import sys
 import os
 import seaborn as sns
@@ -59,6 +61,7 @@ CREATE_HUB = P.PARAMS.get("run_options_hub")
 USE_HOMER = P.PARAMS.get("homer_use")
 USE_DEEPTOOLS = P.PARAMS.get("deeptools_use")
 USE_MACS = P.PARAMS.get("macs_use")
+USE_LANCEOTRON = P.PARAMS.get("lanceotron_use")
 
 # Ensures that all fastq are named correctly
 if not os.path.exists("fastq"):
@@ -530,6 +533,42 @@ def call_peaks_macs(infile, outfile):
         job_condaenv=P.PARAMS["conda_env"],
     )
 
+@active_if(CALL_PEAKS and USE_LANCEOTRON)
+@follows(mkdir("peaks/macs"))
+@transform(
+    alignments_pileup_deeptools,
+    regex(r".*/(.*?)(?<!input).bigWig"),
+    r"peaks/lanceotron/\1_L-tron.bed",
+)
+def call_peaks_lanceotron(infile, outfile):
+
+    chipseq_match = re.match(r".*/(.*)_(.*).bigWig", infile)
+
+    if chipseq_match:
+        samplename = chipseq_match.group(1)
+        antibody = chipseq_match.group(2)
+        control_file = f"bigwigs/deeptools/{samplename}_input.bigWig"
+
+    statement = [
+        "lanceotron",
+        "callPeaks" if not os.path.exists(control_file) else "callPeaksInput",
+        "%(infile)s",
+        "-i %(control_file)s" if os.path.exists(control_file) else " ",
+        "-f",
+        os.path.dirname(outfile),
+        "--format bed",
+        "--skipheader",
+        P.PARAMS.get("lanceotron_callpeak_options") or " ",
+
+    ]
+
+    P.run(
+        " ".join(statement),
+        job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_memory=P.PARAMS["pipeline_memory"],
+        job_condaenv=P.PARAMS["conda_env"],
+    )
+
 
 @active_if(CALL_PEAKS and USE_HOMER)
 @follows(mkdir("peaks/homer"))
@@ -588,7 +627,7 @@ def convert_narrowpeak_to_bed(infile, outfile):
 
 
 @transform(
-    [convert_narrowpeak_to_bed, call_peaks_homer],
+    [convert_narrowpeak_to_bed, call_peaks_homer, call_peaks_lanceotron],
     regex(r"(.*)/(.*).bed"),
     r"\1/\2.bigBed",
 )
@@ -681,6 +720,7 @@ def make_ucsc_hub(infile, outfile, *args):
     alignments_pileup_homer,
     call_peaks_homer,
     call_peaks_macs,
+    call_peaks_lanceotron,
 )
 @originate("pipeline_complete.txt")
 def full(outfile):
