@@ -27,4 +27,5 @@ dependencies:
   - pybedtools
   - subread 
   - star
+  - numpy>1.20
   
