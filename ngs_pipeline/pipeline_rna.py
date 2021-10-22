@@ -150,7 +150,7 @@ def fastq_align(infiles, outfile):
         "--genomeDir",
         P.PARAMS["aligner_index"],
         "--readFilesIn",
-        ",".join(infiles),
+        " ".join(infiles),
         "--readFilesCommand",
         "cat",
         "--outSAMtype",
