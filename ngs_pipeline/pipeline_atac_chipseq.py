@@ -10,8 +10,6 @@ SampleName1_(Input|AntibodyUsed)_(R)1|2.fastq.gz
 """
 
 # import packages
-from genericpath import exists
-from posixpath import dirname
 import sys
 import os
 import seaborn as sns
@@ -43,8 +41,7 @@ P.get_parameters(glob.glob("config_*.yml")[0])
 
 
 # Small edits to config to enable cluster usage
-P.PARAMS["cluster_queue_manager"] = P.PARAMS.get(
-    "pipeline_cluster_queue_manager")
+P.PARAMS["cluster_queue_manager"] = P.PARAMS.get("pipeline_cluster_queue_manager")
 P.PARAMS["conda_env"] = os.path.basename(os.environ["CONDA_PREFIX"])
 
 # Make sure that params dict is typed correctly
@@ -108,8 +105,7 @@ def set_up_chromsizes():
     else:
         from pybedtools.helpers import get_chromsizes_from_ucsc
 
-        get_chromsizes_from_ucsc(
-            P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
+        get_chromsizes_from_ucsc(P.PARAMS["genome_name"], "chrom_sizes.txt.tmp")
         P.PARAMS["genome_chrom_sizes"] = "chrom_sizes.txt.tmp"
 
 
@@ -128,7 +124,7 @@ def qc_reads(infile, outfile):
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -152,27 +148,31 @@ def multiqc_reads(infile, outfile):
 # Fastq processing   #
 ######################
 
-@follows(mkdir('trimmed'))
-@transform('fastq/*.fastq*',
-           # Regex negates any filenames matching the paired pattern
-           regex(r'(?!.*_[12])^fastq/(.*).fastq.gz'),
-           r'trimmed/\1_trimmed.fq')
+
+@follows(mkdir("trimmed"))
+@transform(
+    "fastq/*.fastq*",
+    # Regex negates any filenames matching the paired pattern
+    regex(r"(?!.*_[12])^fastq/(.*).fastq.gz"),
+    r"trimmed/\1_trimmed.fq",
+)
 def fastq_trim_single(infile, outfile):
 
-    statement = '''trim_galore 
+    statement = """trim_galore 
                    --cores 
                    %(pipeline_n_cores)s 
                    --dont_gzip 
                    %(trim_options)s 
                    -o trimmed 
-                   %(infile)s'''
+                   %(infile)s"""
 
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
+
 
 @follows(mkdir("trimmed"), mkdir("statistics/trimming/data"))
 @collate(
@@ -189,8 +189,7 @@ def fastq_trim_paired(infiles, outfile):
     outdir = "trimmed"
     trim_options = P.PARAMS.get("trim_options", "")
     cores = (
-        P.PARAMS["pipeline_n_cores"] if int(
-            P.PARAMS["pipeline_n_cores"]) <= 8 else "8"
+        P.PARAMS["pipeline_n_cores"] if int(P.PARAMS["pipeline_n_cores"]) <= 8 else "8"
     )
 
     statement = """trim_galore
@@ -206,7 +205,7 @@ def fastq_trim_paired(infiles, outfile):
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -215,7 +214,10 @@ def fastq_trim_paired(infiles, outfile):
 # Alignment   #
 ###############
 
-@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_single, fastq_trim_paired)
+
+@follows(
+    mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_single, fastq_trim_paired
+)
 @transform(fastq_trim_single, regex(r"trimmed/(.*)_trimmed.fq"), r"bam/\1.bam")
 def fastq_align_single(infile, outfile):
     """
@@ -252,7 +254,7 @@ def fastq_align_single(infile, outfile):
     P.run(
         " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -260,7 +262,9 @@ def fastq_align_single(infile, outfile):
     zap_file(infile)
 
 
-@follows(mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_paired, fastq_trim_single)
+@follows(
+    mkdir("bam"), mkdir("statistics/alignment"), fastq_trim_paired, fastq_trim_single
+)
 @collate("trimmed/*.fq", regex(r"trimmed/(.*)_[12]_val_[12].fq"), r"bam/\1.bam")
 def fastq_align_paired(infiles, outfile):
     """
@@ -298,7 +302,7 @@ def fastq_align_paired(infiles, outfile):
     P.run(
         " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -326,12 +330,17 @@ def create_bam_index(infile, outfile):
 ##############
 
 
-@transform([fastq_align_single, fastq_align_paired], regex(r".*/(.*).bam"), r"statistics/alignment/\1.txt")
+@transform(
+    [fastq_align_single, fastq_align_paired],
+    regex(r".*/(.*).bam"),
+    r"statistics/alignment/\1.txt",
+)
 def alignment_statistics(infile, outfile):
 
     statement = """samtools stats %(infile)s > %(outfile)s"""
     P.run(
         statement,
+        job_threads=1,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory="2G",
         job_condaenv=P.PARAMS["conda_env"],
@@ -348,6 +357,7 @@ def alignments_multiqc(outfile):
                    multiqc statistics/alignment/ -o statistics -n alignmentqc_report.html"""
     P.run(
         statement,
+        job_threads=1,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory="2G",
         job_condaenv=P.PARAMS["conda_env"],
@@ -360,7 +370,11 @@ def alignments_multiqc(outfile):
 
 
 @follows(create_bam_index, mkdir("bam_processed"))
-@transform([fastq_align_single, fastq_align_paired], regex(r"bam/(.*.bam)"), r"bam_processed/\1")
+@transform(
+    [fastq_align_single, fastq_align_paired],
+    regex(r"bam/(.*.bam)"),
+    r"bam_processed/\1",
+)
 def alignments_filter(infile, outfile):
     """Remove duplicate fragments from bam file."""
 
@@ -395,6 +409,7 @@ def alignments_filter(infile, outfile):
     P.run(
         " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -415,6 +430,7 @@ def create_tag_directory(infile, outfile):
     P.run(
         " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_threads=1,
         job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -428,8 +444,10 @@ def create_tag_directory(infile, outfile):
 @active_if(CREATE_BIGWIGS and USE_DEEPTOOLS)
 @follows(mkdir("bigwigs/deeptools/"))
 @transform(
-    alignments_filter, regex(
-        r"bam_processed/(.*).bam"), r"bigwigs/deeptools/\1_deeptools.bigWig")
+    alignments_filter,
+    regex(r"bam_processed/(.*).bam"),
+    r"bigwigs/deeptools/\1_deeptools.bigWig",
+)
 def alignments_pileup_deeptools(infile, outfile):
 
     statement = [
@@ -447,7 +465,7 @@ def alignments_pileup_deeptools(infile, outfile):
         " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory=P.PARAMS["pipeline_memory"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -455,7 +473,10 @@ def alignments_pileup_deeptools(infile, outfile):
 @follows(mkdir("bigwigs/homer/"))
 @active_if(CREATE_BIGWIGS and USE_HOMER)
 @transform(
-    create_tag_directory, regex(r".*/(.*)"), r"bigwigs/homer/\1_homer.bigWig", extras=[r"\1"]
+    create_tag_directory,
+    regex(r".*/(.*)"),
+    r"bigwigs/homer/\1_homer.bigWig",
+    extras=[r"\1"],
 )
 def alignments_pileup_homer(infile, outfile, tagdir_name):
 
@@ -473,12 +494,17 @@ def alignments_pileup_homer(infile, outfile, tagdir_name):
         outdir,
     ]
 
-    statement_mv = ["&&", 'mv', outfile.replace('_homer.bigWig', '.ucsc.bigWig'), outfile]
+    statement_mv = [
+        "&&",
+        "mv",
+        outfile.replace("_homer.bigWig", ".ucsc.bigWig"),
+        outfile,
+    ]
 
     P.run(
         " ".join([*statement_bw, *statement_mv]),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=1,
+        job_threads=1,
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -529,9 +555,11 @@ def call_peaks_macs(infile, outfile):
     P.run(
         " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_threads=1,
         job_memory=P.PARAMS["pipeline_memory"],
         job_condaenv=P.PARAMS["conda_env"],
     )
+
 
 @active_if(CALL_PEAKS and USE_LANCEOTRON)
 @follows(mkdir("peaks/macs"))
@@ -559,13 +587,13 @@ def call_peaks_lanceotron(infile, outfile):
         "--format bed",
         "--skipheader",
         P.PARAMS.get("lanceotron_callpeak_options") or " ",
-
     ]
 
     P.run(
         " ".join(statement),
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_memory=P.PARAMS["pipeline_memory"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -622,6 +650,7 @@ def convert_narrowpeak_to_bed(infile, outfile):
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
+        job_threads=1,
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -638,6 +667,7 @@ def convert_bed_to_bigbed(infile, outfile):
                    && bedToBigBed %(infile)s.tmp %(genome_chrom_sizes)s %(outfile)s"""
     P.run(
         statement,
+        job_threads=1,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -682,8 +712,7 @@ def make_ucsc_hub(infile, outfile, *args):
             name=os.path.basename(bw).replace(".bigWig", ""),
             source=bw,  # filename to build this track from
             visibility="full",  # shows the full signal
-            color=",".join(
-                    [str(int(x * 255)) for x in colours[bw]]),  # brick red
+            color=",".join([str(int(x * 255)) for x in colours[bw]]),  # brick red
             autoScale="on",  # allow the track to autoscale
             tracktype="bigWig",  # required when making a track
         )
