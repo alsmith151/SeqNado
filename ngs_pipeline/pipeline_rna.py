@@ -63,7 +63,7 @@ def qc_reads(infile, outfile):
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -118,7 +118,7 @@ def fastq_trim(infiles, outfile):
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
     touch_file(outfile)
@@ -198,7 +198,7 @@ def fastq_align(infiles, outfile):
             {" ".join(statement_blacklist)} && 
             {" ".join(statement_clean_up)}''',
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_memory="32G",
         job_condaenv=P.PARAMS["conda_env"],
     )
@@ -279,7 +279,7 @@ def count_reads(infiles, outfile):
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
@@ -306,7 +306,7 @@ def alignments_pileup(infile, outfile):
     P.run(
         statement,
         job_queue=P.PARAMS["pipeline_cluster_queue"],
-        job_pipeline_n_cores=P.PARAMS["pipeline_n_cores"],
+        job_threads=P.PARAMS["pipeline_n_cores"],
         job_condaenv=P.PARAMS["conda_env"],
     )
 
