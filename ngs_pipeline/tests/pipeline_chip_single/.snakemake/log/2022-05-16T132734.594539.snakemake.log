@@ -1,0 +1,5 @@
+Building DAG of jobs...
+MissingInputException in line 46 of /Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/snakefile:
+Missing input files for rule all:
+    affected files:
+        trimmed/SINGLE-CTCF_CTCF_R0.fastq.gz

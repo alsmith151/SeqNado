@@ -1,0 +1,4 @@
+Config file config_chip.yml is extended by additional config specified via the command line.
+SyntaxError in line 36 of /Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/rules/fastq_preprocessing.smk:
+invalid syntax
+  File "/Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/snakefile", line 42, in <module>

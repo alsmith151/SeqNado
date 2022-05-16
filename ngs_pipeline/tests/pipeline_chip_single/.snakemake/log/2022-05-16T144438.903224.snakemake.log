@@ -1,0 +1,49 @@
+Building DAG of jobs...
+The code used to generate one or several output files has changed:
+    To inspect which output files have changes, run 'snakemake --list-code-changes'.
+    To trigger a re-run, use 'snakemake -R $(snakemake --list-code-changes)'.
+The params used to generate one or several output files has changed:
+    To inspect which output files have changes, run 'snakemake --list-params-changes'.
+    To trigger a re-run, use 'snakemake -R $(snakemake --list-params-changes)'.
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job             count    min threads    max threads
+------------  -------  -------------  -------------
+align_single        1              1              1
+all                 1              1              1
+total               2              1              1
+
+Select jobs to execute...
+
+[Mon May 16 14:44:41 2022]
+rule align_single:
+    input: trimmed/SINGLE-CTCF_CTCF_R0.fastq.gz
+    output: aligned/SINGLE-CTCF_CTCF.bam
+    log: logs/SINGLE-CTCF_CTCF.align.log
+    jobid: 4
+    wildcards: sample=SINGLE-CTCF_CTCF
+    resources: tmpdir=/t1-data/project/milne_group/asmith/tmpdir
+
+[Mon May 16 14:44:47 2022]
+Finished job 4.
+1 of 2 steps (50%) done
+Select jobs to execute...
+
+[Mon May 16 14:44:47 2022]
+localrule all:
+    input: statistics/readqc_report.html, trimmed/SINGLE-CTCF_CTCF_R0.fastq.gz, aligned/SINGLE-CTCF_CTCF.bam
+    jobid: 0
+    resources: tmpdir=/t1-data/project/milne_group/asmith/tmpdir
+
+[Mon May 16 14:44:47 2022]
+Finished job 0.
+2 of 2 steps (100%) done
+The code used to generate one or several output files has changed:
+    To inspect which output files have changes, run 'snakemake --list-code-changes'.
+    To trigger a re-run, use 'snakemake -R $(snakemake --list-code-changes)'.
+The params used to generate one or several output files has changed:
+    To inspect which output files have changes, run 'snakemake --list-params-changes'.
+    To trigger a re-run, use 'snakemake -R $(snakemake --list-params-changes)'.
+Complete log: .snakemake/log/2022-05-16T144438.903224.snakemake.log

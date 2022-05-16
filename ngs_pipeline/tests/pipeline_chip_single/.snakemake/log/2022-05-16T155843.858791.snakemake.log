@@ -1,0 +1,4 @@
+Building DAG of jobs...
+WildcardError in line 50 of /Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/snakefile:
+Wildcards in input files cannot be determined from output files:
+'sample'

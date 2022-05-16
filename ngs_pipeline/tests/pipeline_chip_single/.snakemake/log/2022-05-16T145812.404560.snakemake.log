@@ -1,0 +1,42 @@
+Building DAG of jobs...
+The code used to generate one or several output files has changed:
+    To inspect which output files have changes, run 'snakemake --list-code-changes'.
+    To trigger a re-run, use 'snakemake -R $(snakemake --list-code-changes)'.
+The params used to generate one or several output files has changed:
+    To inspect which output files have changes, run 'snakemake --list-params-changes'.
+    To trigger a re-run, use 'snakemake -R $(snakemake --list-params-changes)'.
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job            count    min threads    max threads
+-----------  -------  -------------  -------------
+all                1              1              1
+multiqc_raw        1              1              1
+total              2              1              1
+
+Select jobs to execute...
+
+[Mon May 16 14:58:15 2022]
+rule multiqc_raw:
+    output: statistics/alignmentqc_report.html
+    jobid: 5
+    resources: tmpdir=/t1-data/project/milne_group/asmith/tmpdir
+
+[Mon May 16 14:58:17 2022]
+Error in rule multiqc_raw:
+    jobid: 5
+    output: statistics/alignmentqc_report.html
+    shell:
+        multiqc statistics/alignment/ -o statistics -n alignmentqc_report.html
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+The code used to generate one or several output files has changed:
+    To inspect which output files have changes, run 'snakemake --list-code-changes'.
+    To trigger a re-run, use 'snakemake -R $(snakemake --list-code-changes)'.
+The params used to generate one or several output files has changed:
+    To inspect which output files have changes, run 'snakemake --list-params-changes'.
+    To trigger a re-run, use 'snakemake -R $(snakemake --list-params-changes)'.
+Complete log: .snakemake/log/2022-05-16T145812.404560.snakemake.log

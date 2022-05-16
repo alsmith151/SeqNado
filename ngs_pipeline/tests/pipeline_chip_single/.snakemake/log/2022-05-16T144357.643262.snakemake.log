@@ -1,0 +1,13 @@
+Building DAG of jobs...
+WorkflowError:
+MissingInputException: Missing input files for rule align_single:
+    output: aligned/SINGLE-CTCF_CTCF.bam
+    wildcards: sample=SINGLE-CTCF_CTCF
+    affected files:
+        SINGLE-CTCF_CTCF_R0.fastq.gz
+MissingInputException: Missing input files for rule align_paired:
+    output: aligned/SINGLE-CTCF_CTCF.bam
+    wildcards: sample=SINGLE-CTCF_CTCF
+    affected files:
+        SINGLE-CTCF_CTCF_R1.fastq.gz
+        SINGLE-CTCF_CTCF_R2.fastq.gz

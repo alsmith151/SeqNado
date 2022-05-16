@@ -1,0 +1,2 @@
+Module	Section	Sample Name	Source
+Samtools	stats	SINGLE-CTCF_CTCF	/Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/tests/pipeline_chip_single/statistics/alignment/SINGLE-CTCF_CTCF.txt

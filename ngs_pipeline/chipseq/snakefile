@@ -1,0 +1,64 @@
+import os
+import sys
+import pathlib
+import textwrap
+import itertools
+import yaml
+import subprocess
+import snakemake.common
+from datetime import datetime
+import glob
+from snakemake.utils import min_version
+import utils
+
+
+start_time = datetime.now()
+
+configfile: "config_chip.yml"
+
+# Global variables
+CREATE_BIGWIGS = config["run_options"]["bigwigs"]
+CALL_PEAKS = config["run_options"]["peaks"]
+CREATE_HUB = config["run_options"]["hub"]
+USE_HOMER = config["homer"]["use"]
+USE_DEEPTOOLS = config["deeptools"]["use"]
+USE_MACS = config["macs"]["use"]
+USE_LANCEOTRON = config["lanceotron"]["use"]
+
+utils.set_up_chromsizes(config)
+
+df_samples = utils.get_fastq_files("*.fastq.gz")
+sample_info = utils.extract_chip_sample_info(df_samples)
+
+sample_metadata = sample_info["info"]
+samples_ip = sample_info["ip"]
+samples_input = sample_info["input"]
+
+SAMPLES = sample_metadata["fq"].str.split(".fastq").str[0].to_list()
+SAMPLE_NAMES = sample_metadata["sample_name"].unique()
+ANTIBODIES = sample_metadata["antibody"].unique()
+READS = sample_metadata["read"].unique()
+
+utils.symlink_fastq_files(sample_metadata)
+
+
+include: "rules/fastqc.smk"
+include: "rules/fastq_trim.smk"
+include: "rules/align.smk"
+include: "rules/post_align_qc.smk"
+include: "rules/deeptools.smk"
+include: "rules/homer.smk"
+
+rule all:
+    input:
+        read_multiqc = "statistics/readqc_report.html",
+        trimmed = expand("trimmed/{sample}_{antibody}_R{read}.fastq.gz", sample = SAMPLE_NAMES, antibody=ANTIBODIES, read=READS),
+        aligned = expand("aligned/{sample}_{antibody}.bam", sample = SAMPLE_NAMES, antibody=ANTIBODIES),
+        aligned_multiqc = "statistics/alignmentqc_report.html",
+        aligned_processed = expand("aligned_and_post-processed/{sample}.bam", sample = SAMPLES),
+
+
+
+
+
+

@@ -1,0 +1,4 @@
+AttributeError in line 39 of /Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/rules/fastq_preprocessing.smk:
+'builtin_function_or_method' object has no attribute 'reports'
+  File "/Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/snakefile", line 44, in <module>
+  File "/Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/rules/fastq_preprocessing.smk", line 39, in <module>
