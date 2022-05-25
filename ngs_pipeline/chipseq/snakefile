@@ -10,52 +10,94 @@ from datetime import datetime
 import glob
 from snakemake.utils import min_version
 import utils
+import re
 
 
 start_time = datetime.now()
 
 configfile: "config_chip.yml"
 
-# Global variables
+# Creation global variables
 CREATE_BIGWIGS = config["run_options"]["bigwigs"]
 CALL_PEAKS = config["run_options"]["peaks"]
 CREATE_HUB = config["run_options"]["hub"]
+
+# Method global variables
 USE_HOMER = config["homer"]["use"]
 USE_DEEPTOOLS = config["deeptools"]["use"]
 USE_MACS = config["macs"]["use"]
 USE_LANCEOTRON = config["lanceotron"]["use"]
 
+# Methods to use
+PILEUP_METHODS = [method for method in ["deeptools", "homer"] if config.get(method)["use"] == True]
+PEAK_CALL_METHODS = [method for method in ["macs", "lanceotron", "homer"] if config.get(method)["use"] == True]
+
+# Processing options
+REMOVE_DUPLICATES_PICARD = config["alignments"]["deduplicate"]["picard"]
+REMOVE_DUPLICATES_DEEPTOOLS = config["alignments"]["deduplicate"]["deeptools"]
+FILTER_ALIGNMENTS = config["alignments"]["filter_options"]
+REMOVE_DUPLICATES = REMOVE_DUPLICATES_PICARD or REMOVE_DUPLICATES_DEEPTOOLS
+assert not (REMOVE_DUPLICATES_PICARD and REMOVE_DUPLICATES_DEEPTOOLS), "Picard and deeptools can't be used together"
+
+# Convinience function that needs to be corrected
 utils.set_up_chromsizes(config)
 
+# Get dataframe of samples
 df_samples = utils.get_fastq_files("*.fastq.gz")
-sample_info = utils.extract_chip_sample_info(df_samples)
 
-sample_metadata = sample_info["info"]
-samples_ip = sample_info["ip"]
-samples_input = sample_info["input"]
+if not utils.sample_names_follow_convention(df_samples):
 
-SAMPLES = sample_metadata["fq"].str.split(".fastq").str[0].to_list()
-SAMPLE_NAMES = sample_metadata["sample_name"].unique()
-ANTIBODIES = sample_metadata["antibody"].unique()
-READS = sample_metadata["read"].unique()
+    try:
+        df_samples = pd.read_csv(config["run_options"]["design"], sep="[\s+,\t]", engine="python")
+        df_samples["basename"] = df_samples["fn"].apply(os.path.basename)
+    except:
+        raise ValueError("No sample names follow the convention and no design file is provided")
 
-utils.symlink_fastq_files(sample_metadata)
+else:
+    df_samples = utils.get_sample_attributes(df_samples)
+    df_samples = utils.pair_inputs_with_samples(df_samples)
+
+utils.symlink_fastq_files(df_samples)
+
+# Sample global variables
+SAMPLE_NAMES = df_samples["sample_name"].unique()
+SAMPLE_NAMES_WITH_READ = df_samples["fn"].str.replace(".fastq.gz", "", regex=True).tolist()
+SAMPLE_NAMES_NO_READ = df_samples["fn"].str.replace(r"_?R?[12].fastq.gz", "", regex=True).str.replace(".fastq.gz", "", regex=True)
+ANTIBODIES = df_samples["antibody"].unique()
 
 
-include: "rules/fastqc.smk"
-include: "rules/fastq_trim.smk"
+
+include: "rules/qc.smk"
+include: "rules/read_trimming.smk"
 include: "rules/align.smk"
-include: "rules/post_align_qc.smk"
-include: "rules/deeptools.smk"
-include: "rules/homer.smk"
+include: "rules/align_filter.smk"
+include: "rules/peak_call.smk"
+include: "rules/pileup.smk"
+include: "rules/hub.smk"
 
 rule all:
     input:
-        read_multiqc = "statistics/readqc_report.html",
-        trimmed = expand("trimmed/{sample}_{antibody}_R{read}.fastq.gz", sample = SAMPLE_NAMES, antibody=ANTIBODIES, read=READS),
-        aligned = expand("aligned/{sample}_{antibody}.bam", sample = SAMPLE_NAMES, antibody=ANTIBODIES),
-        aligned_multiqc = "statistics/alignmentqc_report.html",
-        aligned_processed = expand("aligned_and_post-processed/{sample}.bam", sample = SAMPLES),
+        multiqc_fastq_raw = "qc/fastq_qc_raw_report.html",
+
+        trimmed = expand("trimmed/{sample}.fastq.gz", sample = SAMPLE_NAMES_WITH_READ),
+        multiqc_fastq_trimmed = "qc/fastq_qc_trimmed_report.html",
+
+        aligned = expand("aligned/{sample}.bam", sample = SAMPLE_NAMES_NO_READ),
+        multiqc_bam_raw = "qc/bam_raw_qc_report.html",
+
+        aligned_deduplicated = expand("aligned_and_filtered/{sample}.bam", sample = SAMPLE_NAMES_NO_READ),
+        aligned_no_blacklist = expand("logs/blacklisted_regions_removed_{sample}.log", sample = SAMPLE_NAMES_NO_READ),
+
+        multiqc_bam_filtered = "qc/bam_filtered_qc_report.html",
+        mutiqc_full = "qc/full_qc_report.html",
+
+        pileups = expand("bigwigs/{method}/{sample}.bigWig", sample = SAMPLE_NAMES_NO_READ, method = PILEUP_METHODS),
+        peaks = expand("peaks/{method}/{sample}_{antibody}.bed", sample = SAMPLE_NAMES, antibody=ANTIBODIES, method=PEAK_CALL_METHODS),
+
+        hub = f"{config['hub']['dir']}/{config['hub']['name']}.hub.txt",
+
+
+
 
 
 
