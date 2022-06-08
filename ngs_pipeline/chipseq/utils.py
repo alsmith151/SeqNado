@@ -6,61 +6,9 @@ import pandas as pd
 import re
 import glob
 import numpy as np
+from typing import List, Literal
 
-
-def set_up_chromsizes(config: Dict):
-    """
-    Ensures that genome chromsizes are present.
-
-    If chromsizes are not provided this function attempts to download them from UCSC.
-    The P.PARAMS dictionary is updated with the location of the chromsizes.
-
-    """
-
-    try:
-        config["genome"]["name"]
-    except KeyError:
-        raise "Genome name has not been provided."
-
-    if config["genome"].get("chrom_sizes"):
-        pass
-
-    elif os.path.exists("chrom_sizes.txt.tmp"):
-        config["genome"]["chrom_sizes"] = "chrom_sizes.txt.tmp"
-
-    else:
-        from pybedtools.helpers import get_chromsizes_from_ucsc
-
-        get_chromsizes_from_ucsc(config["genome"]["name"], "chrom_sizes.txt.tmp")
-        config["genome"]["chrom_sizes"] = "chrom_sizes.txt.tmp"
-
-    print(f"Obtained chromosome sizes for genome {config['genome']['name']}")
-
-
-def symlink_fastq_files(sample_info: pd.DataFrame):
-
-    try:
-        os.mkdir("fastq")
-    except FileExistsError:
-        pass
-
-    for fq in sample_info.itertuples():
-        full_path = pathlib.Path(fq.fn).absolute()
-        symlink_path = f"fastq/{fq.basename}"
-
-        if not os.path.exists(symlink_path):
-            os.symlink(full_path, symlink_path)
-
-
-def get_fastq_files(path: str) -> pd.DataFrame:
-    df = pd.DataFrame(data=pathlib.Path(".").glob("*.fastq.gz"), columns=["fn"])
-    df = df.assign(basename=lambda df: df["fn"].apply(lambda p: p.name))
-
-    df["paired_or_single"] = df["basename"].str.match(r"(.*)_R?[12].fastq(.gz)?")
-    df["paired_or_single"] = np.where(
-        df["paired_or_single"] == True, "paired", "single"
-    )
-    return df
+pd.set_option("mode.chained_assignment", None)
 
 
 def sample_names_follow_convention(
@@ -108,7 +56,8 @@ def get_sample_attributes(df: pd.DataFrame):
 def has_ambigous_inputs(df: pd.DataFrame) -> bool:
     return (
         df.drop_duplicates(subset=["sample_name", "antibody", "input"])
-        .duplicated(subset=["sample_name", "input"])
+        .dropna(subset=["input"])
+        .duplicated(subset=["ip", "input"])
         .any()
     )
 
@@ -118,10 +67,15 @@ def pair_inputs_with_samples(df: pd.DataFrame):
     df_input = df.query("antibody_or_input.str.contains('input', case=False)")
     df_ip = df.query("~antibody_or_input.str.contains('input', case=False)")
 
-    df_ip_with_input = df_ip.merge(
-        df_input[["sample_name", "antibody_or_input"]], on="sample_name", how="left"
-    ).rename(
-        columns={"antibody_or_input_x": "antibody", "antibody_or_input_y": "input"}
+    df_ip["ip"] = df_ip["sample_name"] + "_" + df_ip["antibody_or_input"]
+    df_input["input"] = df_input["sample_name"] + "_" + df_input["antibody_or_input"]
+
+    df_ip_with_input = (
+        df_ip.merge(df_input[["sample_name", "input"]], on="sample_name", how="left")
+        .rename(columns={"antibody_or_input": "antibody"})
+        .drop_duplicates(["basename"])
+        .sort_values("basename")
+        .reset_index(drop=True)
     )
 
     if not has_ambigous_inputs(df_ip_with_input):
@@ -130,3 +84,16 @@ def pair_inputs_with_samples(df: pd.DataFrame):
         raise ValueError(
             "Samples are paired with more than one input. Use a design matrix to specify inputs"
         )
+
+    return df_ip_with_input
+
+
+def get_pipeline_tools(config: Dict) -> Dict:
+
+    return dict(
+        homer="homer" in config["pileup_method"]
+        or "homer" in config["peak_calling_method"],
+        deeptools="deeptools" in config["pileup_method"],
+        macs="macs" in config["peak_calling_method"],
+        lanceotron="lanceotron" in config["peak_calling_method"],
+    )

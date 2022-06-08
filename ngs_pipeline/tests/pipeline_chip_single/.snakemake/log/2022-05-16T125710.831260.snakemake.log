@@ -1,6 +1,0 @@
-Building DAG of jobs...
-MissingInputException in line 33 of /Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/rules/fastq_preprocessing.smk:
-Missing input files for rule multiqc:
-    output: statistics/readqc_report.html
-    affected files:
-        qc

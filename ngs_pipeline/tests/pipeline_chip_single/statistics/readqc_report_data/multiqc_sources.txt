@@ -1,2 +1,0 @@
-Module	Section	Sample Name	Source
-FastQC	all_sections	SINGLE-CTCF_CTCF_R0	/Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/tests/pipeline_chip_single/statistics/fastqc/SINGLE-CTCF_CTCF_R0_fastqc.zip

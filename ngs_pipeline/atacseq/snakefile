@@ -3,14 +3,11 @@ import sys
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
-import ngs_pipeline.chipseq.utils as chip_utils
 import ngs_pipeline.utils as utils
 
 start_time = datetime.now()
 
-configfile: "config_chip.yml"
-# container: "ngs.sif"
-
+configfile: "config_atac.yml"
 
 utils.format_config_dict(config)
 pipeline_tools = chip_utils.get_pipeline_tools(config)
@@ -23,29 +20,13 @@ PEAK_CALL_METHODS = [method for method in ["macs", "lanceotron", "homer"] if pip
 utils.set_up_chromsizes(config)
 
 # Get dataframe of samples
-df_samples = utils.get_fastq_files(".")
-
-if not chip_utils.sample_names_follow_convention(df_samples):
-
-    try:
-        df_samples = pd.read_csv(config["run_options"]["design"], sep="[\s+,\t]", engine="python")
-        df_samples["basename"] = df_samples["fn"].apply(os.path.basename)
-    except:
-        raise ValueError("No sample names follow the convention and no design file is provided")
-
-else:
-    df_samples = chip_utils.get_sample_attributes(df_samples)
-    df_samples_paired = chip_utils.pair_inputs_with_samples(df_samples)
-
-
+df_samples = utils.get_fastq_files("*.fastq.gz")
 utils.symlink_fastq_files(df_samples)
 
-print(df_samples_paired)
-
+# Sample global variables
+SAMPLE_NAMES = df_samples["sample_name"].unique()
 SAMPLE_NAMES_WITH_READ = df_samples["fn"].str.replace(".fastq.gz", "", regex=True).tolist()
-SAMPLE_NAMES_NO_READ = df_samples["fn"].str.replace(r"_?R?[12].fastq.gz", "", regex=True).str.replace(".fastq.gz", "", regex=True).tolist()
-SAMPLE_NAMES_IP = df_samples_paired["ip"]
-ANTIBODIES = df_samples_paired["antibody"].unique()
+SAMPLE_NAMES_NO_READ = df_samples["fn"].str.replace(r"_?R?[12].fastq.gz", "", regex=True).str.replace(".fastq.gz", "", regex=True)
 
 include: "../rules/qc.smk"
 include: "../rules/read_trimming.smk"
@@ -62,6 +43,7 @@ include: "../rules/filter_alignments.smk"
 include: "../rules/peak_call.smk"
 include: "../rules/pileup.smk"
 include: "../rules/hub.smk"
+
 
 rule all:
     input:
@@ -80,7 +62,7 @@ rule all:
         mutiqc_full = "qc/full_qc_report.html",
 
         pileups = expand("bigwigs/{method}/{sample}.bigWig", sample = SAMPLE_NAMES_NO_READ, method = PILEUP_METHODS),
-        peaks = expand("peaks/{method}/{ip}.bed", ip=SAMPLE_NAMES_IP, method=PEAK_CALL_METHODS),
+        peaks = expand("peaks/{method}/{sample}_{antibody}.bed", sample = SAMPLE_NAMES, antibody=ANTIBODIES, method=PEAK_CALL_METHODS),
 
         hub = f"{config['ucsc_hub_details']['directory']}/{config['ucsc_hub_details']['name']}.hub.txt",
 

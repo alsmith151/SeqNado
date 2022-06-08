@@ -1,8 +1,0 @@
-Building DAG of jobs...
-InputFunctionException in line 33 of /Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/rules/fastq_preprocessing.smk:
-Error:
-  IndexError: list index out of range
-Wildcards:
-
-Traceback:
-  File "/Filers/home/a/asmith/software/ngs_pipeline/ngs_pipeline/chipseq/rules/fastq_preprocessing.smk", line 36, in <lambda>
