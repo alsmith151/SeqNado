@@ -1,6 +1,6 @@
 rule mark_duplicates:
     input:
-        bams="aligned/{sample}.bam",
+        bam="aligned/{sample}.bam",
     # optional to specify a list of BAMs; this has the same effect
     # of marking duplicates on separate read groups for a sample
     # and then merging
@@ -18,8 +18,13 @@ rule mark_duplicates:
     # https://snakemake.readthedocs.io/en/latest/executing/cluster.html#job-properties
     resources:
         mem_mb=1024 * 4,
-    wrapper:
-        "v1.5.0/bio/picard/markduplicates"
+    threads:
+        4,
+    shell:
+        """
+        picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} {params.extra} > {log} 2>&1
+        """
+        
     
 rule index_bam:
     input:

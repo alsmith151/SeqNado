@@ -18,7 +18,8 @@ def get_paired_ip_and_input(wc, filetype: Literal["bam", "tag", "bigwig"] = "bam
 
     try:
         return {"ip": f"{dirs[filetype]}/{row['ip']}{file_ext[filetype]}", 
-                "input": f"{dirs[filetype]}/{row['input']}{file_ext[filetype]}"}
+                "input": f"{dirs[filetype]}/{row['input']}{file_ext[filetype]}"
+                }
     except KeyError:
         return None
 
@@ -32,8 +33,6 @@ rule macs2_with_input:
         options = config["macs"]["callpeak"],
     log:
         "logs/macs/{ip}.log",
-    # conda:
-    #     "../../environment_chip.yml"
     run:
         narrow = output.peaks.replace(".bed", "_peaks.narrowPeak")
         shell("""
@@ -107,8 +106,14 @@ rule lanceotron_with_input:
         "logs/lanceotron/{ip}.log",
     params:
         options = config["lanceotron"]["callpeak"],
+    threads:
+        1,
+    resources:
+        mem_mb=1024 * 10,
     shell:
-        """lanceotron callPeaksInput {input.ip} -i {input.input} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1"""
+        """lanceotron callPeaksInput {input.ip} -i {input.input} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1 &&
+           mv peaks/{wildcards.ip}_L-tron.bed {output.peaks}
+        """
 
 rule lanceotron_no_input:
     input:
@@ -119,8 +124,12 @@ rule lanceotron_no_input:
         "logs/lanceotron/{ip}.log",
     params:
         options = config["lanceotron"]["callpeak"],
+    resources:
+        mem_mb=1024 * 10,
     shell:
-        """lanceotron callPeaks {input.ip} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1"""
+        """lanceotron callPeaks {input.ip} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1 &&
+           mv peaks/{wildcards.ip}_L-tron.bed {output.peaks}
+        """
 
 
 

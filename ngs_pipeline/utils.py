@@ -117,3 +117,10 @@ def get_fastq_files(path: str, recursive=False) -> pd.DataFrame:
         df["paired_or_single"] == True, "paired", "single"
     )
     return df
+
+
+def get_singularity_command(command: str, container: str, singularity_prefix: str, singularity_args: str):
+    """
+    Runs a command in a singularity container.
+    """
+    return f"singularity exec {singularity_args} {singularity_prefix}{container} {command}"

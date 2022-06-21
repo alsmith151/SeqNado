@@ -1,6 +1,7 @@
 rule homer_make_tag_directory:
     input:
         bam = "aligned_and_filtered/{sample}.bam",
+        filtering = "logs/blacklist/{sample}.log",
     output:
         homer_tag_directory = directory("tag_dirs/{sample}"),
     params:
@@ -14,6 +15,7 @@ rule homer_make_tag_directory:
 rule homer_make_bigwigs:
     input:
         homer_tag_directory = "tag_dirs/{sample}",
+        filtering = "logs/blacklist/{sample}.log",
     output:
         homer_bigwig = "bigwigs/homer/{sample}.bigWig",
     log:
@@ -33,6 +35,7 @@ rule deeptools_make_bigwigs:
     input:
         bam = "aligned_and_filtered/{sample}.bam",
         bai = "aligned_and_filtered/{sample}.bam.bai",
+        filtering = "logs/blacklist/{sample}.log",
     output:
         bigwig = "bigwigs/deeptools/{sample}.bigWig",
     params:
