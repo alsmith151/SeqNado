@@ -8,9 +8,8 @@ dependencies:
   - pip
   - pip:
     - wget
-  - cgatcore
   - bowtie2
-  - samtools
+  - samtools>1.7
   - deeptools
   - trim-galore
   - fastqc
