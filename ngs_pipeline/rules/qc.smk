@@ -20,7 +20,7 @@ def get_reports(*args):
         # Samtools reports
         reports.append(f"qc/alignment_filtered/{sample}.txt")
     
-    return reports
+    return {"reports": reports}
 
 
 # rule multiqc_fastq_raw:
@@ -147,6 +147,7 @@ rule multiqc:
         outdir = os.path.dirname(output.report)
         basename = os.path.basename(output.report)
 
+        breakpoint()
         dirnames = [os.path.dirname(x) for x in input.reports]
         dirnames = list(set(dirnames))
         search_dirs = " ".join(dirnames)
@@ -234,7 +235,7 @@ use rule multiqc as multiqc_bam_filtered with:
 
 use rule multiqc as multiqc_all with:
     input:
-        reports = get_reports,
+        unpack(lambda wc: get_reports(wc)),
     output:
         report = "qc/full_qc_report.html"
     threads:
