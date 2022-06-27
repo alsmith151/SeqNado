@@ -4,7 +4,8 @@ import os
 import pathlib
 import pandas as pd
 import numpy as  np
-
+import snakemake
+import hashlib
 
 def is_on(param: str) -> bool:
     """
@@ -119,8 +120,18 @@ def get_fastq_files(path: str, recursive=False) -> pd.DataFrame:
     return df
 
 
-def get_singularity_command(command: str, container: str, singularity_prefix: str, singularity_args: str):
+def get_singularity_command(workflow: snakemake.Workflow, command: str):
     """
     Runs a command in a singularity container.
     """
-    return f"singularity exec {singularity_args} {singularity_prefix}{container} {command}"
+
+    container_url = workflow.global_container_img
+    container_dir = workflow.persistence.container_img_path
+
+    md5 = hashlib.md5()
+    md5.update(container_url.encode())
+    container_hash = md5.hexdigest()
+
+    container =  os.path.join(container_dir, container_hash + ".simg")
+
+    return f"singularity exec -H $PWD {workflow.singularity_args} {container} {command}"

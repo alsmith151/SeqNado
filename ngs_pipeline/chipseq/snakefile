@@ -9,7 +9,7 @@ import ngs_pipeline.utils as utils
 start_time = datetime.now()
 
 configfile: "config_chip.yml"
-container: "ngs.sif"
+container: "library://asmith151/ngs-pipeline/ngs"
 
 
 utils.format_config_dict(config)
@@ -40,10 +40,8 @@ else:
 
 utils.symlink_fastq_files(df_samples)
 
-print(df_samples_paired)
-
 SAMPLE_NAMES_WITH_READ = df_samples["fn"].str.replace(".fastq.gz", "", regex=True).tolist()
-SAMPLE_NAMES_NO_READ = df_samples["fn"].str.replace(r"_?R?[12].fastq.gz", "", regex=True).str.replace(".fastq.gz", "", regex=True).tolist()
+SAMPLE_NAMES_NO_READ = df_samples["fn"].str.replace(r"_?R?[12].fastq.gz", "", regex=True).str.replace(".fastq.gz", "", regex=True).unique().tolist()
 SAMPLE_NAMES_IP = df_samples_paired["ip"]
 ANTIBODIES = df_samples_paired["antibody"].unique()
 
@@ -55,6 +53,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
     include: "../rules/remove_pcr_duplicates_picard.smk"
 elif config["remove_pcr_duplicates_method"] == "deeptools":
     include: "../rules/remove_pcr_duplicates_deeptools.smk"
+    ruleorder: deeptools_filter_alignments > index_bam 
 else:
     include: "../rules/remove_pcr_duplicates_ignore.smk"
 
@@ -74,9 +73,9 @@ rule all:
         multiqc_bam_raw = "qc/bam_raw_qc_report.html",
 
         aligned_deduplicated = expand("aligned_and_filtered/{sample}.bam", sample = SAMPLE_NAMES_NO_READ),
-        # aligned_no_blacklist = expand(, sample = SAMPLE_NAMES_NO_READ),
 
         multiqc_bam_filtered = "qc/bam_filtered_qc_report.html",
+        
         mutiqc_full = "qc/full_qc_report.html",
 
         pileups = expand("bigwigs/{method}/{sample}.bigWig", sample = SAMPLE_NAMES_NO_READ, method = PILEUP_METHODS),

@@ -15,8 +15,7 @@ rule align_paired:
         """bowtie2 -p {threads} -x {params.index} -1 {input.fq1} -2 {input.fq2} 2> {log} |
            samtools view -bS - > {output.bam} &&
            samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} >> {log} 2>&1 &&
-           mv {output.bam}_sorted {output.bam} &&
-           samtools index {output.bam}
+           mv {output.bam}_sorted {output.bam}
         """
 
 rule align_single:
@@ -34,10 +33,18 @@ rule align_single:
         """bowtie2 -p {threads} -x {params.index} -U {input.fq1} 2> {log} |
            samtools view -bS - > {output.bam} &&
            samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} &&
-           mv {output.bam}_sorted {output.bam} &&
-           samtools index {output.bam}
+           mv {output.bam}_sorted {output.bam}
         """
-    
+         
+rule index_bam:
+    input:
+        bam="aligned/{sample}.bam",
+    output:
+        index="aligned/{sample}.bam.bai",
+    threads:
+        1
+    shell:
+        "samtools index {input.bam} -@ {threads}"
 
 
 

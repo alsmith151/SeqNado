@@ -39,7 +39,7 @@ rule deeptools_make_bigwigs:
     output:
         bigwig = "bigwigs/deeptools/{sample}.bigWig",
     params:
-        options = config["deeptools"]["bamcoverage"],
+        options = config["deeptools"]["bamcoverage"] if config["deeptools"]["bamcoverage"] else "",
     threads:
         config["deeptools"]["threads"],
     log:

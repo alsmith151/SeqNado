@@ -68,8 +68,6 @@ rule homer_with_input:
         "logs/homer/findPeaks_{sample}_{antibody}.log",
     params:
         options = config["homer"]["findpeaks"],
-    # conda:
-    #     "../../environment_chip.yml"
     shell:
         """
         findPeaks {input.ip} {params.options} -o {output.peaks}.tmp  -i {input.input} > {log} 2>&1 &&
@@ -87,8 +85,6 @@ rule homer_no_input:
         "logs/homer/findPeaks_{sample}_{antibody}.log",
     params:
         options = config["homer"]["findpeaks"],
-    conda:
-        "../../environment_chip.yml"
     shell:
         """
         findPeaks {input.ip} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -130,9 +126,6 @@ rule lanceotron_no_input:
         """lanceotron callPeaks {input.ip} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1 &&
            mv peaks/{wildcards.ip}_L-tron.bed {output.peaks}
         """
-
-
-
 
 ruleorder:
     lanceotron_with_input > lanceotron_no_input

@@ -2,6 +2,7 @@
 rule deeptools_filter_alignments:
     input:
         bam = "aligned/{sample}.bam",
+        index = "aligned/{sample}.bam.bai"
     output:
         bam = "aligned_and_filtered/{sample}.bam",
         index = "aligned_and_filtered/{sample}.bam.bai",
