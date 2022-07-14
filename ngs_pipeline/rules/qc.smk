@@ -10,8 +10,9 @@ def get_reports(*args):
     reports = []
 
     for sample in SAMPLE_NAMES_NO_READ:
+
         # Fastqc reports
-        if df_samples_paired.query(f"ip == '{sample}'")["paired_or_single"].values[0] == "paired":
+        if df_samples_paired.query(f"ip == '{sample}' or input == '{sample}'")["paired_or_single"].values[0] == "paired":
            reports.append(f"qc/fastq_trimmed/{sample}_1_fastqc.html")
            reports.append(f"qc/fastq_trimmed/{sample}_2_fastqc.html")
         else:
@@ -147,8 +148,12 @@ rule multiqc:
         outdir = os.path.dirname(output.report)
         basename = os.path.basename(output.report)
 
-        breakpoint()
-        dirnames = [os.path.dirname(x) for x in input.reports]
+        if not isinstance(input.reports, list):
+            reports = [*input.reports]
+        else:
+            reports = input
+        
+        dirnames = [os.path.dirname(x) for x in reports]
         dirnames = list(set(dirnames))
         search_dirs = " ".join(dirnames)
 
@@ -235,7 +240,7 @@ use rule multiqc as multiqc_bam_filtered with:
 
 use rule multiqc as multiqc_all with:
     input:
-        unpack(lambda wc: get_reports(wc)),
+        **get_reports(),
     output:
         report = "qc/full_qc_report.html"
     threads:
