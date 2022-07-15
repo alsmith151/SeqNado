@@ -93,7 +93,7 @@ def set_up(
 def test_pipeline(pipeline_path):
 
     cmd = (
-        f"ngs-pipeline chip --cores 6 --configfile config_chip.yml --debug"
+        f"ngs-pipeline chip --cores 4 --configfile config_chip.yml"
     )
     completed = subprocess.run(cmd.split())
     assert completed.returncode == 0
