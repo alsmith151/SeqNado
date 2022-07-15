@@ -20,8 +20,6 @@ rule generate_hub:
         hub = f"{config['ucsc_hub_details']['directory']}/{config['ucsc_hub_details']['name']}.hub.txt",
     log:
         log = f"logs/{config['ucsc_hub_details']['name']}.hub.log"
-    # conda:
-    #     "../../environment_ngs.yml"
     run:
         
         import pandas as pd
