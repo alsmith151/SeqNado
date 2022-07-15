@@ -13,7 +13,7 @@
 #
 # To run all jobs on the cluster (highly recommended; these options are for slurm i.e. cbrg cluster):
 #
-# ngs-pipeline chip -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time 24:00:00 "  
+# ngs-pipeline chip -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00 "  
 #
 # Combining both singularity and slurm options:
 #
@@ -43,7 +43,9 @@ genome:
 #  Optional configuration         #
 ###################################
 
+# Allows for removal of specific regions from the bam file. Must supply a bed file.
 blacklist:
+    BLACKLIST_FILE
 
 # Method(s) for bigWig generation
 pileup_method:
