@@ -5,6 +5,8 @@ rule bed_to_bigbed:
         bigbed = "peaks/{directory}/{sample}.bigBed"
     params:
         chrom_sizes = config["genome"]["chromosome_sizes"]
+    log:
+        "logs/bed_to_bigbed/{sample}.log"
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} > {input.bed}.tmp &&

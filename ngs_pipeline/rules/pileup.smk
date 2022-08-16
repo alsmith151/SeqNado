@@ -1,10 +1,13 @@
 import re
+import ngs_pipeline.utils as utils
+import pysam
 
 def is_bam_paired_end(bam):
     
-    cmd = "{ samtools view -H %s ; samtools view %s | head -n 1000; } | samtools view -c -f 1" % (bam, bam)
-    n_paired_reads = int(subprocess.check_output(cmd, shell=True).strip().decode())
-
+    bam_ps = pysam.AlignmentFile(bam)
+    head = bam_ps.head(1000)
+    n_paired_reads = sum([aln.is_paired for aln in head])
+    
     if n_paired_reads > 0:
         return True
     else:

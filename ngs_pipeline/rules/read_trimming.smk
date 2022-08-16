@@ -9,8 +9,8 @@ rule trimgalore_paired:
     input:
         unpack(get_paired_fastq_inputs),
     output:
-        trimmed1="trimmed/{sample}_1.fastq.gz",
-        trimmed2="trimmed/{sample}_2.fastq.gz",
+        trimmed1=temp("trimmed/{sample}_1.fastq.gz"),
+        trimmed2=temp("trimmed/{sample}_2.fastq.gz"),
     threads:
         4
     log:
@@ -28,7 +28,7 @@ rule trimgalore_single:
     input:
         fq1="fastq/{sample}.fastq.gz",
     output:
-        trimmed1="trimmed/{sample}.fastq.gz",
+        trimmed1=temp("trimmed/{sample}.fastq.gz"),
     threads:
         4
     log:
