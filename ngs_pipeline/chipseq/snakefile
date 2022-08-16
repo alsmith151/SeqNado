@@ -20,7 +20,7 @@ PILEUP_METHODS = [method for method in ["deeptools", "homer"] if pipeline_tools[
 PEAK_CALL_METHODS = [method for method in ["macs", "lanceotron", "homer"] if pipeline_tools[method] == True]
 
 # Convinience function that needs to be corrected
-utils.set_up_chromsizes(config)
+#utils.set_up_chromsizes(config)
 
 # Get dataframe of samples
 df_samples = utils.get_fastq_files(".")
