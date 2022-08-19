@@ -2,16 +2,23 @@ import re
 import ngs_pipeline.utils as utils
 import pysam
 
-def is_bam_paired_end(bam):
-    
-    bam_ps = pysam.AlignmentFile(bam)
-    head = bam_ps.head(1000)
-    n_paired_reads = sum([aln.is_paired for aln in head])
-    
-    if n_paired_reads > 0:
+def is_sample_paired(sample):
+    if df_samples.query("paired_or_single == 'paired'")["basename"].str.contains(sample).any():
         return True
+
+def is_bam_paired_end(wc, bam):
+    
+    if os.path.exists(bam):
+        bam_ps = pysam.AlignmentFile(bam)
+        head = bam_ps.head(1000)
+        n_paired_reads = sum([aln.is_paired for aln in head])
+        
+        if n_paired_reads > 0:
+            return True
+    
     else:
-        return False
+        return is_sample_paired(wc.sample)
+
 
 def filter_deeptools_bamcoverage_options(wc):
     
@@ -19,7 +26,7 @@ def filter_deeptools_bamcoverage_options(wc):
     options = config["deeptools"]["bamcoverage"] if config["deeptools"]["bamcoverage"] else ""
 
     if "-e" in options or "--extendReads" in options:
-        if not is_bam_paired_end(bam) and not re.search("(-e \d+)|(--extendReads \d+)", options):
+        if not is_bam_paired_end(wc, bam) and not re.search("(-e \d+)|(--extendReads \d+)", options):
             options = options.replace("--extendReads ", "").replace("-e ", "")
     
     return options
@@ -29,7 +36,7 @@ def filter_deeptools_bamcoverage_options(wc):
 rule homer_make_tag_directory:
     input:
         bam = "aligned_and_filtered/{sample}.bam",
-        filtering = "logs/blacklist/{sample}.log",
+        filtering = "flags/{sample}.filtering.complete.sentinel",
     output:
         homer_tag_directory = directory("tag_dirs/{sample}"),
     params:
@@ -43,7 +50,7 @@ rule homer_make_tag_directory:
 rule homer_make_bigwigs:
     input:
         homer_tag_directory = "tag_dirs/{sample}",
-        filtering = "logs/blacklist/{sample}.log",
+        filtering = "flags/{sample}.filtering.complete.sentinel",
     output:
         homer_bigwig = "bigwigs/homer/{sample}.bigWig",
     log:
@@ -57,13 +64,17 @@ rule homer_make_bigwigs:
         cmd = f"""makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir bigwigs/homer/ {params.options} > {log} 2>&1 &&
                  mv {output.homer_bigwig.replace(".bigWig", ".ucsc.bigWig")} {output.homer_bigwig}"""
         
+        if workflow.use_singularity:
+            cmd = utils.get_singularity_command(command=cmd,
+                                                workflow=workflow,)
+        
         shell(cmd)
 
 rule deeptools_make_bigwigs:
     input:
         bam = "aligned_and_filtered/{sample}.bam",
         bai = "aligned_and_filtered/{sample}.bam.bai",
-        filtering = "logs/blacklist/{sample}.log",
+        filtering = "flags/{sample}.filtering.complete.sentinel",
     output:
         bigwig = "bigwigs/deeptools/{sample}.bigWig",
     params:

@@ -6,11 +6,12 @@ rule bed_to_bigbed:
     params:
         chrom_sizes = config["genome"]["chromosome_sizes"]
     log:
-        "logs/bed_to_bigbed/{sample}.log"
+        "logs/bed_to_bigbed/{directory}_{sample}.log"
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} > {input.bed}.tmp &&
-        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed}
+        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} &&
+        rm {input.bed}.tmp
         """
 
 rule generate_hub:
@@ -34,7 +35,7 @@ rule generate_hub:
         file_details = f"{os.path.dirname(output.hub)}/hub_details.tsv"        
         df.set_index("filename").to_csv(file_details, sep="\t")
 
-        cmd = ["make-ucsc-hub", 
+        cmd = " ".join(["make-ucsc-hub", 
                " ".join(df["filename"]),
                "-d",
                file_details, 
@@ -48,13 +49,17 @@ rule generate_hub:
                config["genome"]["name"],
                "--description-html",
                 input.report,
-        ]
+        ])
 
-        cmd_log = f"echo {' '.join(cmd)} > {log.log}"
+        if workflow.use_singularity:
+                cmd = utils.get_singularity_command(command=cmd,
+                                                    workflow=workflow,)
 
-        shell(" ".join(cmd))
-        shell(cmd_log)
 
+        shell(cmd)
+
+localrules:
+    generate_hub,
 
         
 

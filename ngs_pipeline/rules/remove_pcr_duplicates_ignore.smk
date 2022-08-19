@@ -9,6 +9,10 @@ rule ignore_duplicates:
         "logs/duplicate_removal/not_removed/{sample}.log",
     run:
         abspath = os.path.abspath(input.bam)
-        shell(f"""ln -s {abspath} {output.bam} && 
+        cmd = f"""ln -s {abspath} {output.bam} && 
                     ln -s {input.bam}.bai {output.bam}.bai
-                """)
+                """
+        if workflow.use_singularity:
+                cmd = utils.get_singularity_command(command=cmd,
+                                                    workflow=workflow,)
+        shell(cmd)

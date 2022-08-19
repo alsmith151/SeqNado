@@ -1,76 +1,95 @@
 from typing import Literal
 
-def get_paired_ip_and_input(wc, filetype: Literal["bam", "tag", "bigwig"] = "bam"):
-    
-    row = (df_samples_paired.drop_duplicates(subset=["ip"])
-                            .dropna()
-                            .query(f"sample_name == '{wc.sample}' and antibody == '{wc.antibody}'")
-                            .iloc[0]
-          )
+def get_paired_treatment_and_input(wc, filetype: Literal["bam", "tag", "bigwig"] = "bam"):
 
-    dirs = {"bam": "aligned_and_filtered",
-            "tag": "tag_dirs",
-            "bigwig": "bigwigs/deeptools/"}
-    
-    file_ext = {"bam": ".bam",
-                "tag": "/",
-                "bigwig": ".bigWig"}
+    if (ASSAY == "ChIP") and (config["lanceotron"].get("use_input", True) or config["homer"].get("use_input", True)):
+  
+        row = (df_samples_paired.drop_duplicates(subset=["ip"])
+                                .dropna()
+                                .query(f"ip == '{wc.treatment}'")
+                                .iloc[0]
+            )
+        
 
-    try:
-        return {"ip": f"{dirs[filetype]}/{row['ip']}{file_ext[filetype]}", 
-                "input": f"{dirs[filetype]}/{row['input']}{file_ext[filetype]}"
-                }
-    except KeyError:
-        return None
+        dirs = {"bam": "aligned_and_filtered",
+                "tag": "tag_dirs",
+                "bigwig": "bigwigs/deeptools/"}
+        
+        file_ext = {"bam": ".bam",
+                    "tag": "/",
+                    "bigwig": ".bigWig"}
+
+        try:
+            paths =  {"treatment": f"{dirs[filetype].rstrip('/')}/{row['ip']}{file_ext[filetype]}", 
+                    "input": f"{dirs[filetype].rstrip('/')}/{row['input']}{file_ext[filetype]}"
+                    }
+
+        except KeyError:
+            paths = {"treatment": f"{dirs[filetype].rstrip('/')}/{row['ip']}{file_ext[filetype]}"}
+    
+    else:
+        paths = {"treatment": wc.treatment}
+    
+
+    return paths
 
 
 rule macs2_with_input:
     input:
-        unpack(lambda wc: get_paired_ip_and_input(wc, filetype="bam")),
+        unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="bam")),
     output:
-        peaks = "peaks/macs/{ip}.bed",
+        peaks = "peaks/macs/{treatment}.bed",
     params:
         options = config["macs"]["callpeak"],
     log:
-        "logs/macs/{ip}.log",
+        "logs/macs/{treatment}.log",
     run:
         narrow = output.peaks.replace(".bed", "_peaks.narrowPeak")
-        shell("""
-        macs2 callpeak -t {input.ip} -c {input.input} -n peaks/macs/{wildcards.ip} -f BAM {params.options} > {log} 2>&1 &&
+        cmd = f"""
+        macs2 callpeak -t {input.treatment} -c {input.input} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
         cat {narrow} | cut -f 1-3 > {output.peaks}
-        """)
+        """
+
+        if workflow.use_singularity:
+                cmd = utils.get_singularity_command(command=cmd,
+                                                    workflow=workflow,)
+        
+        shell(cmd)
 
 rule macs2_no_input:
     input:
-        ip = "aligned_and_filtered/{ip}.bam",
+        treatment = "aligned_and_filtered/{treatment}.bam",
     output:
-        peaks = "peaks/macs/{ip}.bed",
+        peaks = "peaks/macs/{treatment}.bed",
     params:
         options = config["macs"]["callpeak"],
     log:
-        "logs/macs/{ip}.log",
-    # conda:
-    #     "../../environment_chip.yml"
+        "logs/macs/{treatment}.log",
     run:
         narrow = output.peaks.replace(".bed", "_peaks.narrowPeak")
-        shell("""
-        macs2 callpeak -t {input.ip} -n peaks/macs/{wildcards.ip} -f BAM {params.options} > {log} 2>&1 &&
+        cmd = f"""
+        macs2 callpeak -t {input.treatment} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
         cat {narrow} | cut -f 1-3 > {output.peaks}
-        """)
+        """
+
+        if workflow.use_singularity:
+                cmd = utils.get_singularity_command(command=cmd,
+                                                    workflow=workflow,)
+        shell(cmd)
 
 
 rule homer_with_input:
     input:
-        unpack(lambda wc: get_paired_ip_and_input(wc, filetype="tag")),
+        unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="tag")),
     output:
-        peaks = "peaks/homer/{sample}_{antibody}.bed",
+        peaks = "peaks/homer/{treatment}.bed",
     log:
-        "logs/homer/findPeaks_{sample}_{antibody}.log",
+        "logs/homer/findPeaks/{treatment}.log",
     params:
         options = config["homer"]["findpeaks"],
     shell:
         """
-        findPeaks {input.ip} {params.options} -o {output.peaks}.tmp  -i {input.input} > {log} 2>&1 &&
+        findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.input} > {log} 2>&1 &&
         pos2bed.pl {output.peaks}.tmp -o {output.peaks} >> {log} 2>&1 &&
         rm {output.peaks}.tmp
         """
@@ -78,7 +97,7 @@ rule homer_with_input:
 
 rule homer_no_input:
     input:
-        ip = "tag_dirs/{sample}_{antibody}/",
+        treatment = "tag_dirs/{sample}_{antibody}/",
     output:
         peaks = "peaks/homer/{sample}_{antibody}.bed",
     log:
@@ -87,7 +106,7 @@ rule homer_no_input:
         options = config["homer"]["findpeaks"],
     shell:
         """
-        findPeaks {input.ip} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
+        findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
         pos2bed.pl {output.peaks}.tmp -o {output.peaks} >> {log} 2>&1 &&
         rm {output.peaks}.tmp
         """
@@ -95,11 +114,11 @@ rule homer_no_input:
 
 rule lanceotron_with_input:
     input:
-        unpack(lambda wc: get_paired_ip_and_input(wc, filetype="bigwig")),
+        unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="bigwig")),
     output:
-        peaks = "peaks/lanceotron/{ip}.bed",
+        peaks = "peaks/lanceotron/{treatment}.bed",
     log:
-        "logs/lanceotron/{ip}.log",
+        "logs/lanceotron/{treatment}.log",
     params:
         options = config["lanceotron"]["callpeak"],
     threads:
@@ -107,24 +126,24 @@ rule lanceotron_with_input:
     resources:
         mem_mb=1024 * 10,
     shell:
-        """lanceotron callPeaksInput {input.ip} -i {input.input} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1 &&
-           mv peaks/{wildcards.ip}_L-tron.bed {output.peaks}
+        """lanceotron callPeaksInput {input.treatment} -i {input.input} -f peaks/ --skipheader > {log} 2>&1 &&
+           mv peaks/{wildcards.treatment}_L-tron.bed {output.peaks}
         """
 
 rule lanceotron_no_input:
     input:
-        ip = "bigwigs/deeptools/{ip}.bigWig",
+        treatment = "bigwigs/deeptools/{treatment}.bigWig",
     output:
-        peaks = "peaks/lanceotron/{ip}.bed",
+        peaks = "peaks/lanceotron/{treatment}.bed",
     log:
-        "logs/lanceotron/{ip}.log",
+        "logs/lanceotron/{treatment}.log",
     params:
         options = config["lanceotron"]["callpeak"],
     resources:
         mem_mb=1024 * 10,
     shell:
-        """lanceotron callPeaks {input.ip} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1 &&
-           mv peaks/{wildcards.ip}_L-tron.bed {output.peaks}
+        """lanceotron callPeaks {input.treatment} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1 &&
+           mv peaks/{wildcards.treatment}_L-tron.bed {output.peaks}
         """
 
 ruleorder:

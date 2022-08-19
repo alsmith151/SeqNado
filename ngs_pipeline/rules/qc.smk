@@ -11,15 +11,25 @@ def get_reports(*args):
 
     for sample in SAMPLE_NAMES_NO_READ:
 
-        # Fastqc reports
-        if df_samples_paired.query(f"ip == '{sample}' or input == '{sample}'")["paired_or_single"].values[0] == "paired":
-           reports.append(f"qc/fastq_trimmed/{sample}_1_fastqc.html")
-           reports.append(f"qc/fastq_trimmed/{sample}_2_fastqc.html")
-        else:
-            reports.append(f"qc/fastq_trimmed/{sample}_fastqc.html")
+        if ASSAY == "ChIP":
 
+            # Fastqc reports
+            if df_samples_paired.query(f"ip == '{sample}' or input == '{sample}'")["paired_or_single"].values[0] == "paired":
+                reports.append(f"qc/fastq_trimmed/{sample}_1_fastqc.html")
+                reports.append(f"qc/fastq_trimmed/{sample}_2_fastqc.html")
+            else:
+                reports.append(f"qc/fastq_trimmed/{sample}_fastqc.html")
+        
+        else:
+            if df_samples.query("paired_or_single == 'paired'")["basename"].str.contains(sample).any():
+                reports.append(f"qc/fastq_trimmed/{sample}_1_fastqc.html")
+                reports.append(f"qc/fastq_trimmed/{sample}_2_fastqc.html")
+            else:
+                reports.append(f"qc/fastq_trimmed/{sample}_fastqc.html")
+        
         # Samtools reports
         reports.append(f"qc/alignment_filtered/{sample}.txt")
+            
     
     return {"reports": reports}
 
