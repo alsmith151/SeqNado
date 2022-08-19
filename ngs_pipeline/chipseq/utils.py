@@ -85,8 +85,6 @@ def pair_inputs_with_samples(df: pd.DataFrame):
             "Samples are paired with more than one input. Use a design matrix to specify inputs"
         )
 
-    return df_ip_with_input
-
 
 def get_pipeline_tools(config: Dict) -> Dict:
 
