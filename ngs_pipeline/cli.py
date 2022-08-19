@@ -15,8 +15,10 @@ def cli(method, pipeline_options, help=False, cores=1):
 
     if method == 'chip':
         cmd = ['snakemake', "-c", str(cores), "--snakefile", f'{dir_package}/chipseq/snakefile',]
-    else:
-        cmd = ['python', f'{dir_package}/pipeline_rna.py']
+    elif method == 'atac':
+        cmd = ['snakemake', "-c", str(cores), "--snakefile", f'{dir_package}/atacseq/snakefile',]
+    elif method == 'rna':
+        cmd = ['snakemake', "-c", str(cores), "--snakefile", f'{dir_package}/rnaseq/snakefile',]
     
     if pipeline_options:
         cmd.extend(pipeline_options)
