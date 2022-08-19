@@ -134,4 +134,7 @@ def get_singularity_command(workflow: snakemake.Workflow, command: str):
 
     container =  os.path.join(container_dir, container_hash + ".simg")
 
+    command = command.replace(r"\n", r" \\")
+    command = f"bash -c '{command}'"
+
     return f"singularity exec -H $PWD {workflow.singularity_args} {container} {command}"
