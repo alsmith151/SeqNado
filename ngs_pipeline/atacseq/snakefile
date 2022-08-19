@@ -3,11 +3,14 @@ import sys
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
+import ngs_pipeline.chipseq.utils as chip_utils
 import ngs_pipeline.utils as utils
 
 start_time = datetime.now()
+ASSAY = "ATAC"
 
 configfile: "config_atac.yml"
+container: "library://asmith151/ngs-pipeline/ngs"
 
 utils.format_config_dict(config)
 pipeline_tools = chip_utils.get_pipeline_tools(config)
@@ -17,16 +20,15 @@ PILEUP_METHODS = [method for method in ["deeptools", "homer"] if pipeline_tools[
 PEAK_CALL_METHODS = [method for method in ["macs", "lanceotron", "homer"] if pipeline_tools[method] == True]
 
 # Convinience function that needs to be corrected
-utils.set_up_chromsizes(config)
+#utils.set_up_chromsizes(config)
 
 # Get dataframe of samples
-df_samples = utils.get_fastq_files("*.fastq.gz")
+df_samples = utils.get_fastq_files(".")
 utils.symlink_fastq_files(df_samples)
 
-# Sample global variables
-SAMPLE_NAMES = df_samples["sample_name"].unique()
-SAMPLE_NAMES_WITH_READ = df_samples["fn"].str.replace(".fastq.gz", "", regex=True).tolist()
-SAMPLE_NAMES_NO_READ = df_samples["fn"].str.replace(r"_?R?[12].fastq.gz", "", regex=True).str.replace(".fastq.gz", "", regex=True)
+SAMPLE_NAMES_WITH_READ = df_samples["fn"].astype(str).str.replace(".fastq.gz", "", regex=True).tolist()
+SAMPLE_NAMES_NO_READ = df_samples["fn"].astype(str).str.replace(r"_?R?[12].fastq.gz", "", regex=True).str.replace(".fastq.gz", "", regex=True).unique().tolist()
+
 
 include: "../rules/qc.smk"
 include: "../rules/read_trimming.smk"
@@ -36,6 +38,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
     include: "../rules/remove_pcr_duplicates_picard.smk"
 elif config["remove_pcr_duplicates_method"] == "deeptools":
     include: "../rules/remove_pcr_duplicates_deeptools.smk"
+    ruleorder: deeptools_filter_alignments > index_bam 
 else:
     include: "../rules/remove_pcr_duplicates_ignore.smk"
 
@@ -43,7 +46,6 @@ include: "../rules/filter_alignments.smk"
 include: "../rules/peak_call.smk"
 include: "../rules/pileup.smk"
 include: "../rules/hub.smk"
-
 
 rule all:
     input:
@@ -56,13 +58,12 @@ rule all:
         multiqc_bam_raw = "qc/bam_raw_qc_report.html",
 
         aligned_deduplicated = expand("aligned_and_filtered/{sample}.bam", sample = SAMPLE_NAMES_NO_READ),
-        aligned_no_blacklist = expand("logs/blacklist/{sample}.log", sample = SAMPLE_NAMES_NO_READ),
-
         multiqc_bam_filtered = "qc/bam_filtered_qc_report.html",
+        
         mutiqc_full = "qc/full_qc_report.html",
 
-        pileups = expand("bigwigs/{method}/{sample}.bigWig", sample = SAMPLE_NAMES_NO_READ, method = PILEUP_METHODS),
-        peaks = expand("peaks/{method}/{sample}_{antibody}.bed", sample = SAMPLE_NAMES, antibody=ANTIBODIES, method=PEAK_CALL_METHODS),
+        pileups = expand("bigwigs/{method}/{sample}.bigWig", sample =SAMPLE_NAMES_NO_READ, method = PILEUP_METHODS),
+        peaks = expand("peaks/{method}/{sample}.bed", sample =SAMPLE_NAMES_NO_READ, method=PEAK_CALL_METHODS),
 
         hub = f"{config['ucsc_hub_details']['directory']}/{config['ucsc_hub_details']['name']}.hub.txt",
 
