@@ -35,6 +35,13 @@ rule generate_hub:
         file_details = f"{os.path.dirname(output.hub)}/hub_details.tsv"        
         df.set_index("filename").to_csv(file_details, sep="\t")
 
+        color_by = config["ucsc_hub_details"].get("color_by", None)
+        if color_by is None:
+            if df["samplename"].unique().shape[0] == 1:
+                color_by = "antibody"
+            else:
+                color_by = "samplename"
+
         cmd = " ".join(["make-ucsc-hub", 
                " ".join(df["filename"]),
                "-d",
@@ -49,11 +56,14 @@ rule generate_hub:
                config["genome"]["name"],
                "--description-html",
                 input.report,
+                "--color-by",
+                color_by,
+               
         ])
 
-        if workflow.use_singularity:
-                cmd = utils.get_singularity_command(command=cmd,
-                                                    workflow=workflow,)
+        # if workflow.use_singularity:
+        #         cmd = utils.get_singularity_command(command=cmd,
+        #                                             workflow=workflow,)
 
 
         shell(cmd)

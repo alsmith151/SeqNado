@@ -78,7 +78,12 @@ ucsc_hub_details:
     
     # Email address (UCSC required)
     email:
-        alastair.smith@ndcls.ox.ac.uk 
+        alastair.smith@ndcls.ox.ac.uk
+    
+    color_by: 
+        # Options: 'samplename', 'antibody', 'method' (i.e. pileup/peakcall method), 
+        - samplename
+        - antibody
 
 #################################
 # Tool specific options         #

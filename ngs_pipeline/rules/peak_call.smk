@@ -127,7 +127,7 @@ rule lanceotron_with_input:
         mem_mb=1024 * 10,
     shell:
         """lanceotron callPeaksInput {input.treatment} -i {input.input} -f peaks/ --skipheader > {log} 2>&1 &&
-           mv peaks/{wildcards.treatment}_L-tron.bed {output.peaks}
+           cat peaks/{wildcards.treatment}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
 
 rule lanceotron_no_input:
