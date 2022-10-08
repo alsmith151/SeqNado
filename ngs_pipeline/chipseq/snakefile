@@ -10,7 +10,7 @@ start_time = datetime.now()
 ASSAY = "ChIP"
 
 configfile: "config_chip.yml"
-container: "library://asmith151/ngs-pipeline/ngs"
+container: "library://asmith151/ngs-pipeline/ngs:latest"
 
 
 utils.format_config_dict(config)
