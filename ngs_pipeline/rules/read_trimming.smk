@@ -17,10 +17,9 @@ rule trimgalore_paired:
         "logs/trimming/{sample}.log"
     shell: 
         """
-           echo "trim_galore --cores {threads} --trim-n --paired --output_dir trimmed {input.fq1} {input.fq2}" > {log} &&
-           trim_galore --cores {threads} --trim-n --paired --output_dir trimmed {input.fq1} {input.fq2} >> {log} 2>&1 &&
-           mv trimmed/{wildcards.sample}_1_val_1.fq.gz {output.trimmed1} &&
-           mv trimmed/{wildcards.sample}_2_val_2.fq.gz {output.trimmed2}
+        trim_galore --cores {threads} --trim-n --paired --output_dir trimmed {input.fq1} {input.fq2} >> {log} 2>&1 &&
+        mv trimmed/{wildcards.sample}_1_val_1.fq.gz {output.trimmed1} &&
+        mv trimmed/{wildcards.sample}_2_val_2.fq.gz {output.trimmed2}
         """
 
 rule trimgalore_single:

@@ -9,28 +9,15 @@ def get_reports(*args):
 
     reports = []
 
+    for fq in FASTQ_FILES:
+
+        sample_name = fq.replace(".fastq.gz", "_fastqc.html") 
+        reports.append(f"qc/fastq_trimmed/{sample_name}")
+       
+    # Samtools reports
     for sample in SAMPLE_NAMES_NO_READ:
-
-        if ASSAY == "ChIP":
-
-            # Fastqc reports
-            if df_samples_paired.query(f"ip == '{sample}' or input == '{sample}'")["paired_or_single"].values[0] == "paired":
-                reports.append(f"qc/fastq_trimmed/{sample}_1_fastqc.html")
-                reports.append(f"qc/fastq_trimmed/{sample}_2_fastqc.html")
-            else:
-                reports.append(f"qc/fastq_trimmed/{sample}_fastqc.html")
-        
-        else:
-            if df_samples.query("paired_or_single == 'paired'")["basename"].str.contains(sample).any():
-                reports.append(f"qc/fastq_trimmed/{sample}_1_fastqc.html")
-                reports.append(f"qc/fastq_trimmed/{sample}_2_fastqc.html")
-            else:
-                reports.append(f"qc/fastq_trimmed/{sample}_fastqc.html")
-        
-        # Samtools reports
         reports.append(f"qc/alignment_filtered/{sample}.txt")
             
-    
     return {"reports": reports}
 
 rule fastqc:
@@ -96,7 +83,7 @@ use rule fastqc as fastqc_trimmed with:
 
 use rule multiqc as multiqc_fastq_raw with:
     input:
-        reports = expand("qc/fastq_raw/{sample}_fastqc.html", sample=SAMPLE_NAMES_WITH_READ),
+        reports = [f"qc/fastq_raw/{sample.replace('.fastq.gz', '')}_fastqc.html" for sample in FASTQ_FILES],
     output:
         report = "qc/fastq_qc_raw_report.html"
     threads:
@@ -106,7 +93,7 @@ use rule multiqc as multiqc_fastq_raw with:
 
 use rule multiqc as multiqc_fastq_trimmed with:
     input:
-        reports = expand("qc/fastq_trimmed/{sample}_fastqc.html", sample=SAMPLE_NAMES_WITH_READ),
+        reports = [f"qc/fastq_trimmed/{sample.replace('.fastq.gz', '')}_fastqc.html" for sample in FASTQ_FILES],
     output:
         report = "qc/fastq_qc_trimmed_report.html"
     threads:

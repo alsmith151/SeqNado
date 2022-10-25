@@ -1,4 +1,3 @@
-
 rule align_paired:
     input:
         fq1 = "trimmed/{sample}_1.fastq.gz",
