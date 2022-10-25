@@ -109,16 +109,8 @@ def symlink_fastq_files(sample_info: pd.DataFrame):
 
 def get_fastq_files(path: str, recursive=False) -> pd.DataFrame:
 
-    data = pathlib.Path(path).glob("**/*.fastq.gz") if recursive else pathlib.Path(path).glob("*.fastq.gz")
-    df = pd.DataFrame(data=data, columns=["fn"])
-    df = df.assign(basename=lambda df: df["fn"].apply(lambda p: p.name))
-
-    df["paired_or_single"] = df["basename"].str.match(r"(.*)_R?[12].fastq(.gz)?")
-    df["paired_or_single"] = np.where(
-        df["paired_or_single"] == True, "paired", "single"
-    )
-    return df
-
+    files = pathlib.Path(path).glob("**/*.fastq.gz") if recursive else pathlib.Path(path).glob("*.fastq.gz")
+    return files
 
 def get_singularity_command(workflow: snakemake.Workflow, command: str):
     """
