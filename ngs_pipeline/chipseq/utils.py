@@ -23,67 +23,30 @@ def sample_names_follow_convention(
     ).all()
 
 
-def get_sample_attributes(df: pd.DataFrame):
+def get_sample_dataframe(files: List) -> pd.DataFrame:
 
-    if not df.empty:
-        if not sample_names_follow_convention(df):
-            raise ValueError(
-                "Sample names do not follow the naming convention. Use a design matrix to specify inputs"
-            )
+    df = pd.DataFrame(files, columns=["fn"])
 
-    df_paired = df.query("paired_or_single == 'paired'")
-    df_single = df.query("paired_or_single == 'single'")
-
-    df_paired = df_paired.join(
-        df_paired["basename"].str.extract(
-            r"(?P<sample_name>.*?)_(?P<antibody_or_input>.*?)_(?P<read_number>[12]).fastq.gz"
-        )
+    df[["sample", "read"]] = (
+        df["fn"].apply(str).str.extract("(?!.*/)?(.*)_.*_R?([12]).fastq.gz")
     )
 
-    df_single = df_single.join(
-        df_single["basename"]
-        .str.extract(r"(?P<sample_name>.*?)_(?P<antibody_or_input>.*?).fastq.gz")
-        .assign(read_number=0)
+    df["antibody"] = df["fn"].astype(str).str.split("_").str[-2]
+
+    df = (
+        df.pivot(columns="read", index=["sample", "antibody"])
+        .droplevel(level=0, axis=1)
+        .reset_index()
     )
 
-    return pd.concat([df_paired, df_single]).assign(
-        fn=df["fn"].astype(str),
-        basename=df["basename"],
-        paired=df["paired_or_single"].str.contains("paired"),
-    )
+    df_input = df.loc[df["antibody"].str.lower().str.contains("input")]
+    df_input = df_input.assign(control=df_input["sample"] + "_" + df_input["antibody"])
 
+    df_ip = df.loc[~df["antibody"].str.lower().str.contains("input")]
 
-def has_ambigous_inputs(df: pd.DataFrame) -> bool:
-    return (
-        df.drop_duplicates(subset=["sample_name", "antibody", "input"])
-        .dropna(subset=["input"])
-        .duplicated(subset=["ip", "input"])
-        .any()
-    )
+    df = df_ip.merge(df_input[["sample", "control"]], on="sample")
 
-
-def pair_inputs_with_samples(df: pd.DataFrame):
-
-    df_input = df.query("antibody_or_input.str.contains('input', case=False)")
-    df_ip = df.query("~antibody_or_input.str.contains('input', case=False)")
-
-    df_ip["ip"] = df_ip["sample_name"] + "_" + df_ip["antibody_or_input"]
-    df_input["input"] = df_input["sample_name"] + "_" + df_input["antibody_or_input"]
-
-    df_ip_with_input = (
-        df_ip.merge(df_input[["sample_name", "input"]], on="sample_name", how="left")
-        .rename(columns={"antibody_or_input": "antibody"})
-        .drop_duplicates(["basename"])
-        .sort_values("basename")
-        .reset_index(drop=True)
-    )
-
-    if not has_ambigous_inputs(df_ip_with_input):
-        return df_ip_with_input
-    else:
-        raise ValueError(
-            "Samples are paired with more than one input. Use a design matrix to specify inputs"
-        )
+    return df
 
 
 def get_pipeline_tools(config: Dict) -> Dict:

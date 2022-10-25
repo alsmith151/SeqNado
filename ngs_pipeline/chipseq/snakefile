@@ -5,6 +5,7 @@ import glob
 from snakemake.utils import min_version
 import ngs_pipeline.chipseq.utils as chip_utils
 import ngs_pipeline.utils as utils
+import pandas as pd
 
 start_time = datetime.now()
 ASSAY = "ChIP"
@@ -24,27 +25,32 @@ PEAK_CALL_METHODS = [method for method in ["macs", "lanceotron", "homer"] if pip
 #utils.set_up_chromsizes(config)
 
 # Get dataframe of samples
-df_samples = utils.get_fastq_files(".")
-
-if not chip_utils.sample_names_follow_convention(df_samples):
-
-    try:
-        df_samples = pd.read_csv(config["run_options"]["design"], sep="[\s+,\t]", engine="python")
-        df_samples["basename"] = df_samples["fn"].apply(os.path.basename)
-    except:
-        raise ValueError("No sample names follow the convention and no design file is provided")
-
+if os.path.exists(config["design"]):
+    # Expect columns - sample 1 2 antibody control
+    df_samples = pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
+    
 else:
-    df_samples = chip_utils.get_sample_attributes(df_samples)
-    df_samples_paired = chip_utils.pair_inputs_with_samples(df_samples)
+    fq_files = utils.get_fastq_files(".") 
+    df_samples = chip_utils.get_sample_dataframe(fq_files)
+
+df_samples["paired"] = (~df_samples[["1", "2"]].isna().any(axis=1))
+
+FASTQ_FILES = [*df_samples["1"].to_list(), *df_samples["2"].to_list()]
+SAMPLE_NAMES_NO_READ = [*df_samples["1"]
+                                  .str
+                                  .replace(r"_?R?[12].fastq.gz", "", regex=True)
+                                  .str
+                                  .replace(".fastq.gz", "", regex=True)
+                                  .unique()
+                                  .tolist(),
+                        *df_samples["control"]
+                                  .dropna()
+                                  .unique()
+                                  
+                        ]
 
 
-utils.symlink_fastq_files(df_samples)
-
-SAMPLE_NAMES_WITH_READ = df_samples["fn"].str.replace(".fastq.gz", "", regex=True).tolist()
-SAMPLE_NAMES_NO_READ = df_samples["fn"].str.replace(r"_?R?[12].fastq.gz", "", regex=True).str.replace(".fastq.gz", "", regex=True).unique().tolist()
-SAMPLE_NAMES_IP = df_samples_paired["ip"]
-ANTIBODIES = df_samples_paired["antibody"].unique()
+ANTIBODIES = df_samples["antibody"].unique()
 
 include: "../rules/qc.smk"
 include: "../rules/read_trimming.smk"
@@ -67,7 +73,7 @@ rule all:
     input:
         multiqc_fastq_raw = "qc/fastq_qc_raw_report.html",
 
-        trimmed = expand("trimmed/{sample}.fastq.gz", sample = SAMPLE_NAMES_WITH_READ),
+        trimmed = expand("trimmed/{sample}", sample = FASTQ_FILES),
         multiqc_fastq_trimmed = "qc/fastq_qc_trimmed_report.html",
 
         aligned = expand("aligned/{sample}.bam", sample = SAMPLE_NAMES_NO_READ),
@@ -80,7 +86,7 @@ rule all:
         mutiqc_full = "qc/full_qc_report.html",
 
         pileups = expand("bigwigs/{method}/{sample}.bigWig", sample = SAMPLE_NAMES_NO_READ, method = PILEUP_METHODS),
-        peaks = expand("peaks/{method}/{ip}.bed", ip=SAMPLE_NAMES_IP, method=PEAK_CALL_METHODS),
+        peaks = expand("peaks/{method}/{sample}_{antibody}.bed", sample=df_samples["sample"], antibody=df_samples["antibody"], method=PEAK_CALL_METHODS),
 
         hub = f"{config['ucsc_hub_details']['directory']}/{config['ucsc_hub_details']['name']}.hub.txt",
 
