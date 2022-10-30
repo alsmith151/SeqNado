@@ -8,6 +8,8 @@ dependencies:
   - pip
   - pip:
     - wget
+    - lanceotron
+    - git+https://github.com/alsmith151/ucsc_hub_maker.git
   - bowtie2
   - samtools>1.7
   - deeptools
@@ -19,11 +21,14 @@ dependencies:
   - click
   - ucsc-bigbedtobed
   - pybigwig
+  - picard-slim
+  - macs2
   - ucsc-fetchchromsizes
   - ucsc-bedtobigbed
   - ucsc-bedgraphtobigwig
   - homer
   - pybedtools
+  - snakemake
   - subread 
   - star
   - numpy>=1.19
