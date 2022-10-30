@@ -64,7 +64,7 @@ def set_up(
     os.chdir(run_directory)
 
     # Move config files and fastq files
-    for fq in glob.glob(f"{data_path}/test/*CTCF*.fastq.gz"):
+    for fq in glob.glob(f"{data_path}/test/*CTCF*_*_*.fastq.gz"):
         shutil.copy(fq, ".")
 
     # Move and replace the config file
@@ -93,7 +93,7 @@ def set_up(
 def test_pipeline(pipeline_path):
 
     cmd = (
-        f"ngs-pipeline chip --cores 4 --configfile config_chip.yml"
+        f"ngs-pipeline chip --cores 1 --configfile config_chip.yml"
     )
     completed = subprocess.run(cmd.split())
     assert completed.returncode == 0
