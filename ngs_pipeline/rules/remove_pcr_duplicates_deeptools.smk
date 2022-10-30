@@ -22,3 +22,5 @@ rule deeptools_filter_alignments:
         samtools index {output.bam} &&
         rm -f {output.bam}.tmp
         """
+
+ruleorder: deeptools_filter_alignments > index_bam 

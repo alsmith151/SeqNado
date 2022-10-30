@@ -16,11 +16,11 @@ rule bed_to_bigbed:
 
 rule generate_hub:
     input:
-        bigbed = expand("peaks/{method}/{sample}.bigBed", method=PEAK_CALL_METHODS, sample=SAMPLE_NAMES_NO_READ),
-        bigwig = expand("bigwigs/{method}/{sample}.bigWig", method=PILEUP_METHODS, sample=SAMPLE_NAMES_NO_READ),
+        bigbed = expand("peaks/{method}/{sample}.bigBed", method=PEAK_CALL_METHODS, sample=SAMPLE_NAMES_IP),
+        bigwig = expand("bigwigs/{method}/{sample}.bigWig", method=PILEUP_METHODS, sample=SAMPLE_NAMES),
         report = "qc/full_qc_report.html",
     output:
-        hub = f"{config['ucsc_hub_details']['directory']}/{config['ucsc_hub_details']['name']}.hub.txt",
+        hub = os.path.join(config['ucsc_hub_details']['directory'], f"{config['ucsc_hub_details']['name']}.hub.txt"),
     log:
         log = f"logs/{config['ucsc_hub_details']['name']}.hub.log"
     run:
@@ -36,11 +36,11 @@ rule generate_hub:
         df.set_index("filename").to_csv(file_details, sep="\t")
 
         color_by = config["ucsc_hub_details"].get("color_by", None)
-        if color_by is None:
+        if not color_by:
             if df["samplename"].unique().shape[0] == 1:
-                color_by = "antibody"
+                color_by = ("antibody",)
             else:
-                color_by = "samplename"
+                color_by = ("samplename", "antibody")
 
         cmd = " ".join(["make-ucsc-hub", 
                " ".join(df["filename"]),
@@ -56,14 +56,9 @@ rule generate_hub:
                config["genome"]["name"],
                "--description-html",
                 input.report,
-                "--color-by",
-                color_by,
+                " ".join([f"--color-by {c}" for c in color_by]),
                
         ])
-
-        # if workflow.use_singularity:
-        #         cmd = utils.get_singularity_command(command=cmd,
-        #                                             workflow=workflow,)
 
 
         shell(cmd)

@@ -11,11 +11,11 @@ def get_reports(*args):
 
     for fq in FASTQ_FILES:
 
-        sample_name = fq.replace(".fastq.gz", "_fastqc.html") 
+        sample_name = os.path.basename(fq).replace(".fastq.gz", "_fastqc.html") 
         reports.append(f"qc/fastq_trimmed/{sample_name}")
        
     # Samtools reports
-    for sample in SAMPLE_NAMES_NO_READ:
+    for sample in SAMPLE_NAMES:
         reports.append(f"qc/alignment_filtered/{sample}.txt")
             
     return {"reports": reports}
@@ -67,23 +67,23 @@ rule multiqc:
 
 use rule fastqc as fastqc_raw with:
     input:
-        fq = "fastq/{sample}.fastq.gz",
+        fq = "{sample}_{read}.fastq.gz",
     output:
-        qc = "qc/fastq_raw/{sample}_fastqc.html",
+        qc = "qc/fastq_raw/{sample}_{read}_fastqc.html",
     params:
         outdir = "qc/fastq_raw"
 
 use rule fastqc as fastqc_trimmed with:
     input:
-        fq = "trimmed/{sample}.fastq.gz",
+        fq = "trimmed/{sample}_{read}.fastq.gz",
     output:
-        qc = "qc/fastq_trimmed/{sample}_fastqc.html",
+        qc = "qc/fastq_trimmed/{sample}_{read}_fastqc.html",
     params:
         outdir = "qc/fastq_trimmed"
 
 use rule multiqc as multiqc_fastq_raw with:
     input:
-        reports = [f"qc/fastq_raw/{sample.replace('.fastq.gz', '')}_fastqc.html" for sample in FASTQ_FILES],
+        reports = [f"qc/fastq_raw/{os.path.basename(sample).split('.fastq.gz')[0]}_fastqc.html" for sample in FASTQ_FILES],
     output:
         report = "qc/fastq_qc_raw_report.html"
     threads:
@@ -93,7 +93,7 @@ use rule multiqc as multiqc_fastq_raw with:
 
 use rule multiqc as multiqc_fastq_trimmed with:
     input:
-        reports = [f"qc/fastq_trimmed/{sample.replace('.fastq.gz', '')}_fastqc.html" for sample in FASTQ_FILES],
+        reports = [f"qc/fastq_trimmed/{os.path.basename(sample).split('.fastq.gz')[0]}_fastqc.html" for sample in FASTQ_FILES],
     output:
         report = "qc/fastq_qc_trimmed_report.html"
     threads:
@@ -113,7 +113,7 @@ rule samtools_stats:
 
 use rule multiqc as multiqc_bam_raw with:
     input:
-        reports = expand("qc/alignment_raw/{sample_name}.txt", sample_name=SAMPLE_NAMES_NO_READ),
+        reports = expand("qc/alignment_raw/{sample_name}.txt", sample_name=SAMPLE_NAMES),
     output:
         report = "qc/bam_raw_qc_report.html"
     threads:
@@ -130,7 +130,7 @@ use rule samtools_stats as samtools_stats_filtered with:
 
 use rule multiqc as multiqc_bam_filtered with:
     input:
-        reports = expand("qc/alignment_filtered/{sample_name}.txt", sample_name=SAMPLE_NAMES_NO_READ),
+        reports = expand("qc/alignment_filtered/{sample_name}.txt", sample_name=SAMPLE_NAMES),
     output:
         report = "qc/bam_filtered_qc_report.html"
     threads:

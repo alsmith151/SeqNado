@@ -1,13 +1,13 @@
 
-def get_paired_fastq_inputs(wc):
-    import glob
-    fq_files = sorted(glob.glob(f"fastq/{wc.sample}_*.fastq.gz"))
-    return {"fq1": fq_files[0], "fq2": fq_files[1]}
+# def get_paired_fastq_inputs(wc):
+#     df_sample = df_samples.query(f"sample == {wc.sample} and antibody == '{wc.antibody}'")
+#     return {"fq1": df_sample.loc[0, "1"], "fq2": df_sample.loc[0, "2"]}
 
 rule trimgalore_paired:
     # Trim reads using trimgalore
     input:
-        unpack(get_paired_fastq_inputs),
+        fq1="fastq/{sample}_1.fastq.gz",
+        fq2="fastq/{sample}_2.fastq.gz",
     output:
         trimmed1=temp("trimmed/{sample}_1.fastq.gz"),
         trimmed2=temp("trimmed/{sample}_2.fastq.gz"),

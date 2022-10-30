@@ -2,9 +2,9 @@ import re
 import ngs_pipeline.utils as utils
 import pysam
 
-def is_sample_paired(sample):
-    if df_samples.query("paired_or_single == 'paired'")["basename"].str.contains(sample).any():
-        return True
+# def is_sample_paired(sample):
+#     if DESIGN.query("paired == True")["basename"].str.contains(sample).any():
+#         return True
 
 def is_bam_paired_end(wc, bam):
     
@@ -17,7 +17,9 @@ def is_bam_paired_end(wc, bam):
             return True
     
     else:
-        return is_sample_paired(wc.sample)
+        #TODO fix this for the new format
+        #return is_sample_paired(wc.sample)
+        return True
 
 
 def filter_deeptools_bamcoverage_options(wc):

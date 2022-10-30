@@ -2,33 +2,22 @@ from typing import Literal
 
 def get_paired_treatment_and_input(wc, filetype: Literal["bam", "tag", "bigwig"] = "bam"):
 
-    if (ASSAY == "ChIP") and (config["lanceotron"].get("use_input", True) or config["homer"].get("use_input", True)):
-  
-        row = (df_samples_paired.drop_duplicates(subset=["ip"])
-                                .dropna()
-                                .query(f"ip == '{wc.treatment}'")
-                                .iloc[0]
-            )
-        
+    paths = dict()
 
-        dirs = {"bam": "aligned_and_filtered",
+    dirs = {"bam": "aligned_and_filtered",
                 "tag": "tag_dirs",
                 "bigwig": "bigwigs/deeptools/"}
         
-        file_ext = {"bam": ".bam",
-                    "tag": "/",
-                    "bigwig": ".bigWig"}
-
-        try:
-            paths =  {"treatment": f"{dirs[filetype].rstrip('/')}/{row['ip']}{file_ext[filetype]}", 
-                    "input": f"{dirs[filetype].rstrip('/')}/{row['input']}{file_ext[filetype]}"
-                    }
-
-        except KeyError:
-            paths = {"treatment": f"{dirs[filetype].rstrip('/')}/{row['ip']}{file_ext[filetype]}"}
+    file_ext = {"bam": ".bam",
+                "tag": "/",
+                "bigwig": ".bigWig"}
     
-    else:
-        paths = {"treatment": wc.treatment}
+    paths["treatment"] = os.path.join(dirs[filetype], f"{wc.treatment}{file_ext[filetype]}")
+
+    if (ASSAY == "ChIP") and (config["lanceotron"].get("use_input", True) or config["homer"].get("use_input", True)):
+
+        if SAMPLE_NAMES_PAIRED[wc.treatment]:
+            paths["control"] = os.path.join(dirs[filetype], f"{SAMPLE_NAMES_PAIRED[wc.treatment]}{file_ext[filetype]}")
     
 
     return paths
@@ -41,20 +30,24 @@ rule macs2_with_input:
         peaks = "peaks/macs/{treatment}.bed",
     params:
         options = config["macs"]["callpeak"],
+        narrow = lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak")
     log:
         "logs/macs/{treatment}.log",
-    run:
-        narrow = output.peaks.replace(".bed", "_peaks.narrowPeak")
-        cmd = f"""
-        macs2 callpeak -t {input.treatment} -c {input.input} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
-        cat {narrow} | cut -f 1-3 > {output.peaks}
+    shell:
+        # # narrow = output.peaks.replace(".bed", "_peaks.narrowPeak")
+        # params.narrow
+        # cmd = f"""
         """
+        macs2 callpeak -t {input.treatment} -c {input.control} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
+        cat {params.narrow} | cut -f 1-3 > {output.peaks}
+        """
+        # """
 
-        if workflow.use_singularity:
-                cmd = utils.get_singularity_command(command=cmd,
-                                                    workflow=workflow,)
+        # if workflow.use_singularity:
+        #         cmd = utils.get_singularity_command(command=cmd,
+        #                                             workflow=workflow,)
         
-        shell(cmd)
+        # shell(cmd)
 
 rule macs2_no_input:
     input:
@@ -89,7 +82,7 @@ rule homer_with_input:
         options = config["homer"]["findpeaks"],
     shell:
         """
-        findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.input} > {log} 2>&1 &&
+        findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.control} > {log} 2>&1 &&
         pos2bed.pl {output.peaks}.tmp -o {output.peaks} >> {log} 2>&1 &&
         rm {output.peaks}.tmp
         """
@@ -103,7 +96,7 @@ rule homer_no_input:
     log:
         "logs/homer/findPeaks_{sample}_{antibody}.log",
     params:
-        options = config["homer"]["findpeaks"],
+        options = str(config["homer"]["findpeaks"]).replace("None", ""),
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -126,7 +119,7 @@ rule lanceotron_with_input:
     resources:
         mem_mb=1024 * 10,
     shell:
-        """lanceotron callPeaksInput {input.treatment} -i {input.input} -f peaks/ --skipheader > {log} 2>&1 &&
+        """lanceotron callPeaksInput {input.treatment} -i {input.control} -f peaks/ --skipheader > {log} 2>&1 &&
            cat peaks/{wildcards.treatment}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
 
