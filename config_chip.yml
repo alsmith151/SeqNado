@@ -43,6 +43,11 @@ genome:
 #  Optional configuration         #
 ###################################
 
+# Allows for specification of an experimental design. Expecting columns (comma, tab or space sep): sample, fq1, fq2, control
+design:
+    DESIGN_FILE
+
+
 # Allows for removal of specific regions from the bam file. Must supply a bed file.
 blacklist:
     BLACKLIST_FILE
