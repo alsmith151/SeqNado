@@ -91,22 +91,6 @@ def set_up_chromsizes(config: Dict):
         config["genome"]["chrom_sizes"] = "chrom_sizes.txt.tmp"
 
 
-
-def symlink_fastq_files(sample_info: pd.DataFrame):
-
-    try:
-        os.mkdir("fastq")
-    except FileExistsError:
-        pass
-
-    for fq in sample_info.itertuples():
-        full_path = pathlib.Path(fq.fn).absolute()
-        symlink_path = f"fastq/{fq.basename}"
-
-        if not os.path.exists(symlink_path):
-            os.symlink(full_path, symlink_path)
-
-
 def get_fastq_files(path: str, recursive=False) -> pd.DataFrame:
 
     files = pathlib.Path(path).glob("**/*.fastq.gz") if recursive else pathlib.Path(path).glob("*.fastq.gz")
