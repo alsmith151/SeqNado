@@ -67,7 +67,7 @@ rule multiqc:
 
 use rule fastqc as fastqc_raw with:
     input:
-        fq = "{sample}_{read}.fastq.gz",
+        fq = "fastq/{sample}_{read}.fastq.gz",
     output:
         qc = "qc/fastq_raw/{sample}_{read}_fastqc.html",
     params:
