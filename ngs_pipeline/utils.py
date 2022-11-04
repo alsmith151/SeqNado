@@ -195,3 +195,9 @@ def get_pipeline_tools(config: Dict) -> Dict:
         macs="macs" in config["peak_calling_method"],
         lanceotron="lanceotron" in config["peak_calling_method"],
     )
+
+def check_options(value: object):
+    if value in [None, np.nan, pd.NA, ""]:
+        return ""
+    else:
+        return value 

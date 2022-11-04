@@ -66,7 +66,7 @@ include: "../rules/qc.smk"
 include: "../rules/read_trimming.smk"
 include: "../rules/align.smk"
 include: DUPLICATE_REMOVAL_RULE
-include: "../rules/filter_alignments.smk"
+include: "../rules/alignment_post_processing.smk"
 include: "../rules/peak_call.smk"
 include: "../rules/pileup.smk"
 include: "../rules/hub.smk"
