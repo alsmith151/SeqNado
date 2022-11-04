@@ -47,7 +47,7 @@ def chromsizes(genome_path):
 @pytest.fixture(scope="module")
 def fastqs(data_path):
     path = os.path.join(data_path, "fastq")
-    return glob.glob(os.path.join(path, "*CTCF*_*_*.fastq.gz"))
+    return glob.glob(os.path.join(path, "atac*.fastq.gz"))
 
 
 @pytest.fixture(scope="module")
@@ -123,8 +123,8 @@ def set_up(
         "MACS_OPTIONS": "-g 46709983",
     }
 
-    with open(f"{config_path}/config_chip.yml", "r") as r:
-        with open("config_chip.yml", "w") as w:
+    with open(f"{config_path}/config_atac.yml", "r") as r:
+        with open("config_atac.yml", "w") as w:
             for line in r:
                 for rep_key in replacements_dict:
                     if rep_key in line:
@@ -139,7 +139,7 @@ def set_up(
 
 def test_pipeline_conda():
 
-    cmd = f"ngs-pipeline chip --cores 4 --configfile config_chip.yml"
+    cmd = f"ngs-pipeline atac --cores 4 --configfile config_atac.yml"
     completed = subprocess.run(cmd.split())
     assert completed.returncode == 0
 
@@ -149,11 +149,11 @@ def test_pipeline_singularity(genome_path):
 
     cmd = [
         "ngs-pipeline",
-        "chip",
+        "atac",
         "--cores",
         "4",
         "--configfile",
-        "config_chip.yml",
+        "config_atac.yml",
         "--use-singularity",
         "--singularity-args",
         f'" -B {indicies_dir} -B {genome_path}"',

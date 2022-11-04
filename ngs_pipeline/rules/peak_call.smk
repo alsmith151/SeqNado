@@ -19,6 +19,8 @@ def get_paired_treatment_and_input(wc, filetype: Literal["bam", "tag", "bigwig"]
         if SAMPLE_NAMES_PAIRED[wc.treatment]:
             paths["control"] = os.path.join(dirs[filetype], f"{SAMPLE_NAMES_PAIRED[wc.treatment]}{file_ext[filetype]}")
     
+    else:
+        paths["control"] = ""
 
     return paths
 

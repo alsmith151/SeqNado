@@ -16,7 +16,7 @@ rule bed_to_bigbed:
 
 rule generate_hub:
     input:
-        bigbed = expand("peaks/{method}/{sample}.bigBed", method=PEAK_CALL_METHODS, sample=SAMPLE_NAMES_IP),
+        bigbed = expand("peaks/{method}/{sample}.bigBed", method=PEAK_CALL_METHODS, sample=SAMPLE_NAMES_IP if ASSAY == "ChIP" else SAMPLE_NAMES),
         bigwig = expand("bigwigs/{method}/{sample}.bigWig", method=PILEUP_METHODS, sample=SAMPLE_NAMES),
         report = "qc/full_qc_report.html",
     output:
@@ -28,14 +28,22 @@ rule generate_hub:
         import pandas as pd
         import itertools
 
+        # Set up details
         df = pd.DataFrame(itertools.chain.from_iterable([files for files in [input.bigbed, input.bigwig]]), columns=["filename"])
-        df[["samplename", "antibody"]] = df["filename"].str.extract(r".*/(.*)_(.*)\.(?:bigBed|bigWig)")
+        
+        if ASSAY == "ChIP":
+            df[["samplename", "antibody"]] = df["filename"].str.extract(r".*/(.*)_(.*)\.(?:bigBed|bigWig)")
+        else:
+            df["samplename"] = df["filename"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
+
         df["method"] = df["filename"].apply(lambda x: x.split("/")[-2])
+        
 
         file_details = f"{os.path.dirname(output.hub)}/hub_details.tsv"        
         df.set_index("filename").to_csv(file_details, sep="\t")
 
         color_by = config["ucsc_hub_details"].get("color_by", None)
+
         if not color_by:
             if df["samplename"].unique().shape[0] == 1:
                 color_by = ("antibody",)

@@ -153,16 +153,4 @@ class ChipseqFastqSamples():
         self.design["fq1"] = fq_links["fq1"]
         self.design["fq2"] = fq_links["fq2"]
     
-        
 
-    
-
-def get_pipeline_tools(config: Dict) -> Dict:
-
-    return dict(
-        homer="homer" in config["pileup_method"]
-        or "homer" in config["peak_calling_method"],
-        deeptools="deeptools" in config["pileup_method"],
-        macs="macs" in config["peak_calling_method"],
-        lanceotron="lanceotron" in config["peak_calling_method"],
-    )

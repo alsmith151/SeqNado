@@ -38,10 +38,12 @@ genome:
     indicies:
         INDICES_DIRECTORY
 
-
 ###################################
 #  Optional configuration         #
 ###################################
+
+design:
+    DESIGN
 
 # Allows for removal of specific regions from the bam file. Must supply a bed file.
 blacklist:
@@ -83,6 +85,10 @@ ucsc_hub_details:
     # Email address (UCSC required)
     email:
         alastair.smith@ndcls.ox.ac.uk 
+    
+    color_by: 
+        # Options: 'samplename', 'antibody', 'method' (i.e. pileup/peakcall method), 
+        - samplename
 
 #################################
 # Tool specific options         #
@@ -110,7 +116,6 @@ deeptools:
         8
     alignmentsieve:
         --minMappingQuality 30 
-        
 
     # Options passed to deeptools BamCoverage
     # These need to be replaced
