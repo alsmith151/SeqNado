@@ -125,7 +125,7 @@ class ChipseqFastqSamples():
         # Control samples
         for fq in self.fastq_control_files:
             for control in self.design["control"]:
-                if control in fq:
+                if str(control) in fq:
                     src = os.path.abspath(fq)
                     read = re.match(r".*/?.*_R?([12])(?:_001)?.fastq.gz", fq).group(1)
                     dest = os.path.join(outdir, f"{control}_{read}.fastq.gz")
