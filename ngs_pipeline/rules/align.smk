@@ -37,15 +37,6 @@ rule align_single:
            mv {output.bam}_sorted {output.bam}
         """
          
-rule index_bam:
-    input:
-        bam="aligned/{sample}.bam",
-    output:
-        index="aligned/{sample}.bam.bai",
-    threads:
-        1
-    shell:
-        "samtools index {input.bam} -@ {threads}"
 
 
 
