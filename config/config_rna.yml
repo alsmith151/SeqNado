@@ -1,95 +1,134 @@
+################################# 
+# RNA-seq Pipeline Config file #
+#################################
+
+# This file contains the configuration for the ATAC-seq pipeline.
+# The pipeline is run by the following command:
+# ngs-pipeline rna -c N_CORES
+# 
+# To use the singularity container (allows for running the pipeline with a minimal conda environment), 
+# you will also need to 'bind' paths to the container (this allows for folders outside the current directory to be used i.e. /t1-data).
+#
+# ngs-pipeline rna -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank "
+#
+# To run all jobs on the cluster (highly recommended; these options are for slurm i.e. cbrg cluster):
+#
+# ngs-pipeline rna -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00 "  
+#
+# Combining both singularity and slurm options:
+#
+# ngs-pipeline rna -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank " --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem} --time 24:00:00 "
+#
+# The keys marked as essential are required for the pipeline to run.
+# The keys marked as optional can either be left as the default or adjusted if required.
+
+version: 1.0
+
 ###################################
 # Essential configuration options #
 ###################################
 
-run_options:
-    # Generate bigwigs. Set either homer_use == True or deeptools_use == True
-    bigwigs: True
-    
-    # Create a UCSC hub. Any of homer_use, deeptools_use or macs_use must be set to True. 
-    hub: True
-
 genome:
+    name: 
+        GENOME_NAME
+
+    chromosome_sizes:
+        CHROMOSOME_SIZES_FILE
+
+    indicies:
+        INDICES_DIRECTORY
     
-    # Name of genome. UCSC genome names are prefered. Custom names are accepted if chrom_sizes are provided
-    name: GENOME_NAME
+    annotation:
+        GTF
 
-    # Path to blacklisted regions bed file. Entry can be left blank.
-    blacklist:
 
-aligner:
+###################################
+#  Optional configuration         #
+###################################
 
-    # Path to STAR indicies
-    index: PATH_TO_ALIGNER_INDICIES
+design:
+    DESIGN
 
-    # Aligner specific options. (Take care as this will ignore pipeline_n_cores) 
-    options: STAR_OPTIONS
+# Allows for removal of specific regions from the bam file. Must supply a bed file.
+blacklist:
+    BLACKLIST_FILE
 
+# Method(s) for bigWig generation
+pileup_method:
+    - deeptools
+
+# Method(s) for peak calling
+peak_calling_method:
+    - lanceotron
+
+# Tool to remove duplicates: None - do not remove, picard - picard markDuplicates, deeptools - deeptools alignmentSieve
+remove_pcr_duplicates_method: 
+    picard
+
+# Shift ATAC-seq reads to account for the transposon insertion site.
+shift_rna_reads:
+    True
+
+ucsc_hub_details:
+   
+    # Location of publically accessible location on the server
+    directory: 
+        HUB_DIRECTORY_PATH 
+    
+    # Name for the hub (UCSC required)
+    name: 
+        HUB_NAME
+    
+    # Short hub name (UCSC required)
+    short: 
+
+    
+    # Long hub name (UCSC required)
+    long:
+    
+    # Email address (UCSC required)
+    email:
+        alastair.smith@ndcls.ox.ac.uk 
+    
+    color_by: 
+        # Options: 'samplename', 'antibody', 'method' (i.e. pileup/peakcall method), 
+        - samplename
+
+#################################
+# Tool specific options         #
+#################################
+
+trim_galore:
+    threads:
+        4
+
+star:
+    threads:
+        4
+    options:
+
+featurecounts:
+    threads:
+        4
+    options:
+
+homer:
+    maketagdirectory:
+
+    makebigwig:
+
+    findpeaks:
 
 deeptools:
-    # Determines if deeptools is used for bigwig generation
-    use: True
+    threads:
+        8
+    alignmentsieve:
+        --minMappingQuality 30 
 
     # Options passed to deeptools BamCoverage
     # These need to be replaced
-    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
-    bamcoverage_options: BAM_COVERAGE_OPTIONS
-
-featurecounts:
-    # Path to GTF file for counting reads
-    gtf: PATH_TO_GTF
-    
-    # Output path for featureCounts
-    output: counts.csv
-    
-    # Options passed to featureCounts
-    options: FEATURECOUNTS_OPTIONS 
-
-hub:
-   
-    # Location of publically accessible location on the server
-    dir: HUB_DIR 
-    
-    # Name for the hub (UCSC required)
-    name: rnaseq_test 
-    
-    # Short hub name (UCSC required)
-    short: rnaseq new pipeline 
-    
-    # Long hub name (UCSC required)
-    long: rnaseq processed with the new python pipeline 
-    
-    # Email address (UCSC required)
-    email: alastair.smith@ndcls.ox.ac.uk 
-
-    # Determines if files are symlinked or copied to the public directory
-    symlink: False
-    
-
-#############################
-# Essential cluster options #
-#############################
-
-pipeline:
-
-    # Cluster manager used. e.g. SLURM, SunGrid Engine, etc.
-    cluster_queue_manager: slurm
-
-    # Name of queue to use. This will be cluster specific.
-    cluster_queue: batch
-    
-    # Maximum number of cores to use per task. (~ 4 works best)
-    n_cores: 4
-
-    # Maximum memory avalible per job.
-    memory: 8G
+    # e.g. -bs 1 --normalizeUsing RPKM
+    bamcoverage:
+        -bs 1 --normalizeUsing RPKM
 
 
-############
-# OPTIONAL #
-############
-
-trim:
-
-    # Options passed to trim_galore
-    options: --length 21 
