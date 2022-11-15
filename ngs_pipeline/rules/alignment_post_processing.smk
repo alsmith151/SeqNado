@@ -53,25 +53,22 @@ rule shift_atac_alignments:
     log:
         "logs/duplicate_removal/deeptools/{sample}.log",
     run:
-        # if config.get("shift_atac_reads"):
+        if config.get("shift_atac_reads"):
 
-        #     cmd = """
-        #           samtools sort -n -T {input.bam}.sorted -o {input.bam}.sorted.bam {input.bam} &&
-        #           bedtools bamtobed -i reads.bam -bedpe | 
-        #           awk -v OFS="\t" '{($9=="+"){print $1,$2+4,$6+4} ($9=="-"){print $1,$2-5,$6-5}}' > fragments.bed
+            cmd = f"""
+                  rsbamtk -b {input.bam} -o {input.bam}.tmp &&
+                  mv {input.bam}.tmp {input.bam}
+                  """
 
-                    
-        #           """
+            # if workflow.use_singularity:
+            #     cmd = utils.get_singularity_command(
+            #         command=cmd,
+            #         workflow=workflow,
+            #     )
 
-        #     if workflow.use_singularity:
-        #         cmd = utils.get_singularity_command(
-        #             command=cmd,
-        #             workflow=workflow,
-        #         )
-
-        # else:
-        cmd = f"""echo "Will not shift reads" > {log}"""
-        shell(cmd)
+        else:
+            cmd = f"""echo "Will not shift reads" > {log}"""
+            shell(cmd)
 
 
 rule mark_filtering_complete:
