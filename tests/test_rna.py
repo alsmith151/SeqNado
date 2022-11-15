@@ -67,9 +67,7 @@ def genome_indicies(genome_path):
             import requests
             import tarfile
 
-            url = (
-                "https://userweb.molbiol.ox.ac.uk/public/asmith/ngs_pipeline/star.tar.gz"
-            )
+            url = "https://userweb.molbiol.ox.ac.uk/public/asmith/ngs_pipeline/star.tar.gz"
             output = os.path.join(genome_path, "star.tar.gz")
             r = requests.get(url, stream=True)
             with open(output, "wb") as f:
@@ -79,7 +77,7 @@ def genome_indicies(genome_path):
             tar.extractall(path=genome_path)
             tar.close()
             os.remove(output)
-            os.rename(genome_path + "GenomeDir", indicies)
+            os.rename(os.path.join(genome_path, "GenomeDir"), indicies)
 
         except Exception as e:
             print(e)
@@ -131,7 +129,7 @@ def set_up(
         "CHROMOSOME_SIZES_FILE": chromsizes,
         "INDICES_DIRECTORY": genome_indicies,
         "HUB_DIRECTORY_PATH": f"{run_directory}/UCSC_HUB/",
-        "GTF": os.path.join(genome_path, "chr21.gtf")
+        "GTF": os.path.join(genome_path, "chr21.gtf"),
     }
 
     with open(f"{config_path}/config_rna.yml", "r") as r:
