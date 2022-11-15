@@ -56,7 +56,7 @@ rule shift_atac_alignments:
         if config.get("shift_atac_reads"):
 
             cmd = f"""
-                  rsbamtk -b {input.bam} -o {input.bam}.tmp &&
+                  rsbamtk shift -b {input.bam} -o {input.bam}.tmp &&
                   mv {input.bam}.tmp {input.bam}
                   """
 
@@ -68,7 +68,8 @@ rule shift_atac_alignments:
 
         else:
             cmd = f"""echo "Will not shift reads" > {log}"""
-            shell(cmd)
+        
+        shell(cmd)
 
 
 rule mark_filtering_complete:
