@@ -11,7 +11,10 @@ import pandas as pd
 start_time = datetime.now()
 ASSAY = "ChIP"
 
+
 configfile: "config_chip.yml"
+
+
 container: "library://asmith151/ngs-pipeline/ngs:latest"
 
 
@@ -19,25 +22,33 @@ utils.format_config_dict(config)
 pipeline_tools = utils.get_pipeline_tools(config)
 
 # Methods to use
-PILEUP_METHODS = [method for method in ["deeptools", "homer"] if pipeline_tools[method] == True]
-PEAK_CALL_METHODS = [method for method in ["macs", "lanceotron", "homer"] if pipeline_tools[method] == True]
-DUPLICATE_REMOVAL_METHODS = {"picard": "../rules/remove_pcr_duplicates_picard.smk",
-                           "deeptools": "../rules/remove_pcr_duplicates_deeptools.smk",
-                           }
-DUPLICATE_REMOVAL_RULE = DUPLICATE_REMOVAL_METHODS.get(config["remove_pcr_duplicates_method"], 
-                                                       "../rules/remove_pcr_duplicates_ignore.smk")
+PILEUP_METHODS = [
+    method for method in ["deeptools", "homer"] if pipeline_tools[method] == True
+]
+PEAK_CALL_METHODS = [
+    method
+    for method in ["macs", "lanceotron", "homer"]
+    if pipeline_tools[method] == True
+]
+DUPLICATE_REMOVAL_METHODS = {
+    "picard": "../rules/remove_pcr_duplicates_picard.smk",
+    "deeptools": "../rules/remove_pcr_duplicates_deeptools.smk",
+}
+DUPLICATE_REMOVAL_RULE = DUPLICATE_REMOVAL_METHODS.get(
+    config["remove_pcr_duplicates_method"], "../rules/remove_pcr_duplicates_ignore.smk"
+)
 
 
 # Convinience function that needs to be corrected
-#utils.set_up_chromsizes(config)
+# utils.set_up_chromsizes(config)
 
 # Get dataframe of samples
 if os.path.exists(config["design"]):
     # Expect columns - sample fq1 fq2 antibody control
-    CHIP_SAMPLES = chip_utils.ChipseqFastqSamples(pd.read_csv(config["design"], 
-                                                              sep="[\s+,\t]", 
-                                                              engine="python"))
-    
+    CHIP_SAMPLES = chip_utils.ChipseqFastqSamples(
+        pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
+    )
+
 else:
     # Use pattern matching to get samples
     fq_files = list(utils.get_fastq_files("."))
@@ -58,6 +69,7 @@ SAMPLE_NAMES_IP = CHIP_SAMPLES.sample_names_ip
 SAMPLE_NAMES_CONTROL = CHIP_SAMPLES.sample_names_control
 SAMPLE_NAMES_PAIRED = CHIP_SAMPLES.paired_ip_and_control
 
+
 include: "../rules/qc.smk"
 include: "../rules/read_trimming.smk"
 include: "../rules/align.smk"
@@ -67,21 +79,32 @@ include: "../rules/peak_call.smk"
 include: "../rules/pileup.smk"
 include: "../rules/hub.smk"
 
+
 rule all:
     input:
-        multiqc_fastq_raw = "qc/fastq_qc_raw_report.html",
-        multiqc_fastq_trimmed = "qc/fastq_qc_trimmed_report.html",
-        multiqc_bam_raw = "qc/bam_raw_qc_report.html",
-        multiqc_bam_filtered = "qc/bam_filtered_qc_report.html",
-        mutiqc_full = "qc/full_qc_report.html",
+        multiqc_fastq_raw="qc/fastq_qc_raw_report.html",
+        multiqc_fastq_trimmed="qc/fastq_qc_trimmed_report.html",
+        multiqc_bam_raw="qc/bam_raw_qc_report.html",
+        multiqc_bam_filtered="qc/bam_filtered_qc_report.html",
+        mutiqc_full="qc/full_qc_report.html",
+        pileups=expand(
+            "bigwigs/{method}/{sample}.bigWig",
+            sample=SAMPLE_NAMES,
+            method=PILEUP_METHODS,
+        ),
+        peaks=expand(
+            "peaks/{method}/{ip}.bed",
+        ip=[
+        f"{row.sample}_{row.antibody}"
+                for row in CHIP_SAMPLES.design.itertuples()
+            ],
+            method=PEAK_CALL_METHODS,
+        ),
+        hub=os.path.join(
+            config["ucsc_hub_details"]["directory"],
+            f"{config['ucsc_hub_details']['name']}.hub.txt",
+        ),
 
-
-
-        pileups = expand("bigwigs/{method}/{sample}.bigWig", sample=SAMPLE_NAMES, method=PILEUP_METHODS),
-        peaks = expand("peaks/{method}/{ip}.bed", 
-                        ip=[f"{row.sample}_{row.antibody}" for row in CHIP_SAMPLES.design.itertuples()], 
-                        method=PEAK_CALL_METHODS),
-        hub = os.path.join(config['ucsc_hub_details']['directory'], f"{config['ucsc_hub_details']['name']}.hub.txt"),
 
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")
@@ -93,14 +116,6 @@ onsuccess:
                 os.remove(fn)
             else:
                 shutil.rmtree(fn)
-                
+
         except Exception as e:
             print(e)
-
-
-
-
-
-
-
-
