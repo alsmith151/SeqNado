@@ -71,8 +71,8 @@ rule shift_atac_alignments:
 
             cmd = f"""
                   rsbamtk shift -b {input.bam} -o {input.bam}.tmp &&
-                  samtools sort {input.bam}.tmp -@ {threads} -o {input.bam}
-                  
+                  samtools sort {input.bam}.tmp -@ {threads} -o {input.bam} &&
+                  samtools index {input.bam}
                   """
 
             # if workflow.use_singularity:
