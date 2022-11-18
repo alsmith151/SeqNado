@@ -1,5 +1,18 @@
 import ngs_pipeline.utils as utils
 
+rule sort_bam:
+    input:
+        bam = "aligned/{sample}.bam"
+    output:
+        sentinel = touch("flags/{sample}.sorted.sentinel"),
+    threads:
+        8
+    shell:
+        """samtools sort {input.bam} -@ {threads} -o {input.bam}_sorted &&
+           mv {input.bam}_sorted {input.bam}
+        """
+
+
 rule index_bam:
     input:
         bam="aligned/{sample}.bam",
@@ -49,7 +62,8 @@ rule shift_atac_alignments:
         sentinel=touch("flags/{sample}.shifted.sentinel"),
     params:
         options = None
-    threads: 8
+    threads: 
+        1
     log:
         "logs/duplicate_removal/deeptools/{sample}.log",
     run:
@@ -57,7 +71,8 @@ rule shift_atac_alignments:
 
             cmd = f"""
                   rsbamtk shift -b {input.bam} -o {input.bam}.tmp &&
-                  mv {input.bam}.tmp {input.bam}
+                  samtools sort {input.bam}.tmp -@ {threads} -o {input.bam}
+                  
                   """
 
             # if workflow.use_singularity:
@@ -70,6 +85,7 @@ rule shift_atac_alignments:
             cmd = f"""echo "Will not shift reads" > {log}"""
         
         shell(cmd)
+
 
 
 rule mark_filtering_complete:

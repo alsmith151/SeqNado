@@ -123,15 +123,9 @@ rule generate_hub_for_rnaseq:
             columns=["filename"],
         )
 
-        if ASSAY == "ChIP":
-            df[["samplename", "antibody"]] = df["filename"].str.extract(
-                r".*/(.*)_(.*)\.(?:bigBed|bigWig)"
-            )
-        else:
-            df["samplename"] = df["filename"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
-
+        df["samplename"] = df["filename"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
         df["method"] = df["filename"].apply(lambda x: x.split("/")[-2])
-
+        df["strand"] = np.where(df["filename"].str.contains("_plus.bigWig"), "plus", "minus")
 
         file_details = f"{os.path.dirname(output.hub)}/hub_details.tsv"
         df.set_index("filename").to_csv(file_details, sep="\t")
@@ -139,10 +133,7 @@ rule generate_hub_for_rnaseq:
         color_by = config["ucsc_hub_details"].get("color_by", None)
 
         if not color_by:
-            if df["samplename"].unique().shape[0] == 1:
-                color_by = ("antibody",)
-            else:
-                color_by = ("samplename", "antibody")
+            color_by = ("samplename", "antibody")
 
         cmd = " ".join(
             [
@@ -161,6 +152,8 @@ rule generate_hub_for_rnaseq:
                 "--description-html",
                 input.report,
                 " ".join([f"--color-by {c}" for c in color_by]),
+                "--group-overlay",
+                "samplename"
             ]
         )
 
