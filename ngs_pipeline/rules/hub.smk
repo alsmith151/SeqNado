@@ -133,7 +133,7 @@ rule generate_hub_for_rnaseq:
         color_by = config["ucsc_hub_details"].get("color_by", None)
 
         if not color_by:
-            color_by = ("samplename", "antibody")
+            color_by = ("samplename",)
 
         cmd = " ".join(
             [
