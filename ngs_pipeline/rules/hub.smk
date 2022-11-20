@@ -1,3 +1,7 @@
+import pathlib
+import re
+
+
 rule bed_to_bigbed:
     input:
         bed="peaks/{directory}/{sample}.bed",
@@ -95,6 +99,12 @@ rule generate_hub_for_chipseq_and_atacseq:
 
         shell(cmd)
 
+
+def get_samplename(path: str):
+    p = pathlib.Path(path)
+    return re.split(r"_[plus|minus]", p.name)[0]
+
+
 rule generate_hub_for_rnaseq:
     input:
         bigwig=expand(
@@ -123,7 +133,7 @@ rule generate_hub_for_rnaseq:
             columns=["filename"],
         )
 
-        df["samplename"] = df["filename"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
+        df["samplename"] = df["filename"].apply(get_samplename)
         df["method"] = df["filename"].apply(lambda x: x.split("/")[-2])
         df["strand"] = np.where(df["filename"].str.contains("_plus.bigWig"), "plus", "minus")
 
