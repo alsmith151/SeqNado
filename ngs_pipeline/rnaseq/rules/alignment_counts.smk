@@ -1,7 +1,7 @@
 import ngs_pipeline.utils as utils
 
     
-rule index_bam:
+rule index_filtered_bam:
     input:
         bam="aligned_and_filtered/{sample}.bam",
     output:
