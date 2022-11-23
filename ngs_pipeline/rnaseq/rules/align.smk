@@ -30,7 +30,8 @@ rule align_paired:
         {threads} \
         --outFileNamePrefix \
         aligned/{wildcards.sample} \
-        {params.options} 
+        {params.options} \
+        > {log} 2>&1
         """
 
 
