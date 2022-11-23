@@ -11,7 +11,11 @@ rule align_paired:
         options=utils.check_options(config["star"]["options"]),
     output:
         bam="aligned/{sample}Aligned.sortedByCoord.out.bam",
-    threads: config["star"]["threads"]
+    threads:
+        config["star"]["threads"]
+    resources:
+        mem_mb=(32000 // config["star"]["threads"] )
+
     log:
         "logs/align/{sample}.log",
     shell:
