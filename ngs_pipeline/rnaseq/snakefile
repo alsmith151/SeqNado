@@ -18,7 +18,7 @@ container: "library://asmith151/ngs-pipeline/ngs:latest"
 
 
 utils.format_config_dict(config)
-pipeline_tools = utils.get_pipeline_tools(config)
+pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
 
 # Methods to use
 PILEUP_METHODS = [
