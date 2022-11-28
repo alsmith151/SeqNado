@@ -4,3 +4,5 @@
 .pytest_cache
 ngs_pipeline/tests/pipeline/
 **.bt2
+*egg*
+**GenomeDir
