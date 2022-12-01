@@ -1,15 +1,15 @@
 import ngs_pipeline.utils as utils
 
     
-rule index_filtered_bam:
-    input:
-        bam="aligned_and_filtered/{sample}.bam",
-    output:
-        index="aligned_and_filtered/{sample}.bam.bai",
-    threads:
-        1
-    shell:
-        "samtools index {input.bam} -@ {threads}"
+# rule index_filtered_bam:
+#     input:
+#         bam="aligned_and_filtered/{sample}.bam",
+#     output:
+#         index="aligned_and_filtered/{sample}.bam.bai",
+#     threads:
+#         1
+#     shell:
+#         "samtools index {input.bam} -@ {threads}"
 
 rule feature_counts:
     input:
