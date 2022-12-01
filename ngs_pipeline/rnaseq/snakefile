@@ -22,8 +22,8 @@ pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
 
 # Methods to use
 PILEUP_METHODS = [
-    method for method in ["deeptools", "homer"] if pipeline_tools[method] == True
-]
+    method for method in ["deeptools", "homer"] if pipeline_tools.get(method, False)]
+
 DUPLICATE_REMOVAL_METHODS = {
     "picard": "../rules/remove_pcr_duplicates_picard.smk",
     "deeptools": "../rules/remove_pcr_duplicates_deeptools.smk",
