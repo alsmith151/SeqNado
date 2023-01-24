@@ -1,173 +1,155 @@
 # NGS Pipeline
 
-Pipeline based on cgat-core (ruffus wrapper) to process ChIP-seq, ATAC-seq and RNA-seq data.
+Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
 
 ## Installation
 
-1. Install conda if it has not been already using the [conda install instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html#install-linux-silent)
+1. Create a basic conda environment (with pip to install python packages) and activate it.
 
-1b. (Optional) Install mamba. Mamba is a drop-in replacement for conda that is **much** faster than conda. All "conda" commands can be replaced with "mamba" for a   significant speedup.
+    ```{bash}
+    conda create -n np pip
+    conda activate np
+    ````
 
-```
-conda install mamba
-````
+1. Install the pipeline. Two options:
 
-2. Clone the repository and enter it:
+    a) Clone the repositry and install directly
 
-```
-git clone https://github.com/alsmith151/ngs_pipeline.git
-cd ngs_pipeline
-```
+    ```
+    git clone https://github.com/alsmith151/ngs_pipeline.git
+    cd ngs_pipeline
+    pip install .
+    ```
 
-3. Generate a new conda environment using the environment.yml file.
+    b) Install from GitHub directly
 
-```
-conda env create -f environment.yml
-conda activate ngs
-```
+    ```
+    pip install git+https://github.com/alsmith151/ngs_pipeline.git
+    ```
 
-4. Install the pipeline:
+1. If you intend to use a cluster e.g. SLURM add the path to the DRMAA interface to your .bashrc:
 
-```
-pip install .
-```
+    ```
+    # Access to the DRMAA library: https://en.wikipedia.org/wiki/DRMAA
+    echo "export DRMAA_LIBRARY_PATH=/<full-path>/libdrmaa.so" >> ~/.bashrc
 
-5. If you intend to use a cluster e.g. SLURM add the path to the DRMAA interface to your .bashrc:
-
-```
-# Access to the DRMAA library: https://en.wikipedia.org/wiki/DRMAA
-echo "export DRMAA_LIBRARY_PATH=/<full-path>/libdrmaa.so" >> ~/.bashrc
-
-
-# For CBRG users the command to use is:
-echo "export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so" >> ~/.bashrc
-```
+    # For CBRG users the command to use is:
+    echo "export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so" >> ~/.bashrc
+    ```
 
 ## Running the pipeline
 
 1. Create a working directory
 
 
-To run the pipeline you will need to create a working directory for the pipeline run:
+    To run the pipeline you will need to create a working directory for the pipeline run:
 
-```
-mkdir RS411_EPZ5676/
-cd RS411_EPZ5676/
-```
+    ```
+    mkdir RS411_EPZ5676/
+    cd RS411_EPZ5676/
+    ```
 
-The pipeline will be executed here and all files will be generated
-in this directory.
+    The pipeline will be executed here and all files will be generated
+    in this directory.
 
-2. Get and edit the pipeline configuration file.
+1. Get and edit the pipeline configuration file.
 
-The configuration file [config_X.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config_atac.yml) enables 
-parameterisation of the pipeline run with user specific settings. Furthermore,
-it also provides paths to essential files for the pipeline run (e.g., bowtie2 indices).
-The paths supplied do not have to be in the same directory as the pipeline.
+    The configuration file [config_X.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config_atac.yml) enables parameterisation of the pipeline run with user specific settings. Furthermore,
+    it also provides paths to essential files for the pipeline run (e.g., bowtie2 indices).
+    The paths supplied do not have to be in the same directory as the pipeline.
 
-A copy of config_X.yml can be downloaded from GitHub using:
-```
-wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_atac.yml # ATAC
-wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_chip.yml # ChIP
-wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_rna.yml  # RNA
+    A copy of config_X.yml can be downloaded from GitHub using:
+    ```
+    wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_atac.yml # ATAC
+    wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_chip.yml # ChIP
+    wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_rna.yml  # RNA
 
-```
+    ```
 
-This [yaml](https://yaml.org/spec/1.2/spec.html) file can be edited using standard text editors e.g.
+    This [yaml](https://yaml.org/spec/1.2/spec.html) file can be edited using standard text editors e.g.
 
-```
-# To use gedit
-gedit config.yml
+    ```
+    nano config_atac.yml
+    ```
 
-# To use nano
-nano config.yml
-```
+1. Copy or link fastq files into the working directory
 
-3.  Copy or link fastq files into the working directory
+    Copy:
 
-The pipeline requires that fastq files are paired and in any of these formats:
+    ```
+    cp PATH_TO_FASTQ/example_R1.fastq.gz
+    ```
 
-For ChIP-seq:
+    Symlink:
 
-Note that the underscore is needed to identify pairs for peak calling
+    ```
+    # Be sure to use the absolute path for symlinks
+    ln -s /ABSOLUTE_PATH_TO_FASTQ/example_R1.fastq.gz
+    ```
 
-* samplename1_Antibody_R1.fastq.gz
-* samplename1_Antibody_R2.fastq.gz
-* samplename1_Input_1.fastq
-* samplename1_Input_2.fastq
+    1. Set-up sample sheet.
 
-For ATAC-seq: 
+    There are two options for preparing a sample sheet:
 
-**Note the absence of an underscore separating the sample name.**
+    a) Using sample naming. If samples names match the following conventions then a sample sheet will be generated for your samples:
 
-* sample-name-1_R1.fastq.gz
-* sample-name-1_R2.fastq.gz
-* sample-name-1_1.fastq
-* sample-name-1_2.fastq
+    ChIP-seq
 
-For RNA-seq:
+    * samplename1_Antibody_R1.fastq.gz
+    * samplename1_Antibody_R2.fastq.gz
+    * samplename1_Input_1.fastq
+    * samplename1_Input_2.fastq
 
-* sample-name-1_R1.fastq.gz
-* sample-name-1_R2.fastq.gz
-* sample-name-1_1.fastq
-* sample-name-1_2.fastq
+    For ATAC-seq:
 
-All FASTQ files present in the directory will be processed by the pipeline in parallel and
-original FASTQ files will not be modified. If new FASTQ files are added to a pre-run pipeline,
-only the new files will be processed.
+    * sample-name-1_R1.fastq.gz
+    * sample-name-1_R2.fastq.gz
+    * sample-name-1_1.fastq
+    * sample-name-1_2.fastq
 
-Copy:
-```
-cp PATH_TO_FASTQ/example_R1.fastq.gz
-```
+    For RNA-seq:
 
-Symlink:
-```
-# Be sure to use the absolute path for symlinks
-ln -s /ABSOLUTE_PATH_TO_FASTQ/example_R1.fastq.gz
-```
+    * sample-name-1_R1.fastq.gz
+    * sample-name-1_R2.fastq.gz
+    * sample-name-1_1.fastq
+    * sample-name-1_2.fastq
 
-4. Running the pipeline
+    b) Using a custom sample sheet. This is useful for situations in which it can be difficult to appropriately compare IP and Input control samples. For ChIP-seq samples you will need to create a csv or tsv file with the following columns:
 
-After copying/linking FASTQ files into the working directory and configuring the copy of
-config.yml in the working directory for the current experiment, the pipeline can be run with:
+    | sample      | antibody | fq1                              | fq2                              | control              |
+    |-------------|----------|----------------------------------|----------------------------------|----------------------|
+    | SAMPLE-NAME | ANTIBODY | SAMPLE-NAME_ANTIBODY_R1.fastq.gz | SAMPLE-NAME_ANTIBODY_R2.fastq.gz | CONTROL_SAMPLE_Input |
 
-```
-ngs-pipeline atac # ATAC-seq samples
-ngs-pipeline chip # ChIP-seq/ChIPMentation
-ngs-pipeline rna # RNA-seq - Not fully tested 
-```
 
-There are several options to visualise which tasks will be performed by the pipeline
-before running. 
+1. Running the pipeline
 
-The tasks to be performed can be examined with:
-```    
-# Shows the tasks to be performed
-ngs-pipeline atac show 
+    All FASTQ files present in the directory will be processed by the pipeline in parallel and
+    original FASTQ files will not be modified. If new FASTQ files are added to a pre-run pipeline,
+    only the new files will be processed.
 
-# Plots a directed graph using graphviz
-ngs-pipeline atac plot
-```
+    After copying/linking FASTQ files into the working directory and configuring the copy of
+    config.yml in the working directory for the current experiment, the pipeline can be run with:
 
-If you are happy with the tasks to be performed, the full pipeline run can be launched with:
+    ```
+    ngs-pipeline atac # ATAC-seq samples
+    ngs-pipeline chip # ChIP-seq/ChIPMentation
+    ngs-pipeline rna # RNA-seq - Not fully tested 
+    ```
 
-```
-# If using all default settings and using a cluster
-ngs-pipeline atac make
+    There are several options to visualise which tasks will be performed by the pipeline
+    before running. 
 
-# Higher verbosity
-ngs-pipeline atac make -v 5
+    ```
+    # If using all default settings (this will run on just the login node)
+    ngs-pipeline atac -c NUMBER_OF_CORES
 
-# If not using a cluster, run in local mode.
-ngs-pipeline atac make --local -p 4
+    # If you want to use the cluster (recommended)
+    ngs-pipeline atac -c NUMBER_OF_CORES 
 
-# Avoiding network disconnections
-nohup ngs-pipeline atac make &
-```
+    # Avoiding network disconnections
+    nohup ngs-pipeline atac make &
+    ```
 
-See [cgat-core Read the Docs](https://cgat-core.readthedocs.io/en/latest/getting_started/Examples.html) for additional
-information.
 
 
 
