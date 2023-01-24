@@ -62,14 +62,14 @@ FASTQ_FILES = ATAC_SAMPLES.fastq_files
 SAMPLE_NAMES = ATAC_SAMPLES.sample_names_all
 
 
-include: "../rules/qc.smk"
-include: "../rules/read_trimming.smk"
-include: "../rules/align.smk"
 include: DUPLICATE_REMOVAL_RULE
-include: "../rules/alignment_post_processing.smk"
-include: "../rules/peak_call.smk"
-include: "../rules/pileup.smk"
-include: "../rules/hub.smk"
+include: "rules/qc.smk"
+include: "rules/read_trimming.smk"
+include: "rules/align.smk"
+include: "rules/alignment_post_processing.smk"
+include: "rules/peak_call.smk"
+include: "rules/pileup.smk"
+include: "rules/hub.smk"
 
 
 rule all:
