@@ -1,0 +1,60 @@
+################################# 
+# RNA-seq Pipeline Config file #
+#################################
+
+version: 1.0
+
+###################################
+# Essential configuration options #
+###################################
+
+genome:
+    name: "{{cookiecutter.genome}}"
+    chromosome_sizes: "{{cookiecutter.chromosome_sizes}}"
+    indicies: "{{cookiecutter.indicies}}"
+    annotation: "{{cookiecutter.gtf}}"
+
+###################################
+#  Optional configuration         #
+###################################
+
+design: "{{cookiecutter.date}}_{{cookiecutter.project_id}}/samples_{{cookiecutter.project_id}}.csv"
+blacklist: "{{cookiecutter.blacklist}}"
+pileup_method: "{{cookiecutter.pileup_method}}"
+
+ucsc_hub_details:
+    directory: "{{cookiecutter.UCSC_hub_directory}}"
+    name: "{{cookiecutter.name}}"
+    short: "{{cookiecutter.short}}"
+    long: "{{cookiecutter.long}}"
+    email: "{{cookiecutter.email}}"
+    color_by: "{{cookiecutter.color_by}}"
+
+
+#################################
+# Tool specific options         #
+#################################
+
+trim_galore:
+    threads: 4
+
+star:
+    threads: 4
+    options:
+
+featurecounts:
+    threads: 4
+    options:
+
+homer:
+    maketagdirectory:
+    makebigwig:
+    findpeaks:
+
+deeptools:
+    threads: 8
+    alignmentsieve: --minMappingQuality 30 
+    # Options passed to deeptools BamCoverage
+    # These need to be replaced
+    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
