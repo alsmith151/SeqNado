@@ -14,10 +14,10 @@ dependencies:
   - numpy>=1.19
   - picard-slim
   - pip
-    - pip:
-    - git+https://github.com/alsmith151/ucsc_hub_maker.git
-    - lanceotron
-    - wget
+  - pip:
+      - git+https://github.com/alsmith151/ucsc_hub_maker.git
+      - lanceotron
+      - wget
   - pybedtools
   - pybigwig
   - python>=3.8
