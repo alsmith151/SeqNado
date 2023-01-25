@@ -12,6 +12,10 @@ dependencies:
   - macs2
   - multiqc
   - numpy>=1.19
+  - trackhub
+  - seaborn
+  - click
+  - cookiecutter
   - picard-slim
   - pip
   - pip:
