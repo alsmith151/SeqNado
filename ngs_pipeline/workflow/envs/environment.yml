@@ -30,7 +30,6 @@ dependencies:
   - homer
   - pybedtools
   - snakemake
-  - subread 
+  - subread
   - star
   - numpy>=1.19
-  
