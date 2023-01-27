@@ -111,7 +111,7 @@ rule generate_hub_for_rnaseq:
             "bigwigs/{method}/{sample}_{strand}.bigWig",
             method=PILEUP_METHODS,
             sample=SAMPLE_NAMES,
-            strand=["plus", "minus"]
+            strand=["plus", "minus"],
         ),
         report="qc/full_qc_report.html",
     output:
@@ -127,15 +127,15 @@ rule generate_hub_for_rnaseq:
 
         # Set up details
         df = pd.DataFrame(
-            itertools.chain.from_iterable(
-                [files for files in [input.bigwig]]
-            ),
+            itertools.chain.from_iterable([files for files in [input.bigwig]]),
             columns=["filename"],
         )
 
         df["samplename"] = df["filename"].apply(get_samplename)
         df["method"] = df["filename"].apply(lambda x: x.split("/")[-2])
-        df["strand"] = np.where(df["filename"].str.contains("_plus.bigWig"), "plus", "minus")
+        df["strand"] = np.where(
+            df["filename"].str.contains("_plus.bigWig"), "plus", "minus"
+        )
 
         file_details = f"{os.path.dirname(output.hub)}/hub_details.tsv"
         df.set_index("filename").to_csv(file_details, sep="\t")
@@ -163,7 +163,7 @@ rule generate_hub_for_rnaseq:
                 input.report,
                 " ".join([f"--color-by {c}" for c in color_by]),
                 "--group-overlay",
-                "samplename"
+                "samplename",
             ]
         )
 

@@ -24,7 +24,7 @@ rule deeptools_make_bigwigs_rna_plus:
     output:
         bigwig="bigwigs/deeptools/{sample}_plus.bigWig",
     params:
-        **split_options_and_scale_factor()
+        **split_options_and_scale_factor(),
     threads: config["deeptools"]["threads"]
     log:
         "logs/pileups/deeptools/{sample}.log",
@@ -42,7 +42,7 @@ rule deeptools_make_bigwigs_rna_minus:
     output:
         bigwig="bigwigs/deeptools/{sample}_minus.bigWig",
     params:
-        **split_options_and_scale_factor()
+        **split_options_and_scale_factor(),
     threads: config["deeptools"]["threads"]
     log:
         "logs/pileups/deeptools/{sample}.log",

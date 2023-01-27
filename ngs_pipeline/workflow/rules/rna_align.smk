@@ -1,7 +1,6 @@
 import ngs_pipeline.utils as utils
 
 
-
 rule align_paired:
     input:
         fq1="trimmed/{sample}_1.fastq.gz",
@@ -11,11 +10,9 @@ rule align_paired:
         options=utils.check_options(config["star"]["options"]),
     output:
         bam="aligned/{sample}Aligned.sortedByCoord.out.bam",
-    threads:
-        config["star"]["threads"]
+    threads: config["star"]["threads"]
     resources:
-        mem_mb=(32000 // config["star"]["threads"] )
-
+        mem_mb=(32000 // config["star"]["threads"]),
     log:
         "logs/align/{sample}.log",
     shell:
@@ -41,8 +38,8 @@ rule align_paired:
 
 rule rename_aligned:
     input:
-        bam = "aligned/{sample}Aligned.sortedByCoord.out.bam",
+        bam="aligned/{sample}Aligned.sortedByCoord.out.bam",
     output:
-        bam = "aligned/{sample}.bam"
+        bam="aligned/{sample}.bam",
     shell:
         "mv {input.bam} {output.bam}"
