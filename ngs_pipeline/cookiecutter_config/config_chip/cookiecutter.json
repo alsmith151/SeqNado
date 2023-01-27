@@ -1,5 +1,5 @@
 {
-  "user_name": "Your name", 
+  "user_name": "Your name",
   "date": ["{% now 'utc', '%Y-%m-%d' %}"],
   "project_name": "Project name",
   "project_id": ["{{cookiecutter.project_name.lower().replace(' ', '_') }}"],
