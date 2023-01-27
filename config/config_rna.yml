@@ -1,19 +1,19 @@
-################################# 
+#################################
 # RNA-seq Pipeline Config file #
 #################################
 
 # This file contains the configuration for the ATAC-seq pipeline.
 # The pipeline is run by the following command:
 # ngs-pipeline rna -c N_CORES
-# 
-# To use the singularity container (allows for running the pipeline with a minimal conda environment), 
+#
+# To use the singularity container (allows for running the pipeline with a minimal conda environment),
 # you will also need to 'bind' paths to the container (this allows for folders outside the current directory to be used i.e. /t1-data).
 #
 # ngs-pipeline rna -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank "
 #
 # To run all jobs on the cluster (highly recommended; these options are for slurm i.e. cbrg cluster):
 #
-# ngs-pipeline rna -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00 "  
+# ngs-pipeline rna -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00 "
 #
 # Combining both singularity and slurm options:
 #
@@ -29,7 +29,7 @@ version: 1.0
 ###################################
 
 genome:
-    name: 
+    name:
         GENOME_NAME
 
     chromosome_sizes:
@@ -37,7 +37,7 @@ genome:
 
     indicies:
         INDICES_DIRECTORY
-    
+
     annotation:
         GTF
 
@@ -62,7 +62,7 @@ peak_calling_method:
     - lanceotron
 
 # Tool to remove duplicates: None - do not remove, picard - picard markDuplicates, deeptools - deeptools alignmentSieve
-remove_pcr_duplicates_method: 
+remove_pcr_duplicates_method:
     picard
 
 # Shift ATAC-seq reads to account for the transposon insertion site.
@@ -70,28 +70,28 @@ shift_rna_reads:
     True
 
 ucsc_hub_details:
-   
-    # Location of publically accessible location on the server
-    directory: 
-        HUB_DIRECTORY_PATH 
-    
-    # Name for the hub (UCSC required)
-    name: 
-        HUB_NAME
-    
-    # Short hub name (UCSC required)
-    short: 
 
-    
+    # Location of publically accessible location on the server
+    directory:
+        HUB_DIRECTORY_PATH
+
+    # Name for the hub (UCSC required)
+    name:
+        HUB_NAME
+
+    # Short hub name (UCSC required)
+    short:
+
+
     # Long hub name (UCSC required)
     long:
-    
+
     # Email address (UCSC required)
     email:
-        alastair.smith@ndcls.ox.ac.uk 
-    
-    color_by: 
-        # Options: 'samplename', 'antibody', 'method' (i.e. pileup/peakcall method), 
+        alastair.smith@ndcls.ox.ac.uk
+
+    color_by:
+        # Options: 'samplename', 'antibody', 'method' (i.e. pileup/peakcall method),
         - samplename
 
 #################################
@@ -123,12 +123,10 @@ deeptools:
     threads:
         8
     alignmentsieve:
-        --minMappingQuality 30 
+        --minMappingQuality 30
 
     # Options passed to deeptools BamCoverage
     # These need to be replaced
     # e.g. -bs 1 --normalizeUsing RPKM
     bamcoverage:
         -bs 1 --normalizeUsing RPKM
-
-
