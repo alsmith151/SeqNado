@@ -10,7 +10,7 @@ import subprocess
     "--preset",
     default="local-conda",
     help="Pre-set snakemake job profile to use for pipeline run",
-    type=click.Choice(choices=["local-conda", "local-singularity","cbrg"])
+    type=click.Choice(choices=["local-conda", "local-singularity", "cbrg"]),
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli(method, pipeline_options, help=False, cores=1, preset="local"):
@@ -26,7 +26,7 @@ def cli(method, pipeline_options, help=False, cores=1, preset="local"):
             "-c",
             str(cores),
             "--snakefile",
-            f"{dir_package}/chipseq/snakefile",
+            f"{dir_package}/workflow/snakefile_chip",
         ]
     elif method == "atac":
         cmd = [
@@ -34,7 +34,7 @@ def cli(method, pipeline_options, help=False, cores=1, preset="local"):
             "-c",
             str(cores),
             "--snakefile",
-            f"{dir_package}/atacseq/snakefile",
+            f"{dir_package}/workflow/snakefile_atac",
         ]
     elif method == "rna":
         cmd = [
@@ -42,14 +42,19 @@ def cli(method, pipeline_options, help=False, cores=1, preset="local"):
             "-c",
             str(cores),
             "--snakefile",
-            f"{dir_package}/rnaseq/snakefile",
+            f"{dir_package}/workflow/snakefile_rna",
         ]
 
     if pipeline_options:
         cmd.extend(pipeline_options)
-    
+
     if preset == "cbrg":
-        cmd.extend(["--profile", os.path.abspath(os.path.join(dir_package, "profile_drmaa_sigularity"))])
+        cmd.extend(
+            [
+                "--profile",
+                os.path.abspath(os.path.join(dir_package, "profile_drmaa_sigularity")),
+            ]
+        )
 
     completed = subprocess.run(cmd)
 
