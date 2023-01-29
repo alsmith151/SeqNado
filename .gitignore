@@ -6,3 +6,4 @@ ngs_pipeline/tests/pipeline/
 **.bt2
 *egg*
 **GenomeDir
+build/

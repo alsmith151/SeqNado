@@ -1,3 +1,4 @@
 global-include *.smk
 global-include snakefile*
-recursive-include ngs_pipeline/data/profiles
+recursive-include ngs_pipeline/workflow *
+recursive-include ngs_pipeline/cookiecutter_config *

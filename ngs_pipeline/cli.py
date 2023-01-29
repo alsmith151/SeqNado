@@ -20,13 +20,15 @@ def cli(method, pipeline_options, help=False, cores=1, preset="local"):
     file = os.path.abspath(__file__)
     dir_package = os.path.dirname(file)
 
+
+
     if method == "chip":
         cmd = [
             "snakemake",
             "-c",
             str(cores),
             "--snakefile",
-            f"{dir_package}/chipseq/snakefile",
+            f"{dir_package}/workflow/snakefile_chip",
         ]
     elif method == "atac":
         cmd = [
@@ -34,7 +36,7 @@ def cli(method, pipeline_options, help=False, cores=1, preset="local"):
             "-c",
             str(cores),
             "--snakefile",
-            f"{dir_package}/atacseq/snakefile",
+            f"{dir_package}/workflow/snakefile_atac",
         ]
     elif method == "rna":
         cmd = [
@@ -42,7 +44,7 @@ def cli(method, pipeline_options, help=False, cores=1, preset="local"):
             "-c",
             str(cores),
             "--snakefile",
-            f"{dir_package}/rnaseq/snakefile",
+            f"{dir_package}/workflow/snakefile_rna",
         ]
 
     if pipeline_options:

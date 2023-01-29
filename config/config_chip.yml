@@ -1,27 +1,3 @@
-################################# 
-# ChIP-seq Pipeline Config file #
-#################################
-
-# This file contains the configuration for the ChIP-seq pipeline.
-# The pipeline is run by the following command:
-# ngs-pipeline chip -c N_CORES
-# 
-# To use the singularity container (allows for running the pipeline with a minimal conda environment), 
-# you will also need to 'bind' paths to the container (this allows for folders outside the current directory to be used i.e. /t1-data).
-#
-# ngs-pipeline chip -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank "
-#
-# To run all jobs on the cluster (highly recommended; these options are for slurm i.e. cbrg cluster):
-#
-# ngs-pipeline chip -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00 "  
-#
-# Combining both singularity and slurm options:
-#
-# ngs-pipeline chip -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank " --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem} --time 24:00:00 "
-#
-# The keys marked as essential are required for the pipeline to run.
-# The keys marked as optional can either be left as the default or adjusted if required.
-
 version: 1.0
 
 ###################################
@@ -29,116 +5,61 @@ version: 1.0
 ###################################
 
 genome:
-    name: 
-        GENOME_NAME
-
-    chromosome_sizes:
-        CHROMOSOME_SIZES_FILE
-
-    indicies:
-        INDICES_DIRECTORY
-
+    name: "hg38"
+    chromosome_sizes: "ngs_pipeline/data/resources/hg38/hg38.chrom.sizes"
+    indicies: "/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome"
 
 ###################################
 #  Optional configuration         #
 ###################################
 
-# Allows for specification of an experimental design. Expecting columns (comma, tab or space sep): sample, fq1, fq2, control
-design:
-    DESIGN_FILE
-
-
-# Allows for removal of specific regions from the bam file. Must supply a bed file.
-blacklist:
-    BLACKLIST_FILE
-
-# Method(s) for bigWig generation
-pileup_method:
-    - deeptools
-
-# Method(s) for peak calling
-peak_calling_method:
-    - lanceotron
-
-# Tool to remove duplicates: None - do not remove, picard - picard markDuplicates, deeptools - deeptools alignmentSieve
-remove_pcr_duplicates_method: 
-    deeptools
+design: "2023-01-29_newchip_test/samples_newchip_test.csv"
+blacklist: "ngs_pipeline/data/resources/hg38/hg38-blacklist.v2.bed.gz"
+pileup_method: "deeptools"
+peak_calling_method: "macs"
+remove_pcr_duplicates_method: "picard"
 
 ucsc_hub_details:
-   
-    # Location of publically accessible location on the server
-    directory: 
-        HUB_DIRECTORY_PATH 
-    
-    # Name for the hub (UCSC required)
-    name: 
-        HUB_NAME
-    
-    # Short hub name (UCSC required)
-    short: 
-
-    
-    # Long hub name (UCSC required)
-    long:
-    
-    # Email address (UCSC required)
-    email:
-        alastair.smith@ndcls.ox.ac.uk
-    
-    color_by: 
-        # Options: 'samplename', 'antibody', 'method' (i.e. pileup/peakcall method), 
-        - samplename
-        - antibody
+    directory: "na"
+    name: "na"
+    short: "na"
+    long: "na"
+    email: "na"
+    color_by: "antibody"
 
 #################################
 # Tool specific options         #
 #################################
 
 trim_galore:
-    threads:
-        4
+    threads: 4
 
 bowtie2:
-    threads:
-        4
+    threads: 4
     options:
-        
 
 homer:
-    use_input:
-        true
-
+    use_input: true
     maketagdirectory:
-
     makebigwig:
-
     findpeaks:
 
 deeptools:
-    threads:
-        8
-    alignmentsieve:
-        --minMappingQuality 30 
-        
-
+    threads: 8
+    alignmentsieve: --minMappingQuality 30 
     # Options passed to deeptools BamCoverage
     # These need to be replaced
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
-    bamcoverage:
-        --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
 
 macs:
-    version:
-        2
+    version: 2
     callpeak:
 
 lanceotron:
-
     # Instructs lanceotron to use the matched input file for peak calling
     # No effect if input file is not matched
-    use_input:
-        True
+    use_input: True
     # Options passed to callPeaks[Input] command
-    callpeak:
-        -c 0.5
+    callpeak: -c 0.5
 
