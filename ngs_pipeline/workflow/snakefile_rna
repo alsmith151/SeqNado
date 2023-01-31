@@ -54,11 +54,11 @@ SAMPLE_NAMES = RNA_SAMPLES.sample_names_all
 
 include: "rules/qc.smk"
 include: "rules/read_trimming.smk"
-include: "rules/rna_align.smk"
+include: "rules/align_rna.smk"
 include: DUPLICATE_REMOVAL_RULE
 include: "rules/alignment_post_processing.smk"
-include: "rules/rna_alignment_counts.smk"
-include: "rules/rna_pileup.smk"
+include: "rules/alignment_counts.smk"
+include: "rules/pileup_rna.smk"
 include: "rules/hub.smk"
 
 

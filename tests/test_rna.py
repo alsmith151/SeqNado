@@ -153,7 +153,7 @@ def test_pipeline_conda():
     assert completed.returncode == 0
 
 
-def test_pipeline_singularity(genome_path, genome_indicies):
+def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
 
     cmd = [
         "ngs-pipeline",
@@ -164,7 +164,7 @@ def test_pipeline_singularity(genome_path, genome_indicies):
         "config_rna.yml",
         "--use-singularity",
         "--singularity-args",
-        f'" -B {genome_indicies} -B {genome_path}"',
+        f'" -B {genome_indicies} -B {genome_path} -B {chromsizes} "',
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0

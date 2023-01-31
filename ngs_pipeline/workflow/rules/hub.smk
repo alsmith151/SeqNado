@@ -1,5 +1,6 @@
 import pathlib
 import re
+import numpy as np
 
 
 rule bed_to_bigbed:
