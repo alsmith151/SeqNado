@@ -1,32 +1,38 @@
 name: ngs
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
 dependencies:
-  - python>=3.8
-  - pip
-  - pip:
-    - wget
-    - lanceotron
-    - git+https://github.com/alsmith151/ucsc_hub_maker.git
   - bowtie2
-  - samtools>1.7
+  - click
   - deeptools
-  - trim-galore
   - fastqc
+  - homer
+  - macs2
   - multiqc
+  - numpy>=1.19
   - trackhub
   - seaborn
   - click
   - cookiecutter
-  - ucsc-bigbedtobed
-  - pybigwig
   - picard-slim
-  - macs2
-  - ucsc-fetchchromsizes
-  - ucsc-bedtobigbed
-  - ucsc-bedgraphtobigwig
-  - homer
+  - pip
+  - pip:
+      - git+https://github.com/alsmith151/ucsc_hub_maker.git
+      - lanceotron
+      - wget
   - pybedtools
+  - pybigwig
+  - python>=3.8
+  - samtools>1.7
+  - seaborn
   - snakemake
-  - subread 
   - star
-  - numpy>=1.19
-  
+  - subread 
+  - trackhub
+  - trim-galore
+  - ucsc-bedgraphtobigwig
+  - ucsc-bedtobigbed
+  - ucsc-bigbedtobed
+  - ucsc-fetchchromsizes
