@@ -34,7 +34,7 @@ rule remove_blacklisted_regions:
     log:
         "logs/blacklist/{sample}.log",
     script:
-        "scripts/remove_blacklisted_regions.py"
+        "../scripts/remove_blacklist.py"
 
 
 rule shift_atac_alignments:

@@ -30,11 +30,11 @@ PEAK_CALL_METHODS = [
     if pipeline_tools[method] == True
 ]
 DUPLICATE_REMOVAL_METHODS = {
-    "picard": "../rules/remove_pcr_duplicates_picard.smk",
-    "deeptools": "../rules/remove_pcr_duplicates_deeptools.smk",
+    "picard": "rules/remove_pcr_duplicates_picard.smk",
+    "deeptools": "rules/remove_pcr_duplicates_deeptools.smk",
 }
 DUPLICATE_REMOVAL_RULE = DUPLICATE_REMOVAL_METHODS.get(
-    config["remove_pcr_duplicates_method"], "../rules/remove_pcr_duplicates_ignore.smk"
+    config["remove_pcr_duplicates_method"], "rules/remove_pcr_duplicates_ignore.smk"
 )
 
 
@@ -74,10 +74,6 @@ include: "rules/hub.smk"
 
 rule all:
     input:
-        multiqc_fastq_raw="qc/fastq_qc_raw_report.html",
-        multiqc_fastq_trimmed="qc/fastq_qc_trimmed_report.html",
-        multiqc_bam_raw="qc/bam_raw_qc_report.html",
-        multiqc_bam_filtered="qc/bam_filtered_qc_report.html",
         mutiqc_full="qc/full_qc_report.html",
         pileups=expand(
             "bigwigs/{method}/{sample}.bigWig",
@@ -108,3 +104,10 @@ onsuccess:
 
         except Exception as e:
             print(e)
+
+onerror:
+    log_out = "ngs_pipeline_error.log"
+    shutil.copyfile(log, log_out)
+    print(
+        f"An error occurred. Please check the log file {log_out} for more information."
+    )

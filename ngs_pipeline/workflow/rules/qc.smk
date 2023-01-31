@@ -1,114 +1,26 @@
-import os
-
-import numpy as np
-
-import ngs_pipeline.utils as utils
-
-
-def get_reports(*args):
-
-    reports = []
-
-    for fq in FASTQ_FILES:
-
-        sample_name = os.path.basename(fq).replace(".fastq.gz", "_fastqc.html")
-        reports.append(f"qc/fastq_trimmed/{sample_name}")
-
-    # Samtools reports
-    for sample in SAMPLE_NAMES:
-        reports.append(f"qc/alignment_filtered/{sample}.txt")
-
-    return {"reports": reports}
-
-
-rule fastqc:
-    input:
-        fq="FASTQ",
-    output:
-        qc="OUTPUT",
-    params:
-        outdir="OUTDIR",
-    threads: 4
-    shell:
-        """
-        fastqc -q -t {threads} --nogroup --outdir {params.outdir} {input.fq}
-        """
-
-
-rule multiqc:
-    input:
-        reports="INPUTS",
-    output:
-        report="OUTPUT",
-    threads: 1
-    log:
-        "LOG",
-    run:
-        outdir = os.path.dirname(output.report)
-        basename = os.path.basename(output.report)
-
-        if not isinstance(input.reports, list):
-            reports = [*input.reports]
-        else:
-            reports = input
-
-        dirnames = [os.path.dirname(x) for x in reports]
-        dirnames = list(set(dirnames))
-        search_dirs = " ".join(dirnames)
-
-        cmd = f"multiqc -n {basename} -o {outdir} {search_dirs} --force > {log} 2>&1"
-
-        if workflow.use_singularity:
-            cmd = utils.get_singularity_command(
-                command=cmd,
-                workflow=workflow,
-            )
-        shell(cmd)
-
-
-use rule fastqc as fastqc_raw with:
+rule fastqc_raw:
     input:
         fq="fastq/{sample}_{read}.fastq.gz",
     output:
         qc="qc/fastq_raw/{sample}_{read}_fastqc.html",
     params:
         outdir="qc/fastq_raw",
+    threads: 4
+    log:
+        "logs/fastqc_raw/{sample}_{read}.log",
+    shell:
+        "fastqc -o {params.outdir} {input.fq} > {log} 2>&1"
 
 
-use rule fastqc as fastqc_trimmed with:
+use rule fastqc_raw as fastqc_trimmed with:
     input:
         fq="trimmed/{sample}_{read}.fastq.gz",
     output:
         qc="qc/fastq_trimmed/{sample}_{read}_fastqc.html",
     params:
         outdir="qc/fastq_trimmed",
-
-
-use rule multiqc as multiqc_fastq_raw with:
-    input:
-        reports=[
-            f"qc/fastq_raw/{os.path.basename(sample).split('.fastq.gz')[0]}_fastqc.html"
-            for sample in FASTQ_FILES
-        ],
-    output:
-        report="qc/fastq_qc_raw_report.html",
-    threads: 1
     log:
-        "logs/qc/fastq_qc_raw_report.log",
-
-
-use rule multiqc as multiqc_fastq_trimmed with:
-    input:
-        reports=[
-            f"qc/fastq_trimmed/{os.path.basename(sample).split('.fastq.gz')[0]}_fastqc.html"
-            for sample in FASTQ_FILES
-        ],
-    output:
-        report="qc/fastq_qc_trimmed_report.html",
-    threads: 1
-    log:
-        "logs/qc/fastq_qc_trimmed_report.log",
-
+        "logs/fastqc_trimmed/{sample}_{read}.log"
 
 rule samtools_stats:
     input:
@@ -119,41 +31,21 @@ rule samtools_stats:
     shell:
         """samtools stats {input.bam} > {output.stats}"""
 
-
-use rule multiqc as multiqc_bam_raw with:
-    input:
-        reports=expand("qc/alignment_raw/{sample_name}.txt", sample_name=SAMPLE_NAMES),
-    output:
-        report="qc/bam_raw_qc_report.html",
-    threads: 1
-    log:
-        "logs/qc/bam_qc_raw_report.log",
-
-
 use rule samtools_stats as samtools_stats_filtered with:
     input:
         bam="aligned_and_filtered/{sample}.bam",
     output:
         stats="qc/alignment_filtered/{sample}.txt",
 
-
-use rule multiqc as multiqc_bam_filtered with:
+rule multiqc:
     input:
-        reports=expand(
-            "qc/alignment_filtered/{sample_name}.txt", sample_name=SAMPLE_NAMES
-        ),
+        expand("qc/fastq_raw/{sample}_{read}_fastqc.html", sample=SAMPLE_NAMES, read=[1, 2]),
+        expand("qc/fastq_trimmed/{sample}_{read}_fastqc.html", sample=SAMPLE_NAMES, read=[1,2]),
+        expand("qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
+        expand("qc/alignment_filtered/{sample}.txt", sample=SAMPLE_NAMES),
     output:
-        report="qc/bam_filtered_qc_report.html",
-    threads: 1
+        "qc/full_qc_report.html",
     log:
-        "logs/qc/fastq_qc_raw_report.log",
-
-
-use rule multiqc as multiqc_all with:
-    input:
-        **get_reports(),
-    output:
-        report="qc/full_qc_report.html",
-    threads: 1
-    log:
-        "logs/qc/fastq_qc_raw_report.log",
+        "logs/multiqc.log",
+    shell:
+        "multiqc -o qc qc -n full_qc_report.html > {log} 2>&1"

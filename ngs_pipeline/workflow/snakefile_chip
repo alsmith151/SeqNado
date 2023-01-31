@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
-import ngs_pipeline.chipseq.utils as chip_utils
+import ngs_pipeline.utils_chipseq as chip_utils
 import ngs_pipeline.utils as utils
 import pandas as pd
 
@@ -16,7 +16,6 @@ configfile: "config_chip.yml"
 
 
 container: "library://asmith151/ngs-pipeline/ngs:latest"
-
 
 utils.format_config_dict(config)
 pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
@@ -31,11 +30,11 @@ PEAK_CALL_METHODS = [
     if pipeline_tools[method] == True
 ]
 DUPLICATE_REMOVAL_METHODS = {
-    "picard": "../rules/remove_pcr_duplicates_picard.smk",
-    "deeptools": "../rules/remove_pcr_duplicates_deeptools.smk",
+    "picard": "rules/remove_pcr_duplicates_picard.smk",
+    "deeptools": "rules/remove_pcr_duplicates_deeptools.smk",
 }
 DUPLICATE_REMOVAL_RULE = DUPLICATE_REMOVAL_METHODS.get(
-    config["remove_pcr_duplicates_method"], "../rules/remove_pcr_duplicates_ignore.smk"
+    config["remove_pcr_duplicates_method"], "rules/remove_pcr_duplicates_ignore.smk"
 )
 
 
@@ -81,10 +80,6 @@ include: "rules/hub.smk"
 
 rule all:
     input:
-        multiqc_fastq_raw="qc/fastq_qc_raw_report.html",
-        multiqc_fastq_trimmed="qc/fastq_qc_trimmed_report.html",
-        multiqc_bam_raw="qc/bam_raw_qc_report.html",
-        multiqc_bam_filtered="qc/bam_filtered_qc_report.html",
         mutiqc_full="qc/full_qc_report.html",
         pileups=expand(
             "bigwigs/{method}/{sample}.bigWig",
@@ -118,3 +113,10 @@ onsuccess:
 
         except Exception as e:
             print(e)
+
+onerror:
+    log_out = "ngs_pipeline_error.log"
+    shutil.copyfile(log, log_out)
+    print(
+        f"An error occurred. Please check the log file {log_out} for more information."
+    )
