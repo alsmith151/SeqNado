@@ -29,7 +29,7 @@ dependencies:
   - seaborn
   - snakemake
   - star
-  - subread 
+  - subread
   - trackhub
   - trim-galore
   - ucsc-bedgraphtobigwig

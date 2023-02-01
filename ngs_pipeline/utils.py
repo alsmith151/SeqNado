@@ -188,27 +188,23 @@ class GenericFastqSamples:
 
 def get_pipeline_tools(config: Dict, assay="ChIP") -> Dict:
     if not assay == "RNA":
-        tools =  dict(
-        homer="homer" in config["pileup_method"]
-        or "homer" in config["peak_calling_method"],
-        deeptools="deeptools" in config["pileup_method"],
-        macs="macs" in config["peak_calling_method"],
-        lanceotron="lanceotron" in config["peak_calling_method"],
-    )
+        tools = dict(
+            homer="homer" in config["pileup_method"]
+            or "homer" in config["peak_calling_method"],
+            deeptools="deeptools" in config["pileup_method"],
+            macs="macs" in config["peak_calling_method"],
+            lanceotron="lanceotron" in config["peak_calling_method"],
+        )
     else:
         tools = dict(
-        deeptools="deeptools" in config["pileup_method"],
-    )
+            deeptools="deeptools" in config["pileup_method"],
+        )
 
     return tools
 
-    
-    
-    
-    
 
 def check_options(value: object):
     if value in [None, np.nan, pd.NA, ""]:
         return ""
     else:
-        return value 
+        return value

@@ -21,34 +21,33 @@ def set_up():
     path_root = os.getcwd()
 
     # Make indicies
-    indicies = os.path.join(dir_data_genome, 'star')
+    indicies = os.path.join(dir_data_genome, "star")
     fasta = os.path.join(dir_data_genome, "chr21_rename.fa")
     gtf = os.path.join(dir_data_genome, "chr21.gtf")
-    
+
     if not os.path.exists(indicies):
         os.mkdir(indicies)
-        cmd = f"""STAR 
+        cmd = f"""STAR
                   --runMode genomeGenerate
-                  --runThreadN 4 
+                  --runThreadN 4
                   --genomeDir {indicies}
                   --genomeFastaFiles {fasta}
-                  --sjdbGTFfile {gtf} 
-                  --sjdbOverhang 100 
-                  --genomeSAindexNbases 11 
+                  --sjdbGTFfile {gtf}
+                  --sjdbOverhang 100
+                  --genomeSAindexNbases 11
                 """
         subprocess.run(cmd.split())
-    
-    
+
     # Change wd
     if not os.path.exists(dir_tests_run):
         os.mkdir(dir_tests_run)
-    
+
     os.chdir(dir_tests_run)
 
     # Move config files and fastq files
     for fq in glob.glob(f"{dir_data_test}/rna*.fastq.gz"):
         shutil.copy(fq, ".")
-    
+
     # Move and replace the config file
     replacements_dict = {
         "GENOME_NAME": "hg19",
@@ -80,12 +79,6 @@ def test_pipeline():
     cmd = "ngs-pipeline rna make --local -p 4"
     completed = subprocess.run(cmd.split())
     assert completed.returncode == 0
-   
-
-
-
-
-
 
 
 ""
