@@ -133,27 +133,19 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
     ```
     ngs-pipeline atac # ATAC-seq samples
     ngs-pipeline chip # ChIP-seq/ChIPMentation
-    ngs-pipeline rna # RNA-seq - Not fully tested 
+    ngs-pipeline rna # RNA-seq - Not fully tested
     ```
 
     There are several options to visualise which tasks will be performed by the pipeline
-    before running. 
+    before running.
 
     ```
     # If using all default settings (this will run on just the login node)
     ngs-pipeline atac -c NUMBER_OF_CORES
 
     # If you want to use the cluster (recommended)
-    ngs-pipeline atac -c NUMBER_OF_CORES 
+    ngs-pipeline atac -c NUMBER_OF_CORES
 
     # Avoiding network disconnections
     nohup ngs-pipeline atac make &
     ```
-
-
-
-
-
-
-
-
