@@ -5,7 +5,7 @@ import subprocess
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
-def cli(method, help=False):
+def cli_config(method, help=False):
     """
     Runs the config for the data processing pipeline.
     """
