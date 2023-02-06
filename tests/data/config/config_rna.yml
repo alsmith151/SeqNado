@@ -129,4 +129,3 @@ deeptools:
     # These need to be replaced
     # e.g. -bs 1 --normalizeUsing RPKM
     bamcoverage:
-        -bs 1 --normalizeUsing RPKM

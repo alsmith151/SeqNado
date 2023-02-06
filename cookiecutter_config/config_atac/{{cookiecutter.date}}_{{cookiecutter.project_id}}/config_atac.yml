@@ -46,7 +46,7 @@ homer:
 
 deeptools:
     threads: 8
-    alignmentsieve: --minMappingQuality 30
+    alignmentsieve: --minMappingQuality 30 
     # Options passed to deeptools BamCoverage
     # These need to be replaced
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
@@ -62,3 +62,4 @@ lanceotron:
     use_input: True
     # Options passed to callPeaks[Input] command
     callpeak: -c 0.5
+

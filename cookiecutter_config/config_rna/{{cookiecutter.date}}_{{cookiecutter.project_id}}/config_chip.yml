@@ -1,3 +1,7 @@
+################################# 
+# RNA-seq Pipeline Config file #
+#################################
+
 version: 1.0
 
 ###################################
@@ -8,6 +12,7 @@ genome:
     name: "{{cookiecutter.genome}}"
     chromosome_sizes: "{{cookiecutter.chromosome_sizes}}"
     indicies: "{{cookiecutter.indicies}}"
+    annotation: "{{cookiecutter.gtf}}"
 
 ###################################
 #  Optional configuration         #
@@ -16,8 +21,6 @@ genome:
 design: "{{cookiecutter.date}}_{{cookiecutter.project_id}}/samples_{{cookiecutter.project_id}}.csv"
 blacklist: "{{cookiecutter.blacklist}}"
 pileup_method: "{{cookiecutter.pileup_method}}"
-peak_calling_method: "{{cookiecutter.peak_calling_method}}"
-remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
 
 ucsc_hub_details:
     directory: "{{cookiecutter.UCSC_hub_directory}}"
@@ -27,6 +30,7 @@ ucsc_hub_details:
     email: "{{cookiecutter.email}}"
     color_by: "{{cookiecutter.color_by}}"
 
+
 #################################
 # Tool specific options         #
 #################################
@@ -34,31 +38,23 @@ ucsc_hub_details:
 trim_galore:
     threads: 4
 
-bowtie2:
+star:
+    threads: 4
+    options:
+
+featurecounts:
     threads: 4
     options:
 
 homer:
-    use_input: true
     maketagdirectory:
     makebigwig:
     findpeaks:
 
 deeptools:
     threads: 8
-    alignmentsieve: --minMappingQuality 30
+    alignmentsieve: --minMappingQuality 30 
     # Options passed to deeptools BamCoverage
     # These need to be replaced
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
     bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
-
-macs:
-    version: 2
-    callpeak:
-
-lanceotron:
-    # Instructs lanceotron to use the matched input file for peak calling
-    # No effect if input file is not matched
-    use_input: True
-    # Options passed to callPeaks[Input] command
-    callpeak: -c 0.5

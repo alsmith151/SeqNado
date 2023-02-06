@@ -20,7 +20,7 @@ rule index_bam:
         index="aligned/{sample}.bam.bai",
     threads: 1
     shell:
-        "samtools index {input.bam} -@ {threads}"
+        "samtools index -@ {threads} -b {input.bam}"
 
 
 rule remove_blacklisted_regions:

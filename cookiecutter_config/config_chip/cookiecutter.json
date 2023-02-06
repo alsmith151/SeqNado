@@ -16,4 +16,6 @@
   "long": "Long hub name (UCSC required)",
   "email": "Email address (UCSC required)",
   "color_by": ["samplename", "antibody", "method"]
-  }
+}
+
+    
