@@ -1,5 +1,5 @@
 import re
-import ngs_pipeline.utils as utils
+import seqnado.utils as utils
 import pysam
 
 # def is_sample_paired(sample):

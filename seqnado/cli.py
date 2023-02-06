@@ -13,7 +13,7 @@ def cli_config(method, help=False):
     """
     cmd = [
         "cookiecutter",
-        os.path.join(PACKAGE_DIR, "cookiecutter_config", f"config_{method}"),
+        os.path.join(PACKAGE_DIR, "data/cookiecutter_config", f"config_{method}"),
     ]
 
     completed = subprocess.run(cmd)

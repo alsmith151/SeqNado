@@ -1,4 +1,4 @@
-import ngs_pipeline.utils as utils
+import seqnado.utils as utils
 
 
 rule align_paired:
