@@ -12,7 +12,7 @@ ASSAY = "RNA"
 
 configfile: "../config/config_rna.yml"
 
-container: "library://asmith151/ngs-pipeline/ngs:latest"
+container: "library://asmith151/seqnado/ngs:latest"
 
 
 utils.format_config_dict(config)

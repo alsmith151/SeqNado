@@ -5,6 +5,7 @@ import subprocess
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
 
+
 @click.command()
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
 def cli_config(method, help=False):
@@ -13,15 +14,15 @@ def cli_config(method, help=False):
     """
     cmd = [
         "cookiecutter",
-        os.path.join(PACKAGE_DIR, 'cookiecutter_config', f'config_{method}'),
+        os.path.join(PACKAGE_DIR, "cookiecutter_config", f"config_{method}"),
     ]
 
     completed = subprocess.run(cmd)
 
     if not completed.returncode == 0:
         raise RuntimeError("Pipeline config failed. Check the log.")
-        
-        
+
+
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
 @click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)

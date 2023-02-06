@@ -48,4 +48,4 @@ rule multiqc:
     log:
         "logs/multiqc.log",
     shell:
-        "multiqc -o qc qc -n full_qc_report.html > {log} 2>&1"
+        "multiqc -o qc qc -n full_qc_report.html --force > {log} 2>&1"
