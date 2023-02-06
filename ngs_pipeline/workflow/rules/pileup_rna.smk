@@ -1,21 +1,6 @@
 import re
 
 
-def split_options_and_scale_factor():
-
-    options = [op.strip() for op in config["deeptools"]["bamcoverage"].split()]
-
-    if "--scaleFactor" in options:
-        option_index = options.index("--scaleFactor")
-        scale_factor = options.pop(option_index + 1)
-        options.pop(option_index)
-
-    else:
-        scale_factor = 1
-
-    return {"options": " ".join(options), "scale_factor": scale_factor}
-
-
 rule deeptools_make_bigwigs_rna_plus:
     input:
         bam="aligned_and_filtered/{sample}.bam",
@@ -23,14 +8,12 @@ rule deeptools_make_bigwigs_rna_plus:
         filtering="flags/{sample}.filtering.complete.sentinel",
     output:
         bigwig="bigwigs/deeptools/{sample}_plus.bigWig",
-    params:
-        **split_options_and_scale_factor(),
     threads: config["deeptools"]["threads"]
     log:
-        "logs/pileups/deeptools/{sample}.log",
+        "logs/pileups/deeptools/{sample}_plus.log",
     shell:
         """
-        bamCoverage -b {input.bam} -o {output.bigwig} --filterRNAstrand forward -p {threads} --scaleFactor {params.scale_factor} > {log} 2>&1
+        bamCoverage -p {threads} --filterRNAstrand forward -b {input.bam} -o {output.bigwig} > {log} 2>&1
         """
 
 
@@ -41,12 +24,10 @@ rule deeptools_make_bigwigs_rna_minus:
         filtering="flags/{sample}.filtering.complete.sentinel",
     output:
         bigwig="bigwigs/deeptools/{sample}_minus.bigWig",
-    params:
-        **split_options_and_scale_factor(),
     threads: config["deeptools"]["threads"]
     log:
-        "logs/pileups/deeptools/{sample}.log",
+        "logs/pileups/deeptools/{sample}_minus.log",
     shell:
         """
-        bamCoverage -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse -p {threads} --scaleFactor -{params.scale_factor} > {log} 2>&1
+        bamCoverage -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse -p {threads} > {log} 2>&1
         """
