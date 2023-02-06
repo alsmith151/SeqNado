@@ -3,7 +3,7 @@ import os
 import subprocess
 
 FILE = os.path.abspath(__file__)
-PACKAGE_DIR = os.path.dirname(file)
+PACKAGE_DIR = os.path.dirname(FILE)
 
 @click.command()
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))

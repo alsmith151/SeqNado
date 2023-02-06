@@ -26,4 +26,4 @@ rule reindex_bam:
         index="aligned_and_filtered/{sample}.bam.bai",
     threads: 1
     shell:
-        "samtools index {input.bam} -@ {threads}"
+        "samtools index -@ {threads} -b {input.bam}"

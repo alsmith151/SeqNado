@@ -51,8 +51,8 @@ def fastqs(data_path):
 
 
 @pytest.fixture(scope="module")
-def config_path(repo_path):
-    return os.path.join(repo_path, "config")
+def config_path(data_path):
+    return os.path.join(data_path, "config")
 
 
 @pytest.fixture(scope="module")

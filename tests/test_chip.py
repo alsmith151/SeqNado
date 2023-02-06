@@ -51,8 +51,8 @@ def fastqs(data_path):
 
 
 @pytest.fixture(scope="module")
-def config_path(repo_path):
-    return os.path.join(repo_path, "config")
+def config_path(data_path):
+    return os.path.join(data_path, "config")
 
 
 @pytest.fixture(scope="module")
@@ -137,26 +137,26 @@ def set_up(
     os.chdir(cwd)
 
 
-# def test_pipeline_conda():
+def test_pipeline_conda():
 
-#     cmd = f"ngs-pipeline chip --cores 4 --configfile config_chip.yml"
-#     completed = subprocess.run(cmd.split())
-#     assert completed.returncode == 0
-
-
-def test_pipeline_singularity(genome_path):
-    indicies_dir = os.path.join(genome_path, "bt2")
-
-    cmd = [
-        "ngs-pipeline",
-        "chip",
-        "--cores",
-        "4",
-        "--configfile",
-        "config_chip.yml",
-        "--use-singularity",
-        "--singularity-args",
-        f'" -B {indicies_dir} -B {genome_path}"',
-    ]
-    completed = subprocess.run(" ".join(cmd), shell=True)
+    cmd = f"ngs-pipeline chip --cores 4 --configfile config_chip.yml"
+    completed = subprocess.run(cmd.split())
     assert completed.returncode == 0
+
+
+# def test_pipeline_singularity(genome_path):
+#     indicies_dir = os.path.join(genome_path, "bt2")
+
+#     cmd = [
+#         "ngs-pipeline",
+#         "chip",
+#         "--cores",
+#         "4",
+#         "--configfile",
+#         "config_chip.yml",
+#         "--use-singularity",
+#         "--singularity-args",
+#         f'" -B {indicies_dir} -B {genome_path}"',
+#     ]
+#     completed = subprocess.run(" ".join(cmd), shell=True)
+#     assert completed.returncode == 0

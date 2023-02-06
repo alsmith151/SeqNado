@@ -1,0 +1,25 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.10.9, pytest-7.2.1, pluggy-1.0.0
+rootdir: /Users/catherine/GMS/ngs_pipeline
+collected 3 items
+
+tests/test_atac.py .
+tests/test_chip.py .
+tests/test_rna.py An error occurred. Please check the log file ngs_pipeline_error.log for more information.
+F
+
+=================================== FAILURES ===================================
+_____________________________ test_pipeline_conda ______________________________
+
+    def test_pipeline_conda():
+    
+        cmd = "ngs-pipeline rna --cores 4 --configfile config_rna.yml"
+        completed = subprocess.run(cmd.split())
+>       assert completed.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['ngs-pipeline', 'rna', '--cores', '4', '--configfile', 'config_rna.yml'], returncode=1).returncode
+
+/Users/catherine/GMS/ngs_pipeline/tests/test_rna.py:153: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_rna.py::test_pipeline_conda - AssertionError: assert 1 == 0
+=================== 1 failed, 2 passed in 286.94s (0:04:46) ====================
