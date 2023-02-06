@@ -1,4 +1,4 @@
-# NGS Pipeline
+# SeqNado Pipeline
 
 Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
 
@@ -16,15 +16,15 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
     a) Clone the repositry and install directly
 
     ```
-    git clone https://github.com/alsmith151/ngs_pipeline.git
-    cd ngs_pipeline
+    git clone https://github.com/alsmith151/SeqNado.git
+    cd SeqNado
     pip install .
     ```
 
     b) Install from GitHub directly
 
     ```
-    pip install git+https://github.com/alsmith151/ngs_pipeline.git
+    pip install git+https://github.com/alsmith151/SeqNado.git
     ```
 
 1. If you intend to use a cluster e.g. SLURM add the path to the DRMAA interface to your .bashrc:
@@ -59,17 +59,18 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
     The paths supplied do not have to be in the same directory as the pipeline.
 
     A copy of config_X.yml can be downloaded from GitHub using:
+
     ```
-    wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_atac.yml # ATAC
-    wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_chip.yml # ChIP
-    wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_rna.yml  # RNA
+        wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_atac.yml # ATAC
+        wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_chip.yml # ChIP
+        wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_rna.yml  # RNA
 
     ```
 
     This [yaml](https://yaml.org/spec/1.2/spec.html) file can be edited using standard text editors e.g.
 
     ```
-    nano config_atac.yml
+        nano config_atac.yml
     ```
 
 1. Copy or link fastq files into the working directory
@@ -131,9 +132,9 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
     config.yml in the working directory for the current experiment, the pipeline can be run with:
 
     ```
-    ngs-pipeline atac # ATAC-seq samples
-    ngs-pipeline chip # ChIP-seq/ChIPMentation
-    ngs-pipeline rna # RNA-seq - Not fully tested
+    seqnado atac # ATAC-seq samples
+    seqnado chip # ChIP-seq/ChIPMentation
+    seqnado rna # RNA-seq - Not fully tested
     ```
 
     There are several options to visualise which tasks will be performed by the pipeline
@@ -141,11 +142,11 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
 
     ```
     # If using all default settings (this will run on just the login node)
-    ngs-pipeline atac -c NUMBER_OF_CORES
+    seqnado atac -c NUMBER_OF_CORES
 
     # If you want to use the cluster (recommended)
-    ngs-pipeline atac -c NUMBER_OF_CORES
+    seqnado atac -c NUMBER_OF_CORES
 
     # Avoiding network disconnections
-    nohup ngs-pipeline atac make &
+    nohup seqnado atac make &
     ```
