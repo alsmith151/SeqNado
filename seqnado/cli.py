@@ -5,7 +5,6 @@ import subprocess
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
 
-
 @click.command()
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
 def cli_config(method, help=False):
@@ -37,30 +36,13 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
 
     """Runs the data processing pipeline"""
 
-    if method == "chip":
-        cmd = [
-            "snakemake",
-            "-c",
-            str(cores),
-            "--snakefile",
-            f"{PACKAGE_DIR}/workflow/snakefile_chip",
-        ]
-    elif method == "atac":
-        cmd = [
-            "snakemake",
-            "-c",
-            str(cores),
-            "--snakefile",
-            f"{PACKAGE_DIR}/workflow/snakefile_atac",
-        ]
-    elif method == "rna":
-        cmd = [
-            "snakemake",
-            "-c",
-            str(cores),
-            "--snakefile",
-            f"{PACKAGE_DIR}/workflow/snakefile_rna",
-        ]
+    cmd = [
+        "snakemake",
+        "-c",
+        str(cores),
+        "--snakefile",
+        os.path.join(PACKAGE_DIR, "workflow", f"snakefile_{method}"),
+    ]
 
     if pipeline_options:
         cmd.extend(pipeline_options)
@@ -69,7 +51,7 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
         cmd.extend(
             [
                 "--profile",
-                os.path.abspath(os.path.join(PACKAGE_DIR, "profile_drmaa_sigularity")),
+                os.path.abspath(os.path.join(PACKAGE_DIR, "workflow/envs/profiles/profile_drmaa_singularity")),
             ]
         )
 
