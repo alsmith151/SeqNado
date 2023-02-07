@@ -12,7 +12,7 @@ min_version("6.10")
 start_time = datetime.now()
 ASSAY = "RNA"
 
-configfile: "../config/config_rna.yml"
+configfile: "config_rna.yml"
 
 container: "library://asmith151/ngs-pipeline/ngs:latest"
 
@@ -24,13 +24,14 @@ pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
 PILEUP_METHODS = [
     method for method in ["deeptools", "homer"] if pipeline_tools.get(method, False)]
 
-DUPLICATE_REMOVAL_METHODS = {
-    "picard": "rules/remove_pcr_duplicates_picard.smk",
-    "deeptools": "rules/remove_pcr_duplicates_deeptools.smk",
-}
-DUPLICATE_REMOVAL_RULE = DUPLICATE_REMOVAL_METHODS.get(
-    config["remove_pcr_duplicates_method"], "rules/remove_pcr_duplicates_ignore.smk"
-)
+# DUPLICATE_REMOVAL_METHODS = {
+#     "picard": "rules/remove_pcr_duplicates_picard.smk",
+#     "deeptools": "rules/remove_pcr_duplicates_deeptools.smk",
+# }
+# DUPLICATE_REMOVAL_RULE = DUPLICATE_REMOVAL_METHODS.get(
+#     config["remove_pcr_duplicates_method"], 
+#     "rules/remove_pcr_duplicates_ignore.smk"
+# )
 
 # Get dataframe of samples
 if os.path.exists(config["design"]):
@@ -57,7 +58,8 @@ SAMPLE_NAMES = RNA_SAMPLES.sample_names_all
 include: "rules/qc.smk"
 include: "rules/read_trimming.smk"
 include: "rules/align_rna.smk"
-include: DUPLICATE_REMOVAL_RULE
+# include: DUPLICATE_REMOVAL_RULE
+include: "rules/remove_pcr_duplicates_ignore.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/pileup_rna.smk"
