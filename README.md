@@ -50,9 +50,7 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
 
     ```
 
-    This will lead you through a series of questions to set up the pipeline directory, config file, and sample sheet for you to edit.
-
-    Where `<directory>` is the directory you want to run the pipeline in and `<type>` is the type of sequencing data you are processing. This will create a config file and a sample sheet for you to edit.
+    This will lead you through a series of questions which will create a new project directory, config file and a sample sheet for you to edit.
 
     cd into the newly made directory and edit the config file and sample sheet.
 
