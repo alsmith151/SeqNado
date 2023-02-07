@@ -39,39 +39,22 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
 
 ## Running the pipeline
 
-1. Create a working directory
+1. Setup project directory using seqnado-config
 
-
-    To run the pipeline you will need to create a working directory for the pipeline run:
-
-    ```
-    mkdir RS411_EPZ5676/
-    cd RS411_EPZ5676/
-    ```
-
-    The pipeline will be executed here and all files will be generated
-    in this directory.
-
-1. Get and edit the pipeline configuration file.
-
-    The configuration file [config_X.yml](https://github.com/alsmith151/ngs_pipeline/blob/master/config_atac.yml) enables parameterisation of the pipeline run with user specific settings. Furthermore,
-    it also provides paths to essential files for the pipeline run (e.g., bowtie2 indices).
-    The paths supplied do not have to be in the same directory as the pipeline.
-
-    A copy of config_X.yml can be downloaded from GitHub using:
+    In the parent directory of the working directory run the following command:
 
     ```
-        wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_atac.yml # ATAC
-        wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_chip.yml # ChIP
-        wget https://raw.githubusercontent.com/alsmith151/ngs_pipeline/master/config_rna.yml  # RNA
+    seqnado-config atac # ATAC-seq samples
+    seqnado-config chip # ChIP-seq/ChIPMentation
+    seqnado-config rna # RNA-seq - Not fully tested
 
     ```
 
-    This [yaml](https://yaml.org/spec/1.2/spec.html) file can be edited using standard text editors e.g.
+    This will lead you through a series of questions to set up the pipeline directory, config file, and sample sheet for you to edit.
 
-    ```
-        nano config_atac.yml
-    ```
+    Where `<directory>` is the directory you want to run the pipeline in and `<type>` is the type of sequencing data you are processing. This will create a config file and a sample sheet for you to edit.
+
+    cd into the newly made directory and edit the config file and sample sheet.
 
 1. Copy or link fastq files into the working directory
 
