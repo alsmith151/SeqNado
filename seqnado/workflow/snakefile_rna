@@ -21,8 +21,7 @@ utils.format_config_dict(config)
 pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
 
 # Methods to use
-PILEUP_METHODS = [
-    method for method in ["deeptools", "homer"] if pipeline_tools.get(method, False)]
+PILEUP_METHODS = config["pileup_method"],
 
 # DUPLICATE_REMOVAL_METHODS = {
 #     "picard": "rules/remove_pcr_duplicates_picard.smk",
@@ -63,7 +62,7 @@ include: "rules/remove_pcr_duplicates_ignore.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/pileup_rna.smk"
-include: "rules/hub.smk"
+include: "rules/hub_rna.smk"
 
 
 rule all:
