@@ -56,9 +56,9 @@ rule shift_atac_alignments:
                                   samtools index {input.bam}
                                   """
 
-else:
-    cmd = f"""echo "Will not shift reads" > {log}"""
-            shell(cmd)
+        else:
+            cmd = f"""echo "Will not shift reads" > {log}"""
+        shell(cmd)
 
 
 rule mark_filtering_complete:
