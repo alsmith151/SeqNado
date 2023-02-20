@@ -1,26 +1,26 @@
 import re
-import ngs_pipeline.utils as utils
-import pysam
+import seqnado.utils as utils
+# import pysam
 
-# def is_sample_paired(sample):
-#     if DESIGN.query("paired == True")["basename"].str.contains(sample).any():
-#         return True
-
-
-def is_bam_paired_end(wc, bam):
-
-    if os.path.exists(bam):
-        bam_ps = pysam.AlignmentFile(bam)
-        head = bam_ps.head(1000)
-        n_paired_reads = sum([aln.is_paired for aln in head])
-
-        if n_paired_reads > 0:
-            return True
-
-    else:
-        # TODO fix this for the new format
-        # return is_sample_paired(wc.sample)
+def is_sample_paired(sample):
+    if DESIGN.query("paired == True")["basename"].str.contains(sample).any():
         return True
+
+
+# def is_bam_paired_end(wc, bam):
+
+#     if os.path.exists(bam):
+#         bam_ps = pysam.AlignmentFile(bam)
+#         head = bam_ps.head(1000)
+#         n_paired_reads = sum([aln.is_paired for aln in head])
+
+#         if n_paired_reads > 0:
+#             return True
+
+#     else:
+#         # TODO fix this for the new format
+#         # return is_sample_paired(wc.sample)
+#         return True
 
 
 def filter_deeptools_bamcoverage_options(wc):
@@ -31,9 +31,9 @@ def filter_deeptools_bamcoverage_options(wc):
     )
 
     if "-e" in options or "--extendReads" in options:
-        if not is_bam_paired_end(wc, bam) and not re.search(
-            "(-e \d+)|(--extendReads \d+)", options
-        ):
+        # if not is_bam_paired_end(wc, bam) and not re.search(
+        #     "(-e \d+)|(--extendReads \d+)", options
+        # ):
             options = options.replace("--extendReads ", "").replace("-e ", "")
 
     return options

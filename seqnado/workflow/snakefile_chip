@@ -4,8 +4,8 @@ import shutil
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
-import ngs_pipeline.utils_chipseq as chip_utils
-import ngs_pipeline.utils as utils
+import seqnado.utils_chipseq as chip_utils
+import seqnado.utils as utils
 import pandas as pd
 
 start_time = datetime.now()
@@ -15,7 +15,7 @@ ASSAY = "ChIP"
 configfile: "config_chip.yml"
 
 
-container: "library://asmith151/seqnado/ngs:latest"
+container: "library://asmith151/ngs-pipeline/ngs:latest"
 
 utils.format_config_dict(config)
 pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
@@ -115,7 +115,7 @@ onsuccess:
             print(e)
 
 onerror:
-    log_out = "ngs_pipeline_error.log"
+    log_out = "seqnado_error.log"
     shutil.copyfile(log, log_out)
     print(
         f"An error occurred. Please check the log file {log_out} for more information."

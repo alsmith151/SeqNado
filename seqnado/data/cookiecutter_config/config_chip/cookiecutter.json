@@ -1,19 +1,21 @@
 {
-  "user_name": "Your name", 
+  "user_name": "Your name",
   "date": ["{% now 'utc', '%Y-%m-%d' %}"],
   "project_name": "Project name",
   "project_id": ["{{cookiecutter.project_name.lower().replace(' ', '_') }}"],
   "genome": "hg38",
-  "chromosome_sizes": "ngs_pipeline/data/resources/hg38/hg38.chrom.sizes",
+  "chromosome_sizes": "path/to/hg38.chrom.sizes",
   "indicies": "/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome",
-  "blacklist": "ngs_pipeline/data/resources/hg38/hg38-blacklist.v2.bed.gz",
+  "blacklist": "path/to/hg38-blacklist.v2.bed.gz",
   "pileup_method": ["deeptools"],
   "peak_calling_method": ["macs", "lanceotron", "homer"],
   "remove_pcr_duplicates_method": ["picard", "deeptools"],
-  "UCSC_hub_directory": "Location of publically accessible location on the server",
+  "UCSC_hub_directory": "path/to/ publically accessible location on the server",
   "name": "Name for the hub (UCSC required)",
   "short": "Short hub name (UCSC required)",
   "long": "Long hub name (UCSC required)",
   "email": "Email address (UCSC required)",
   "color_by": ["samplename", "antibody", "method"]
-  }
+}
+
+    
