@@ -7,8 +7,8 @@ This file contains the instructions for the ATAC-seq pipeline.
 
 ## samples
 
-sample sheet: `{{cookiecutter.date}}_{{cookiecutter.project_id}}/samples_{{cookiecutter.project_id}}.csv` can be edited 
- 
+sample sheet: `{{cookiecutter.date}}_{{cookiecutter.project_id}}/samples_{{cookiecutter.project_id}}.csv` can be edited
+
 ## config
 
 cookiecutter has generated the file config_atac.yml
@@ -19,18 +19,17 @@ The keys marked as optional can either be left as the default or adjusted if req
 
 The pipeline is run by the following command:
 
-ngs-pipeline atac -c N_CORES
+seqnado atac -c N_CORES
 
-To use the singularity container (allows for running the pipeline with a minimal conda environment), 
+To use the singularity container (allows for running the pipeline with a minimal conda environment),
 you will also need to 'bind' paths to the container (this allows for folders outside the current directory to be used i.e. /t1-data).
 
-ngs-pipeline atac -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank "
+seqnado atac -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank "
 
 To run all jobs on the cluster (highly recommended; these options are for slurm i.e. cbrg cluster):
 
-ngs-pipeline atac -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00 "  
+seqnado atac -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00 "
 
 Combining both singularity and slurm options:
 
-ngs-pipeline atac -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank " --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem} --time 24:00:00 "
-
+seqnado atac -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank " --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem} --time 24:00:00 "

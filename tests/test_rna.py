@@ -148,7 +148,7 @@ def set_up(
 
 # def test_pipeline_conda():
 
-#     cmd = "ngs-pipeline rna --cores 4 --configfile config_rna.yml"
+#     cmd = "seqnado rna --cores 4 --configfile config_rna.yml"
 #     completed = subprocess.run(cmd.split())
 #     assert completed.returncode == 0
 
@@ -156,7 +156,7 @@ def set_up(
 def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
 
     cmd = [
-        "ngs-pipeline",
+        "seqnado",
         "rna",
         "--cores",
         "4",

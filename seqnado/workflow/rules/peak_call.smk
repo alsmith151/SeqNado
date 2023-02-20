@@ -73,9 +73,9 @@ rule macs2_no_input:
     run:
         narrow = output.peaks.replace(".bed", "_peaks.narrowPeak")
         cmd = f"""
-                                                macs2 callpeak -t {input.treatment} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
-                                                cat {narrow} | cut -f 1-3 > {output.peaks}
-                                                """
+                                                        macs2 callpeak -t {input.treatment} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
+                                                        cat {narrow} | cut -f 1-3 > {output.peaks}
+                                                        """
 
         if workflow.use_singularity:
             cmd = utils.get_singularity_command(

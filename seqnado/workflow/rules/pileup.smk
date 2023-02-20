@@ -67,7 +67,7 @@ rule homer_make_bigwigs:
         options=config["homer"]["makebigwig"],
     run:
         cmd = f"""makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir bigwigs/homer/ {params.options} > {log} 2>&1 &&
-                                 mv {output.homer_bigwig.replace(".bigWig", ".ucsc.bigWig")} {output.homer_bigwig}"""
+                                         mv {output.homer_bigwig.replace(".bigWig", ".ucsc.bigWig")} {output.homer_bigwig}"""
 
         if workflow.use_singularity:
             cmd = utils.get_singularity_command(

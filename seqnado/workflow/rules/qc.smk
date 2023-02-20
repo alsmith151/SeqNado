@@ -20,7 +20,8 @@ use rule fastqc_raw as fastqc_trimmed with:
     params:
         outdir="qc/fastq_trimmed",
     log:
-        "logs/fastqc_trimmed/{sample}_{read}.log"
+        "logs/fastqc_trimmed/{sample}_{read}.log",
+
 
 rule samtools_stats:
     input:
@@ -31,16 +32,26 @@ rule samtools_stats:
     shell:
         """samtools stats {input.bam} > {output.stats}"""
 
+
 use rule samtools_stats as samtools_stats_filtered with:
     input:
         bam="aligned_and_filtered/{sample}.bam",
     output:
         stats="qc/alignment_filtered/{sample}.txt",
 
+
 rule multiqc:
     input:
-        expand("qc/fastq_raw/{sample}_{read}_fastqc.html", sample=SAMPLE_NAMES, read=[1, 2]),
-        expand("qc/fastq_trimmed/{sample}_{read}_fastqc.html", sample=SAMPLE_NAMES, read=[1,2]),
+        expand(
+            "qc/fastq_raw/{sample}_{read}_fastqc.html",
+            sample=SAMPLE_NAMES,
+            read=[1, 2],
+        ),
+        expand(
+            "qc/fastq_trimmed/{sample}_{read}_fastqc.html",
+            sample=SAMPLE_NAMES,
+            read=[1, 2],
+        ),
         expand("qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
         expand("qc/alignment_filtered/{sample}.txt", sample=SAMPLE_NAMES),
     output:
