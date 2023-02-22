@@ -46,19 +46,10 @@ rule shift_atac_alignments:
         options=None,
     threads: 1
     log:
-        "logs/duplicate_removal/deeptools/{sample}.log",
-    run:
-        if config.get("shift_atac_reads"):
+        "logs/atac_shift/{sample}.log",
+    script:
+        "../scripts/shift_alignments.py"
 
-            cmd = f"""
-                                  rsbamtk shift -b {input.bam} -o {input.bam}.tmp &&
-                                  samtools sort {input.bam}.tmp -@ {threads} -o {input.bam} &&
-                                  samtools index {input.bam}
-                                  """
-
-        else:
-            cmd = f"""echo "Will not shift reads" > {log}"""
-        shell(cmd)
 
 
 rule mark_filtering_complete:
