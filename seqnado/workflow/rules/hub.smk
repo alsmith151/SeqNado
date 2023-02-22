@@ -43,61 +43,11 @@ rule generate_hub_for_chipseq_and_atacseq:
         ),
     log:
         log=f"logs/{config['ucsc_hub_details']['name']}.hub.log",
-    run:
-        import pandas as pd
-        import itertools
+    params:
+        assay = ASSAY,
+    script:
+        "../scripts/create_hub_genomics.py",
 
-        # Set up details
-        df = pd.DataFrame(
-            itertools.chain.from_iterable(
-                [files for files in [input.bigbed, input.bigwig]]
-            ),
-            columns=["filename"],
-        )
-
-        if ASSAY == "ChIP":
-            df[["samplename", "antibody"]] = df["filename"].str.extract(
-                r".*/(.*)_(.*)\.(?:bigBed|bigWig)"
-            )
-        else:
-            df["samplename"] = df["filename"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
-
-        df["method"] = df["filename"].apply(lambda x: x.split("/")[-2])
-
-
-        file_details = f"{os.path.dirname(output.hub)}/hub_details.tsv"
-        df.set_index("filename").to_csv(file_details, sep="\t")
-
-        color_by = config["ucsc_hub_details"].get("color_by", None)
-
-        if not color_by:
-            if df["samplename"].unique().shape[0] == 1:
-                color_by = ("antibody",)
-            else:
-                color_by = ("samplename", "antibody")
-
-        cmd = " ".join(
-            [
-                "make-ucsc-hub",
-                " ".join(df["filename"]),
-                "-d",
-                file_details,
-                "-o",
-                os.path.dirname(output.hub),
-                "--hub-name",
-                config["ucsc_hub_details"]["name"],
-                "--hub-email",
-                config["ucsc_hub_details"]["email"],
-                "--genome-name",
-                config["genome"]["name"],
-                "--description-html",
-                input.report,
-                " ".join([f"--color-by ", color_by]),
-            ]
-        )
-
-
-        shell(cmd)
 
 localrules:
     generate_hub_for_chipseq_and_atacseq,
