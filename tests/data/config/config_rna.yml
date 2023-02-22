@@ -63,11 +63,7 @@ peak_calling_method:
 
 # Tool to remove duplicates: None - do not remove, picard - picard markDuplicates, deeptools - deeptools alignmentSieve
 remove_pcr_duplicates_method:
-    picard
-
-# Shift ATAC-seq reads to account for the transposon insertion site.
-shift_rna_reads:
-    True
+    - picard
 
 ucsc_hub_details:
 
