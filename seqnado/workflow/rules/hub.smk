@@ -46,7 +46,7 @@ rule generate_hub_for_chipseq_and_atacseq:
     params:
         assay = ASSAY,
     script:
-        "../scripts/create_hub_genomics.py",
+        "../scripts/create_hub_genomics.py"
 
 
 localrules:
