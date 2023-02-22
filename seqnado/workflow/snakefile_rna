@@ -21,16 +21,16 @@ utils.format_config_dict(config)
 pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
 
 # Methods to use
-PILEUP_METHODS = config["pileup_method"],
+pm = config["pileup_method"]
+if isinstance(pm, str):
+    PILEUP_METHODS = [pm]
+elif isinstance(pm, tuple):
+    PILEUP_METHODS = itertools.chain.from_iterable(pm)
+elif isinstance(pm, list):
+    PILEUP_METHODS = pm
+else:
+    raise ValueError("Pileup method must be a string or list of strings")
 
-# DUPLICATE_REMOVAL_METHODS = {
-#     "picard": "rules/remove_pcr_duplicates_picard.smk",
-#     "deeptools": "rules/remove_pcr_duplicates_deeptools.smk",
-# }
-# DUPLICATE_REMOVAL_RULE = DUPLICATE_REMOVAL_METHODS.get(
-#     config["remove_pcr_duplicates_method"], 
-#     "rules/remove_pcr_duplicates_ignore.smk"
-# )
 
 # Get dataframe of samples
 if os.path.exists(config["design"]):
@@ -57,7 +57,6 @@ SAMPLE_NAMES = RNA_SAMPLES.sample_names_all
 include: "rules/qc.smk"
 include: "rules/read_trimming.smk"
 include: "rules/align_rna.smk"
-# include: DUPLICATE_REMOVAL_RULE
 include: "rules/remove_pcr_duplicates_ignore.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/alignment_counts.smk"
