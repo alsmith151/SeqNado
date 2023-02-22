@@ -5,6 +5,7 @@ import subprocess
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
 
+
 @click.command()
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
 def cli_config(method, help=False):
@@ -51,7 +52,22 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
         cmd.extend(
             [
                 "--profile",
-                os.path.abspath(os.path.join(PACKAGE_DIR, "workflow/envs/profiles/profile_drmaa_singularity")),
+                os.path.abspath(
+                    os.path.join(
+                        PACKAGE_DIR, "workflow/envs/profiles/profile_drmaa_singularity"
+                    )
+                ),
+            ]
+        )
+    elif preset == "local-singularity":
+        cmd.extend(
+            [
+                "--profile",
+                os.path.abspath(
+                    os.path.join(
+                        PACKAGE_DIR, "workflow/envs/profiles/profile_singularity"
+                    )
+                ),
             ]
         )
 
