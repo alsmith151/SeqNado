@@ -8,6 +8,8 @@ rule align_paired:
     output:
         bam="aligned/{sample}.bam",
     threads: config["bowtie2"]["threads"]
+    resources:
+        mem_mb=4000 // int(config["bowtie2"]["threads"])
     log:
         "logs/align/{sample}.log",
     shell:
@@ -26,6 +28,8 @@ rule align_single:
         options=config["bowtie2"]["options"],
     output:
         bam="aligned/{sample}.bam",
+    resources:
+        mem_mb=4000 // int(config["bowtie2"]["threads"])
     threads: config["bowtie2"]["threads"]
     log:
         "logs/align/{sample}.log",
