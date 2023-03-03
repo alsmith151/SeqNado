@@ -6,3 +6,6 @@ jobs: 50
 keep-going: True
 rerun-incomplete: True
 printshellcmds: True
+latency-wait: 30
+show-failed-logs: True
+cores: 8
