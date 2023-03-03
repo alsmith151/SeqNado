@@ -19,6 +19,8 @@ rule index_bam:
     output:
         index="aligned/{sample}.bam.bai",
     threads: 1
+    resources:
+        mem_mb=1000
     shell:
         "samtools index -@ {threads} -b {input.bam}"
 
@@ -62,3 +64,13 @@ rule mark_filtering_complete:
         "logs/filtering/{sample}.log",
     shell:
         """echo "Filtering complete" > {log}"""
+
+localrules: mark_filtering_complete
+
+
+use rule index_bam as index_bam_filtered with:
+    input:
+        bam="aligned_and_filtered/{sample}.bam",
+        filtering_performed=rules.mark_filtering_complete.output.sentinel
+    output:
+        index="aligned_and_filtered/{sample}.bam.bai"
