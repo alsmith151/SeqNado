@@ -16,14 +16,3 @@ rule mark_duplicates:
         """
         picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} {params.extra} > {log} 2>&1
         """
-
-
-rule reindex_bam:
-    input:
-        bam="aligned_and_filtered/{sample}.bam",
-        filtering="logs/blacklist/{sample}.log",
-    output:
-        index="aligned_and_filtered/{sample}.bam.bai",
-    threads: 1
-    shell:
-        "samtools index -@ {threads} -b {input.bam}"
