@@ -47,19 +47,10 @@ rule macs2_with_input:
     log:
         "logs/macs/{treatment}.log",
     shell:
-        # # narrow = output.peaks.replace(".bed", "_peaks.narrowPeak")
-        # params.narrow
-        # cmd = f"""
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
         cat {params.narrow} | cut -f 1-3 > {output.peaks}
         """
-        # """
-        # if workflow.use_singularity:
-        #         cmd = utils.get_singularity_command(command=cmd,
-        #                                             workflow=workflow,)
-        # shell(cmd)
-
 
 rule macs2_no_input:
     input:
@@ -68,21 +59,14 @@ rule macs2_no_input:
         peaks="peaks/macs/{treatment}.bed",
     params:
         options=config["macs"]["callpeak"],
+        narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
     log:
         "logs/macs/{treatment}.log",
-    run:
-        narrow = output.peaks.replace(".bed", "_peaks.narrowPeak")
-        cmd = f"""
-                                                        macs2 callpeak -t {input.treatment} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
-                                                        cat {narrow} | cut -f 1-3 > {output.peaks}
-                                                        """
-
-        if workflow.use_singularity:
-            cmd = utils.get_singularity_command(
-                command=cmd,
-                workflow=workflow,
-            )
-        shell(cmd)
+    shell:
+        """
+        macs2 callpeak -t {input.treatment} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
+        cat {params.narrow} | cut -f 1-3 > {output.peaks}
+        """
 
 
 rule homer_with_input:
