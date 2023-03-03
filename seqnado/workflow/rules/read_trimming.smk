@@ -1,8 +1,3 @@
-# def get_paired_fastq_inputs(wc):
-#     df_sample = df_samples.query(f"sample == {wc.sample} and antibody == '{wc.antibody}'")
-#     return {"fq1": df_sample.loc[0, "1"], "fq2": df_sample.loc[0, "2"]}
-
-
 rule trimgalore_paired:
     # Trim reads using trimgalore
     input:
