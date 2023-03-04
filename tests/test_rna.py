@@ -146,13 +146,6 @@ def set_up(
     os.chdir(cwd)
 
 
-# def test_pipeline_conda():
-
-#     cmd = "seqnado rna --cores 4 --configfile config_rna.yml"
-#     completed = subprocess.run(cmd.split())
-#     assert completed.returncode == 0
-
-
 def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
 
     cmd = [
