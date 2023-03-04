@@ -5,7 +5,7 @@ rule sort_bam:
     input:
         bam="aligned/raw/{sample}.bam",
     output:
-        temp(bam="aligned/sorted/{sample}.bam"),
+        bam=temp("aligned/sorted/{sample}.bam"),
     threads: 8
     shell:
         """samtools sort {input.bam} -@ {threads} -o {output.bam} &&
@@ -17,7 +17,7 @@ rule index_bam:
     input:
         bam="aligned/sorted/{sample}.bam",
     output:
-        temp(index="aligned/sorted/{sample}.bam.bai"),
+        index=temp("aligned/sorted/{sample}.bam.bai"),
     threads: 1
     resources:
         mem_mb=1000
