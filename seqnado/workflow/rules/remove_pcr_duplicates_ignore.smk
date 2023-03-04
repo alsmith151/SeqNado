@@ -12,5 +12,3 @@ rule ignore_duplicates:
         ln -s $(realpath {input.bam}) {output.bam} &&
         ln -s {input.bam}.bai {output.bam}.bai
         """
-
-localrules: ignore_duplicates

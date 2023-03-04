@@ -1,9 +1,6 @@
 import subprocess
 
-
-shift_reads = snakemake.config.get("shift_atac_reads", False)
-
-if shift_reads:
+if snakemake.config.get("shift_atac_reads"):
 
     cmd = [
         "rsbamtk",

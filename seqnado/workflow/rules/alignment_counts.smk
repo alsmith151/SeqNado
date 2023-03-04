@@ -13,8 +13,6 @@ rule feature_counts:
     params:
         options=utils.check_options(config["featurecounts"]["options"]),
     threads: config["featurecounts"]["threads"]
-    resources:
-        mem_mb=1000 * config["featurecounts"]["threads"],
     log:
         "logs/readcounts/featurecounts/featurecounts.log",
     shell:

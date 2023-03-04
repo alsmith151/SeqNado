@@ -57,7 +57,7 @@ rule shift_atac_alignments:
 rule mark_filtering_complete:
     input:
         sentinel="flags/{sample}.blacklist.sentinel",
-        sentinel2="flags/{sample}.shifted.sentinel" if ASSAY == "ATAC" else [],
+        sentinel2="flags/{sample}.shifted.sentinel",
     output:
         sentinel=touch("flags/{sample}.filtering.complete.sentinel"),
     log:
