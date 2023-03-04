@@ -9,7 +9,7 @@ rule align_paired:
         index=config["genome"]["indicies"],
         options=utils.check_options(config["star"]["options"]),
     output:
-        bam="aligned/{sample}Aligned.sortedByCoord.out.bam",
+        bam=temp("aligned/raw/{sample}Aligned.sortedByCoord.out.bam"),
     threads: config["star"]["threads"]
     resources:
         mem_mb=(32000 // config["star"]["threads"]),
@@ -40,6 +40,6 @@ rule rename_aligned:
     input:
         bam="aligned/{sample}Aligned.sortedByCoord.out.bam",
     output:
-        bam="aligned/{sample}.bam",
+        bam="aligned/sorted/{sample}.bam",
     shell:
         "mv {input.bam} {output.bam}"

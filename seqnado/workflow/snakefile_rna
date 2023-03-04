@@ -57,7 +57,6 @@ SAMPLE_NAMES = RNA_SAMPLES.sample_names_all
 include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align_rna.smk"
-include: "rules/remove_pcr_duplicates_ignore.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/pileup_rna.smk"
