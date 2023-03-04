@@ -61,7 +61,7 @@ SAMPLE_NAMES_CONTROL = CHIP_SAMPLES.sample_names_control
 SAMPLE_NAMES_PAIRED = CHIP_SAMPLES.paired_ip_and_control
 
 include: "rules/qc.smk"
-include: "rules/fastq_trimming.smk"
+include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call.smk"

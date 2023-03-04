@@ -58,7 +58,7 @@ SAMPLE_NAMES = ATAC_SAMPLES.sample_names_all
 
 
 include: "rules/qc.smk"
-include: "rules/fastq_trimming.smk"
+include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call.smk"
