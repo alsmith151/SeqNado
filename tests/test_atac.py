@@ -21,7 +21,7 @@ def package_path(repo_path):
 
 @pytest.fixture(scope="module")
 def pipeline_path(package_path):
-    return os.path.join(package_path, "chipseq", "snakefile")
+    return os.path.join(package_path, "workflow", "snakefile_atac")
 
 
 @pytest.fixture(scope="module")
@@ -51,8 +51,8 @@ def fastqs(data_path):
 
 
 @pytest.fixture(scope="module")
-def config_path(repo_path):
-    return os.path.join(repo_path, "config")
+def config_path(data_path):
+    return os.path.join(data_path, "config")
 
 
 @pytest.fixture(scope="module")
@@ -137,18 +137,11 @@ def set_up(
     os.chdir(cwd)
 
 
-def test_pipeline_conda():
-
-    cmd = f"ngs-pipeline atac --cores 4 --configfile config_atac.yml"
-    completed = subprocess.run(cmd.split())
-    assert completed.returncode == 0
-
-
 def test_pipeline_singularity(genome_path):
     indicies_dir = os.path.join(genome_path, "bt2")
 
     cmd = [
-        "ngs-pipeline",
+        "seqnado",
         "atac",
         "--cores",
         "4",

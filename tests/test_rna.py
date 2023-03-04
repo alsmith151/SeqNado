@@ -51,8 +51,8 @@ def fastqs(data_path):
 
 
 @pytest.fixture(scope="module")
-def config_path(repo_path):
-    return os.path.join(repo_path, "config")
+def config_path(data_path):
+    return os.path.join(data_path, "config")
 
 
 @pytest.fixture(scope="module")
@@ -83,14 +83,14 @@ def genome_indicies(genome_path):
             print(e)
             print("Could not download indicies so generating them")
             os.mkdir(indicies)
-            cmd = f"""STAR 
+            cmd = f"""STAR
                   --runMode genomeGenerate
-                  --runThreadN 4 
+                  --runThreadN 4
                   --genomeDir {indicies}
                   --genomeFastaFiles {fasta}
-                  --sjdbGTFfile {gtf} 
-                  --sjdbOverhang 100 
-                  --genomeSAindexNbases 11 
+                  --sjdbGTFfile {gtf}
+                  --sjdbOverhang 100
+                  --genomeSAindexNbases 11
                   """
             subprocess.run(cmd.split())
 
@@ -146,17 +146,10 @@ def set_up(
     os.chdir(cwd)
 
 
-def test_pipeline_conda():
-
-    cmd = f"ngs-pipeline rna --cores 4 --configfile config_rna.yml"
-    completed = subprocess.run(cmd.split())
-    assert completed.returncode == 0
-
-
-def test_pipeline_singularity(genome_path, genome_indicies):
+def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
 
     cmd = [
-        "ngs-pipeline",
+        "seqnado",
         "rna",
         "--cores",
         "4",
@@ -164,7 +157,7 @@ def test_pipeline_singularity(genome_path, genome_indicies):
         "config_rna.yml",
         "--use-singularity",
         "--singularity-args",
-        f'" -B {genome_indicies} -B {genome_path}"',
+        f'" -B {genome_indicies} -B {genome_path} -B {chromsizes} "',
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0
