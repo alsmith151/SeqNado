@@ -3,21 +3,21 @@ import seqnado.utils as utils
 
 rule sort_bam:
     input:
-        bam="aligned/{sample}.bam",
+        bam="aligned/raw/{sample}.bam",
     output:
-        sentinel=touch("flags/{sample}.sorted.sentinel"),
+        temp(bam="aligned/sorted/{sample}.bam"),
     threads: 8
     shell:
-        """samtools sort {input.bam} -@ {threads} -o {input.bam}_sorted &&
+        """samtools sort {input.bam} -@ {threads} -o {output.bam} &&
            mv {input.bam}_sorted {input.bam}
         """
 
 
 rule index_bam:
     input:
-        bam="aligned/{sample}.bam",
+        bam="aligned/sorted/{sample}.bam",
     output:
-        index="aligned/{sample}.bam.bai",
+        temp(index="aligned/sorted/{sample}.bam.bai"),
     threads: 1
     resources:
         mem_mb=1000
@@ -27,9 +27,10 @@ rule index_bam:
 
 rule remove_blacklisted_regions:
     input:
-        bam="aligned_and_filtered/{sample}.bam",
+        bam="aligned/sorted/{sample}.bam",
     output:
-        sentinel=touch("flags/{sample}.blacklist.sentinel"),
+        bam=temp("aligned/blacklist_regions_removed/{sample}.bam"),
+        bai=temp("aligned/blacklist_regions_removed/{sample}.bam.bai"),
     threads: 1
     params:
         blacklist=config["blacklist"],
@@ -39,11 +40,24 @@ rule remove_blacklisted_regions:
         "../scripts/remove_blacklist.py"
 
 
+rule remove_duplicates:
+    input:
+        bam="aligned/blacklist_regions_removed/{sample}.bam",
+        index="aligned/blacklist_regions_removed/{sample}.bam.bai"
+    output:
+        bam=temp("aligned/duplicates_removed/{sample}.bam"),
+        bai=temp("aligned/duplicates_removed/{sample}.bam.bai"),
+    threads: 1
+    log:
+        "logs/duplicates/{sample}.log",
+    script:
+        "../scripts/remove_duplicates.py"
+
 rule shift_atac_alignments:
     input:
-        bam="aligned_and_filtered/{sample}.bam",
+        bam="aligned/blacklist_regions_removed/{sample}.bam",
     output:
-        sentinel=touch("flags/{sample}.shifted.sentinel"),
+        bam=temp("aligned/shifted_for_tn5_insertion/{sample}.bam"),
     params:
         options=None,
     threads: 1
@@ -52,25 +66,40 @@ rule shift_atac_alignments:
     script:
         "../scripts/shift_alignments.py"
 
-
-
-rule mark_filtering_complete:
+rule move_bam_to_final_location:
     input:
-        sentinel="flags/{sample}.blacklist.sentinel",
-        sentinel2="flags/{sample}.shifted.sentinel",
+        bam="aligned/shifted_for_tn5_insertion/{sample}.bam",
+        bai="aligned/shifted_for_tn5_insertion/{sample}.bam.bai"
     output:
-        sentinel=touch("flags/{sample}.filtering.complete.sentinel"),
+        bam="aligned/{sample}.bam",
+        bai="aligned/{sample}.bam.bai",
     log:
-        "logs/filtering/{sample}.log",
+        "logs/move_bam/{sample}.log",
     shell:
-        """echo "Filtering complete" > {log}"""
+        """mv {input.bam} {output.bam} &&
+           mv {input.bai} {output.bai} &&    
+           echo "BAM moved to final location" > {log}
+        """
 
-localrules: mark_filtering_complete
 
 
-use rule index_bam as index_bam_filtered with:
-    input:
-        bam="aligned_and_filtered/{sample}.bam",
-        filtering_performed=rules.mark_filtering_complete.output.sentinel
-    output:
-        index="aligned_and_filtered/{sample}.bam.bai"
+# rule mark_filtering_complete:
+#     input:
+#         sentinel="flags/{sample}.blacklist.sentinel",
+#         sentinel2="flags/{sample}.shifted.sentinel",
+#     output:
+#         sentinel=touch("flags/{sample}.filtering.complete.sentinel"),
+#     log:
+#         "logs/filtering/{sample}.log",
+#     shell:
+#         """echo "Filtering complete" > {log}"""
+
+# localrules: mark_filtering_complete
+
+
+# use rule index_bam as index_bam_filtered with:
+#     input:
+#         bam="aligned_and_filtered/{sample}.bam",
+#         filtering_performed=rules.mark_filtering_complete.output.sentinel
+#     output:
+#         index="aligned_and_filtered/{sample}.bam.bai"

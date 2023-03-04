@@ -8,7 +8,7 @@ def get_paired_treatment_and_input(
     paths = dict()
 
     dirs = {
-        "bam": "aligned_and_filtered",
+        "bam": "aligned",
         "tag": "tag_dirs",
         "bigwig": "bigwigs/deeptools/",
     }
@@ -54,7 +54,7 @@ rule macs2_with_input:
 
 rule macs2_no_input:
     input:
-        treatment="aligned_and_filtered/{treatment}.bam",
+        treatment="aligned/{treatment}.bam",
     output:
         peaks="peaks/macs/{treatment}.bed",
     params:
