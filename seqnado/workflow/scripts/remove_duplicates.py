@@ -15,6 +15,7 @@ if method == "picard":
         "-M",
         snakemake.output.metrics,
         "--REMOVE_DUPLICATES true",
+        "--CREATE_INDEX true",
         seqnado.utils.check_options(snakemake.params.options),
         ">",
         snakemake.log,

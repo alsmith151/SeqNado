@@ -19,9 +19,6 @@ def cli_config(method, help=False):
 
     completed = subprocess.run(cmd)
 
-    if not completed.returncode == 0:
-        raise RuntimeError("Pipeline config failed. Check the log.")
-
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
@@ -72,6 +69,3 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
         )
 
     completed = subprocess.run(cmd)
-
-    if not completed.returncode == 0:
-        raise RuntimeError("Pipeline failed. Check the log.")

@@ -9,7 +9,6 @@ rule sort_bam:
     threads: 8
     shell:
         """samtools sort {input.bam} -@ {threads} -o {output.bam} &&
-           mv {input.bam}_sorted {input.bam}
         """
 
 
@@ -17,7 +16,7 @@ rule index_bam:
     input:
         bam="aligned/sorted/{sample}.bam",
     output:
-        index=temp("aligned/sorted/{sample}.bam.bai"),
+        bai=temp("aligned/sorted/{sample}.bam.bai"),
     threads: 1
     resources:
         mem_mb=1000
@@ -43,7 +42,7 @@ rule remove_blacklisted_regions:
 rule remove_duplicates:
     input:
         bam="aligned/blacklist_regions_removed/{sample}.bam",
-        index="aligned/blacklist_regions_removed/{sample}.bam.bai"
+        bai="aligned/blacklist_regions_removed/{sample}.bam.bai"
     output:
         bam=temp("aligned/duplicates_removed/{sample}.bam"),
         bai=temp("aligned/duplicates_removed/{sample}.bam.bai"),
@@ -56,8 +55,10 @@ rule remove_duplicates:
 rule shift_atac_alignments:
     input:
         bam="aligned/blacklist_regions_removed/{sample}.bam",
+        bai="aligned/blacklist_regions_removed/{sample}.bam.bai"
     output:
         bam=temp("aligned/shifted_for_tn5_insertion/{sample}.bam"),
+        bai=temp("aligned/shifted_for_tn5_insertion/{sample}.bam.bai"),
     params:
         options=None,
     threads: 1
@@ -71,8 +72,8 @@ rule move_bam_to_final_location:
         bam="aligned/shifted_for_tn5_insertion/{sample}.bam",
         bai="aligned/shifted_for_tn5_insertion/{sample}.bam.bai"
     output:
-        bam="aligned/{sample}.bam",
-        bai="aligned/{sample}.bam.bai",
+        bam="aligned/{sample,[A-Za-z0-9_\-]+}.bam",
+        bai="aligned/{sample,[A-Za-z0-9_\-]+}.bam.bai",
     log:
         "logs/move_bam/{sample}.log",
     shell:
@@ -81,25 +82,4 @@ rule move_bam_to_final_location:
            echo "BAM moved to final location" > {log}
         """
 
-
-
-# rule mark_filtering_complete:
-#     input:
-#         sentinel="flags/{sample}.blacklist.sentinel",
-#         sentinel2="flags/{sample}.shifted.sentinel",
-#     output:
-#         sentinel=touch("flags/{sample}.filtering.complete.sentinel"),
-#     log:
-#         "logs/filtering/{sample}.log",
-#     shell:
-#         """echo "Filtering complete" > {log}"""
-
-# localrules: mark_filtering_complete
-
-
-# use rule index_bam as index_bam_filtered with:
-#     input:
-#         bam="aligned_and_filtered/{sample}.bam",
-#         filtering_performed=rules.mark_filtering_complete.output.sentinel
-#     output:
-#         index="aligned_and_filtered/{sample}.bam.bai"
+localrules: move_bam_to_final_location

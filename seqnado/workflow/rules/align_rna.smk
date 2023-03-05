@@ -9,7 +9,7 @@ rule align_paired:
         index=config["genome"]["indicies"],
         options=utils.check_options(config["star"]["options"]),
     output:
-        bam=temp("aligned/raw/{sample}Aligned.sortedByCoord.out.bam"),
+        bam=temp("aligned/star/{sample}Aligned.sortedByCoord.out.bam"),
     threads: config["star"]["threads"]
     resources:
         mem_mb=(32000 // config["star"]["threads"]),
@@ -30,7 +30,7 @@ rule align_paired:
         --runThreadN \
         {threads} \
         --outFileNamePrefix \
-        aligned/{wildcards.sample} \
+        aligned/star/{wildcards.sample} \
         {params.options} \
         > {log} 2>&1
         """
@@ -38,8 +38,10 @@ rule align_paired:
 
 rule rename_aligned:
     input:
-        bam="aligned/{sample}Aligned.sortedByCoord.out.bam",
+        bam=rules.align_paired.output.bam,
     output:
         bam="aligned/sorted/{sample}.bam",
     shell:
         "mv {input.bam} {output.bam}"
+
+localrules: rename_aligned

@@ -67,6 +67,12 @@ rule all:
     input:
         mutiqc_full="qc/full_qc_report.html",
         read_counts = "feature_counts/read_counts.tsv",
+
+        bams=expand(
+            "aligned/{sample}.bam",
+            sample=SAMPLE_NAMES,
+        ),
+
         pileups=expand(
             "bigwigs/{method}/{sample}_{strand}.bigWig",
             sample=SAMPLE_NAMES,
