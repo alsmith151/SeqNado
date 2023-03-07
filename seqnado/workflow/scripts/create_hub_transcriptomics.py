@@ -4,6 +4,7 @@ import os
 import numpy as np
 import re
 import pathlib
+import subprocess
 
 
 def get_samplename(path: str):
