@@ -8,7 +8,7 @@ rule sort_bam:
         bam=temp("aligned/sorted/{sample}.bam"),
     threads: 8
     shell:
-        """samtools sort {input.bam} -@ {threads} -o {output.bam} &&
+        """samtools sort {input.bam} -@ {threads} -o {output.bam}
         """
 
 
@@ -27,6 +27,7 @@ rule index_bam:
 rule remove_blacklisted_regions:
     input:
         bam="aligned/sorted/{sample}.bam",
+        bai="aligned/sorted/{sample}.bam.bai"
     output:
         bam=temp("aligned/blacklist_regions_removed/{sample}.bam"),
         bai=temp("aligned/blacklist_regions_removed/{sample}.bam.bai"),
