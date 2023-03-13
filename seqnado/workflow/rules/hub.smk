@@ -15,7 +15,7 @@ rule bed_to_bigbed:
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} > {input.bed}.tmp &&
-        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} &&
+        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} || touch {output.bigbed} &&
         rm {input.bed}.tmp
         """
 

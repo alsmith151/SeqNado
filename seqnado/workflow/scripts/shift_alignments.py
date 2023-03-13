@@ -1,35 +1,22 @@
 import subprocess
 
-if snakemake.config.get("shift_atac_reads"):
+shift_reads = snakemake.config.get("shift_atac_reads", False)
 
-    cmd = [
-        "rsbamtk",
-        "shift",
-        "-b",
-        snakemake.input.bam,
-        "-o",
-        snakemake.input.bam + ".tmp",
-        "&&",
-        "samtools",
-        "sort",
-        snakemake.input.bam + ".tmp",
-        "-@",
-        str(snakemake.threads),
-        "-o",
-        snakemake.input.bam,
-        "&&",
-        "samtools",
-        "index",
-        snakemake.input.bam,
-        "&&",
-        "rm",
-        snakemake.input.bam + ".tmp",
-        "&&",
-        f"""echo "Shifted reads" > {snakemake.log}""",
-    ]
+if shift_reads:
+
+    cmd_shift = ["rsbamtk", "shift", "-b", snakemake.input.bam, "-o", snakemake.output.bam + ".tmp"]
+    cmd_sort = ["samtools", "sort", snakemake.output.bam + ".tmp", "-@", str(snakemake.threads), "-o", snakemake.output.bam]
+    cmd_index = ["samtools", "index", snakemake.output.bam]
+    cmd_log = [f'echo "Shifted reads" > {snakemake.log}']
+
+    cmd = [" && ".join(c) for c in [cmd_shift, cmd_sort, cmd_index, cmd_log]][0]
 
 
 else:
-    cmd = [f'echo "Will not shift reads" > {snakemake.log}']
+    cmd = [f'echo "Will not shift reads" > {snakemake.log}', 
+           f"mv {snakemake.input.bam} {snakemake.output.bam}",
+           f"mv {snakemake.input.bam}.bai {snakemake.output.bam}.bai"]
+    
+    cmd = " && ".join(cmd)
 
-subprocess.run(" ".join(cmd), shell=True, check=True)
+subprocess.run(cmd, shell=True, check=True)

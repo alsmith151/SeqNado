@@ -3,9 +3,8 @@ import re
 
 rule deeptools_make_bigwigs_rna_plus:
     input:
-        bam="aligned_and_filtered/{sample}.bam",
-        bai="aligned_and_filtered/{sample}.bam.bai",
-        filtering="flags/{sample}.filtering.complete.sentinel",
+        bam="aligned/{sample}.bam",
+        bai="aligned/{sample}.bam.bai",
     output:
         bigwig="bigwigs/deeptools/{sample}_plus.bigWig",
     threads: config["deeptools"]["threads"]
@@ -19,9 +18,8 @@ rule deeptools_make_bigwigs_rna_plus:
 
 rule deeptools_make_bigwigs_rna_minus:
     input:
-        bam="aligned_and_filtered/{sample}.bam",
-        bai="aligned_and_filtered/{sample}.bam.bai",
-        filtering="flags/{sample}.filtering.complete.sentinel",
+        bam="aligned/{sample}.bam",
+        bai="aligned/{sample}.bam.bai",
     output:
         bigwig="bigwigs/deeptools/{sample}_minus.bigWig",
     threads: config["deeptools"]["threads"]

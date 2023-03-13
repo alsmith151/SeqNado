@@ -31,13 +31,6 @@ PEAK_CALL_METHODS = [
     for method in ["macs", "lanceotron", "homer"]
     if pipeline_tools[method] == True
 ]
-DUPLICATE_REMOVAL_METHODS = {
-    "picard": "rules/remove_pcr_duplicates_picard.smk",
-    "deeptools": "rules/remove_pcr_duplicates_deeptools.smk",
-}
-DUPLICATE_REMOVAL_RULE = DUPLICATE_REMOVAL_METHODS.get(
-    config["remove_pcr_duplicates_method"], "rules/remove_pcr_duplicates_ignore.smk"
-)
 
 
 # Get dataframe of samples
@@ -64,9 +57,8 @@ FASTQ_FILES = ATAC_SAMPLES.fastq_files
 SAMPLE_NAMES = ATAC_SAMPLES.sample_names_all
 
 
-include: DUPLICATE_REMOVAL_RULE
 include: "rules/qc.smk"
-include: "rules/read_trimming.smk"
+include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call.smk"

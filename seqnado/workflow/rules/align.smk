@@ -6,7 +6,7 @@ rule align_paired:
         index=config["genome"]["indicies"],
         options=config["bowtie2"]["options"],
     output:
-        bam="aligned/{sample}.bam",
+        bam=temp("aligned/raw/{sample}.bam"),
     threads: config["bowtie2"]["threads"]
     resources:
         mem_mb=4000 // int(config["bowtie2"]["threads"])
@@ -27,7 +27,7 @@ rule align_single:
         index=config["genome"]["indicies"],
         options=config["bowtie2"]["options"],
     output:
-        bam="aligned/{sample}.bam",
+        bam=temp("aligned/raw/{sample}.bam"),
     resources:
         mem_mb=4000 // int(config["bowtie2"]["threads"])
     threads: config["bowtie2"]["threads"]

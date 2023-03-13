@@ -204,7 +204,7 @@ def get_pipeline_tools(config: Dict, assay="ChIP") -> Dict:
 
 
 def check_options(value: object):
-    if value in [None, np.nan, pd.NA, ""]:
+    if value in [None, np.nan, ""]:
         return ""
     else:
         return value

@@ -25,7 +25,7 @@ use rule fastqc_raw as fastqc_trimmed with:
 
 rule samtools_stats:
     input:
-        bam="aligned/{sample}.bam",
+        bam="aligned/sorted/{sample}.bam",
     output:
         stats="qc/alignment_raw/{sample}.txt",
     threads: 1
@@ -35,7 +35,7 @@ rule samtools_stats:
 
 use rule samtools_stats as samtools_stats_filtered with:
     input:
-        bam="aligned_and_filtered/{sample}.bam",
+        bam="aligned/{sample}.bam",
     output:
         stats="qc/alignment_filtered/{sample}.txt",
 

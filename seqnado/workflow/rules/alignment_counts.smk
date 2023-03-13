@@ -2,11 +2,8 @@ import seqnado.utils as utils
 
 rule feature_counts:
     input:
-        bam=expand("aligned_and_filtered/{sample}.bam", sample=SAMPLE_NAMES),
-        bai=expand("aligned_and_filtered/{sample}.bam.bai", sample=SAMPLE_NAMES),
-        filtering=expand(
-            "flags/{sample}.filtering.complete.sentinel", sample=SAMPLE_NAMES
-        ),
+        bam=expand("aligned/{sample}.bam", sample=SAMPLE_NAMES),
+        bai=expand("aligned/{sample}.bam.bai", sample=SAMPLE_NAMES),
         annotation=config["genome"]["annotation"],
     output:
         counts=f"feature_counts/read_counts.tsv",

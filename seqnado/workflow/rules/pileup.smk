@@ -4,8 +4,7 @@ import seqnado.utils as utils
 
 rule homer_make_tag_directory:
     input:
-        bam="aligned_and_filtered/{sample}.bam",
-        filtering="flags/{sample}.filtering.complete.sentinel",
+        bam="aligned/{sample}.bam",
     output:
         homer_tag_directory=directory("tag_dirs/{sample}"),
     params:
@@ -19,7 +18,6 @@ rule homer_make_tag_directory:
 rule homer_make_bigwigs:
     input:
         homer_tag_directory="tag_dirs/{sample}",
-        filtering="flags/{sample}.filtering.complete.sentinel",
     output:
         homer_bigwig="bigwigs/homer/{sample}.bigWig",
     log:
@@ -37,9 +35,8 @@ rule homer_make_bigwigs:
 
 rule deeptools_make_bigwigs:
     input:
-        bam="aligned_and_filtered/{sample}.bam",
-        bai="aligned_and_filtered/{sample}.bam.bai",
-        filtering="flags/{sample}.filtering.complete.sentinel",
+        bam="aligned/{sample}.bam",
+        bai="aligned/{sample}.bam.bai",
     output:
         bigwig="bigwigs/deeptools/{sample}.bigWig",
     params:

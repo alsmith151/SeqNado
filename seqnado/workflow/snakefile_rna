@@ -55,9 +55,8 @@ SAMPLE_NAMES = RNA_SAMPLES.sample_names_all
 
 
 include: "rules/qc.smk"
-include: "rules/read_trimming.smk"
+include: "rules/fastq_trim.smk"
 include: "rules/align_rna.smk"
-include: "rules/remove_pcr_duplicates_ignore.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/pileup_rna.smk"
@@ -68,6 +67,12 @@ rule all:
     input:
         mutiqc_full="qc/full_qc_report.html",
         read_counts = "feature_counts/read_counts.tsv",
+
+        bams=expand(
+            "aligned/{sample}.bam",
+            sample=SAMPLE_NAMES,
+        ),
+
         pileups=expand(
             "bigwigs/{method}/{sample}_{strand}.bigWig",
             sample=SAMPLE_NAMES,

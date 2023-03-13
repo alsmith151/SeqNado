@@ -33,10 +33,9 @@ if not color_by:
     else:
         color_by = ("samplename", "antibody")
 
-cmd = " ".join(
-    [
+cmd = [
         "make-ucsc-hub",
-        " ".join(df["filename"]),
+        *df["filename"].tolist(),
         "-d",
         file_details,
         "-o",
@@ -49,9 +48,10 @@ cmd = " ".join(
         snakemake.config["genome"]["name"],
         "--description-html",
         snakemake.input.report,
-        " ".join([f"--color-by ", color_by]),
     ]
-)
 
+for cb in color_by:
+    cmd.append("--color-by")
+    cmd.append(cb)
 
-subprocess.run(cmd, shell=True, check=True)
+subprocess.run(cmd)
