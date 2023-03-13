@@ -25,9 +25,13 @@ def cli_config(method, help=False):
 @click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)
 @click.option(
     "--preset",
-    default="local-conda",
-    help="Pre-set snakemake job profile to use for pipeline run",
-    type=click.Choice(choices=["local-conda", "local-singularity", "cbrg"]),
+    default="lc",
+    help="""Pre-set snakemake job profile to use for pipeline run:
+            lc: local conda environment
+            ls: local singularity environment
+            ss: slurm singularity environment (runs jobs on cluster)
+            """,
+    type=click.Choice(choices=["lc", "ls", "ss"]),
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
@@ -45,7 +49,7 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
     if pipeline_options:
         cmd.extend(pipeline_options)
 
-    if preset == "cbrg":
+    if preset == "ss":
         cmd.extend(
             [
                 "--profile",
@@ -56,7 +60,7 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
                 ),
             ]
         )
-    elif preset == "local-singularity":
+    elif preset == "ls":
         cmd.extend(
             [
                 "--profile",
