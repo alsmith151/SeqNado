@@ -37,6 +37,7 @@ ucsc_hub_details:
 
 trim_galore:
     threads: 4
+    options: 
 
 star:
     threads: 4
@@ -49,7 +50,6 @@ featurecounts:
 homer:
     maketagdirectory:
     makebigwig:
-    findpeaks:
 
 deeptools:
     threads: 8
@@ -57,4 +57,4 @@ deeptools:
     # Options passed to deeptools BamCoverage
     # These need to be replaced
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
-    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage: -bs 1 --normalizeUsing RPKM
