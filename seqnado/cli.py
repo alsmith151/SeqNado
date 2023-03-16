@@ -8,7 +8,7 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 @click.command()
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
-def cli_config(method, help=False):
+def cli_config(method):
     """
     Runs the config for the data processing pipeline.
     """
@@ -19,6 +19,29 @@ def cli_config(method, help=False):
 
     completed = subprocess.run(cmd)
 
+
+@click.command()
+@click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
+@click.argument("files", nargs=-1)
+@click.option("-o", "--output", default="design.csv", help="Output file name")
+def cli_design(method, files, output="design.csv"):
+    """
+    Generates a SeqNado design file from a list of files.
+    """
+
+    assert len(files) > 0, "No files provided. Please provide a list of files separated by spaces."
+
+
+    if not method == "chip":
+        from seqnado.utils import GenericFastqSamples
+        design = GenericFastqSamples.from_files(files).design
+    else:
+        from seqnado.utils_chipseq import ChipseqFastqSamples
+        design = ChipseqFastqSamples.from_files(files).design
+    
+    design = design.drop(columns=["paired"], errors="ignore")
+    design.to_csv(output, index=False)
+    
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
