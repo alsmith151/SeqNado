@@ -30,7 +30,7 @@ class ChipseqFastqSamples:
         )
 
     @classmethod
-    def from_files(cls, files: List) -> (pd.DataFrame):
+    def from_files(cls, files: List) -> "ChipseqFastqSamples":
 
         df = pd.DataFrame(files, columns=["fn"])
 

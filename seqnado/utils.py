@@ -132,7 +132,7 @@ class GenericFastqSamples:
         )
 
     @classmethod
-    def from_files(cls, files: List[Union[pathlib.Path, str]]) -> (pd.DataFrame):
+    def from_files(cls, files: List[Union[pathlib.Path, str]]) -> "GenericFastqSamples":
 
         df = pd.DataFrame(files, columns=["fn"])
 
