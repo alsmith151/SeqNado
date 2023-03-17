@@ -153,7 +153,7 @@ class ChipseqFastqSamples:
             for read, fq in enumerate([sample.fq1, sample.fq2]):
 
                 if os.path.exists(fq):
-                    fq_translation[f"{sample.sample}_{sample.antibody}_{read + 1}.fastq.gz"] = os.path.abspath(fq)
+                    fq_translation[f"{sample.sample}_{sample.antibody}_{read + 1}.fastq.gz"] = os.path.realpath(fq)
 
         return fq_translation
     

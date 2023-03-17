@@ -168,7 +168,7 @@ class GenericFastqSamples:
         fq_translation = {}
         for sample in self.design.itertuples():
             for read in [1, 2]:
-                fq_translation[f"{sample.sample}_{read}.fastq.gz"] = os.path.abspath(
+                fq_translation[f"{sample.sample}_{read}.fastq.gz"] = os.path.realpath(
                     str(getattr(sample, f"fq{read}"))
                 )
 
