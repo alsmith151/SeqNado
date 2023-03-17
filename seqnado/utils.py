@@ -163,44 +163,16 @@ class GenericFastqSamples:
     def sample_names_all(self):
         return self.design["sample"].to_list()
 
-    def symlink_fastq_files(self, outdir="fastq"):
-
-        if not os.path.exists(outdir):
-            os.mkdir(outdir)
-
-        fq_links = defaultdict(list)
+    @property
+    def translation(self):
+        fq_translation = {}
         for sample in self.design.itertuples():
-            for read, fq in enumerate([sample.fq1, sample.fq2]):
+            for read in [1, 2]:
+                fq_translation[f"{sample.sample}_{read}.fastq.gz"] = os.path.abspath(
+                    str(getattr(sample, f"fq{read}"))
+                )
 
-                if os.path.exists(fq):
-                    src = os.path.abspath(fq)
-                    dest = os.path.join(outdir, f"{sample.sample}_{read + 1}.fastq.gz")
-                    fq_links[f"fq{read + 1}"].append(dest)
-
-                    try:
-                        os.symlink(src, dest)
-                    except FileExistsError:
-                        pass
-
-        self.design["fq1"] = fq_links["fq1"]
-        self.design["fq2"] = fq_links["fq2"]
-
-
-def get_pipeline_tools(config: Dict, assay="ChIP") -> Dict:
-    if not assay == "RNA":
-        tools = dict(
-            homer="homer" in config["pileup_method"]
-            or "homer" in config["peak_calling_method"],
-            deeptools="deeptools" in config["pileup_method"],
-            macs="macs" in config["peak_calling_method"],
-            lanceotron="lanceotron" in config["peak_calling_method"],
-        )
-    else:
-        tools = dict(
-            deeptools="deeptools" in config["pileup_method"],
-        )
-
-    return tools
+        return fq_translation
 
 
 def check_options(value: object):

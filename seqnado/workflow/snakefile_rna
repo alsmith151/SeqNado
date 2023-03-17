@@ -1,58 +1,35 @@
 import os
-import sys
 import shutil
-from datetime import datetime
 import glob
-from snakemake.utils import min_version
 import seqnado.utils as utils
 import pandas as pd
 
-min_version("6.10")
-
-start_time = datetime.now()
 ASSAY = "RNA"
-
 configfile: "config_rna.yml"
-
 container: "library://asmith151/ngs-pipeline/ngs:latest"
-
-
 utils.format_config_dict(config)
-pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
+PILEUP_METHODS = config["pileup_method"]
 
-# Methods to use
-pm = config["pileup_method"]
-if isinstance(pm, str):
-    PILEUP_METHODS = [pm]
-elif isinstance(pm, tuple):
-    PILEUP_METHODS = itertools.chain.from_iterable(pm)
-elif isinstance(pm, list):
-    PILEUP_METHODS = pm
-else:
-    raise ValueError("Pileup method must be a string or list of strings")
-
-
-# Get dataframe of samples
+# Get experiment design
 if os.path.exists(config["design"]):
     # Expect columns - sample fq1 fq2
-    RNA_SAMPLES = utils.GenericFastqSamples(
+    FASTQ_SAMPLES = utils.GenericFastqSamples(
         pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
     )
+    assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
+    assert FASTQ_SAMPLES.design.columns.isin(["sample", "fq1", "fq2"]).all(), "Design file must contain columns sample, fq1, fq2"
 
 else:
     # Use pattern matching to get samples
     fq_files = list(utils.get_fastq_files("."))
     if fq_files:
-        RNA_SAMPLES = utils.GenericFastqSamples.from_files(fq_files)
+        FASTQ_SAMPLES = utils.GenericFastqSamples.from_files(fq_files)
     else:
         raise ValueError("No FASTQ files found in the working directory")
 
 
-RNA_SAMPLES.symlink_fastq_files(outdir="fastq")
-DESIGN = RNA_SAMPLES.design
-FASTQ_FILES = RNA_SAMPLES.fastq_files
-SAMPLE_NAMES = RNA_SAMPLES.sample_names_all
-
+DESIGN = FASTQ_SAMPLES.design
+SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
 
 include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"

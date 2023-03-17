@@ -134,40 +134,35 @@ class ChipseqFastqSamples:
         )
         return _design.set_index("treatment")["control"].to_dict()
 
-    def symlink_fastq_files(self, outdir="fastq"):
 
-        if not os.path.exists(outdir):
-            os.mkdir(outdir)
-
-        # Control samples
+    def _translate_control_samples(self):
+        fq_translation = {}
         for fq in self.fastq_control_files:
             for control in self.design["control"]:
                 if str(control) in fq:
-                    src = os.path.abspath(fq)
+                    
                     read = re.match(r".*/?.*_R?([12])(?:_001)?.fastq.gz", fq).group(1)
-                    dest = os.path.join(outdir, f"{control}_{read}.fastq.gz")
+                    fq_translation[f"{control}_{read}.fastq.gz"] = os.path.abspath(fq)
 
-                    try:
-                        os.symlink(src, dest)
-                    except FileExistsError:
-                        pass
+        return fq_translation
+    
+    def _translate_ip_samples(self):
 
-        # IP samples
-        fq_links = defaultdict(list)
+        fq_translation = {}
         for sample in self.design.itertuples():
             for read, fq in enumerate([sample.fq1, sample.fq2]):
 
                 if os.path.exists(fq):
-                    src = os.path.abspath(fq)
-                    dest = os.path.join(
-                        outdir, f"{sample.sample}_{sample.antibody}_{read + 1}.fastq.gz"
-                    )
-                    fq_links[f"fq{read + 1}"].append(dest)
+                    fq_translation[f"{sample.sample}_{sample.antibody}_{read + 1}.fastq.gz"] = os.path.abspath(fq)
 
-                    try:
-                        os.symlink(src, dest)
-                    except FileExistsError:
-                        pass
+        return fq_translation
+    
+    @property
+    def translation(self):
+        """Create a dictionary with the fastq files and their new names"""
+        fq_translation = {}
+        fq_translation.update(self._translate_ip_samples())
+        fq_translation.update(self._translate_control_samples())
+        return fq_translation
 
-        self.design["fq1"] = fq_links["fq1"]
-        self.design["fq2"] = fq_links["fq2"]
+    

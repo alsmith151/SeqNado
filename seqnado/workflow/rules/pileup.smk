@@ -26,7 +26,7 @@ rule homer_make_bigwigs:
         genome_name=config["genome"]["name"],
         genome_chrom_sizes=config["genome"]["chromosome_sizes"],
         options=config["homer"]["makebigwig"],
-        temp_bw=lambda wc, out: out.homer_bigwig.replace(".bigWig", ".ucsc.bigWig"),
+        temp_bw=lambda wc, output: output.homer_bigwig.replace(".bigWig", ".ucsc.bigWig"),
     shell:
         """makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir bigwigs/homer/ {params.options} > {log} 2>&1 &&
            mv {params.temp_bw} {output.homer_bigwig}

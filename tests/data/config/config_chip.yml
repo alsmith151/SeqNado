@@ -97,6 +97,8 @@ ucsc_hub_details:
 trim_galore:
     threads:
         4
+    options:
+        
 
 bowtie2:
     threads:

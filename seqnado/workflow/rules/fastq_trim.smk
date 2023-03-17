@@ -1,10 +1,13 @@
 import seqnado.utils
 
+def get_fq_files(wc):
+    return {"fq1": FASTQ_SAMPLES.translation[f"{wc.sample}_1.fastq.gz"],
+            "fq2": FASTQ_SAMPLES.translation[f"{wc.sample}_2.fastq.gz"]}
+
 rule trimgalore_paired:
     # Trim reads using trimgalore
     input:
-        fq1="fastq/{sample}_1.fastq.gz",
-        fq2="fastq/{sample}_2.fastq.gz",
+        unpack(get_fq_files)
     output:
         trimmed1=temp("trimmed/{sample}_1.fastq.gz"),
         trimmed2=temp("trimmed/{sample}_2.fastq.gz"),

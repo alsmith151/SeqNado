@@ -1,6 +1,9 @@
+def get_fq_file(wc):
+    return {"fq": FASTQ_SAMPLES.translation[f"{wc.sample}_{wc.read}.fastq.gz"]}
+
 rule fastqc_raw:
     input:
-        fq="fastq/{sample}_{read}.fastq.gz",
+        unpack(get_fq_file),
     output:
         qc="qc/fastq_raw/{sample}_{read}_fastqc.html",
     params:

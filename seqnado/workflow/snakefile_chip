@@ -8,57 +8,38 @@ import seqnado.utils_chipseq as chip_utils
 import seqnado.utils as utils
 import pandas as pd
 
-start_time = datetime.now()
 ASSAY = "ChIP"
-
-
 configfile: "config_chip.yml"
-
-
 container: "library://asmith151/ngs-pipeline/ngs:latest"
 
 utils.format_config_dict(config)
-pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
+PILEUP_METHODS = config["pileup_method"]
+PEAK_CALL_METHODS = config["peak_calling_method"]
 
-# Methods to use
-PILEUP_METHODS = [
-    method for method in ["deeptools", "homer"] if pipeline_tools[method] == True
-]
-PEAK_CALL_METHODS = [
-    method
-    for method in ["macs", "lanceotron", "homer"]
-    if pipeline_tools[method] == True
-]
-
-# Convinience function that needs to be corrected
-# utils.set_up_chromsizes(config)
-
-# Get dataframe of samples
+# Get experiment design
 if os.path.exists(config["design"]):
     # Expect columns - sample fq1 fq2 antibody control
-    CHIP_SAMPLES = chip_utils.ChipseqFastqSamples(
+    FASTQ_SAMPLES = chip_utils.ChipseqFastqSamples(
         pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
     )
+    assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
+    assert FASTQ_SAMPLES.design.columns.isin(["sample", "fq1", "fq2", "antibody", "control"]).all(), "Design file must contain columns sample, fq1, fq2, antibody, control"
 
 else:
     # Use pattern matching to get samples
     fq_files = list(utils.get_fastq_files("."))
     if fq_files:
-        CHIP_SAMPLES = chip_utils.ChipseqFastqSamples.from_files(fq_files)
+        FASTQ_SAMPLES = chip_utils.ChipseqFastqSamples.from_files(fq_files)
     else:
         raise ValueError("No FASTQ files found in the working directory")
 
 
-CHIP_SAMPLES.symlink_fastq_files(outdir="fastq")
-
-
-DESIGN = CHIP_SAMPLES.design
-ANTIBODIES = CHIP_SAMPLES.antibodies
-FASTQ_FILES = CHIP_SAMPLES.fastq_files
-SAMPLE_NAMES = CHIP_SAMPLES.sample_names_all
-SAMPLE_NAMES_IP = CHIP_SAMPLES.sample_names_ip
-SAMPLE_NAMES_CONTROL = CHIP_SAMPLES.sample_names_control
-SAMPLE_NAMES_PAIRED = CHIP_SAMPLES.paired_ip_and_control
+DESIGN = FASTQ_SAMPLES.design
+ANTIBODIES = FASTQ_SAMPLES.antibodies
+SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
+SAMPLE_NAMES_IP = FASTQ_SAMPLES.sample_names_ip
+SAMPLE_NAMES_CONTROL = FASTQ_SAMPLES.sample_names_control
+SAMPLE_NAMES_PAIRED = FASTQ_SAMPLES.paired_ip_and_control
 
 include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
@@ -81,7 +62,7 @@ rule all:
             "peaks/{method}/{ip}.bed",
         ip=[
         f"{row.sample}_{row.antibody}"
-                for row in CHIP_SAMPLES.design.itertuples()
+                for row in FASTQ_SAMPLES.design.itertuples()
             ],
             method=PEAK_CALL_METHODS,
         ),

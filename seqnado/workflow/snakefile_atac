@@ -7,54 +7,34 @@ from snakemake.utils import min_version
 import seqnado.utils as utils
 import pandas as pd
 
-min_version("6.10")
-
-start_time = datetime.now()
 ASSAY = "ATAC"
-
-
 configfile: "config_atac.yml"
-
-
 container: "library://asmith151/ngs-pipeline/ngs:latest"
 
-
 utils.format_config_dict(config)
-pipeline_tools = utils.get_pipeline_tools(config, assay=ASSAY)
+PILEUP_METHODS = config["pileup_method"]
+PEAK_CALL_METHODS = config["peak_calling_method"]
 
-# Methods to use
-PILEUP_METHODS = [
-    method for method in ["deeptools", "homer"] if pipeline_tools[method] == True
-]
-PEAK_CALL_METHODS = [
-    method
-    for method in ["macs", "lanceotron", "homer"]
-    if pipeline_tools[method] == True
-]
-
-
-# Get dataframe of samples
+# Get experiment design
 if os.path.exists(config["design"]):
     # Expect columns - sample fq1 fq2
-    ATAC_SAMPLES = utils.GenericFastqSamples(
+    FASTQ_SAMPLES = utils.GenericFastqSamples(
         pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
     )
-
+    assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
+    assert FASTQ_SAMPLES.design.columns.isin(["sample", "fq1", "fq2"]).all(), "Design file must contain columns sample, fq1, fq2"
 else:
     # Use pattern matching to get samples
     fq_files = list(utils.get_fastq_files("."))
     if fq_files:
-        ATAC_SAMPLES = utils.GenericFastqSamples.from_files(fq_files)
+        FASTQ_SAMPLES = utils.GenericFastqSamples.from_files(fq_files)
     else:
         raise ValueError("No FASTQ files found in the working directory")
 
 
-ATAC_SAMPLES.symlink_fastq_files(outdir="fastq")
 
-
-DESIGN = ATAC_SAMPLES.design
-FASTQ_FILES = ATAC_SAMPLES.fastq_files
-SAMPLE_NAMES = ATAC_SAMPLES.sample_names_all
+DESIGN = FASTQ_SAMPLES.design
+SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
 
 
 include: "rules/qc.smk"
