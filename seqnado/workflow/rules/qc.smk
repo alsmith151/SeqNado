@@ -62,4 +62,4 @@ rule multiqc:
     log:
         "seqnado_output/logs/multiqc.log",
     shell:
-        "multiqc -o qc qc -n full_qc_report.html --force > {log} 2>&1"
+        "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"

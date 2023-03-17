@@ -11,7 +11,7 @@ rule feature_counts:
         options=utils.check_options(config["featurecounts"]["options"]),
     threads: config["featurecounts"]["threads"]
     log:
-        "logs/readcounts/featurecounts/featurecounts.log",
+        "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
     shell:
         """
         featureCounts \

@@ -15,7 +15,7 @@ rule trimgalore_paired:
     params:
         options=seqnado.utils.check_options(config['trim_galore']['options'])
     log:
-        "logs/trimming/{sample}.log",
+        "seqnado_output/logs/trimming/{sample}.log",
     shell:
         """
         trim_galore --cores {threads} {params.options} --paired --output_dir trimmed {input.fq1} {input.fq2} >> {log} 2>&1 &&
