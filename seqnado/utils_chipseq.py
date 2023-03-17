@@ -142,7 +142,7 @@ class ChipseqFastqSamples:
                 if str(control) in fq:
                     
                     read = re.match(r".*/?.*_R?([12])(?:_001)?.fastq.gz", fq).group(1)
-                    fq_translation[f"{control}_{read}.fastq.gz"] = os.path.abspath(fq)
+                    fq_translation[f"{control}_{read}.fastq.gz"] = os.path.realpath(fq)
 
         return fq_translation
     
