@@ -13,12 +13,13 @@ rule trimgalore_paired:
         trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
     threads: 4
     params:
-        options=seqnado.utils.check_options(config['trim_galore']['options'])
+        options=seqnado.utils.check_options(config['trim_galore']['options']),
+        trim_dir="seqnado_output/trimmed"
     log:
         "seqnado_output/logs/trimming/{sample}.log",
     shell:
         """
-        trim_galore --cores {threads} {params.options} --paired --output_dir trimmed {input.fq1} {input.fq2} >> {log} 2>&1 &&
+        trim_galore --cores {threads} {params.options} --paired --output_dir {params.trim_dir} {input.fq1} {input.fq2} >> {log} 2>&1 &&
         mv trimmed/{wildcards.sample}_1_val_1.fq.gz {output.trimmed1} &&
         mv trimmed/{wildcards.sample}_2_val_2.fq.gz {output.trimmed2}
         """
