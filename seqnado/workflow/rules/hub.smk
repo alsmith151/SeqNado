@@ -5,9 +5,9 @@ import numpy as np
 
 rule bed_to_bigbed:
     input:
-        bed="peaks/{directory}/{sample}.bed",
+        bed="seqnado_output/peaks/{directory}/{sample}.bed",
     output:
-        bigbed="peaks/{directory}/{sample}.bigBed",
+        bigbed="seqnado_output/peaks/{directory}/{sample}.bigBed",
     params:
         chrom_sizes=config["genome"]["chromosome_sizes"],
     log:
@@ -22,7 +22,7 @@ rule bed_to_bigbed:
 rule generate_hub_for_chipseq_and_atacseq:
     input:
         bigbed=expand(
-            "peaks/{method}/{sample}.bigBed",
+            "seqnado_output/peaks/{method}/{sample}.bigBed",
             method=PEAK_CALL_METHODS
             if ASSAY in ["ChIP", "ATAC"]
             else [
@@ -31,18 +31,18 @@ rule generate_hub_for_chipseq_and_atacseq:
             sample=SAMPLE_NAMES_IP if ASSAY == "ChIP" else SAMPLE_NAMES,
         ),
         bigwig=expand(
-            "bigwigs/{method}/{sample}.bigWig",
+            "seqnado_output/bigwigs/{method}/{sample}.bigWig",
             method=PILEUP_METHODS,
             sample=SAMPLE_NAMES,
         ),
-        report="qc/full_qc_report.html",
+        report="seqnado_output/qc/full_qc_report.html",
     output:
         hub=os.path.join(
             config["ucsc_hub_details"]["directory"],
             f"{config['ucsc_hub_details']['name']}.hub.txt",
         ),
     log:
-        log=f"logs/{config['ucsc_hub_details']['name']}.hub.log",
+        log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log",
     params:
         assay = ASSAY,
     script:

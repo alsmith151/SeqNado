@@ -42,16 +42,16 @@ include: "rules/hub_rna.smk"
 
 rule all:
     input:
-        mutiqc_full="qc/full_qc_report.html",
-        read_counts = "feature_counts/read_counts.tsv",
+        mutiqc_full="seqnado_output/qc/full_qc_report.html",
+        read_counts = "seqnado_output/feature_counts/read_counts.tsv",
 
         bams=expand(
-            "aligned/{sample}.bam",
+            "seqnado_output/aligned/{sample}.bam",
             sample=SAMPLE_NAMES,
         ),
 
         pileups=expand(
-            "bigwigs/{method}/{sample}_{strand}.bigWig",
+            "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
             strand=["plus", "minus"]

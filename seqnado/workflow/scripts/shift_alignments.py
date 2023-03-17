@@ -4,12 +4,12 @@ shift_reads = snakemake.config.get("shift_atac_reads", False)
 
 if shift_reads:
 
-    cmd_shift = ["rsbamtk", "shift", "-b", snakemake.input.bam, "-o", snakemake.output.bam + ".tmp"]
-    cmd_sort = ["samtools", "sort", snakemake.output.bam + ".tmp", "-@", str(snakemake.threads), "-o", snakemake.output.bam]
-    cmd_index = ["samtools", "index", snakemake.output.bam]
-    cmd_log = [f'echo "Shifted reads" > {snakemake.log}']
+    cmd_shift = " ".join(["rsbamtk", "shift", "-b", snakemake.input.bam, "-o", snakemake.output.bam + ".tmp"])
+    cmd_sort = " ".join(["samtools", "sort", snakemake.output.bam + ".tmp", "-@", str(snakemake.threads), "-o", snakemake.output.bam])
+    cmd_index = " ".join(["samtools", "index", snakemake.output.bam])
+    cmd_log = " ".join([f'echo "Shifted reads" > {snakemake.log}'])
 
-    cmd = [" && ".join(c) for c in [cmd_shift, cmd_sort, cmd_index, cmd_log]][0]
+    cmd = " && ".join([cmd_shift, cmd_sort, cmd_index, cmd_log])
 
 
 else:

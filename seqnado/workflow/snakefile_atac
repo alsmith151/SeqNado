@@ -50,14 +50,14 @@ include: "rules/hub.smk"
 
 rule all:
     input:
-        mutiqc_full="qc/full_qc_report.html",
+        mutiqc_full="seqnado_output/qc/full_qc_report.html",
         pileups=expand(
-            "bigwigs/{method}/{sample}.bigWig",
+            "seqnado_output/bigwigs/{method}/{sample}.bigWig",
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
         ),
         peaks=expand(
-            "peaks/{method}/{sample}.bed",
+            "seqnado_output/peaks/{method}/{sample}.bed",
             sample=SAMPLE_NAMES,
             method=PEAK_CALL_METHODS,
         ),

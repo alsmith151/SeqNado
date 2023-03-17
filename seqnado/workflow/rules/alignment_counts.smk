@@ -2,11 +2,11 @@ import seqnado.utils as utils
 
 rule feature_counts:
     input:
-        bam=expand("aligned/{sample}.bam", sample=SAMPLE_NAMES),
-        bai=expand("aligned/{sample}.bam.bai", sample=SAMPLE_NAMES),
+        bam=expand("seqnado_output/aligned/{sample}.bam", sample=SAMPLE_NAMES),
+        bai=expand("seqnado_output/aligned/{sample}.bam.bai", sample=SAMPLE_NAMES),
         annotation=config["genome"]["annotation"],
     output:
-        counts=f"feature_counts/read_counts.tsv",
+        counts="seqnado_output/feature_counts/read_counts.tsv",
     params:
         options=utils.check_options(config["featurecounts"]["options"]),
     threads: config["featurecounts"]["threads"]

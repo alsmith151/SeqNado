@@ -8,9 +8,9 @@ def get_paired_treatment_and_input(
     paths = dict()
 
     dirs = {
-        "bam": "aligned",
-        "tag": "tag_dirs",
-        "bigwig": "bigwigs/deeptools/",
+        "bam": "seqnado_output/aligned",
+        "tag": "seqnado_output/tag_dirs",
+        "bigwig": "seqnado_output/bigwigs/deeptools/",
     }
 
     file_ext = {"bam": ".bam", "tag": "/", "bigwig": ".bigWig"}
@@ -40,12 +40,12 @@ rule macs2_with_input:
     input:
         unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="bam")),
     output:
-        peaks="peaks/macs/{treatment}.bed",
+        peaks="seqnado_output/peaks/macs/{treatment}.bed",
     params:
         options=config["macs"]["callpeak"],
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
     log:
-        "logs/macs/{treatment}.log",
+        "seqnado_output/logs/macs/{treatment}.log",
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
@@ -54,14 +54,14 @@ rule macs2_with_input:
 
 rule macs2_no_input:
     input:
-        treatment="aligned/{treatment}.bam",
+        treatment="seqnado_output/aligned/{treatment}.bam",
     output:
-        peaks="peaks/macs/{treatment}.bed",
+        peaks="seqnado_output/peaks/macs/{treatment}.bed",
     params:
         options=config["macs"]["callpeak"],
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
     log:
-        "logs/macs/{treatment}.log",
+        "seqnado_output/logs/macs/{treatment}.log",
     shell:
         """
         macs2 callpeak -t {input.treatment} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
@@ -73,9 +73,9 @@ rule homer_with_input:
     input:
         unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="tag")),
     output:
-        peaks="peaks/homer/{treatment}.bed",
+        peaks="seqnado_output/peaks/homer/{treatment}.bed",
     log:
-        "logs/homer/findPeaks/{treatment}.log",
+        "seqnado_output/logs/homer/findPeaks/{treatment}.log",
     params:
         options=config["homer"]["findpeaks"],
     shell:
@@ -88,11 +88,11 @@ rule homer_with_input:
 
 rule homer_no_input:
     input:
-        treatment="tag_dirs/{sample}_{antibody}/",
+        treatment="seqnado_output/tag_dirs/{sample}_{antibody}/",
     output:
-        peaks="peaks/homer/{sample}_{antibody}.bed",
+        peaks="seqnado_output/peaks/homer/{sample}_{antibody}.bed",
     log:
-        "logs/homer/findPeaks_{sample}_{antibody}.log",
+        "seqnado_output/logs/homer/findPeaks_{sample}_{antibody}.log",
     params:
         options=str(config["homer"]["findpeaks"]).replace("None", ""),
     shell:
@@ -107,9 +107,9 @@ rule lanceotron_with_input:
     input:
         unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="bigwig")),
     output:
-        peaks="peaks/lanceotron/{treatment}.bed",
+        peaks="seqnado_output/peaks/lanceotron/{treatment}.bed",
     log:
-        "logs/lanceotron/{treatment}.log",
+        "seqnado_output/logs/lanceotron/{treatment}.log",
     params:
         options=config["lanceotron"]["callpeak"],
     threads: 1
@@ -123,11 +123,11 @@ rule lanceotron_with_input:
 
 rule lanceotron_no_input:
     input:
-        treatment="bigwigs/deeptools/{treatment}.bigWig",
+        treatment="seqnado_output/bigwigs/deeptools/{treatment}.bigWig",
     output:
-        peaks="peaks/lanceotron/{treatment}.bed",
+        peaks="seqnado_output/peaks/lanceotron/{treatment}.bed",
     log:
-        "logs/lanceotron/{treatment}.log",
+        "seqnado_output/logs/lanceotron/{treatment}.log",
     params:
         options=config["lanceotron"]["callpeak"],
     resources:
