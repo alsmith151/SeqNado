@@ -23,7 +23,9 @@ if os.path.exists(config["design"]):
         pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
     )
     assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
-    assert FASTQ_SAMPLES.design.columns.isin(["sample", "fq1", "fq2", "antibody", "control"]).all(), "Design file must contain columns sample, fq1, fq2, antibody, control"
+
+    for col in ["sample", "fq1", "fq2", "antibody", "control"]:
+        assert col in FASTQ_SAMPLES.design.columns, f"Design file must contain columns sample, fq1, fq2, antibody, control. Columns found: {FASTQ_SAMPLES.design.columns}"
 
 else:
     # Use pattern matching to get samples
