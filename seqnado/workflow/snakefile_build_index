@@ -1,0 +1,6 @@
+
+include: "rules/custom_genome.smk"
+
+rule all:
+    input:
+        bt2_index = "data/index/ref_custom_genome.1.bt2",
