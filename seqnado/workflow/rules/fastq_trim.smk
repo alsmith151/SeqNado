@@ -8,6 +8,8 @@ rule trimgalore_paired:
         trimmed1=temp("seqnado_output/trimmed/{sample}_1.fastq.gz"),
         trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
     threads: 4
+    resources:
+        mem_mb=750,
     params:
         options=seqnado.utils.check_options(config['trim_galore']['options']),
         trim_dir="seqnado_output/trimmed"

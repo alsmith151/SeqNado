@@ -8,14 +8,20 @@ rule fastqc_raw:
         qc="seqnado_output/qc/fastq_raw/{sample}_{read}_fastqc.html",
     params:
         outdir="seqnado_output/qc/fastq_raw",
+        tmpdir="seqnado_output/qc/fastqc_raw/{sample}_{read}",
         basename=lambda wc, output: seqnado.utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
     threads: 4
+    resources:
+        mem_mb=500,
     log:
         "seqnado_output/logs/fastqc_raw/{sample}_{read}.log",
     shell:
-        """fastqc -o {params.outdir} {input.fq} > {log} 2>&1 &&
-        mv {params.outdir}/{params.basename}_fastqc.html {output.qc} &&
-        mv {params.outdir}/{params.basename}_fastqc.zip {params.outdir}/{wildcards.sample}_{wildcards.read}_fastqc.zip
+        """
+        mkdir -p {params.tmpdir} &&
+        fastqc -o {params.tmpdir} {input.fq} > {log} 2>&1 &&
+        mv {params.tmpdir}/{params.basename}_fastqc.html {output.qc} &&
+        mv {params.tmpdir}/{params.basename}_fastqc.zip {params.outdir}/{wildcards.sample}_{wildcards.read}_fastqc.zip &&
+        rm -r {params.tmpdir}
         """
 
 rule fastqc_trimmed:
@@ -27,6 +33,9 @@ rule fastqc_trimmed:
         outdir="seqnado_output/qc/fastq_trimmed",
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}_{read}.log",
+    resources:
+        mem_mb=500,
+    threads: 4
     shell:
         """fastqc -o {params.outdir} {input.fq} > {log} 2>&1"""
 
@@ -37,6 +46,8 @@ rule samtools_stats:
     output:
         stats="seqnado_output/qc/alignment_raw/{sample}.txt",
     threads: 1
+    resources:
+        mem_mb=1000,
     shell:
         """samtools stats {input.bam} > {output.stats}"""
 
@@ -66,5 +77,7 @@ rule multiqc:
         "seqnado_output/qc/full_qc_report.html",
     log:
         "seqnado_output/logs/multiqc.log",
+    resources:
+        mem_mb=1000,
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"

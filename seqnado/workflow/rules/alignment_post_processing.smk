@@ -6,9 +6,11 @@ rule sort_bam:
         bam="seqnado_output/aligned/raw/{sample}.bam",
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
+    resources:
+        mem_mb=768
     threads: 8
     shell:
-        """samtools sort {input.bam} -@ {threads} -o {output.bam}
+        """samtools sort {input.bam} -@ {threads} -o {output.bam} 
         """
 
 
@@ -34,6 +36,8 @@ rule remove_blacklisted_regions:
     threads: 1
     params:
         blacklist=config["blacklist"],
+    resources:
+        mem_mb=3000
     log:
         "seqnado_output/logs/blacklist/{sample}.log",
     script:
@@ -47,7 +51,9 @@ rule remove_duplicates:
     output:
         bam=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam"),
         bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
-    threads: 1
+    threads: 8
+    resources:
+        mem_mb=500
     log:
         "seqnado_output/logs/duplicates/{sample}.log",
     script:
@@ -60,6 +66,8 @@ rule shift_atac_alignments:
     output:
         bam=temp("seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam"),
         bai=temp("seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai"),
+    resources:
+        mem_mb=2500
     params:
         options=None,
     threads: 1

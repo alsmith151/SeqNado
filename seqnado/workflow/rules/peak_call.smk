@@ -130,6 +130,7 @@ rule lanceotron_no_input:
         "seqnado_output/logs/lanceotron/{treatment}.log",
     params:
         options=config["lanceotron"]["callpeak"],
+    threads: 1
     resources:
         mem_mb=1024 * 10,
     shell:

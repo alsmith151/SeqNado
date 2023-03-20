@@ -10,6 +10,8 @@ rule bed_to_bigbed:
         bigbed="seqnado_output/peaks/{directory}/{sample}.bigBed",
     params:
         chrom_sizes=config["genome"]["chromosome_sizes"],
+    resources:
+        mem_mb=500
     log:
         "logs/bed_to_bigbed/{directory}_{sample}.log",
     shell:

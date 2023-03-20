@@ -10,6 +10,8 @@ rule feature_counts:
     params:
         options=utils.check_options(config["featurecounts"]["options"]),
     threads: config["featurecounts"]["threads"]
+    resources:
+        mem_mb=500,
     log:
         "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
     shell:
