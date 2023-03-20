@@ -1,3 +1,4 @@
+import os
 import seqnado.utils
 
 rule fastqc_raw:
@@ -17,7 +18,7 @@ rule fastqc_raw:
         mv {params.outdir}/{params.basename}_fastqc.zip {params.outdir}/{wildcards.sample}_{wildcards.read}_fastqc.zip
         """
 
-use rule fastqc_raw as fastqc_trimmed with:
+rule fastqc_trimmed:
     input:
         fq="seqnado_output/trimmed/{sample}_{read}.fastq.gz",
     output:
@@ -26,6 +27,8 @@ use rule fastqc_raw as fastqc_trimmed with:
         outdir="seqnado_output/qc/fastq_trimmed",
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}_{read}.log",
+    shell:
+        """fastqc -o {params.outdir} {input.fq} > {log} 2>&1"""
 
 
 rule samtools_stats:
