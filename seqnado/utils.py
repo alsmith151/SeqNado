@@ -180,3 +180,17 @@ def check_options(value: object):
         return ""
     else:
         return value
+
+
+def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool=False):
+
+    if paired:
+        return {"fq1": samples.translation[f"{wc.sample}_1.fastq.gz"],
+                "fq2": samples.translation[f"{wc.sample}_2.fastq.gz"]}
+    else:
+        return {"fq": samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]}
+
+def get_fq_filestem(wc, samples: GenericFastqSamples):
+    fn = samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]
+    basename = os.path.basename(fn)
+    return os.path.splitext(basename.replace(".gz", ""))[0]

@@ -1,19 +1,21 @@
-def get_fq_file(wc):
-    return {"fq": FASTQ_SAMPLES.translation[f"{wc.sample}_{wc.read}.fastq.gz"]}
+import seqnado.utils
 
 rule fastqc_raw:
     input:
-        unpack(get_fq_file),
+        unpack(lambda wc: seqnado.utils.translate_fq_files(wc, samples=FASTQ_SAMPLES, paired=False)),
     output:
         qc="seqnado_output/qc/fastq_raw/{sample}_{read}_fastqc.html",
     params:
         outdir="seqnado_output/qc/fastq_raw",
+        basename=lambda wc, output: seqnado.utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
     threads: 4
     log:
         "seqnado_output/logs/fastqc_raw/{sample}_{read}.log",
     shell:
-        "fastqc -o {params.outdir} {input.fq} > {log} 2>&1"
-
+        """fastqc -o {params.outdir} {input.fq} > {log} 2>&1 &&
+        mv {params.outdir}/{params.basename}_fastqc.html {output.qc} &&
+        mv {params.outdir}/{params.basename}_fastqc.zip {params.outdir}/{wildcards.sample}_{wildcards.read}_fastqc.zip
+        """
 
 use rule fastqc_raw as fastqc_trimmed with:
     input:
