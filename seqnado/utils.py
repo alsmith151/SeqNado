@@ -194,3 +194,24 @@ def get_fq_filestem(wc, samples: GenericFastqSamples):
     fn = samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]
     basename = os.path.basename(fn)
     return os.path.splitext(basename.replace(".gz", ""))[0]
+
+
+def pair_treatment_and_control_for_peak_calling(wc, samples, assay, filetype):
+
+    if assay == "ChIP":
+
+        df_design_sample = samples.loc[(samples["sample"] == wc.sample) & (samples["antibody"] == wc.antibody)]
+        if df_design_sample.empty:
+            raise Exception(f"Could not find sample {wc.sample} with antibody {wc.antibody} in design file")
+
+        filetype_to_dir_mapping = {"tag": "tag_dirs", "bigwig": "bigwigs/deeptools", "bam": "aligned"}
+        filetype_to_extension_mapping = {"tag": "/", "bigwig": ".bigWig", "bam": ".bam"}
+        
+        extension_for_filetype = filetype_to_extension_mapping[filetype]
+        directory_for_filetype = filetype_to_dir_mapping[filetype]
+        
+        treatment = f"seqnado_output/{directory_for_filetype}/{wc.sample}_{wc.antibody}{extension_for_filetype}"
+        control = f"seqnado_output/{directory_for_filetype}/{df_design_sample.iloc[0]['control']}{extension_for_filetype}"
+
+
+        return {"treatment": treatment, "control": control}

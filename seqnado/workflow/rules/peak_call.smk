@@ -1,51 +1,19 @@
 from typing import Literal
-
-
-def get_paired_treatment_and_input(
-    wc, filetype: Literal["bam", "tag", "bigwig"] = "bam"
-):
-
-    paths = dict()
-
-    dirs = {
-        "bam": "seqnado_output/aligned",
-        "tag": "seqnado_output/tag_dirs",
-        "bigwig": "seqnado_output/bigwigs/deeptools/",
-    }
-
-    file_ext = {"bam": ".bam", "tag": "/", "bigwig": ".bigWig"}
-
-    paths["treatment"] = os.path.join(
-        dirs[filetype], f"{wc.treatment}{file_ext[filetype]}"
-    )
-
-    if (ASSAY == "ChIP") and (
-        config["lanceotron"].get("use_input", True)
-        or config["homer"].get("use_input", True)
-    ):
-
-        if SAMPLE_NAMES_PAIRED[wc.treatment]:
-            paths["control"] = os.path.join(
-                dirs[filetype],
-                f"{SAMPLE_NAMES_PAIRED[wc.treatment]}{file_ext[filetype]}",
-            )
-
-    else:
-        paths["control"] = ""
-
-    return paths
-
-
+import seqnado.utils
+  
 rule macs2_with_input:
     input:
-        unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="bam")),
+        unpack(lambda wc: seqnado.utils.pair_treatment_and_control_for_peak_calling(wc, samples=FASTQ_SAMPLES, assay=ASSAY, filetype="bam")),
     output:
-        peaks="seqnado_output/peaks/macs/{treatment}.bed",
+        peaks="seqnado_output/peaks/macs/{sample}_{antibody}.bed",
     params:
-        options=config["macs"]["callpeak"],
+        options=seqnado.utils.check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+    threads: 1
+    resources:
+        mem_mb=2000,
     log:
-        "seqnado_output/logs/macs/{treatment}.log",
+        "seqnado_output/logs/macs/{sample}_{antibody}.log",
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
@@ -54,30 +22,37 @@ rule macs2_with_input:
 
 rule macs2_no_input:
     input:
-        treatment="seqnado_output/aligned/{treatment}.bam",
+        treatment="seqnado_output/aligned/{sample}_{antibody}.bam",
     output:
-        peaks="seqnado_output/peaks/macs/{treatment}.bed",
+        peaks="seqnado_output/peaks/macs/{sample}_{antibody}.bed",
     params:
-        options=config["macs"]["callpeak"],
+        options=seqnado.utils.check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+        basename=lambda wc, output: output.peaks.replace(".bed", ""),
+    threads: 1
+    resources:
+        mem_mb=2000,
     log:
-        "seqnado_output/logs/macs/{treatment}.log",
+        "seqnado_output/logs/macs/{sample}_{antibody}.log",
     shell:
         """
-        macs2 callpeak -t {input.treatment} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
+        macs2 callpeak -t {input.treatment} -n {params.basename} -f BAM {params.options} > {log} 2>&1 &&
         cat {params.narrow} | cut -f 1-3 > {output.peaks}
         """
 
 
 rule homer_with_input:
     input:
-        unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="tag")),
+        unpack(lambda wc: seqnado.utils.pair_treatment_and_control_for_peak_calling(wc, samples=FASTQ_SAMPLES, assay=ASSAY, filetype="tag")),
     output:
-        peaks="seqnado_output/peaks/homer/{treatment}.bed",
+        peaks="seqnado_output/peaks/homer/{sample}_{antibody}.bed",
     log:
-        "seqnado_output/logs/homer/findPeaks/{treatment}.log",
+        "seqnado_output/logs/homer/findPeaks/{sample}_{antibody}.log",
     params:
-        options=config["homer"]["findpeaks"],
+        options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
+    threads: 1
+    resources:
+        mem_mb=2000,
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.control} > {log} 2>&1 &&
@@ -94,7 +69,10 @@ rule homer_no_input:
     log:
         "seqnado_output/logs/homer/findPeaks_{sample}_{antibody}.log",
     params:
-        options=str(config["homer"]["findpeaks"]).replace("None", ""),
+        options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
+    threads: 1
+    resources:
+        mem_mb=1024,
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -105,37 +83,41 @@ rule homer_no_input:
 
 rule lanceotron_with_input:
     input:
-        unpack(lambda wc: get_paired_treatment_and_input(wc, filetype="bigwig")),
+        unpack(lambda wc: seqnado.utils.pair_treatment_and_control_for_peak_calling(wc, samples=FASTQ_SAMPLES, assay=ASSAY, filetype="bigwig")),
     output:
-        peaks="seqnado_output/peaks/lanceotron/{treatment}.bed",
+        peaks="seqnado_output/peaks/lanceotron/{sample}_{antibody}.bed",
     log:
-        "seqnado_output/logs/lanceotron/{treatment}.log",
+        "seqnado_output/logs/lanceotron/{sample}_{antibody}.log",
     params:
-        options=config["lanceotron"]["callpeak"],
+        options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
+        outdir=lambda wc, output: os.path.dirname(output.peaks),
     threads: 1
     resources:
         mem_mb=1024 * 10,
     shell:
-        """lanceotron callPeaksInput {input.treatment} -i {input.control} -f peaks/ --skipheader > {log} 2>&1 &&
-           cat peaks/{wildcards.treatment}_L-tron.bed | cut -f 1-3 > {output.peaks}
+        """
+        lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} {params.options} --skipheader > {log} 2>&1 &&
+        cat {params.outdir}/{wildcards.sample}_{wildcards.antibody}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
 
 
 rule lanceotron_no_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/{treatment}.bigWig",
+        treatment="seqnado_output/bigwigs/deeptools/{sample}_{antibody}.bigWig",
     output:
-        peaks="seqnado_output/peaks/lanceotron/{treatment}.bed",
+        peaks="seqnado_output/peaks/lanceotron/{sample}_{antibody}.bed",
     log:
-        "seqnado_output/logs/lanceotron/{treatment}.log",
+        "seqnado_output/logs/lanceotron/{sample}_{antibody}.log",
     params:
-        options=config["lanceotron"]["callpeak"],
+        options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
+        outdir=lambda wc, output: os.path.dirname(output.peaks),
     threads: 1
     resources:
         mem_mb=1024 * 10,
     shell:
-        """lanceotron callPeaks {input.treatment} {params.options} -f peaks/ --format Bed --skipheader > {log} 2>&1 &&
-           mv peaks/{wildcards.treatment}_L-tron.bed {output.peaks}
+        """
+        lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
+        cat {params.outdir}/{wildcards.sample}_{wildcards.antibody}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
 
 
