@@ -16,8 +16,8 @@ rule bed_to_bigbed:
         "logs/bed_to_bigbed/{directory}_{sample}.log",
     shell:
         """
-        sort -k1,1 -k2,2n {input.bed} > {input.bed}.tmp &&
-        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} || touch {output.bigbed} &&
+        sort -k1,1 -k2,2n {input.bed} | grep '#' -v > {input.bed}.tmp &&
+        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} &&
         rm {input.bed}.tmp
         """
 
