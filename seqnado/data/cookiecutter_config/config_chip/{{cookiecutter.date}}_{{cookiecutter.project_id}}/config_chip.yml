@@ -13,7 +13,7 @@ genome:
 #  Optional configuration         #
 ###################################
 
-design: "{{cookiecutter.date}}_{{cookiecutter.project_id}}/design.csv"
+design: "design.csv"
 blacklist: "{{cookiecutter.blacklist}}"
 pileup_method: "{{cookiecutter.pileup_method}}"
 peak_calling_method: "{{cookiecutter.peak_calling_method}}"
