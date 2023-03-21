@@ -5,9 +5,9 @@ rule fastqc_raw:
     input:
         unpack(lambda wc: seqnado.utils.translate_fq_files(wc, samples=FASTQ_SAMPLES, paired=False)),
     output:
-        qc="seqnado_output/qc/fastq_raw/{sample}_{read}_fastqc.html",
+        qc="seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
     params:
-        outdir="seqnado_output/qc/fastq_raw",
+        outdir="seqnado_output/qc/fastqc_raw",
         tmpdir="seqnado_output/qc/fastqc_raw/{sample}_{read}",
         basename=lambda wc, output: seqnado.utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
     threads: 4
@@ -28,9 +28,9 @@ rule fastqc_trimmed:
     input:
         fq="seqnado_output/trimmed/{sample}_{read}.fastq.gz",
     output:
-        qc="seqnado_output/qc/fastq_trimmed/{sample}_{read}_fastqc.html",
+        qc="seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
     params:
-        outdir="seqnado_output/qc/fastq_trimmed",
+        outdir="seqnado_output/qc/fastqc_trimmed",
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}_{read}.log",
     resources:
@@ -62,12 +62,12 @@ use rule samtools_stats as samtools_stats_filtered with:
 rule multiqc:
     input:
         expand(
-            "seqnado_output/qc/fastq_raw/{sample}_{read}_fastqc.html",
+            "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
             sample=SAMPLE_NAMES,
             read=[1, 2],
         ),
         expand(
-            "seqnado_output/qc/fastq_trimmed/{sample}_{read}_fastqc.html",
+            "seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
             sample=SAMPLE_NAMES,
             read=[1, 2],
         ),
