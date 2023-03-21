@@ -48,7 +48,7 @@ rule macs2_with_input:
         "seqnado_output/logs/macs/{treatment}.log",
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
+        macs2 callpeak -t {input.treatment} -c {input.control} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
         cat {params.narrow} | cut -f 1-3 > {output.peaks}
         """
 
@@ -64,7 +64,7 @@ rule macs2_no_input:
         "seqnado_output/logs/macs/{treatment}.log",
     shell:
         """
-        macs2 callpeak -t {input.treatment} -n peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
+        macs2 callpeak -t {input.treatment} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAM {params.options} > {log} 2>&1 &&
         cat {params.narrow} | cut -f 1-3 > {output.peaks}
         """
 
