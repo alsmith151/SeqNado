@@ -47,6 +47,7 @@ rule generate_hub_for_chipseq_and_atacseq:
         log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log",
     params:
         assay = ASSAY,
+    container: None,
     script:
         "../scripts/create_hub_genomics.py"
 
