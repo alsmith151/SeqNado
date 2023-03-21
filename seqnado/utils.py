@@ -214,4 +214,10 @@ def pair_treatment_and_control_for_peak_calling(wc, samples, assay, filetype):
         control = f"seqnado_output/{directory_for_filetype}/{df_design_sample.iloc[0]['control']}{extension_for_filetype}"
 
 
-        return {"treatment": treatment, "control": control}
+        files =  {"treatment": treatment, "control": control}
+
+    else:
+        files = {}
+    
+    return files
+
