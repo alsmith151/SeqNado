@@ -10,7 +10,7 @@ rule homer_make_tag_directory:
     params:
         options=utils.check_options(config["homer"]["maketagdirectory"]),
     resources:
-        mem_mb=1000
+        mem_mb=4000
     log:
         "seqnado_output/logs/homer/maketagdirectory_{sample}.log",
     shell:
@@ -25,7 +25,7 @@ rule homer_make_bigwigs:
     log:
         "seqnado_output/logs/homer/makebigwigs_{sample}.log",
     resources:
-        mem_mb=500
+        mem_mb=4000
     params:
         genome_name=config["genome"]["name"],
         genome_chrom_sizes=config["genome"]["chromosome_sizes"],
@@ -47,7 +47,7 @@ rule deeptools_make_bigwigs:
     params:
         options=utils.check_options(config["deeptools"]["bamcoverage"]),
     resources:
-        mem_mb=500
+        mem_mb=1000
     threads: config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}.log",
