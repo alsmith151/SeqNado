@@ -132,7 +132,7 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq, RNA-seq and short rea
     seqnado atac # ATAC-seq samples
     seqnado chip # ChIP-seq/ChIPMentation
     seqnado rna # RNA-seq - Not fully tested
-    seqnado snp # RNA-seq - Not fully tested
+    seqnado snp # snp calling - Not fully tested
     ```
 
     * To visualise which tasks will be performed by the pipeline before running.  
