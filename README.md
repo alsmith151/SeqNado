@@ -40,7 +40,7 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq, RNA-seq and short rea
 
 1. **Setup project directory**
 
-    In the parent directory of the working directory run the following command:
+    In the parent directory of desired the working directory run the following command:
 
     ```
         seqnado-config atac # ATAC-seq samples
