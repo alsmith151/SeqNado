@@ -1,133 +1,150 @@
 # SeqNado Pipeline
 
-Pipeline based on snakemake to process ChIP-seq, ATAC-seq and RNA-seq data.
+Pipeline based on snakemake to process ChIP-seq, ATAC-seq, RNA-seq and short read WGS data for SNP calling.
 
 ## Installation
 
-1. Create a basic conda environment (with pip to install python packages) and activate it.
+1. Create a basic conda environment (with pip to install python packages) and activate it.  
 
     ```{bash}
-    conda create -n np pip
-    conda activate np
-    ````
-
-1. Install the pipeline. Two options:
-
-    a) Clone the repositry and install directly
-
+        conda create -n np pip
+        conda activate np
     ```
-    git clone https://github.com/alsmith151/SeqNado.git
-    cd SeqNado
-    pip install .
+
+1. Install the pipeline. Two options:  
+
+    a) Clone the repositry and install directly.
+    ```{bash}
+        git clone https://github.com/alsmith151/SeqNado.git
+        cd SeqNado
+        pip install .
     ```
 
     b) Install from GitHub directly
 
-    ```
-    pip install git+https://github.com/alsmith151/SeqNado.git
+    ```{bash}
+        pip install git+https://github.com/alsmith151/SeqNado.git
     ```
 
 1. If you intend to use a cluster e.g. SLURM add the path to the DRMAA interface to your .bashrc:
 
-    ```
-    # Access to the DRMAA library: https://en.wikipedia.org/wiki/DRMAA
-    echo "export DRMAA_LIBRARY_PATH=/<full-path>/libdrmaa.so" >> ~/.bashrc
+    ```{bash}
+        # Access to the DRMAA library: https://en.wikipedia.org/wiki/DRMAA
+        echo "export DRMAA_LIBRARY_PATH=/<full-path>/libdrmaa.so" >> ~/.bashrc
 
-    # For CBRG users the command to use is:
-    echo "export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so" >> ~/.bashrc
+        # For CBRG users the command to use is:
+        echo "export DRMAA_LIBRARY_PATH=/usr/lib64/libdrmaa.so" >> ~/.bashrc
     ```
-
+  
 ## Running the pipeline
 
-1. Setup project directory using seqnado-config
+1. **Setup project directory**
 
     In the parent directory of the working directory run the following command:
 
     ```
-    seqnado-config atac # ATAC-seq samples
-    seqnado-config chip # ChIP-seq/ChIPMentation
-    seqnado-config rna # RNA-seq - Not fully tested
+        seqnado-config atac # ATAC-seq samples
+        seqnado-config chip # ChIP-seq/ChIPMentation
+        seqnado-config rna # RNA-seq - Not fully tested
+        seqnado-config snp # snp calling - Not fully tested
 
     ```
 
     This will lead you through a series of questions which will create a new project directory, config file and a sample sheet for you to edit.
 
-    cd into the newly made directory and edit the config file and sample sheet.
+    cd into the newly made directory and inspect the config file.  
 
-1. Copy or link fastq files into the working directory
+1. **Copy or link fastq files into the fastq directory**
 
-    Copy:
+    Copy:  
+    ```cp PATH_TO_FASTQ/example_R1.fastq.gz```
 
-    ```
-    cp PATH_TO_FASTQ/example_R1.fastq.gz
-    ```
+    Symlink: Be sure to use the absolute path for symlinks i.e.  
+        ```ln -s /ABSOLUTE_PATH_TO_FASTQ/example_R1.fastq.gz ```  
 
-    Symlink:
-
-    ```
-    # Be sure to use the absolute path for symlinks
-    ln -s /ABSOLUTE_PATH_TO_FASTQ/example_R1.fastq.gz
-    ```
-
-    1. Set-up sample sheet.
+1. **Set-up sample sheet**
 
     There are two options for preparing a sample sheet:
 
-    a) Using sample naming. If samples names match the following conventions then a sample sheet will be generated for your samples:
+    a) Using seqnado-design
 
-    ChIP-seq
+    ```
+        seqnado-design atac fastq/* # ATAC-seq samples
+        seqnado-design chip fastq/* # ChIP-seq/ChIPMentation
+        seqnado-design rna fastq/* # RNA-seq - Not fully tested
+        seqnado-design snp fastq/* # snp calling - Not fully tested
 
-    * samplename1_Antibody_R1.fastq.gz
-    * samplename1_Antibody_R2.fastq.gz
-    * samplename1_Input_1.fastq
-    * samplename1_Input_2.fastq
+    ```
 
-    For ATAC-seq:
+    If samples names match the following conventions then a sample sheet will be generated for your samples:
 
-    * sample-name-1_R1.fastq.gz
-    * sample-name-1_R2.fastq.gz
-    * sample-name-1_1.fastq
-    * sample-name-1_2.fastq
+        ChIP-seq
 
-    For RNA-seq:
+        * samplename1_Antibody_R1.fastq.gz
+        * samplename1_Antibody_R2.fastq.gz
+        * samplename1_Input_1.fastq
+        * samplename1_Input_2.fastq
 
-    * sample-name-1_R1.fastq.gz
-    * sample-name-1_R2.fastq.gz
-    * sample-name-1_1.fastq
-    * sample-name-1_2.fastq
+        For ATAC-seq:
 
-    b) Using a custom sample sheet. This is useful for situations in which it can be difficult to appropriately compare IP and Input control samples. For ChIP-seq samples you will need to create a csv or tsv file with the following columns:
+        * sample-name-1_R1.fastq.gz
+        * sample-name-1_R2.fastq.gz
+        * sample-name-1_1.fastq
+        * sample-name-1_2.fastq
 
-    | sample      | antibody | fq1                              | fq2                              | control              |
-    |-------------|----------|----------------------------------|----------------------------------|----------------------|
-    | SAMPLE-NAME | ANTIBODY | SAMPLE-NAME_ANTIBODY_R1.fastq.gz | SAMPLE-NAME_ANTIBODY_R2.fastq.gz | CONTROL_SAMPLE_Input |
+        For RNA-seq:
+
+        * sample-name-1_R1.fastq.gz
+        * sample-name-1_R2.fastq.gz
+        * sample-name-1_1.fastq
+        * sample-name-1_2.fastq  
 
 
-1. Running the pipeline
+    b) Using a custom sample sheet. 
+
+    This is useful for situations in which it can be difficult to appropriately compare IP and Input control samples. 
+
+    * For ChIP-seq samples you will need to create a csv or tsv file with the following columns:
+
+        | sample      | antibody | fq1                              | fq2                              | control              |
+        |-------------|----------|----------------------------------|----------------------------------|----------------------|
+        | SAMPLE-NAME | ANTIBODY | SAMPLE-NAME_ANTIBODY_R1.fastq.gz | SAMPLE-NAME_ANTIBODY_R2.fastq.gz | CONTROL_SAMPLE_Input |
+
+
+
+    * For ATAC-seq, RNA-seq or SNP calling samples you will need to create a csv or tsv file with the following columns:
+
+        | sample      | fq1                              | fq2                              |
+        |-------------|----------------------------------|----------------------------------|
+        | SAMPLE-NAME | SAMPLE-NAME_R1.fastq.gz | SAMPLE-NAME_R2.fastq.gz |
+
+
+1. **Running the pipeline**
 
     All FASTQ files present in the directory will be processed by the pipeline in parallel and
     original FASTQ files will not be modified. If new FASTQ files are added to a pre-run pipeline,
     only the new files will be processed.
 
     After copying/linking FASTQ files into the working directory and configuring the copy of
-    config.yml in the working directory for the current experiment, the pipeline can be run with:
+    config_[*assay*].yml in the working directory for the current experiment, the pipeline can be run with:
 
     ```
     seqnado atac # ATAC-seq samples
     seqnado chip # ChIP-seq/ChIPMentation
     seqnado rna # RNA-seq - Not fully tested
+    seqnado snp # RNA-seq - Not fully tested
     ```
 
-    There are several options to visualise which tasks will be performed by the pipeline
-    before running.
+    * To visualise which tasks will be performed by the pipeline before running.  
+    ```seqnado atac -c 1 --preset ss --dag | dot -Tpng > dag.png```
 
-    ```
-    # If using all default settings (this will run on just the login node)
-    seqnado atac -c NUMBER_OF_CORES
+    * If using all default settings (this will run on just the login node)  
+    ```seqnado atac -c NUMBER_OF_CORES```
 
-    # If you want to use the cluster (recommended)
-    seqnado atac -c NUMBER_OF_CORES
+    * If you want to use the cluster (recommended)  
+    ```seqnado atac -c NUMBER_OF_CORES --preset ss```
 
-    # Avoiding network disconnections
-    nohup seqnado atac make &
-    ```
+    * Avoiding network disconnections  
+    ```nohup seqnado atac make &```
+
+    **Your processed data can be found in ./seqnado_output**
