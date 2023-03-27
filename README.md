@@ -7,8 +7,8 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq, RNA-seq and short rea
 1. Create a basic conda environment (with pip to install python packages) and activate it.  
 
     ```{bash}
-        conda create -n np pip
-        conda activate np
+        conda create -n seqnado pip
+        conda activate seqnado
     ```
 
 1. Install the pipeline. Two options:  
