@@ -8,6 +8,7 @@ genome:
     name: "{{cookiecutter.genome}}"
     chromosome_sizes: "{{cookiecutter.chromosome_sizes}}"
     indicies: "{{cookiecutter.indicies}}"
+    gtf: "{{cookiecutter.gtf}}"
 
 ###################################
 #  Optional configuration         #
@@ -64,3 +65,5 @@ lanceotron:
     # Options passed to callPeaks[Input] command
     callpeak: -c 0.5
 
+heatmap:
+    colorMap: Purples Reds 

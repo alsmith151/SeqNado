@@ -6,6 +6,7 @@
   "genome": "hg38",
   "chromosome_sizes": "path/to/hg38.chrom.sizes",
   "indicies": "/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome",
+  "gtf": "path/to/genes.gtf",
   "blacklist": "path/to/hg38-blacklist.v2.bed.gz",
   "pileup_method": ["deeptools"],
   "peak_calling_method": ["macs", "lanceotron", "homer"],

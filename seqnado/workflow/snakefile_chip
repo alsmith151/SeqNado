@@ -72,6 +72,10 @@ rule all:
             config["ucsc_hub_details"]["directory"],
             f"{config['ucsc_hub_details']['name']}.hub.txt",
         ),
+        heatmaps=expand(
+            "seqnado_output/heatmap/heatmap/Heatmap_{sample}.png",
+            sample=SAMPLE_NAMES,
+        ),
 
 
 onsuccess:
