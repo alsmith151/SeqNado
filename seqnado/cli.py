@@ -7,7 +7,7 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 
 @click.command()
-@click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
+@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 def cli_config(method):
     """
     Runs the config for the data processing pipeline.
@@ -21,7 +21,7 @@ def cli_config(method):
 
 
 @click.command()
-@click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
+@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.argument("files", nargs=-1)
 @click.option("-o", "--output", default="design.csv", help="Output file name")
 def cli_design(method, files, output="design.csv"):
@@ -44,7 +44,7 @@ def cli_design(method, files, output="design.csv"):
     
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
-@click.argument("method", type=click.Choice(["atac", "chip", "rna"]))
+@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)
 @click.option(
     "--preset",
