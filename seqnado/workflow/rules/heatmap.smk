@@ -6,7 +6,7 @@ rule heatmap_matrix:
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
         ),
-        gtf = index=config["genome"]["gtf"],
+        gtf = config["genome"]["gtf"],
     output:
         matrix = "seqnado_output/heatmap/matrix/matrix_{sample}.mat.gz",
     threads: 8

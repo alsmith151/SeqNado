@@ -49,6 +49,7 @@ include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call.smk"
 include: "rules/pileup.smk"
+include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
 
@@ -73,8 +74,12 @@ rule all:
             f"{config['ucsc_hub_details']['name']}.hub.txt",
         ),
         heatmaps=expand(
-            "seqnado_output/heatmap/heatmap/Heatmap_{sample}.png",
-            sample=SAMPLE_NAMES,
+            "seqnado_output/heatmap/heatmap/Heatmap_{ip}.png",
+        ip=[
+        f"{row.sample}_{row.antibody}"
+                for row in FASTQ_SAMPLES.design.itertuples()
+            ],
+            method=PEAK_CALL_METHODS,
         ),
 
 
