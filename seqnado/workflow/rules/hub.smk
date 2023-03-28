@@ -13,7 +13,7 @@ rule bed_to_bigbed:
     resources:
         mem_mb=500
     log:
-        "logs/bed_to_bigbed/{directory}_{sample}.log",
+        "seqnado_output/logs/bed_to_bigbed/{directory}_{sample}.log",
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v > {input.bed}.tmp &&
