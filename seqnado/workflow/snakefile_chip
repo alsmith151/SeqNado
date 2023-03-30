@@ -61,6 +61,7 @@ rule all:
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
         ),
+        heatmap = "seqnado_output/heatmap/heatmap.pdf",
         peaks=expand(
             "seqnado_output/peaks/{method}/{ip}.bed",
         ip=[
@@ -72,14 +73,6 @@ rule all:
         hub=os.path.join(
             config["ucsc_hub_details"]["directory"],
             f"{config['ucsc_hub_details']['name']}.hub.txt",
-        ),
-        heatmaps=expand(
-            "seqnado_output/heatmap/heatmap/Heatmap_{ip}.png",
-        ip=[
-        f"{row.sample}_{row.antibody}"
-                for row in FASTQ_SAMPLES.design.itertuples()
-            ],
-            method=PEAK_CALL_METHODS,
         ),
 
 

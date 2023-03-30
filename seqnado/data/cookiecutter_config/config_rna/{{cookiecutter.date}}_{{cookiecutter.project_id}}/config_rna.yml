@@ -41,11 +41,11 @@ trim_galore:
 
 star:
     threads: 4
-    options:
+    options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
 
 featurecounts:
     threads: 4
-    options:
+    options: -p
 
 homer:
     maketagdirectory:
@@ -57,4 +57,4 @@ deeptools:
     # Options passed to deeptools BamCoverage
     # These need to be replaced
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
-    bamcoverage: -bs 1 --normalizeUsing RPKM
+    bamcoverage: -bs 1 --normalizeUsing CPM

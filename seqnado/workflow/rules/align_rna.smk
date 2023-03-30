@@ -8,8 +8,9 @@ rule align_paired:
     params:
         index=config["genome"]["indicies"],
         options=utils.check_options(config["star"]["options"]),
+        prefix="seqnado_output/aligned/star/{sample}_"
     output:
-        bam=temp("seqnado_output/aligned/star/{sample}Aligned.sortedByCoord.out.bam"),
+        bam=temp("seqnado_output/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),
     threads: config["star"]["threads"]
     resources:
         mem_mb=(32000 // config["star"]["threads"]),
@@ -18,23 +19,13 @@ rule align_paired:
     shell:
         """
         STAR \
-        --genomeDir \
-        {params.index} \
-        --readFilesIn \
-        {input.fq1} \
-        {input.fq2} \
-        --readFilesCommand \
-        zcat \
-        --outSAMtype \
-        BAM SortedByCoordinate \
-        --runThreadN \
-        {threads} \
-        --outFileNamePrefix \
-        aligned/star/{wildcards.sample} \
-        {params.options} \
-        > {log} 2>&1
+        --genomeDir {params.index} \
+        --readFilesIn {input.fq1} {input.fq2} \
+        --readFilesCommand zcat \
+        --outSAMtype BAM SortedByCoordinate \
+        --runThreadN {threads} \
+        --outFileNamePrefix {params.prefix} {params.options} > {log} 2>&1
         """
-
 
 rule rename_aligned:
     input:
