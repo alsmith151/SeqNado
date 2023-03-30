@@ -1,4 +1,6 @@
 
+localrules: deseq2_report_rnaseq
+
 rule deseq2_report_rnaseq:
     input:
         counts="seqnado_output/feature_counts/read_counts.tsv",

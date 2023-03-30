@@ -57,10 +57,10 @@ rule all:
             method=PILEUP_METHODS,
             strand=["plus", "minus"]
         ),
-        # hub=os.path.join(
-        #     config["ucsc_hub_details"]["directory"],
-        #     f"{config['ucsc_hub_details']['name']}.hub.txt",
-        # ),
+        hub=os.path.join(
+            config["ucsc_hub_details"]["directory"],
+            f"{config['ucsc_hub_details']['name']}.hub.txt",
+        ),
 
         
 

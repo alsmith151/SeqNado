@@ -70,10 +70,10 @@ rule all:
             ],
             method=PEAK_CALL_METHODS,
         ),
-        # hub=os.path.join(
-        #     config["ucsc_hub_details"]["directory"],
-        #     f"{config['ucsc_hub_details']['name']}.hub.txt",
-        # ),
+        hub=os.path.join(
+            config["ucsc_hub_details"]["directory"],
+            f"{config['ucsc_hub_details']['name']}.hub.txt",
+        ),
 
 
 onsuccess:
