@@ -1,4 +1,5 @@
 global-include *.smk
 global-include snakefile*
-recursive-include seqnado/data
-recursive-include seqnado/workflow
+global-include *.yaml
+global-include *.yml
+include seqnado/workflow/*
