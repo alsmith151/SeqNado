@@ -7,3 +7,4 @@ ngs_pipeline/tests/pipeline/
 *egg*
 **GenomeDir
 build/*
+dist/*
