@@ -14,7 +14,7 @@ rule bcftools_call_snp:
     threads: config["bcftools"]["threads"]
     log:
         "seqnado_output/logs/variant/bcftools/{sample}.log",
-    shell: "bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1"
+    shell: "bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1"
 
 rule bcftools_split_multiallelic:
     input:
