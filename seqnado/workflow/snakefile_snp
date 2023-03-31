@@ -1,0 +1,78 @@
+import os
+import sys
+import shutil
+from datetime import datetime
+import glob
+from snakemake.utils import min_version
+import seqnado.utils as utils
+import pandas as pd
+
+ASSAY = "snp"
+configfile: "config_snp.yml"
+container: "library://asmith151/ngs-pipeline/ngs:latest"
+
+utils.format_config_dict(config)
+
+# Get experiment design
+if os.path.exists(config["design"]):
+    # Expect columns - sample fq1 fq2
+    FASTQ_SAMPLES = utils.GenericFastqSamples(
+        pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
+    )
+    assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
+    for col in ["sample", "fq1", "fq2"]:
+        assert col in FASTQ_SAMPLES.design.columns, f"Design file must contain columns sample, fq1, fq2. Columns found: {FASTQ_SAMPLES.design.columns}"
+
+else:
+    # Use pattern matching to get samples
+    fq_files = list(utils.get_fastq_files("."))
+    if fq_files:
+        FASTQ_SAMPLES = utils.GenericFastqSamples.from_files(fq_files)
+    else:
+        raise ValueError("No FASTQ files found in the working directory")
+
+
+DESIGN = FASTQ_SAMPLES.design
+SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
+
+
+include: "rules/qc.smk"
+include: "rules/fastq_trim.smk"
+include: "rules/align.smk"
+include: "rules/alignment_post_processing.smk"
+include: "rules/variant.smk"
+
+
+rule all:
+    input:
+        mutiqc_full="seqnado_output/qc/full_qc_report.html",
+        snps=expand(
+            "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
+            sample=SAMPLE_NAMES,
+        ),
+        stats=expand(
+            "seqnado_output/variant/{sample}_summary.pdf",
+            sample=SAMPLE_NAMES,
+        ),
+
+
+onsuccess:
+    slurm_files = glob.glob("slurm-*.out")
+    sps_files = glob.glob("sps-*")
+
+    for fn in [*slurm_files, *sps_files]:
+        try:
+            if not os.path.isdir(fn):
+                os.remove(fn)
+            else:
+                shutil.rmtree(fn)
+
+        except Exception as e:
+            print(e)
+
+onerror:
+    log_out = "seqnado_error.log"
+    shutil.copyfile(log, log_out)
+    print(
+        f"An error occurred. Please check the log file {log_out} for more information."
+    )

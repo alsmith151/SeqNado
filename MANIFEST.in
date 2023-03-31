@@ -1,3 +1,7 @@
 global-include *.smk
 global-include snakefile*
-recursive-include ngs_pipeline/workflow/
+global-include *.yaml
+global-include *.yml
+global-include *.py
+include seqnado/workflow/*
+include seqnado/data/*

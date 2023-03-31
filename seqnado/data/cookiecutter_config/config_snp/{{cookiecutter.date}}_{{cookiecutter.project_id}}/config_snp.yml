@@ -1,0 +1,37 @@
+version: 1.0
+
+###################################
+# Essential configuration options #
+###################################
+
+genome:
+    name: "{{cookiecutter.genome}}"
+    fasta: "{{cookiecutter.fasta}}"
+    fasta_index: "{{cookiecutter.fasta_index}}"
+    indicies: "{{cookiecutter.indicies}}"
+    chromosome_sizes: "{{cookiecutter.chromosome_sizes}}"
+
+###################################
+#  Optional configuration         #
+###################################
+
+design: "design.csv"
+blacklist: "{{cookiecutter.blacklist}}"
+snp_database: "{{cookiecutter.snp_database}}"
+remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
+
+#################################
+# Tool specific options         #
+#################################
+
+trim_galore:
+    threads: 4
+    options: 
+
+bowtie2:
+    threads: 4
+    options:
+
+bcftools:
+    threads: 4
+    filter: 'TYPE="snp" && GT="het" && QUAL>30'

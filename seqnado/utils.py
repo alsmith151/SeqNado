@@ -132,7 +132,7 @@ class GenericFastqSamples:
         )
 
     @classmethod
-    def from_files(cls, files: List[Union[pathlib.Path, str]]) -> (pd.DataFrame):
+    def from_files(cls, files: List[Union[pathlib.Path, str]]) -> "GenericFastqSamples":
 
         df = pd.DataFrame(files, columns=["fn"])
 
@@ -163,48 +163,61 @@ class GenericFastqSamples:
     def sample_names_all(self):
         return self.design["sample"].to_list()
 
-    def symlink_fastq_files(self, outdir="fastq"):
-
-        if not os.path.exists(outdir):
-            os.mkdir(outdir)
-
-        fq_links = defaultdict(list)
+    @property
+    def translation(self):
+        fq_translation = {}
         for sample in self.design.itertuples():
-            for read, fq in enumerate([sample.fq1, sample.fq2]):
+            for read in [1, 2]:
+                fq_translation[f"{sample.sample}_{read}.fastq.gz"] = os.path.realpath(
+                    str(getattr(sample, f"fq{read}"))
+                )
 
-                if os.path.exists(fq):
-                    src = os.path.abspath(fq)
-                    dest = os.path.join(outdir, f"{sample.sample}_{read + 1}.fastq.gz")
-                    fq_links[f"fq{read + 1}"].append(dest)
-
-                    try:
-                        os.symlink(src, dest)
-                    except FileExistsError:
-                        pass
-
-        self.design["fq1"] = fq_links["fq1"]
-        self.design["fq2"] = fq_links["fq2"]
-
-
-def get_pipeline_tools(config: Dict, assay="ChIP") -> Dict:
-    if not assay == "RNA":
-        tools = dict(
-            homer="homer" in config["pileup_method"]
-            or "homer" in config["peak_calling_method"],
-            deeptools="deeptools" in config["pileup_method"],
-            macs="macs" in config["peak_calling_method"],
-            lanceotron="lanceotron" in config["peak_calling_method"],
-        )
-    else:
-        tools = dict(
-            deeptools="deeptools" in config["pileup_method"],
-        )
-
-    return tools
+        return fq_translation
 
 
 def check_options(value: object):
-    if value in [None, np.nan, pd.NA, ""]:
+    if value in [None, np.nan, ""]:
         return ""
     else:
         return value
+
+
+def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool=False):
+
+    if paired:
+        return {"fq1": samples.translation[f"{wc.sample}_1.fastq.gz"],
+                "fq2": samples.translation[f"{wc.sample}_2.fastq.gz"]}
+    else:
+        return {"fq": samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]}
+
+def get_fq_filestem(wc, samples: GenericFastqSamples):
+    fn = samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]
+    basename = os.path.basename(fn)
+    return os.path.splitext(basename.replace(".gz", ""))[0]
+
+
+def pair_treatment_and_control_for_peak_calling(wc, samples, assay, filetype):
+
+    if assay == "ChIP":
+
+        df_design_sample = samples.loc[(samples["sample"] == wc.sample) & (samples["antibody"] == wc.antibody)]
+        if df_design_sample.empty:
+            raise Exception(f"Could not find sample {wc.sample} with antibody {wc.antibody} in design file")
+
+        filetype_to_dir_mapping = {"tag": "tag_dirs", "bigwig": "bigwigs/deeptools", "bam": "aligned"}
+        filetype_to_extension_mapping = {"tag": "/", "bigwig": ".bigWig", "bam": ".bam"}
+        
+        extension_for_filetype = filetype_to_extension_mapping[filetype]
+        directory_for_filetype = filetype_to_dir_mapping[filetype]
+        
+        treatment = f"seqnado_output/{directory_for_filetype}/{wc.sample}_{wc.antibody}{extension_for_filetype}"
+        control = f"seqnado_output/{directory_for_filetype}/{df_design_sample.iloc[0]['control']}{extension_for_filetype}"
+
+
+        files =  {"treatment": treatment, "control": control}
+
+    else:
+        files = {"treatment": "", "control": ""}
+    
+    return files
+
