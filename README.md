@@ -1,5 +1,3 @@
-```
-
 
                                                            /$$          
                                                           | $$          
@@ -33,7 +31,6 @@
                                     %                                         
   
                                      
-```
 
 # SeqNado Pipeline
 
@@ -48,16 +45,22 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq, RNA-seq and short rea
         conda activate seqnado
     ```
 
-1. Install the pipeline. Two options:  
+1. Install the pipeline. Three options:
+    
+    a) Install the package from pip (recommended)
 
-    a) Clone the repositry and install directly.
+    ```{bash}
+        pip install seqnado
+    ```
+
+    b) Clone the repositry and install directly.
     ```{bash}
         git clone https://github.com/alsmith151/SeqNado.git
         cd SeqNado
         pip install .
     ```
 
-    b) Install from GitHub directly
+    c) Install from GitHub directly
 
     ```{bash}
         pip install git+https://github.com/alsmith151/SeqNado.git
