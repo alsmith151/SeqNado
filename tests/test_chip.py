@@ -2,7 +2,8 @@ import glob
 import os
 import shutil
 import subprocess
-
+from datetime import datetime
+from cookiecutter.main import cookiecutter
 import pytest
 
 
@@ -16,7 +17,7 @@ def repo_path():
 
 @pytest.fixture(scope="module")
 def package_path(repo_path):
-    return os.path.join(repo_path, "ngs_pipeline")
+    return os.path.join(repo_path, "seqnado")
 
 
 @pytest.fixture(scope="module")
@@ -110,27 +111,34 @@ def set_up(
     cwd = os.getcwd()
     os.chdir(run_directory)
 
+    cookiecutter(
+    f"{package_path}/data/cookiecutter_config/config_chip/",
+    extra_context={
+        "genome": "hg19",
+        "date": "{% now 'utc', '%Y-%m-%d' %}",
+        "project_name": "test",
+        "chromosome_sizes": chromsizes,
+        "indicies": genome_indicies,
+        "pileup_method": "deeptools",
+        "peak_calling_method": "lanceotron",
+        "remove_pcr_duplicates_method": "picard",
+        "UCSC_hub_directory": "test_hub",
+        "name": "test",
+        "short": "test",
+        "long": "test",
+        "email": "test",
+        "color_by": "samplename",
+        "gtf": f"{data_path}/genome/chr21.gtf",
+    },
+    no_input=True,
+    )
+
     # Move config files and fastq files
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    os.chdir(f"{current_date}_test")
     for fq in fastqs:
         shutil.copy(fq, ".")
 
-    # Move and replace the config file
-    replacements_dict = {
-        "GENOME_NAME": "hg19",
-        "CHROMOSOME_SIZES_FILE": chromsizes,
-        "INDICES_DIRECTORY": genome_indicies,
-        "HUB_DIRECTORY_PATH": f"{run_directory}/UCSC_HUB/",
-        "MACS_OPTIONS": "-g 46709983",
-    }
-
-    with open(f"{config_path}/config_chip.yml", "r") as r:
-        with open("config_chip.yml", "w") as w:
-            for line in r:
-                for rep_key in replacements_dict:
-                    if rep_key in line:
-                        line = line.replace(rep_key, replacements_dict[rep_key])
-
-                w.write(line)
 
     yield
 
