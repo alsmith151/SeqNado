@@ -30,6 +30,8 @@ else:
 
 DESIGN = FASTQ_SAMPLES.design
 SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
+RUN_DESEQ2 = DESIGN.columns.str.contains("deseq2").any()
+
 
 include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
@@ -45,7 +47,7 @@ rule all:
     input:
         mutiqc_full="seqnado_output/qc/full_qc_report.html",
         read_counts = "seqnado_output/feature_counts/read_counts.tsv",
-        deseq2=f"DESeq2_{config['DESeq2']['project_id']}.html",
+        deseq2=f"DESeq2_{config['DESeq2']['project_id']}.html" if RUN_DESEQ2 else [],
         bams=expand(
             "seqnado_output/aligned/{sample}.bam",
             sample=SAMPLE_NAMES,
