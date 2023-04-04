@@ -33,7 +33,7 @@ jobs:
         use-mamba: true
     - name: Install package dependencies
       run: |
-        mamba env update -n test -f environment.yml
+        mamba env update -n test -f environment_minimal.yml
       shell: bash -l {0}
     - name: Install testing dependencies
       run: |
