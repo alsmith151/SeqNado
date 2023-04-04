@@ -7,6 +7,7 @@
   "chromosome_sizes": "path/to/hg38.chrom.sizes",
   "indicies": "/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome",
   "blacklist": "path/to/hg38-blacklist.v2.bed.gz",
+  "gtf": "path/to/gtf",
   "pileup_method": ["deeptools"],
   "peak_calling_method": ["macs", "lanceotron", "homer"],
   "remove_pcr_duplicates_method": ["picard", "deeptools"],
@@ -15,5 +16,5 @@
   "short": "Short hub name (UCSC required)",
   "long": "Long hub name (UCSC required)",
   "email": "Email address (UCSC required)",
-  "color_by": ["samplename", "antibody", "method"]
+  "color_by": ["samplename", "method"]
   }
