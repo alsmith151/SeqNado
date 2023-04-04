@@ -3,5 +3,5 @@ global-include snakefile*
 global-include *.yaml
 global-include *.yml
 global-include *.py
-include seqnado/workflow/*
-include seqnado/data/*
+graft seqnado/workflow/*
+graft seqnado/data/* 
