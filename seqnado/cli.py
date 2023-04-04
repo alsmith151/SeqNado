@@ -95,4 +95,9 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
             ]
         )
 
+
+    with open(f"{PACKAGE_DIR}/data/logo.txt", "r") as f:
+        logo = f.read()
+    
+    print(logo)
     completed = subprocess.run(cmd)
