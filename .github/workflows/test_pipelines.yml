@@ -3,7 +3,7 @@ name: Python package
 on: [push]
 
 jobs:
-  build:
+  Build_and_Test:
 
     runs-on: ubuntu-latest
     strategy:
@@ -26,7 +26,7 @@ jobs:
     - name: Set up conda using miniforge
       uses: conda-incubator/setup-miniconda@v2
       with:
-        environment-file: environment.yml
+        environment-file: environment_minimal.yml
         miniforge-version: latest
         miniforge-variant: Mambaforge
         python-version: ${{ matrix.python-version }}
