@@ -35,7 +35,7 @@ rule remove_blacklisted_regions:
         bai=temp("seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai"),
     threads: 1
     params:
-        blacklist=config["blacklist"],
+        blacklist=utils.check_options(config["blacklist"]),
     resources:
         mem_mb=3000
     log:
