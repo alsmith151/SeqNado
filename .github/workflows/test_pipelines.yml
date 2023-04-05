@@ -49,7 +49,7 @@ jobs:
     - name: Test config works
       shell: pwsh
       run: |
-        yes 1 | seqnado-config chip
+        seqnado-config chip --no-input
     - name: Test design works
       shell: pwsh
       run: |
