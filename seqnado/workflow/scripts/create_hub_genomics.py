@@ -27,6 +27,9 @@ df.set_index("filename").to_csv(file_details, sep="\t")
 
 color_by = snakemake.config["ucsc_hub_details"].get("color_by", None)
 
+if isinstance(color_by, str):
+    color_by = (color_by,)
+
 if not color_by:
     if snakemake.params.assay == "ChIP":
         if df["samplename"].unique().shape[0] == 1:
