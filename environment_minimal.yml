@@ -1,0 +1,10 @@
+name: ngs
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+- pip:
+  - git+https://github.com/alsmith151/ucsc_hub_maker.git
+  - lanceotron
+  - wget

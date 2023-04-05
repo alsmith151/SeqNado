@@ -3,7 +3,7 @@ name: Python package
 on: [push]
 
 jobs:
-  build:
+  Build_and_Test:
 
     runs-on: ubuntu-latest
     strategy:
@@ -26,33 +26,34 @@ jobs:
     - name: Set up conda using miniforge
       uses: conda-incubator/setup-miniconda@v2
       with:
-        environment-file: environment.yml
+        environment-file: environment_minimal.yml
         miniforge-version: latest
         miniforge-variant: Mambaforge
         python-version: ${{ matrix.python-version }}
         use-mamba: true
     - name: Install package dependencies
       run: |
-        mamba env update -n test -f environment.yml
+        mamba env update -n test -f environment_minimal.yml
       shell: bash -l {0}
     - name: Install testing dependencies
       run: |
         mamba env update -n test -f testing.yml
       shell: bash -l {0}
-    - name: Conda info
-      shell: bash -l {0}
-      run: mamba info
-    - name: Check which pip is used
-      shell: bash -l {0}
-      run: |
-        which pip
     - name: Install the package
       shell: bash -l {0}
       run: |
-        pip install -e .[atac]
+        pip install .[atac]
     - name: Conda list
       shell: pwsh
       run: mamba list
+    - name: Test config works
+      shell: pwsh
+      run: |
+        seqnado-config chip --no-input
+    - name: Test design works
+      shell: pwsh
+      run: |
+        seqnado-design chip tests/data/fastq/CTCF*.fastq.gz
     - name: Test with pytest
       shell: pwsh
       run: |
