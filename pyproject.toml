@@ -35,7 +35,7 @@ seqnado-config = "seqnado.cli:cli_config"
 
 
 [project.optional-dependencies]
-atac = ["rsbamtk @ git+https://github.com/alsmith151/rsbamtk.git"]
+#atac = ["rsbamtk @ git+https://github.com/alsmith151/rsbamtk.git"]
 
 [tool.setuptools_scm]
 write_to = "seqnado/_version.py"
