@@ -2,5 +2,13 @@
 requires = [
     "setuptools >= 61.0",
     "wheel"
+    "setuptools_scm[toml]>=6.2"
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+
+
+[tool.setuptools_scm]
+write_to = "seqnado/_version.py"
