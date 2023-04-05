@@ -25,10 +25,12 @@ df["strand"] = np.where(df["filename"].str.contains("_plus.bigWig"), "plus", "mi
 file_details = f"{os.path.dirname(snakemake.output.hub)}/hub_details.tsv"
 df.set_index("filename").to_csv(file_details, sep="\t")
 
-color_by = snakemake.config["ucsc_hub_details"].get("color_by", None)
+# color_by = snakemake.config["ucsc_hub_details"].get("color_by", None)
 
-if not color_by:
-    color_by = ("samplename",)
+# if not color_by:
+#     color_by = ("samplename",)
+# elif isinstance(color_by, str):
+#     color_by = (color_by,)
 
 cmd = " ".join(
     [
@@ -46,7 +48,8 @@ cmd = " ".join(
         snakemake.config["genome"]["name"],
         "--description-html",
         snakemake.input.report,
-        " ".join([f"--color-by {c}" for c in color_by]),
+        "--color-by",
+        "samplename",
         "--group-overlay",
         "samplename",
     ]

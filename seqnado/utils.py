@@ -217,7 +217,7 @@ def pair_treatment_and_control_for_peak_calling(wc, samples, assay, filetype):
         files =  {"treatment": treatment, "control": control}
 
     else:
-        files = {"treatment": "", "control": ""}
+        files = {"treatment": treatment, "control": ""}
     
     return files
 

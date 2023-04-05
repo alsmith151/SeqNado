@@ -66,4 +66,5 @@ lanceotron:
     callpeak: -c 0.5
 
 heatmap:
-    colorMap: Purples Reds 
+    options:
+    colormap: RdYlBu_r
