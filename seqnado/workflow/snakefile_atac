@@ -58,7 +58,7 @@ rule all:
             method=PILEUP_METHODS,
         ),
         heatmap=expand(
-            "seqnado_output/heatmap/{method}/heatmap/{sample}.pdf",
+            "seqnado_output/heatmap/{method}/{sample}.png",
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
         ),

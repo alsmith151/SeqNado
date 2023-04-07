@@ -7,7 +7,7 @@ rule heatmap_matrix:
     params: 
         options = utils.check_options(config["heatmap"]["options"]),
     threads: config["deeptools"]["threads"],
-    log: "seqnado_output/logs/heatmap/{method}/matrix/{ip}.log",
+    log: "seqnado_output/logs/heatmap/{method}/{ip}.log",
     shell: """computeMatrix reference-point --referencePoint TSS -a 3000 -b 3000 \
     -p {threads} --smartLabels --missingDataAsZero {params.options} \
     -S {input.bigwig} \
@@ -17,10 +17,12 @@ rule heatmap_plot:
     input:
         matrix = rules.heatmap_matrix.output.matrix,
     output:
-        heatmap="seqnado_output/heatmap/{method}/heatmap/{ip}.pdf",
+        heatmap="seqnado_output/heatmap/{method}/{ip}.png",
     params:
         colormap = config["heatmap"]["colormap"],
-    log: "seqnado_output/logs/heatmap/{method}/plot/{ip}.log",
-    shell: "plotHeatmap --colorMap {params.colormap} --boxAroundHeatmaps no -m {input.matrix} -out {output.heatmap}"
-
-
+    resources:
+        mem_mb=1024 * 10,
+    shell: """plotHeatmap -m {input.matrix} \
+    -out {output.heatmap} \
+    --colorMap {params.colormap} \
+    --boxAroundHeatmaps no"""

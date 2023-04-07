@@ -62,7 +62,7 @@ rule all:
             method=PILEUP_METHODS,
         ),
         heatmap=expand(
-            "seqnado_output/heatmap/{method}/heatmap/{ip}.pdf",
+            "seqnado_output/heatmap/{method}/{ip}.png",
         ip=[
         f"{row.sample}_{row.antibody}"
                 for row in FASTQ_SAMPLES.design.itertuples()
