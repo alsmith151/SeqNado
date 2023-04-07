@@ -58,6 +58,11 @@ rule all:
             method=PILEUP_METHODS,
         ),
         heatmap = "seqnado_output/heatmap/heatmap.pdf",
+        heatmap=expand(
+            "seqnado_output/heatmap/{method}/heatmap/{sample}.pdf",
+            sample=SAMPLE_NAMES,
+            method=PILEUP_METHODS,
+        ),
         peaks=expand(
             "seqnado_output/peaks/{method}/{sample}.bed",
             sample=SAMPLE_NAMES,
