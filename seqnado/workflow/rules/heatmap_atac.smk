@@ -20,7 +20,6 @@ rule heatmap_plot:
         heatmap="seqnado_output/heatmap/{method}/{sample}.png",
     params:
         colormap = config["heatmap"]["colormap"],
-    shell: "plotHeatmap --colorMap {params.colormap} --boxAroundHeatmaps no -m {input.matrix} -out {output.heatmap}"
     resources:
         mem_mb=1024 * 10,
     log: "seqnado_output/logs/heatmap/{method}/plot/{sample}.log",
