@@ -49,7 +49,7 @@ include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call_chip.smk"
 include: "rules/pileup.smk"
-include: "rules/heatmap.smk"
+include: "rules/heatmap_chip.smk"
 include: "rules/hub.smk"
 
 
@@ -61,7 +61,14 @@ rule all:
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
         ),
-        heatmap = "seqnado_output/heatmap/heatmap.pdf",
+        heatmap=expand(
+            "seqnado_output/heatmap/{method}/{ip}.png",
+        ip=[
+        f"{row.sample}_{row.antibody}"
+                for row in FASTQ_SAMPLES.design.itertuples()
+            ],
+            method=PILEUP_METHODS,
+        ),
         peaks=expand(
             "seqnado_output/peaks/{method}/{ip}.bed",
         ip=[

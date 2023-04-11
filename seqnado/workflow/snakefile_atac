@@ -45,7 +45,7 @@ include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call_atac.smk"
 include: "rules/pileup.smk"
-include: "rules/heatmap.smk"
+include: "rules/heatmap_atac.smk"
 include: "rules/hub.smk"
 
 
@@ -57,7 +57,11 @@ rule all:
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
         ),
-        heatmap = "seqnado_output/heatmap/heatmap.pdf",
+        heatmap=expand(
+            "seqnado_output/heatmap/{method}/{sample}.png",
+            sample=SAMPLE_NAMES,
+            method=PILEUP_METHODS,
+        ),
         peaks=expand(
             "seqnado_output/peaks/{method}/{sample}.bed",
             sample=SAMPLE_NAMES,
