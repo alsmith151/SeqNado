@@ -42,7 +42,7 @@ jobs:
     - name: Install the package
       shell: bash -l {0}
       run: |
-        pip install .[atac]
+        pip install .
     - name: Conda list
       shell: pwsh
       run: mamba list
