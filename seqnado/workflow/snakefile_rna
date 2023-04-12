@@ -6,7 +6,7 @@ import pandas as pd
 
 ASSAY = "RNA"
 configfile: "config_rna.yml"
-container: "library://asmith151/ngs-pipeline/ngs:latest"
+container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 utils.format_config_dict(config)
 PILEUP_METHODS = config["pileup_method"]
 
