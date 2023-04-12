@@ -92,7 +92,7 @@ rule lanceotron_with_input:
         options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
     container:
-        "library://asmith151/seqnado/seqnado_extra:v1"
+        "library://asmith151/seqnado/seqnado_extra:latest"
     threads: 1
     resources:
         mem_mb=1024 * 10,
@@ -115,7 +115,7 @@ rule lanceotron_no_input:
         outdir=lambda wc, output: os.path.dirname(output.peaks),
     threads: 1
     container:
-        "library://asmith151/seqnado/seqnado_extra:v1"
+        "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
         mem_mb=1024 * 10,
     shell:

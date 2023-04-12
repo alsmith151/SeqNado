@@ -53,7 +53,7 @@ rule lanceotron_no_input:
         outdir=lambda wc, output: os.path.dirname(output.peaks),
     threads: 1
     container:
-        "library://asmith151/seqnado/seqnado_extra:v1"
+        "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
         mem_mb=1024 * 10,
     shell:
