@@ -3,11 +3,11 @@ Project: {{cookiecutter.project_name}}
 Run by: {{cookiecutter.user_name}}
 on: {{cookiecutter.date}}
 
-This file contains the instructions for the ChIP-seq pipeline.
+This file contains the instructions for the RNA-seq pipeline.
 
 ## samples
 
-sample sheet: `{{cookiecutter.date}}_{{cookiecutter.project_id}}/samples_{{cookiecutter.project_id}}.csv` can be edited
+sample sheet: `{{cookiecutter.date}}_{{cookiecutter.project_id}}/design.csv` can be edited
 
 ## config
 
@@ -19,17 +19,72 @@ The keys marked as optional can either be left as the default or adjusted if req
 
 The pipeline is run by the following command:
 
-seqnado rna -c N_CORES
+seqnado rna -c N_CORES --preset 
 
-To use the singularity container (allows for running the pipeline with a minimal conda environment),
-you will also need to 'bind' paths to the container (this allows for folders outside the current directory to be used i.e. /t1-data).
 
-seqnado rna -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank "
+1. **Copy or link fastq files into the fastq directory**
 
-To run all jobs on the cluster (highly recommended; these options are for slurm i.e. cbrg cluster):
+    Copy:  
+    ```cp PATH_TO_FASTQ/example_R1.fastq.gz```
 
-seqnado rna -c N_CORES --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00 "
+    Symlink: Be sure to use the absolute path for symlinks i.e.  
+        ```ln -s /ABSOLUTE_PATH_TO_FASTQ/example_R1.fastq.gz ```  
 
-Combining both singularity and slurm options:
+1. **Set-up sample sheet**
 
-seqnado rna -c N_CORES --use-singularity --singularity-args "--bind /t1-data --bind /databank " --drmaa "--cpus-per-task={threads} --mem-per-cpu={resources.mem} --time 24:00:00 "
+    There are two options for preparing a sample sheet:
+
+    a) Using seqnado-design
+
+    seqnado-design rna fastq/* 
+
+
+    If samples names match the following conventions then a sample sheet will be generated for your samples:
+
+        RNA-seq:
+
+        * sample-name-1_R1.fastq.gz
+        * sample-name-1_R2.fastq.gz
+        * sample-name-1_1.fastq
+        * sample-name-1_2.fastq  
+
+    b) Using a custom sample sheet. 
+
+    This is useful for situations in which it can be difficult to appropriately compare IP and Input control samples. 
+
+    * For RNA-seq samples you will need to create a csv or tsv file with the following columns: deseq2 column must contain "control"
+
+        | sample              | fq1                              | fq2                              | cell                             | treatment                        | replicate                        | deseq2                           |
+        |---------------------|----------------------------------|----------------------------------|----------------------------------|----------------------------------|----------------------------------|----------------------------------|
+        | SAMPLE-NAME-TREATED | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          | CELL                             | treatment                        | 1                                | treatment                        |
+        |---------------------|----------------------------------|----------------------------------|----------------------------------|----------------------------------|----------------------------------|----------------------------------|
+        | SAMPLE-NAME-CONTROL | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          | CELL                             | control                          | 1                                | control                          |
+
+
+
+1. **Running the pipeline**
+
+    All FASTQ files present in the directory will be processed by the pipeline in parallel and
+    original FASTQ files will not be modified. If new FASTQ files are added to a pre-run pipeline,
+    only the new files will be processed.
+
+    After copying/linking FASTQ files into the working directory and configuring the copy of
+    config_rna.yml in the working directory for the current experiment, the pipeline can be run with:
+
+    ```
+    seqnado rna # RNA-seq/RNAMentation
+    ```
+
+    * To visualise which tasks will be performed by the pipeline before running.  
+    ```seqnado rna -c 1 --preset ss --dag | dot -Tpng > dag.png```
+
+    * If using all default settings (this will run on just the login node)  
+    ```seqnado rna -c NUMBER_OF_CORES```
+
+    * If you want to use the cluster (recommended)  
+    ```seqnado rna -c NUMBER_OF_CORES --preset ss```
+
+    * Avoiding network disconnections  
+    ```nohup seqnado rna make &```
+
+    **Your processed data can be found in ./seqnado_output**

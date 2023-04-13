@@ -124,7 +124,7 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq, RNA-seq and short rea
 
         | sample      | fq1                              | fq2                              |
         |-------------|----------------------------------|----------------------------------|
-        | SAMPLE-NAME | SAMPLE-NAME_R1.fastq.gz | SAMPLE-NAME_R2.fastq.gz |
+        | SAMPLE-NAME | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          |
 
 
 1. **Running the pipeline**
