@@ -8,7 +8,7 @@
   "indicies": "/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome",
   "gtf": "path/to/genes.gtf",
   "blacklist": "path/to/hg38-blacklist.v2.bed.gz",
-  "pileup_method": ["deeptools", "home"],
+  "pileup_method": ["deeptools", "homer"],
   "peak_calling_method": ["macs", "lanceotron", "homer"],
   "remove_pcr_duplicates_method": ["picard", "deeptools"],
   "UCSC_hub_directory": "path/to/ publically accessible location on the server",
