@@ -10,6 +10,14 @@ genome:
     indicies: "{{cookiecutter.indicies}}"
     gtf: "{{cookiecutter.gtf}}"
 
+read_type: {{cookiecutter.read_type}}
+shift_atac_reads: "False"
+remove_blacklist: {{cookiecutter.remove_blacklist}}
+make_bigwigs: {{cookiecutter.make_bigwigs}}
+call_peaks: {{cookiecutter.call_peaks}}
+make_heatmaps: {{cookiecutter.make_heatmaps}}
+make_ucsc_hub: {{cookiecutter.make_ucsc_hub}}
+
 ###################################
 #  Optional configuration         #
 ###################################
@@ -37,6 +45,10 @@ trim_galore:
     options:
 
 bowtie2:
+    threads: 4
+    options:
+
+picard:
     threads: 4
     options:
 
