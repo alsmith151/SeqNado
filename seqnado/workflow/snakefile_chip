@@ -10,7 +10,8 @@ import pandas as pd
 
 ASSAY = "ChIP"
 configfile: "config_chip.yml"
-container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+# container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+container: "/ceph/project/milne_group/cchahrou/reference/seqnado/singularity/d339775fb621852b9951e65bbed1c08f.simg"
 
 utils.format_config_dict(config)
 PILEUP_METHODS = config["pileup_method"]

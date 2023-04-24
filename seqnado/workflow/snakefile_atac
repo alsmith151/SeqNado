@@ -9,7 +9,8 @@ import pandas as pd
 
 ASSAY = "ATAC"
 configfile: "config_atac.yml"
-container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+# container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+container: "/ceph/project/milne_group/cchahrou/reference/seqnado/singularity/d339775fb621852b9951e65bbed1c08f.simg"
 
 utils.format_config_dict(config)
 PILEUP_METHODS = config["pileup_method"]
@@ -47,30 +48,47 @@ include: "rules/peak_call_atac.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap_atac.smk"
 include: "rules/hub.smk"
+# Define output files
+ANALYSIS_OUTPUT = [
+    "seqnado_output/qc/full_qc_report.html"
+]
 
-
-rule all:
-    input:
-        mutiqc_full="seqnado_output/qc/full_qc_report.html",
-        pileups=expand(
+if config["make_bigwigs"] == "yes":
+    ANALYSIS_OUTPUT.append(
+        expand(
             "seqnado_output/bigwigs/{method}/{sample}.bigWig",
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
         ),
-        heatmap=expand(
-            "seqnado_output/heatmap/{method}/{sample}.png",
-            sample=SAMPLE_NAMES,
-            method=PILEUP_METHODS,
-        ),
-        peaks=expand(
+    )
+if config["call_peaks"] == "yes":
+    ANALYSIS_OUTPUT.append(
+        expand(
             "seqnado_output/peaks/{method}/{sample}.bed",
             sample=SAMPLE_NAMES,
             method=PEAK_CALL_METHODS,
         ),
-        hub=os.path.join(
+    )
+if config["make_heatmaps"] == "yes":
+    ANALYSIS_OUTPUT.append(
+        expand(
+            "seqnado_output/heatmap/{method}/{sample}.png",
+            sample=SAMPLE_NAMES,
+            method=PILEUP_METHODS,
+        ),
+    )
+if config["make_ucsc_hub"] == "yes":
+    ANALYSIS_OUTPUT.append(
+        os.path.join(
             config["ucsc_hub_details"]["directory"],
             f"{config['ucsc_hub_details']['name']}.hub.txt",
         ),
+    )
+
+
+rule all:
+    input:
+        ANALYSIS_OUTPUT
 
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")
