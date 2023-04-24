@@ -43,28 +43,43 @@ include: "rules/deseq2_rna.smk"
 include: "rules/hub_rna.smk"
 
 
-rule all:
-    input:
-        mutiqc_full="seqnado_output/qc/full_qc_report.html",
-        read_counts = "seqnado_output/feature_counts/read_counts.tsv",
-        deseq2=f"DESeq2_{config['DESeq2']['project_id']}.html" if RUN_DESEQ2 else [],
-        bams=expand(
+# Define output files
+ANALYSIS_OUTPUT = [
+    "seqnado_output/qc/full_qc_report.html",
+    "seqnado_output/feature_counts/read_counts.tsv",
+    bams=expand(
             "seqnado_output/aligned/{sample}.bam",
             sample=SAMPLE_NAMES,
         ),
+]
 
-        pileups=expand(
+if RUN_DESEQ2:
+    ANALYSIS_OUTPUT.append(
+        f"DESeq2_{config['DESeq2']['project_id']}.html"
+    )
+
+if config["make_bigwigs"] == "yes":
+    ANALYSIS_OUTPUT.append(
+        expand(
             "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
             sample=SAMPLE_NAMES,
             method=PILEUP_METHODS,
             strand=["plus", "minus"]
         ),
-        hub=os.path.join(
+    )
+if config["make_ucsc_hub"] == "yes":
+    ANALYSIS_OUTPUT.append(
+        os.path.join(
             config["ucsc_hub_details"]["directory"],
             f"{config['ucsc_hub_details']['name']}.hub.txt",
         ),
+    )
 
-        
+
+rule all:
+    input:
+        ANALYSIS_OUTPUT
+
 
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")
