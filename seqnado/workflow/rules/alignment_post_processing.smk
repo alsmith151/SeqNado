@@ -111,7 +111,7 @@ if config["remove_pcr_duplicates_method"] != "picard":
         script:
             "../scripts/remove_duplicates.py"
 
-if config["shift_atac_reads"] == "True":
+if config.get("shift_atac_reads", "no") == "yes":
     rule shift_atac_alignments:
         input:
             bam=rules.remove_duplicates.output.bam,
@@ -133,7 +133,7 @@ if config["shift_atac_reads"] == "True":
             samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
             """
         
-if config["shift_atac_reads"] == "False":
+if config.get("shift_atac_reads", "no") == "no":
     rule shift_atac_alignments:
         input:
             bam=rules.remove_duplicates.output.bam,
