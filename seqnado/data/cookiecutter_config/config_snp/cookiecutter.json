@@ -9,6 +9,13 @@
   "chromosome_sizes": "path/to/hg38.chrom.sizes",
   "indicies": "/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome",
   "blacklist": "path/to/hg38-blacklist.v2.bed.gz",
+  "read_type": ["paired", "single"],
+  "shift_atac_reads": ["True", "False"],
+  "remove_blacklist": ["yes", "no"],
+  "make_bigwigs": ["yes", "no"],
+  "call_peaks": ["yes", "no"],
+  "make_heatmaps": ["yes", "no"],
+  "make_ucsc_hub": ["yes", "no"],
   "snp_database": "path/to/snp_database.vcf.gz",
   "remove_pcr_duplicates_method": ["picard", "deeptools"]
   }
