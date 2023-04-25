@@ -26,6 +26,7 @@ make_ucsc_hub: "{{cookiecutter.make_ucsc_hub}}"
 design: "design.csv"
 blacklist: "{{cookiecutter.blacklist}}"
 pileup_method: "{{cookiecutter.pileup_method}}"
+remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
 
 ucsc_hub_details:
     directory: "{{cookiecutter.UCSC_hub_directory}}"
