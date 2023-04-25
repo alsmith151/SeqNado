@@ -162,3 +162,4 @@ def test_pipeline_singularity(genome_path):
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0
     assert not os.path.exists("seqnado_error.log")
+    assert os.path.exists("seqnado_output/")
