@@ -51,7 +51,7 @@ if config["remove_blacklist"] == "yes" and os.path.exists(config["blacklist"]):
             """
 
 else:
-    rule keep_blacklisted_regions:
+    rule remove_blacklisted_regions:
             input:
                 bam=rules.sort_bam.output.bam,
                 bai=rules.index_bam.output.bai,
