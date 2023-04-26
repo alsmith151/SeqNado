@@ -48,7 +48,7 @@ def chromsizes(genome_path):
 @pytest.fixture(scope="module")
 def fastqs(data_path):
     path = os.path.join(data_path, "fastq")
-    return glob.glob(os.path.join(path, "atac*.fastq.gz"))
+    return glob.glob(os.path.join(path, "snp*.fastq.gz"))
 
 
 @pytest.fixture(scope="module")
@@ -112,7 +112,7 @@ def set_up(
     os.chdir(run_directory)
 
     cookiecutter(
-    f"{package_path}/workflow/config/cookiecutter_config/config_atac/",
+    f"{package_path}/workflow/config/cookiecutter_config/config_snp/",
     extra_context={
         "genome": "hg19",
         "date": "{% now 'utc', '%Y-%m-%d' %}",
@@ -122,19 +122,12 @@ def set_up(
         "design": "design.csv",
         "read_type": "paired",
         "remove_pcr_duplicates_method": "picard",
-        "shift_atac_reads": "yes",
         "remove_blacklist": "yes",
         "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
-        "make_bigwigs": "yes",  
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "make_ucsc_hub": "no",
-        "UCSC_hub_directory": "test_hub",
-        "email": "test",
-        "color_by": "samplename",
-        "gtf": f"{data_path}/genome/chr21.gtf",
+        "fasta": f"{data_path}/genome/chr21_rename.fa",
+        "fasta_index": f"{data_path}/genome/chr21_rename.fa.fai",
+        "call_snps": "yes",
+        "annotate_snps": "no",
     },
     no_input=True,
     )
@@ -156,11 +149,11 @@ def test_pipeline_singularity(genome_path):
 
     cmd = [
         "seqnado",
-        "atac",
+        "snp",
         "--cores",
         "4",
         "--configfile",
-        "config_atac.yml",
+        "config_snp.yml",
         "--use-singularity",
         "--singularity-args",
         f'" -B {indicies_dir} -B {genome_path}"',

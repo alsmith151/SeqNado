@@ -9,7 +9,7 @@ import pandas as pd
 
 ASSAY = "snp"
 configfile: "config_snp.yml"
-container: "library://asmith151/ngs-pipeline/ngs:latest"
+container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
 utils.format_config_dict(config)
 
@@ -42,19 +42,30 @@ include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/variant.smk"
 
+# Define output files
+ANALYSIS_OUTPUT = [
+    "seqnado_output/qc/full_qc_report.html",
+]
 
-rule all:
-    input:
-        mutiqc_full="seqnado_output/qc/full_qc_report.html",
-        snps=expand(
+if config["annotate_snps"] == "yes":
+    ANALYSIS_OUTPUT.append(
+        expand(
             "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
             sample=SAMPLE_NAMES,
         ),
-        stats=expand(
-            "seqnado_output/variant/{sample}_summary.pdf",
+    )
+if config["call_snps"] == "yes":
+    ANALYSIS_OUTPUT.append(
+        expand(
+            "seqnado_output/variant/{sample}_filtered.stats.txt",
             sample=SAMPLE_NAMES,
         ),
+    )
 
+
+rule all:
+    input:
+        ANALYSIS_OUTPUT
 
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")

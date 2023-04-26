@@ -29,8 +29,8 @@ rule bcftools_filter_snp:
     output:
         vcf = "seqnado_output/variant/{sample}_filtered.vcf.gz",
     params:
-        options = seqnado.utils.check_options(config["bcftools"]["filter"]),
-    shell: """bcftools view {params.options} -i {input.vcf} -o {output.vcf}"""
+        options = seqnado.utils.check_options(config["bcftools"]["options"]),
+    shell: """bcftools view {params.options} -o {output.vcf} {input.vcf}"""
 
 rule index_snp:
     input:

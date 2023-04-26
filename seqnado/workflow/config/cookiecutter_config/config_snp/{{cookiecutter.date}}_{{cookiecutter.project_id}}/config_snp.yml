@@ -14,6 +14,9 @@ genome:
 read_type: "{{cookiecutter.read_type}}"
 shift_atac_reads: "no"
 remove_blacklist: "{{cookiecutter.remove_blacklist}}"
+call_snps: "{{cookiecutter.call_snps}}"
+annotate_snps: "{{cookiecutter.annotate_snps}}"
+
 make_bigwigs: "no"
 make_ucsc_hub: "no"
 
@@ -44,4 +47,4 @@ picard:
     
 bcftools:
     threads: 4
-    filter: 'TYPE="snp" && GT="het" && QUAL>30'
+    options: 

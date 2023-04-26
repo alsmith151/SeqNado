@@ -128,11 +128,12 @@ def set_up(
         "project_name": "test",
         "chromosome_sizes": chromsizes,
         "indicies": genome_indicies,
+        "remove_blacklist": "yes",
+        "blacklist": f"{data_path}/genome/hg19_blacklist.bed",
+        "make_ucsc_hub": "no",
         "UCSC_hub_directory": "test_hub",
-        "name": "test",
-        "short": "test",
-        "long": "test",
         "email": "test",
+        "color_by": "samplename",
         "gtf": f"{data_path}/genome/chr21.gtf",
     },
     no_input=True,
@@ -148,7 +149,6 @@ def set_up(
     yield
 
     os.chdir(cwd)
-
 
 
 def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
