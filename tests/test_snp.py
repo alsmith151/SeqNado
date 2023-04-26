@@ -2,9 +2,9 @@ import glob
 import os
 import shutil
 import subprocess
+import pytest
 from datetime import datetime
 from cookiecutter.main import cookiecutter
-import pytest
 
 
 @pytest.fixture(scope="module")
@@ -22,7 +22,7 @@ def package_path(repo_path):
 
 @pytest.fixture(scope="module")
 def pipeline_path(package_path):
-    return os.path.join(package_path, "chipseq", "snakefile")
+    return os.path.join(package_path, "workflow", "snakefile_atac")
 
 
 @pytest.fixture(scope="module")
@@ -48,7 +48,7 @@ def chromsizes(genome_path):
 @pytest.fixture(scope="module")
 def fastqs(data_path):
     path = os.path.join(data_path, "fastq")
-    return glob.glob(os.path.join(path, "rna*.fastq.gz"))
+    return glob.glob(os.path.join(path, "snp*.fastq.gz"))
 
 
 @pytest.fixture(scope="module")
@@ -59,17 +59,17 @@ def config_path(data_path):
 @pytest.fixture(scope="module")
 def genome_indicies(genome_path):
 
-    indicies = os.path.join(genome_path, "GenomeDir")
-    gtf = os.path.join(genome_path, "chr21.gtf")
-    fasta = os.path.join(genome_path, "chr21_rename.fa")
+    indicies = os.path.join(genome_path, "bt2")
 
     if not os.path.exists(indicies):
         try:
             import requests
             import tarfile
 
-            url = "https://userweb.molbiol.ox.ac.uk/public/asmith/ngs_pipeline/star.tar.gz"
-            output = os.path.join(genome_path, "star.tar.gz")
+            url = (
+                "https://userweb.molbiol.ox.ac.uk/public/asmith/ngs_pipeline/bt2.tar.gz"
+            )
+            output = os.path.join(genome_path, "bt2.tar.gz")
             r = requests.get(url, stream=True)
             with open(output, "wb") as f:
                 f.write(r.content)
@@ -78,24 +78,16 @@ def genome_indicies(genome_path):
             tar.extractall(path=genome_path)
             tar.close()
             os.remove(output)
-            os.rename(os.path.join(genome_path, "GenomeDir"), indicies)
+            os.rename(genome_path + "/bt2", indicies)
 
         except Exception as e:
             print(e)
             print("Could not download indicies so generating them")
             os.mkdir(indicies)
-            cmd = f"""STAR
-                  --runMode genomeGenerate
-                  --runThreadN 4
-                  --genomeDir {indicies}
-                  --genomeFastaFiles {fasta}
-                  --sjdbGTFfile {gtf}
-                  --sjdbOverhang 100
-                  --genomeSAindexNbases 11
-                  """
+            cmd = f"bowtie2-build {os.path.join(genome_path,'chr21_rename.fa')} {indicies}/bt2 --threads 8"
             subprocess.run(cmd.split())
 
-    return indicies
+    return os.path.join(indicies, "chr21")
 
 
 @pytest.fixture(scope="module")
@@ -110,7 +102,6 @@ def set_up(
     data_path,
     package_path,
     repo_path,
-    genome_path,
     genome_indicies,
     chromsizes,
     fastqs,
@@ -121,20 +112,22 @@ def set_up(
     os.chdir(run_directory)
 
     cookiecutter(
-    f"{package_path}/workflow/config/cookiecutter_config/config_rna/",
+    f"{package_path}/workflow/config/cookiecutter_config/config_snp/",
     extra_context={
         "genome": "hg19",
         "date": "{% now 'utc', '%Y-%m-%d' %}",
         "project_name": "test",
         "chromosome_sizes": chromsizes,
         "indicies": genome_indicies,
+        "design": "design.csv",
+        "read_type": "paired",
+        "remove_pcr_duplicates_method": "picard",
         "remove_blacklist": "yes",
-        "blacklist": f"{data_path}/genome/hg19_blacklist.bed",
-        "make_ucsc_hub": "no",
-        "UCSC_hub_directory": "test_hub",
-        "email": "test",
-        "color_by": "samplename",
-        "gtf": f"{data_path}/genome/chr21.gtf",
+        "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
+        "fasta": f"{data_path}/genome/chr21_rename.fa",
+        "fasta_index": f"{data_path}/genome/chr21_rename.fa.fai",
+        "call_snps": "yes",
+        "annotate_snps": "no",
     },
     no_input=True,
     )
@@ -151,11 +144,12 @@ def set_up(
     os.chdir(cwd)
 
 
-def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
+def test_pipeline_singularity(genome_path):
+    indicies_dir = os.path.join(genome_path, "bt2")
 
     cmd = [
         "seqnado",
-        "rna",
+        "snp",
         "--cores",
         "4",
         "--preset",

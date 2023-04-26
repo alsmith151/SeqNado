@@ -122,10 +122,8 @@ def set_up(
         "pileup_method": "deeptools",
         "peak_calling_method": "lanceotron",
         "remove_pcr_duplicates_method": "picard",
+        "make_ucsc_hub": "no",
         "UCSC_hub_directory": "test_hub",
-        "name": "test",
-        "short": "test",
-        "long": "test",
         "email": "test",
         "color_by": "samplename",
         "gtf": f"{data_path}/genome/chr21.gtf",
@@ -153,11 +151,8 @@ def test_pipeline_singularity(genome_path):
         "chip",
         "--cores",
         "4",
-        "--configfile",
-        "config_chip.yml",
-        "--use-singularity",
-        "--singularity-args",
-        f'" -B {indicies_dir} -B {genome_path}"',
+        "--preset",
+        "ls",
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0

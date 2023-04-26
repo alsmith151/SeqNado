@@ -11,6 +11,8 @@
   "read_type": ["paired", "single"],
   "remove_blacklist": ["yes", "no"],
   "blacklist": "path/to/hg38-blacklist.v2.bed.gz",
+  "call_snps": ["yes", "no"],
+  "annotate_snps": ["yes", "no"],
   "snp_database": "path/to/snp_database.vcf.gz",
   "remove_pcr_duplicates_method": ["picard", "deeptools"]
   }
