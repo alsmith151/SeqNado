@@ -10,7 +10,7 @@ rule fastqc_raw:
         outdir="seqnado_output/qc/fastqc_raw",
         tmpdir="seqnado_output/qc/fastqc_raw/{sample}_{read}",
         basename=lambda wc, output: seqnado.utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
-    threads: 4
+    threads: 1
     resources:
         mem_mb=500,
     log:

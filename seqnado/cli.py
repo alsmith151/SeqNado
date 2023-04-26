@@ -15,7 +15,7 @@ def cli_config(method, cookiecutter_options, help=False):
     """
     cmd = [
         "cookiecutter",
-        os.path.join(PACKAGE_DIR, "data/cookiecutter_config", f"config_{method}"),
+        os.path.join(PACKAGE_DIR, "workflow/config/cookiecutter_config", f"config_{method}"),
     ]
 
     if cookiecutter_options:
