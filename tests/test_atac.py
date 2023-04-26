@@ -112,7 +112,7 @@ def set_up(
     os.chdir(run_directory)
 
     cookiecutter(
-    f"{package_path}/data/cookiecutter_config/config_atac/",
+    f"{package_path}/workflow/config/cookiecutter_config/config_atac/",
     extra_context={
         "genome": "hg19",
         "date": "{% now 'utc', '%Y-%m-%d' %}",
