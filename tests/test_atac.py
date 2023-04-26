@@ -183,11 +183,8 @@ def test_pipeline_singularity(genome_path):
         "atac",
         "--cores",
         "4",
-        "--configfile",
-        "config_atac.yml",
-        "--use-singularity",
-        "--singularity-args",
-        f'" -B {indicies_dir} -B {genome_path}"',
+        "--preset",
+        "ls",
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0

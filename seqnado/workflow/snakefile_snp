@@ -53,6 +53,7 @@ rule all:
     input:
         ANALYSIS_OUTPUT
 
+
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")
     sps_files = glob.glob("sps-*")

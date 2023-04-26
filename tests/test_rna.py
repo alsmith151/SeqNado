@@ -188,11 +188,8 @@ def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
         "rna",
         "--cores",
         "4",
-        "--configfile",
-        "config_rna.yml",
-        "--use-singularity",
-        "--singularity-args",
-        f'" -B {genome_indicies} -B {genome_path} -B {chromsizes} "',
+        "--preset",
+        "ls",
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0

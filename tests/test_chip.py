@@ -182,11 +182,8 @@ def test_pipeline_singularity(genome_path):
         "chip",
         "--cores",
         "4",
-        "--configfile",
-        "config_chip.yml",
-        "--use-singularity",
-        "--singularity-args",
-        f'" -B {indicies_dir} -B {genome_path}"',
+        "--preset",
+        "ls",
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0
