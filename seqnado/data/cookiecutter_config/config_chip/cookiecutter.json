@@ -1,28 +1,23 @@
 {
-  "user_name": "Your name",
+  "user_name": "Your name", 
   "date": ["{% now 'utc', '%Y-%m-%d' %}"],
   "project_name": "Project name",
   "project_id": ["{{cookiecutter.project_name.lower().replace(' ', '_') }}"],
   "genome": "hg38",
   "chromosome_sizes": "path/to/hg38.chrom.sizes",
   "indicies": "/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome",
-  "gtf": "path/to/genes.gtf",
-  "blacklist": "path/to/hg38-blacklist.v2.bed.gz",
+  "gtf": "path/to/gtf",
   "read_type": ["paired", "single"],
-  "remove_blacklist": ["yes", "no"],
-  "make_bigwigs": ["yes", "no"],
-  "call_peaks": ["yes", "no"],
-  "make_heatmaps": ["yes", "no"],
-  "make_ucsc_hub": ["yes", "no"],
-  "pileup_method": ["deeptools", "homer"],
-  "peak_calling_method": ["macs", "lanceotron", "homer"],
   "remove_pcr_duplicates_method": ["picard", "deeptools"],
+  "remove_blacklist": ["yes", "no"],
+  "blacklist": "path/to/hg38-blacklist.v2.bed.gz",
+  "make_bigwigs": ["yes", "no"],
+  "pileup_method": ["deeptools", "homer"],
+  "make_heatmaps": ["yes", "no"],
+  "call_peaks": ["yes", "no"],
+  "peak_calling_method": ["macs", "lanceotron", "homer"],
+  "make_ucsc_hub": ["yes", "no"],
   "UCSC_hub_directory": "path/to/ publically accessible location on the server",
-  "name": "Name for the hub (UCSC required)",
-  "short": "Short hub name (UCSC required)",
-  "long": "Long hub name (UCSC required)",
   "email": "Email address (UCSC required)",
-  "color_by": ["samplename", "antibody", "method"]
-}
-
-    
+  "color_by": ["samplename", "method"]
+  }

@@ -12,13 +12,10 @@ genome:
     chromosome_sizes: "{{cookiecutter.chromosome_sizes}}"
 
 read_type: "{{cookiecutter.read_type}}"
-shift_atac_reads: "{{cookiecutter.shift_atac_reads}}"
+shift_atac_reads: "no"
 remove_blacklist: "{{cookiecutter.remove_blacklist}}"
-make_bigwigs: "{{cookiecutter.make_bigwigs}}"
-call_peaks: "{{cookiecutter.call_peaks}}"
-make_heatmaps: "{{cookiecutter.make_heatmaps}}"
-make_ucsc_hub: "{{cookiecutter.make_ucsc_hub}}"
-
+make_bigwigs: "no"
+make_ucsc_hub: "no"
 
 ###################################
 #  Optional configuration         #
