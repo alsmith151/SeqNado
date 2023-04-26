@@ -14,11 +14,6 @@ genome:
     indicies: "{{cookiecutter.indicies}}"
     annotation: "{{cookiecutter.gtf}}"
 
-read_type: "{{cookiecutter.read_type}}"
-remove_blacklist: "{{cookiecutter.remove_blacklist}}"
-make_bigwigs: "{{cookiecutter.make_bigwigs}}"
-make_ucsc_hub: "{{cookiecutter.make_ucsc_hub}}"
-
 ###################################
 #  Optional configuration         #
 ###################################
@@ -47,10 +42,6 @@ trim_galore:
 star:
     threads: 4
     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
-
-picard:
-    threads: 4
-    options:
 
 featurecounts:
     threads: 4
