@@ -121,7 +121,7 @@ def set_up(
     os.chdir(run_directory)
 
     cookiecutter(
-    f"{package_path}/data/cookiecutter_config/config_rna/",
+    f"{package_path}/workflow/config/cookiecutter_config/config_rna/",
     extra_context={
         "genome": "hg19",
         "date": "{% now 'utc', '%Y-%m-%d' %}",
@@ -167,4 +167,4 @@ def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0
     assert not os.path.exists("seqnado_error.log")
-
+    assert os.path.exists("seqnado_output/")

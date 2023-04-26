@@ -11,6 +11,12 @@ genome:
     indicies: "{{cookiecutter.indicies}}"
     chromosome_sizes: "{{cookiecutter.chromosome_sizes}}"
 
+read_type: "{{cookiecutter.read_type}}"
+shift_atac_reads: "no"
+remove_blacklist: "{{cookiecutter.remove_blacklist}}"
+make_bigwigs: "no"
+make_ucsc_hub: "no"
+
 ###################################
 #  Optional configuration         #
 ###################################
@@ -32,6 +38,10 @@ bowtie2:
     threads: 4
     options:
 
+picard:
+    threads: 4
+    options:
+    
 bcftools:
     threads: 4
     filter: 'TYPE="snp" && GT="het" && QUAL>30'

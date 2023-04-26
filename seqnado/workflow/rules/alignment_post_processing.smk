@@ -19,7 +19,7 @@ rule sort_bam:
 
 rule index_bam:
     input:
-        bam=rules.sort_bam.output.bam,
+        bam="seqnado_output/aligned/sorted/{sample}.bam",
     output:
         bai=temp("seqnado_output/aligned/sorted/{sample}.bam.bai"),
     threads: 1
@@ -30,7 +30,7 @@ rule index_bam:
 if config["remove_blacklist"] == "yes" and os.path.exists(config["blacklist"]):
     rule remove_blacklisted_regions:
         input:
-            bam=rules.sort_bam.output.bam,
+            bam="seqnado_output/aligned/sorted/{sample}.bam",
             bai=rules.index_bam.output.bai,
         output:
             bam=temp("seqnado_output/aligned/blacklist_regions_removed/{sample}.bam"),
@@ -51,9 +51,9 @@ if config["remove_blacklist"] == "yes" and os.path.exists(config["blacklist"]):
             """
 
 else:
-    rule keep_blacklisted_regions:
+    rule remove_blacklisted_regions:
             input:
-                bam=rules.sort_bam.output.bam,
+                bam="seqnado_output/aligned/sorted/{sample}.bam",
                 bai=rules.index_bam.output.bai,
             output:
                 bam=temp("seqnado_output/aligned/blacklist_regions_removed/{sample}.bam"),
@@ -95,7 +95,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
             samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
             """
 
-if config["remove_pcr_duplicates_method"] != "picard":
+else:
     rule remove_duplicates:
         input:
             bam=rules.remove_blacklisted_regions.output.bam,
@@ -111,7 +111,7 @@ if config["remove_pcr_duplicates_method"] != "picard":
         script:
             "../scripts/remove_duplicates.py"
 
-if config["shift_atac_reads"] == "True":
+if config["shift_atac_reads"] == "yes":
     rule shift_atac_alignments:
         input:
             bam=rules.remove_duplicates.output.bam,
@@ -133,7 +133,7 @@ if config["shift_atac_reads"] == "True":
             samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
             """
         
-if config["shift_atac_reads"] == "False":
+else:
     rule shift_atac_alignments:
         input:
             bam=rules.remove_duplicates.output.bam,

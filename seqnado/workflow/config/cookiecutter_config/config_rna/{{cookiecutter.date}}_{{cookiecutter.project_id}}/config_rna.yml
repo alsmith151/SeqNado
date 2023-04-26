@@ -14,26 +14,31 @@ genome:
     indicies: "{{cookiecutter.indicies}}"
     annotation: "{{cookiecutter.gtf}}"
 
+design: "design.csv"
+
 read_type: "{{cookiecutter.read_type}}"
+remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
+shift_atac_reads: "False"
+
 remove_blacklist: "{{cookiecutter.remove_blacklist}}"
-make_bigwigs: "{{cookiecutter.make_bigwigs}}"
+blacklist: "path/to/hg38-blacklist.v2.bed.gz"
+
+make_bigwigs: "{{cookiecutter.make_bigwigs}}"  
+pileup_method: "{{cookiecutter.pileup_method}}"
+
 make_ucsc_hub: "{{cookiecutter.make_ucsc_hub}}"
+ucsc_hub_details:
+    directory: "{{cookiecutter.UCSC_hub_directory}}"
+    name: "{{cookiecutter.project_name}}"
+    short: "{{cookiecutter.project_name}}"
+    long: "{{cookiecutter.project_name}}"
+    email: "{{cookiecutter.email}}"
+    color_by: "{{cookiecutter.color_by}}"
 
 ###################################
 #  Optional configuration         #
 ###################################
 
-design: "design.csv"
-blacklist: "{{cookiecutter.blacklist}}"
-pileup_method: "{{cookiecutter.pileup_method}}"
-
-ucsc_hub_details:
-    directory: "{{cookiecutter.UCSC_hub_directory}}"
-    name: "{{cookiecutter.name}}"
-    short: "{{cookiecutter.short}}"
-    long: "{{cookiecutter.long}}"
-    email: "{{cookiecutter.email}}"
-    color_by: "{{cookiecutter.color_by}}"
 
 
 #################################

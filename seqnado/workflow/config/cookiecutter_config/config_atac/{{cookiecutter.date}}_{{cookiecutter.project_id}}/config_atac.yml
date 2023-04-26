@@ -1,7 +1,7 @@
 version: 1.0
 
 ###################################
-# Essential configuration options #
+# configuration options #
 ###################################
 
 genome:
@@ -10,31 +10,31 @@ genome:
     indicies: "{{cookiecutter.indicies}}"
     gtf: "{{cookiecutter.gtf}}"
 
-read_type: "{{cookiecutter.read_type}}"
-shift_atac_reads: "False"
-remove_blacklist: "{{cookiecutter.remove_blacklist}}"
-make_bigwigs: "{{cookiecutter.make_bigwigs}}"
-call_peaks: "{{cookiecutter.call_peaks}}"
-make_heatmaps: "{{cookiecutter.make_heatmaps}}"
-make_ucsc_hub: "{{cookiecutter.make_ucsc_hub}}"
-
-###################################
-#  Optional configuration         #
-###################################
-
 design: "design.csv"
-blacklist: "{{cookiecutter.blacklist}}"
-pileup_method: "{{cookiecutter.pileup_method}}"
-peak_calling_method: "{{cookiecutter.peak_calling_method}}"
-remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
 
+read_type: "{{cookiecutter.read_type}}"
+remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
+shift_atac_reads: "{{cookiecutter.shift_atac_reads}}"
+
+remove_blacklist: "{{cookiecutter.remove_blacklist}}"
+blacklist: "path/to/hg38-blacklist.v2.bed.gz"
+
+make_bigwigs: "{{cookiecutter.make_bigwigs}}"  
+pileup_method: "{{cookiecutter.pileup_method}}"
+make_heatmaps: "{{cookiecutter.make_heatmaps}}"
+
+call_peaks: "{{cookiecutter.call_peaks}}"
+peak_calling_method: "{{cookiecutter.peak_calling_method}}"
+
+make_ucsc_hub: "{{cookiecutter.make_ucsc_hub}}"
 ucsc_hub_details:
     directory: "{{cookiecutter.UCSC_hub_directory}}"
-    name: "{{cookiecutter.name}}"
-    short: "{{cookiecutter.short}}"
-    long: "{{cookiecutter.long}}"
+    name: "{{cookiecutter.project_name}}"
+    short: "{{cookiecutter.project_name}}"
+    long: "{{cookiecutter.project_name}}"
     email: "{{cookiecutter.email}}"
     color_by: "{{cookiecutter.color_by}}"
+
 
 #################################
 # Tool specific options         #
@@ -42,7 +42,7 @@ ucsc_hub_details:
 
 trim_galore:
     threads: 4
-    options:
+    options: 
 
 bowtie2:
     threads: 4
@@ -61,9 +61,6 @@ homer:
 deeptools:
     threads: 8
     alignmentsieve: --minMappingQuality 30 
-    # Options passed to deeptools BamCoverage
-    # These need to be replaced
-    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
     bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
 
 macs:
@@ -71,12 +68,10 @@ macs:
     callpeak:
 
 lanceotron:
-    # Instructs lanceotron to use the matched input file for peak calling
-    # No effect if input file is not matched
     use_input: True
-    # Options passed to callPeaks[Input] command
     callpeak: -c 0.5
 
 heatmap:
     options:
     colormap: RdYlBu_r
+
