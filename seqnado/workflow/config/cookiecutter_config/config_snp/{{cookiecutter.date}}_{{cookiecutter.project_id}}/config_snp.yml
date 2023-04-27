@@ -12,6 +12,7 @@ genome:
     chromosome_sizes: "{{cookiecutter.chromosome_sizes}}"
 
 read_type: "{{cookiecutter.read_type}}"
+split_fastq: "{{cookiecutter.split_fastq}}"
 shift_atac_reads: "no"
 remove_blacklist: "{{cookiecutter.remove_blacklist}}"
 call_snps: "{{cookiecutter.call_snps}}"
