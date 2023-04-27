@@ -121,6 +121,7 @@ def set_up(
         "indicies": genome_indicies,
         "design": "design.csv",
         "read_type": "paired",
+        "split_fastq": "no",
         "remove_pcr_duplicates_method": "picard",
         "shift_atac_reads": "yes",
         "remove_blacklist": "yes",

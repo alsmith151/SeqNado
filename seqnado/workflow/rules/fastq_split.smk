@@ -1,16 +1,17 @@
 import seqnado.utils as utils
-PARTS=[str (x) for x in range(10)]
+PARTS=[str (x) for x in range(50)]
 if config["split_fastq"] == "yes":
     if config["read_type"] == "paired":
         rule split_fq:
             input:
-                fq1=FASTQ_SAMPLES.design["fq1"],
-                fq2=FASTQ_SAMPLES.design["fq2"],
+                unpack(lambda wc: seqnado.utils.translate_fq_files(wc, samples=FASTQ_SAMPLES, paired=True)),
             output:
                 expand("seqnado_output/fastq_split/{{sample}}_{part}_{read}.fastq.gz", part=PARTS, read=["1", "2"]),
             params:
                 split1=expand("-o seqnado_output/fastq_split/{{sample}}_{part}_1.fastq.gz", part=PARTS),
                 split2=expand("-o seqnado_output/fastq_split/{{sample}}_{part}_2.fastq.gz", part=PARTS),
+            resources:
+                mem_mb=750,
             shell:"""
             fastqsplitter -i {input.fq1} {params.split1} &&
             fastqsplitter -i {input.fq2} {params.split2}

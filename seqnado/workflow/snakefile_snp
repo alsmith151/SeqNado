@@ -34,8 +34,6 @@ else:
 
 DESIGN = FASTQ_SAMPLES.design
 SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
-PARTS=[str(i) for i in range(10)]
-
 
 include: "rules/alignment_post_processing.smk"
 include: "rules/qc.smk"
