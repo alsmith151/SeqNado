@@ -40,7 +40,7 @@ include: "rules/alignment_post_processing.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/pileup_rna.smk"
 include: "rules/deseq2_rna.smk"
-include: "rules/hub_rna.smk"
+include: "rules/hub.smk"
 
 
 # Define output files
