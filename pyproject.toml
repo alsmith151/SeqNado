@@ -26,6 +26,7 @@ dependencies = [
     "drmaa",
     "seaborn",
     "wget",
+    "tracknado",
 ]
 
 [project.scripts]
