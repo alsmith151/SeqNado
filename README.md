@@ -15,24 +15,25 @@ conda activate seqnado
 
 1. Install the pipeline. Three options:
     
-    a) Install the package from pip (recommended)
+a) Install the package from pip (recommended)
 
-```{bash}
-pip install seqnado
-```
+    ```{bash}
+    pip install seqnado
+    ```
 
-    b) Clone the repositry and install directly.
-```{bash}
-git clone https://github.com/alsmith151/SeqNado.git
-cd SeqNado
-pip install .
-```
+b) Clone the repositry and install directly.
 
-    c) Install from GitHub directly
+    ```{bash}
+    git clone https://github.com/alsmith151/SeqNado.git
+    cd SeqNado
+    pip install .
+    ```
+    
+c) Install from GitHub directly
 
-```{bash}
-pip install git+https://github.com/alsmith151/SeqNado.git
-```
+    ```{bash}
+    pip install git+https://github.com/alsmith151/SeqNado.git
+    ```
 
 1. If you intend to use a cluster e.g. SLURM add the path to the DRMAA interface to your .bashrc:
 
