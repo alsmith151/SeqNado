@@ -45,7 +45,7 @@ def get_hub_input(wildcards):
             input_files.extend(
                 expand(
                     "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
-                    method=config["pileup_methods"],
+                    method=config["pileup_method"],
                     sample=SAMPLE_NAMES,
                     strand=["plus", "minus"],
                 )
@@ -55,14 +55,14 @@ def get_hub_input(wildcards):
             input_files.extend(
                 expand(
                     "seqnado_output/bigwigs/{method}/{sample}.bigWig",
-                    method=config["pileup_methods"],
+                    method=config["pileup_method"],
                     sample=SAMPLE_NAMES,
                 )
             )
             input_files.extend(
                 expand(
                     "seqnado_output/peaks/{method}/{sample}.bigBed",
-                    method=config["peak_calling_methods"],
+                    method=config["peak_calling_method"],
                     sample=SAMPLE_NAMES_IP,
                 )
             )
@@ -71,14 +71,14 @@ def get_hub_input(wildcards):
             input_files.extend(
                 expand(
                     "seqnado_output/bigwigs/{method}/{sample}.bigWig",
-                    method=config["pileup_methods"],
+                    method=config["pileup_method"],
                     sample=SAMPLE_NAMES,
                 )
             )
             input_files.extend(
                 expand(
                     "seqnado_output/peaks/{method}/{sample}.bigBed",
-                    method=config["peak_calling_methods"],
+                    method=config["peak_calling_method"],
                     sample=SAMPLE_NAMES,
                 )
             )
