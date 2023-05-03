@@ -130,7 +130,7 @@ def set_up(
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
-        "make_ucsc_hub": "no",
+        "make_ucsc_hub": "yes",
         "UCSC_hub_directory": "test_hub",
         "email": "test",
         "color_by": "samplename",

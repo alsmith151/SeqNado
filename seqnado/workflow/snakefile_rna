@@ -5,10 +5,15 @@ import seqnado.utils as utils
 import pandas as pd
 
 ASSAY = "RNA"
+
+
 configfile: "config_rna.yml"
+
+
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+
+
 utils.format_config_dict(config)
-PILEUP_METHODS = config["pileup_method"]
 
 # Get experiment design
 if os.path.exists(config["design"]):
@@ -18,7 +23,9 @@ if os.path.exists(config["design"]):
     )
     assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
     for col in ["sample", "fq1", "fq2"]:
-        assert col in FASTQ_SAMPLES.design.columns, f"Design file must contain columns sample, fq1, fq2. Columns found: {FASTQ_SAMPLES.design.columns}"
+        assert (
+            col in FASTQ_SAMPLES.design.columns
+        ), f"Design file must contain columns sample, fq1, fq2. Columns found: {FASTQ_SAMPLES.design.columns}"
 else:
     # Use pattern matching to get samples
     fq_files = list(utils.get_fastq_files("."))
@@ -40,45 +47,18 @@ include: "rules/alignment_post_processing.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/pileup_rna.smk"
 include: "rules/deseq2_rna.smk"
-include: "rules/hub_rna.smk"
+include: "rules/hub.smk"
 
 
 # Define output files
-ANALYSIS_OUTPUT=[
-    "seqnado_output/qc/full_qc_report.html",
-    "seqnado_output/feature_counts/read_counts.tsv",
-    expand(
-        "seqnado_output/aligned/{sample}.bam",
-            sample=SAMPLE_NAMES,
-    ),
-]
-
-if RUN_DESEQ2:
-    ANALYSIS_OUTPUT.append(
-        f"DESeq2_{config['DESeq2']['project_id']}.html"
-    )
-
-if config["make_bigwigs"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        expand(
-            "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
-            sample=SAMPLE_NAMES,
-            method=PILEUP_METHODS,
-            strand=["plus", "minus"]
-        ),
-    )
-if config["make_ucsc_hub"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        os.path.join(
-            config["ucsc_hub_details"]["directory"],
-            f"{config['ucsc_hub_details']['name']}.hub.txt",
-        ),
-    )
+ANALYSIS_OUTPUT = utils.define_output_files(
+    sample_names=SAMPLE_NAMES, assay=ASSAY, run_deseq2=RUN_DESEQ2, **config
+)
 
 
 rule all:
     input:
-        ANALYSIS_OUTPUT
+        ANALYSIS_OUTPUT,
 
 
 onsuccess:
@@ -94,6 +74,7 @@ onsuccess:
 
         except Exception as e:
             print(e)
+
 
 onerror:
     log_out = "seqnado_error.log"

@@ -122,7 +122,7 @@ def set_up(
         "pileup_method": "deeptools",
         "peak_calling_method": "lanceotron",
         "remove_pcr_duplicates_method": "picard",
-        "make_ucsc_hub": "no",
+        "make_ucsc_hub": "yes",
         "UCSC_hub_directory": "test_hub",
         "email": "test",
         "color_by": "samplename",
