@@ -27,7 +27,7 @@ rule index_bam:
         mem_mb=1000
     shell:"samtools index -@ {threads} -b {input.bam}"
 
-if config["remove_blacklist"] == "yes" and os.path.exists(config["blacklist"]):
+if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
     rule remove_blacklisted_regions:
         input:
             bam="seqnado_output/aligned/sorted/{sample}.bam",
@@ -111,7 +111,7 @@ else:
         script:
             "../scripts/remove_duplicates.py"
 
-if config["shift_atac_reads"] == "yes":
+if config["shift_atac_reads"]:
     rule shift_atac_alignments:
         input:
             bam=rules.remove_duplicates.output.bam,
