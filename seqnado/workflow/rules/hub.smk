@@ -5,14 +5,12 @@ import numpy as np
 def get_hub_params(config):
     hub_params = {
         "hub_name": config["ucsc_hub_details"]["name"],
-        "hub_short_label": config["ucsc_hub_details"].get("short_label", config["ucsc_hub_details"]["name"]),
-        "hub_long_label": config["ucsc_hub_details"].get("long_label", config["ucsc_hub_details"]["name"]),
         "hub_email": config["ucsc_hub_details"]["email"],
         "genome": config["genome"]["name"],
         "custom_genome": config["genome"].get("custom_genome", False),
         "genome_twobit": config["genome"].get("twobit"),
         "genome_organism": config["genome"].get("organism"),
-        "genome_default_pos": config["genome"].get("default_pos", "chr1:1-1000000"),
+        "genome_default_position": config["genome"].get("default_pos", "chr1:1-1000000"),
         "color_by": config["ucsc_hub_details"].get("color_by", ["samplename", ]),
         "overlay_by": config["ucsc_hub_details"].get("overlay_by", None),
         "subgroup_by": config["ucsc_hub_details"].get("subgroup_by", ["method",]),
@@ -20,11 +18,57 @@ def get_hub_params(config):
     }
 
     if ASSAY == "RNA":
-        hub_params["overlay_by"] = ["samplename", "strand"]
-        hub_params["subgroup_by"] = ["method", "strand"]
-    
+        hub_params["overlay_by"] = ["samplename", "method"]
+        hub_params["subgroup_by"] = ["samplename", "method", "strand"]    
 
     return hub_params
+
+def get_hub_input(wildcards):
+
+    input_files = []
+
+    if ASSAY == "RNA":
+        input_files.extend(expand(
+            "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
+            method=PILEUP_METHODS,
+            sample=SAMPLE_NAMES,
+            strand=["plus", "minus"],
+        ))
+
+    elif ASSAY == "ChIP":
+        input_files.extend(expand(
+            "seqnado_output/bigwigs/{method}/{sample}.bigWig",
+            method=PILEUP_METHODS,
+            sample=SAMPLE_NAMES_IP,
+        ))
+        input_files.extend(expand(
+            "seqnado_output/bigwigs/{method}/{sample}.bigWig",
+            method=PILEUP_METHODS,
+            sample=SAMPLE_NAMES_INPUT,
+        ))
+
+        input_files.extend(expand(
+            "seqnado_output/peaks/{method}/{sample}.bigBed",
+            method=PEAK_CALLING_METHODS,
+            sample=SAMPLE_NAMES_IP,
+        ))
+
+    elif ASSAY == "ATAC":
+        input_files.extend(expand(
+            "seqnado_output/bigwigs/{method}/{sample}.bigWig",
+            method=PILEUP_METHODS,
+            sample=SAMPLE_NAMES,
+        ))
+        input_files.extend(expand(
+            "seqnado_output/peaks/{method}/{sample}.bigBed",
+            method=PEAK_CALLING_METHODS,
+            sample=SAMPLE_NAMES,
+        ))
+    
+    return input_files    
+    
+   
+
 
 
 
@@ -48,20 +92,7 @@ rule bed_to_bigbed:
 
 rule generate_hub:
     input:
-        bigbed=expand(
-            "seqnado_output/peaks/{method}/{sample}.bigBed",
-            method=PEAK_CALL_METHODS
-            if ASSAY in ["ChIP", "ATAC"]
-            else [
-                "",
-            ],
-            sample=SAMPLE_NAMES_IP if ASSAY == "ChIP" else SAMPLE_NAMES,
-        ),
-        bigwig=expand(
-            "seqnado_output/bigwigs/{method}/{sample}.bigWig",
-            method=PILEUP_METHODS,
-            sample=SAMPLE_NAMES,
-        ),
+        data=get_hub_input,
         report="seqnado_output/qc/full_qc_report.html",
     output:
         hub=os.path.join(
@@ -70,6 +101,8 @@ rule generate_hub:
         ),
     log:
         log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log",
+    
+    container: None
     params:
         assay = ASSAY,
         **get_hub_params(config),
