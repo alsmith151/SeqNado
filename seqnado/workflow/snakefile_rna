@@ -14,7 +14,6 @@ container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
 
 utils.format_config_dict(config)
-PILEUP_METHODS = config["pileup_method"]
 
 # Get experiment design
 if os.path.exists(config["design"]):

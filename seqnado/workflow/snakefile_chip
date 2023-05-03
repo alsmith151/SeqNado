@@ -13,8 +13,6 @@ configfile: "config_chip.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
 utils.format_config_dict(config)
-PILEUP_METHODS = config["pileup_method"]
-PEAK_CALL_METHODS = config["peak_calling_method"]
 
 # Get experiment design
 if os.path.exists(config["design"]):
