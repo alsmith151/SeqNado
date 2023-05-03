@@ -31,5 +31,5 @@ rule deeptools_make_bigwigs_rna_minus:
         "seqnado_output/logs/pileups/deeptools/{sample}_minus.log",
     shell:
         """
-        bamCoverage -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse -p {threads} > {log} 2>&1
+        bamCoverage -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse -p {threads} --scaleFactor -1 > {log} 2>&1
         """
