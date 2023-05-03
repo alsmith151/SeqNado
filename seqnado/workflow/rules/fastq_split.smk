@@ -1,5 +1,5 @@
 import seqnado.utils as utils
-PARTS=[str (x) for x in range(50)]
+PARTS=[str (x) for x in range(int(config["split_fastq_parts"]))]
 if config["split_fastq"] == "yes":
     if config["read_type"] == "paired":
         rule split_fq:
