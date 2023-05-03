@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple, Literal
 import os
 import pathlib
 import pandas as pd
@@ -6,6 +6,8 @@ import numpy as np
 import snakemake
 import hashlib
 from collections import defaultdict
+
+from snakemake.io import expand
 
 
 def is_on(param: str) -> bool:
@@ -61,6 +63,14 @@ def format_config_dict(config: Dict) -> Dict:
     """
     for key, value in config.items():
         config[key] = convert_empty_yaml_entry_to_string(value)
+
+        if isinstance(config[key], str):
+            if is_on(config[key]):
+                config[key] = True
+            elif is_off(config[key]):
+                config[key] = False
+            elif is_none(config[key]):
+                config[key] = None
 
     return config
 
@@ -182,13 +192,16 @@ def check_options(value: object):
         return value
 
 
-def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool=False):
+def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool = False):
 
     if paired:
-        return {"fq1": samples.translation[f"{wc.sample}_1.fastq.gz"],
-                "fq2": samples.translation[f"{wc.sample}_2.fastq.gz"]}
+        return {
+            "fq1": samples.translation[f"{wc.sample}_1.fastq.gz"],
+            "fq2": samples.translation[f"{wc.sample}_2.fastq.gz"],
+        }
     else:
         return {"fq": samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]}
+
 
 def get_fq_filestem(wc, samples: GenericFastqSamples):
     fn = samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]
@@ -200,24 +213,142 @@ def pair_treatment_and_control_for_peak_calling(wc, samples, assay, filetype):
 
     if assay == "ChIP":
 
-        df_design_sample = samples.loc[(samples["sample"] == wc.sample) & (samples["antibody"] == wc.antibody)]
+        df_design_sample = samples.loc[
+            (samples["sample"] == wc.sample) & (samples["antibody"] == wc.antibody)
+        ]
         if df_design_sample.empty:
-            raise Exception(f"Could not find sample {wc.sample} with antibody {wc.antibody} in design file")
+            raise Exception(
+                f"Could not find sample {wc.sample} with antibody {wc.antibody} in design file"
+            )
 
-        filetype_to_dir_mapping = {"tag": "tag_dirs", "bigwig": "bigwigs/deeptools", "bam": "aligned"}
+        filetype_to_dir_mapping = {
+            "tag": "tag_dirs",
+            "bigwig": "bigwigs/deeptools",
+            "bam": "aligned",
+        }
         filetype_to_extension_mapping = {"tag": "/", "bigwig": ".bigWig", "bam": ".bam"}
-        
+
         extension_for_filetype = filetype_to_extension_mapping[filetype]
         directory_for_filetype = filetype_to_dir_mapping[filetype]
-        
+
         treatment = f"seqnado_output/{directory_for_filetype}/{wc.sample}_{wc.antibody}{extension_for_filetype}"
         control = f"seqnado_output/{directory_for_filetype}/{df_design_sample.iloc[0]['control']}{extension_for_filetype}"
 
-
-        files =  {"treatment": treatment, "control": control}
+        files = {"treatment": treatment, "control": control}
 
     else:
         files = {"treatment": treatment, "control": ""}
-    
+
     return files
 
+
+def define_output_files(
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    sample_names: list = None,
+    pileup_method: list = None,
+    peak_calling_method: list = None,
+    make_bigwigs: bool = False,
+    call_peaks: bool = False,
+    make_heatmaps: bool = False,
+    make_ucsc_hub: bool = False,
+    call_snps: bool = False,
+    annotate_snps: bool = False,
+    **kwargs,
+) -> list:
+    """Define output files for the pipeline"""
+
+    analysis_output = ["seqnado_output/qc/full_qc_report.html"]
+    assay_output = []
+
+    if make_ucsc_hub:
+        hub_dir = kwargs["ucsc_hub_details"].get("directory")
+        hub_name = kwargs["ucsc_hub_details"].get("name")
+        hub_file = os.path.join(hub_dir,  f"{hub_name}.hub.txt")
+        analysis_output.append(hub_file)
+
+
+    if assay in ["ChIP", "ATAC"]:
+
+        if make_bigwigs and pileup_method:
+            assay_output.extend(
+                expand(
+                    "seqnado_output/bigwigs/{method}/{sample}.bigWig",
+                    sample=sample_names,
+                    method=pileup_method,
+                )
+            )
+
+        if call_peaks and peak_calling_method:
+            if assay == "ChIP":
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/peaks/{method}/{ip}.bed",
+                        ip=kwargs["sample_names_ip"],
+                        method=peak_calling_method,
+                    )
+                )
+            else:
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/peaks/{method}/{sample}.bed",
+                        sample=sample_names,
+                        method=peak_calling_method,
+                    )
+                )
+
+        if make_heatmaps:
+            assay_output.extend(
+                expand(
+                    "seqnado_output/heatmap/{method}/{sample}.png",
+                    sample=sample_names,
+                    method=pileup_method,
+                )
+            )
+
+    elif assay == "RNA":
+
+        if make_bigwigs and pileup_method:
+            assay_output.extend(
+                expand(
+                    "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
+                    sample=sample_names,
+                    method=pileup_method,
+                    strand=["plus", "minus"],
+                )
+            )
+        
+        if kwargs["run_deseq2"]:
+            project_id = kwargs["DESeq2"].get("project_id")
+            assay_output.append(f"DESeq2_{project_id}.html") 
+
+
+        assay_output.extend(
+            [
+                "seqnado_output/feature_counts/read_counts.tsv",
+                *expand(
+                    "seqnado_output/aligned/{sample}.bam",
+                    sample=sample_names,
+                ),
+            ]
+        )
+
+    elif assay == "SNP":
+
+        if call_snps:
+            assay_output.expand(
+                "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
+                sample=sample_names,
+            )
+
+        if annotate_snps:
+            assay_output.append(
+                expand(
+                    "seqnado_output/variant/{sample}_filtered.stats.txt",
+                    sample=sample_names,
+                ),
+            )
+
+    analysis_output.extend(assay_output)
+
+
+    return analysis_output
