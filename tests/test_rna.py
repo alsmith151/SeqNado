@@ -130,7 +130,7 @@ def set_up(
         "indicies": genome_indicies,
         "remove_blacklist": "yes",
         "blacklist": f"{data_path}/genome/hg19_blacklist.bed",
-        "make_ucsc_hub": "no",
+        "make_ucsc_hub": "yes",
         "UCSC_hub_directory": "test_hub",
         "email": "test",
         "color_by": "samplename",
