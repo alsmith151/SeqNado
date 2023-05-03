@@ -42,25 +42,11 @@ include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/variant.smk"
 
-# Define output files
-ANALYSIS_OUTPUT = [
-    "seqnado_output/qc/full_qc_report.html",
-]
 
-if config["annotate_snps"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        expand(
-            "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
-            sample=SAMPLE_NAMES,
-        ),
-    )
-if config["call_snps"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        expand(
-            "seqnado_output/variant/{sample}_filtered.stats.txt",
-            sample=SAMPLE_NAMES,
-        ),
-    )
+ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
+                                            assay=ASSAY,
+                                            **config)
+
 
 
 rule all:

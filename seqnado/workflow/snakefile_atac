@@ -48,43 +48,12 @@ include: "rules/peak_call_atac.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap_atac.smk"
 include: "rules/hub.smk"
-# Define output files
-ANALYSIS_OUTPUT = [
-    "seqnado_output/qc/full_qc_report.html"
-]
 
-if config["make_bigwigs"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        expand(
-            "seqnado_output/bigwigs/{method}/{sample}.bigWig",
-            sample=SAMPLE_NAMES,
-            method=PILEUP_METHODS,
-        ),
-    )
-if config["call_peaks"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        expand(
-            "seqnado_output/peaks/{method}/{sample}.bed",
-            sample=SAMPLE_NAMES,
-            method=PEAK_CALL_METHODS,
-        ),
-    )
-if config["make_heatmaps"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        expand(
-            "seqnado_output/heatmap/{method}/{sample}.png",
-            sample=SAMPLE_NAMES,
-            method=PILEUP_METHODS,
-        ),
-    )
-if config["make_ucsc_hub"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        os.path.join(
-            config["ucsc_hub_details"]["directory"],
-            f"{config['ucsc_hub_details']['name']}.hub.txt",
-        ),
-    )
 
+
+ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES, 
+                                            assay=ASSAY,
+                                            **config)
 
 rule all:
     input:
