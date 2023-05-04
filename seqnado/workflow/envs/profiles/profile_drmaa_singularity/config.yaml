@@ -1,5 +1,5 @@
 jobname: smk-{jobid}-{rule}-{wildcards}
-drmaa: --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=1:00:00
+drmaa: --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb} --time=24:00:00
 use-singularity: true
 singularity-args: -B /ceph -B /databank -B /datashare
 jobs: 50
