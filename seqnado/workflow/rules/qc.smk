@@ -47,6 +47,29 @@ use rule samtools_stats as samtools_stats_filtered with:
     output:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
 
+if config["split_fastq"] == "no":
+    rule multiqc:
+        input:
+            expand(
+                "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
+                sample=SAMPLE_NAMES,
+                read=[1, 2],
+            ),
+            expand(
+                "seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
+                sample=SAMPLE_NAMES,
+                read=[1, 2],
+            ),
+            expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
+            expand("seqnado_output/qc/alignment_filtered/{sample}.txt", sample=SAMPLE_NAMES),
+        output:
+            "seqnado_output/qc/full_qc_report.html",
+        log:
+            "seqnado_output/logs/multiqc.log",
+        resources:
+            mem_mb=1000,
+        shell:
+            "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
 
 def get_fastqc_files(*args, **kwargs):
     """Return a list of fastq files for a given sample name."""
