@@ -7,6 +7,8 @@ rule heatmap_matrix:
     params: 
         options = utils.check_options(config["heatmap"]["options"]),
     threads: config["deeptools"]["threads"],
+    resources:
+        time="02:00:00",
     log: "seqnado_output/logs/heatmap/{method}/{sample}.log",
     shell: """computeMatrix reference-point --referencePoint TSS -a 3000 -b 3000 \
     -p {threads} --smartLabels --missingDataAsZero {params.options} \

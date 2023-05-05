@@ -9,7 +9,8 @@ rule deeptools_make_bigwigs_rna_plus:
         bigwig="seqnado_output/bigwigs/deeptools/{sample}_plus.bigWig",
     threads: config["deeptools"]["threads"]
     resources:
-        mem_mb=500
+        mem_mb=500,
+        time='02:00:00',
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}_plus.log",
     shell:
@@ -26,7 +27,8 @@ rule deeptools_make_bigwigs_rna_minus:
         bigwig="seqnado_output/bigwigs/deeptools/{sample}_minus.bigWig",
     threads: config["deeptools"]["threads"]
     resources:
-        mem_mb=500
+        mem_mb=500,
+        time='02:00:00',
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}_minus.log",
     shell:

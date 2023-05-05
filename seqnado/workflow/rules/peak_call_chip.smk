@@ -12,6 +12,7 @@ rule macs2_with_input:
     threads: 1
     resources:
         mem_mb=2000,
+        time='02:00:00',
     log:
         "seqnado_output/logs/macs/{sample}_{antibody}.log",
     shell:
@@ -32,6 +33,7 @@ rule macs2_no_input:
     threads: 1
     resources:
         mem_mb=2000,
+        time='02:00:00',
     log:
         "seqnado_output/logs/macs/{sample}_{antibody}.log",
     shell:
@@ -53,6 +55,7 @@ rule homer_with_input:
     threads: 1
     resources:
         mem_mb=2000,
+        time='02:00:00',
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.control} > {log} 2>&1 &&
@@ -73,6 +76,7 @@ rule homer_no_input:
     threads: 1
     resources:
         mem_mb=1024,
+        time='02:00:00',
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -96,6 +100,7 @@ rule lanceotron_with_input:
     threads: 1
     resources:
         mem_mb=1024 * 10,
+        time='04:00:00',
     shell:
         """
         lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} {params.options} --skipheader > {log} 2>&1 &&
@@ -118,6 +123,7 @@ rule lanceotron_no_input:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
         mem_mb=1024 * 10,
+        time='04:00:00',
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&

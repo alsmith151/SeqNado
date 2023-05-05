@@ -10,6 +10,7 @@ rule trimgalore_paired:
     threads: 4
     resources:
         mem_mb=750,
+        time="02:00:00",
     params:
         options=seqnado.utils.check_options(config['trim_galore']['options']),
         trim_dir="seqnado_output/trimmed"
