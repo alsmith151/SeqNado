@@ -12,7 +12,8 @@ rule align_paired:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     threads: config["bowtie2"]["threads"]
     resources:
-        mem_mb=4000 // int(config["bowtie2"]["threads"])
+        mem_mb=4000 // int(config["bowtie2"]["threads"]),
+        time='04:00:00',
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:

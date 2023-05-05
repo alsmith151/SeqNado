@@ -1,6 +1,4 @@
 
-localrules: deseq2_report_rnaseq
-
 rule deseq2_report_rnaseq:
     input:
         counts="seqnado_output/feature_counts/read_counts.tsv",
@@ -18,3 +16,5 @@ rule deseq2_report_rnaseq:
         cd "$base_dir"
         quarto render {input.qmd} --no-cache --output {output.deseq2} --log {log}
         """
+
+localrules: deseq2_report_rnaseq

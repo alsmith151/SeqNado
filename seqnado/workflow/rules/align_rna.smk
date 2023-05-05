@@ -14,6 +14,7 @@ rule align_paired:
     threads: config["star"]["threads"]
     resources:
         mem_mb=(32000 // config["star"]["threads"]),
+        time='06:00:00',
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
