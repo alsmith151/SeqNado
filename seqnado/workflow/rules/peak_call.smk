@@ -1,6 +1,15 @@
 from typing import Literal
 import seqnado.utils
- 
+import re
+
+
+def get_lanceotron_threshold(wildcards):
+    options = config["lanceotron"]["callpeak"]
+    threshold_pattern = re.compile(r"\-c\s+(\d+.?\d*)")
+    threshold = threshold_pattern.search(options).group(1)
+    return threshold
+
+    
 rule macs2_with_input:
     input:
         treatment = lambda wc: seqnado.utils.get_treatment_file(wc,assay=ASSAY, filetype="bam"),
@@ -96,7 +105,7 @@ rule lanceotron_with_input:
     log:
         "seqnado_output/logs/lanceotron/{treatment}.bed",
     params:
-        options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
+        threshold=get_lanceotron_threshold,
         outdir=lambda wc, output: os.path.dirname(output.peaks),
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
@@ -106,8 +115,8 @@ rule lanceotron_with_input:
         time='04:00:00',
     shell:
         """
-        lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} {params.options} --skipheader > {log} 2>&1 &&
-        cat {params.outdir}/{wildcards.treatment}_L-tron.bed | cut -f 1-3 > {output.peaks}
+        lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
+        cat {params.outdir}/{wildcards.treatment}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks}
         """
 
 
