@@ -94,3 +94,5 @@ rule deeptools_make_bigwigs_rna_minus:
         """
         bamCoverage -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse -p {threads} --scaleFactor -1 > {log} 2>&1
         """
+
+ruleorder: deeptools_make_bigwigs_rna_plus > deeptools_make_bigwigs_rna_minus > deeptools_make_bigwigs
