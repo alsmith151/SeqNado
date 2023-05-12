@@ -33,7 +33,6 @@ else:
     else:
         raise ValueError("No FASTQ files found in the working directory")
 
-
 DESIGN = FASTQ_SAMPLES.design
 ANTIBODIES = FASTQ_SAMPLES.antibodies
 SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
@@ -45,9 +44,9 @@ include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call_chip.smk"
+include: "rules/peak_call.smk"
 include: "rules/pileup.smk"
-include: "rules/heatmap_chip.smk"
+include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
 

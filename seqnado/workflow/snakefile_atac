@@ -42,9 +42,9 @@ include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call_atac.smk"
+include: "rules/peak_call.smk"
 include: "rules/pileup.smk"
-include: "rules/heatmap_atac.smk"
+include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
 

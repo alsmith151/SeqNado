@@ -2,10 +2,10 @@ from seqnado import utils
 
 rule heatmap_matrix:
     input:
-        bigwig="seqnado_output/bigwigs/{wildcards.method}/{wildcards.sample}.bigWig",
+        bigwig="seqnado_output/bigwigs/{method}/{sample}.bigWig",
         gtf = config["genome"]["gtf"],
     output:
-        matrix=temp("seqnado_output/heatmap/{wildcards.method}/matrix/{wildcards.sample}.mat.gz"),
+        matrix=temp("seqnado_output/heatmap/{method}/matrix/{sample}.mat.gz"),
     params: 
         options = utils.check_options(config["heatmap"]["options"]),
     threads: 
@@ -29,7 +29,7 @@ rule heatmap_matrix:
 
 rule heatmap_plot:
     input:
-        matrix = "seqnado_output/heatmap/{wildcards.method}/matrix/{wildcards.sample}.mat.gz",
+        matrix = "seqnado_output/heatmap/{method}/matrix/{sample}.mat.gz",
     output:
         heatmap="seqnado_output/heatmap/{method}/{sample}.png",
     params:
