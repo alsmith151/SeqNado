@@ -51,7 +51,7 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
             """
 
 else:
-    rule remove_blacklisted_regions:
+    rule ignore_blacklisted_regions:
             input:
                 bam="seqnado_output/aligned/sorted/{sample}.bam",
                 bai=rules.index_bam.output.bai,
@@ -73,10 +73,10 @@ else:
 
 
 if config["remove_pcr_duplicates_method"] == "picard":
-    rule remove_duplicates:
+    rule remove_duplicates_using_picard:
         input:
-            bam=rules.remove_blacklisted_regions.output.bam,
-            bai=rules.remove_blacklisted_regions.output.bai,
+            bam="seqnado_output/aligned/blacklist_regions_removed/{sample}.bam",
+            bai="seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai",
         output:
             bam=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam"),
             bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
@@ -96,10 +96,10 @@ if config["remove_pcr_duplicates_method"] == "picard":
             """
 
 else:
-    rule remove_duplicates:
+    rule handle_duplicates:
         input:
-            bam=rules.remove_blacklisted_regions.output.bam,
-            bai=rules.remove_blacklisted_regions.output.bai,
+            bam="seqnado_output/aligned/blacklist_regions_removed/{sample}.bam",
+            bai="seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai",
         output:
             bam=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam"),
             bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
@@ -114,8 +114,8 @@ else:
 if config["shift_atac_reads"]:
     rule shift_atac_alignments:
         input:
-            bam=rules.remove_duplicates.output.bam,
-            bai=rules.remove_duplicates.output.bai,
+            bam="seqnado_output/aligned/duplicates_removed/{sample}.bam",
+            bai="seqnado_output/aligned/duplicates_removed/{sample}.bam.bai",
         output:
             bam=temp("seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam"),
             bai=temp("seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai"),
@@ -134,10 +134,10 @@ if config["shift_atac_reads"]:
             """
         
 else:
-    rule shift_atac_alignments:
+    rule move_bam_to_temp_location:
         input:
-            bam=rules.remove_duplicates.output.bam,
-            bai=rules.remove_duplicates.output.bai,
+            bam="seqnado_output/aligned/duplicates_removed/{sample}.bam",
+            bai="seqnado_output/aligned/duplicates_removed/{sample}.bam.bai",
         output:
             bam=temp("seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam"),
             bai=temp("seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai"),
@@ -154,8 +154,8 @@ else:
 
 rule move_bam_to_final_location:
     input:
-        bam=rules.shift_atac_alignments.output.bam,
-        bai=rules.shift_atac_alignments.output.bai,
+        bam="seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam",
+        bai="seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai",
     output:
         bam="seqnado_output/aligned/{sample,[A-Za-z0-9_\-]+}.bam",
         bai="seqnado_output/aligned/{sample,[A-Za-z0-9_\-]+}.bam.bai",
