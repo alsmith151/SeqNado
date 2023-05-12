@@ -4,20 +4,19 @@ import shutil
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
-import seqnado.utils_chipseq as chip_utils
-import seqnado.utils as utils
+import seqnado.utils
 import pandas as pd
 
 ASSAY = "ChIP"
 configfile: "config_chip.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
-utils.format_config_dict(config)
+seqnado.utils.format_config_dict(config)
 
 # Get experiment design
 if os.path.exists(config["design"]):
     # Expect columns - sample fq1 fq2 antibody control
-    FASTQ_SAMPLES = chip_utils.ChipseqFastqSamples(
+    FASTQ_SAMPLES = seqnado.utils.ChipseqFastqSamples(
         pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
     )
     assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
@@ -27,12 +26,11 @@ if os.path.exists(config["design"]):
 
 else:
     # Use pattern matching to get samples
-    fq_files = list(utils.get_fastq_files("."))
+    fq_files = list(seqnado.utils.get_fastq_files("."))
     if fq_files:
-        FASTQ_SAMPLES = chip_utils.ChipseqFastqSamples.from_files(fq_files)
+        FASTQ_SAMPLES = seqnado.utils.ChipseqFastqSamples.from_files(fq_files)
     else:
         raise ValueError("No FASTQ files found in the working directory")
-
 
 DESIGN = FASTQ_SAMPLES.design
 ANTIBODIES = FASTQ_SAMPLES.antibodies
@@ -45,13 +43,13 @@ include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call_chip.smk"
+include: "rules/peak_call.smk"
 include: "rules/pileup.smk"
-include: "rules/heatmap_chip.smk"
+include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
 
-ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
+ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
                                             sample_names_ip=SAMPLE_NAMES_IP,
                                             **config
