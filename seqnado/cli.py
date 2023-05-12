@@ -40,7 +40,7 @@ def cli_design(method, files, output="design.csv"):
         from seqnado.utils import GenericFastqSamples
         design = GenericFastqSamples.from_files(files).design
     else:
-        from seqnado.utils_chipseq import ChipseqFastqSamples
+        from seqnado.utils import ChipseqFastqSamples
         design = ChipseqFastqSamples.from_files(files).design
     
     design = design.drop(columns=["paired"], errors="ignore")
