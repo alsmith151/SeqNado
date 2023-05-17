@@ -22,6 +22,27 @@ if config["split_fastq"] == "no":
             mv {output.bam}_sorted {output.bam}
             """
 
+rule align_paired:
+    input:
+        fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
+        fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
+    params:
+        index=config["genome"]["indicies"],
+        options=utils.check_options(config["bowtie2"]["options"]),
+    output:
+        bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
+    threads: config["bowtie2"]["threads"]
+    resources:
+        mem_mb=4000 // int(config["bowtie2"]["threads"]),
+        time='0-04:00:00',
+    log:
+        "seqnado_output/logs/align/{sample}.log",
+    shell:
+        """bowtie2 -p {threads} -x {params.index} -1 {input.fq1} -2 {input.fq2} {params.options} 2> {log} |
+           samtools view -bS - > {output.bam} &&
+           samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} >> {log} 2>&1 &&
+           mv {output.bam}_sorted {output.bam}
+        """
 
     # rule align_single:
     #     input:

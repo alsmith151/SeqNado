@@ -12,6 +12,7 @@ rule feature_counts:
     threads: config["featurecounts"]["threads"]
     resources:
         mem_mb=500,
+        time='0-02:00:00',
     log:
         "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
     shell:
@@ -27,3 +28,13 @@ rule feature_counts:
         {input.bam} \
         > {log} 2>&1
         """
+
+
+
+
+
+
+
+    
+
+

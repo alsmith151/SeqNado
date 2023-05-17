@@ -45,26 +45,15 @@ else:
     include: "rules/align.smk"
 
 
-# Define output files
-ANALYSIS_OUTPUT = [
-    "seqnado_output/qc/full_qc_report.html",
-]
+ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
+                                            assay=ASSAY,
+                                            **config)
 
-if config["annotate_snps"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        expand(
-            "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
-            sample=SAMPLE_NAMES,
-        ),
-    )
-if config["call_snps"] == "yes":
-    ANALYSIS_OUTPUT.append(
-        expand(
-            "seqnado_output/variant/{sample}_filtered.stats.txt",
-            sample=SAMPLE_NAMES,
-        ),
-    )
 
+
+rule all:
+    input:
+        ANALYSIS_OUTPUT
 
 rule all:
     input:
