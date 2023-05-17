@@ -48,7 +48,7 @@ def cli_design(method, files, output="design.csv"):
     
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
-@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
+@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp", "chip-rx"]))
 @click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)
 @click.option(
     "--preset",
@@ -70,7 +70,7 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
         "-c",
         str(cores),
         "--snakefile",
-        os.path.join(PACKAGE_DIR, "workflow", f"snakefile_{method}"),
+        os.path.join(PACKAGE_DIR, "workflow", f"snakefile_{method.replace('-', '_')}"),
     ]
 
     if pipeline_options:

@@ -89,6 +89,17 @@ def get_hub_input(wildcards):
     return input_files
 
 
+
+rule save_design:
+    output:
+        "seqnado_output/design.csv",
+    container:
+        None
+    run:
+        DESIGN.to_csv("seqnado_output/design.csv", index=False)
+
+
+
 rule bed_to_bigbed:
     input:
         bed="seqnado_output/peaks/{directory}/{sample}.bed",
