@@ -13,7 +13,7 @@ rule align_paired:
     threads: config["bowtie2"]["threads"]
     resources:
         mem_mb=4000 // int(config["bowtie2"]["threads"]),
-        time='04:00:00',
+        time='0-04:00:00',
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
