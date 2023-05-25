@@ -55,7 +55,6 @@
 # def config_path(data_path):
 #     return os.path.join(data_path, "config")
 
-
 # @pytest.fixture(scope="module")
 # def genome_indicies(genome_path):
 

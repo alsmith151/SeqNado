@@ -11,7 +11,7 @@ rule bcftools_call_snp:
         faidx = config["genome"]["fasta_index"],
     resources:
         mem_mb=1024 * 10,
-        time='04:00:00',
+        time='0-04:00:00',
     threads: config["bcftools"]["threads"]
     log:
         "seqnado_output/logs/variant/bcftools/{sample}.log",

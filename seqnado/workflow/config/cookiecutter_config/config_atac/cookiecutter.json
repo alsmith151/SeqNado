@@ -8,6 +8,7 @@
   "indicies": "/databank/igenomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome",
   "gtf": "path/to/gtf",
   "read_type": ["paired", "single"],
+  "split_fastq": ["yes", "no"],
   "remove_pcr_duplicates_method": ["picard", "deeptools"],
   "shift_atac_reads": ["no", "yes"],
   "remove_blacklist": ["yes", "no"],
