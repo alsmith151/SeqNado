@@ -272,7 +272,8 @@ def define_output_files(
 ) -> list:
     """Define output files for the pipeline"""
 
-    analysis_output = ["seqnado_output/qc/full_qc_report.html"]
+    analysis_output = ["seqnado_output/qc/full_qc_report.html",
+                       "seqnado_output/design.csv"]
     assay_output = []
 
     if make_ucsc_hub:

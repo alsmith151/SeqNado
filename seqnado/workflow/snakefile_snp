@@ -36,6 +36,7 @@ DESIGN = FASTQ_SAMPLES.design
 SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
 
 include: "rules/alignment_post_processing.smk"
+include: "rules/hub.smk"
 include: "rules/qc.smk"
 include: "rules/variant.smk"
 if config["split_fastq"] == "yes":
