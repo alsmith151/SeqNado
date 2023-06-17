@@ -67,7 +67,7 @@ def genome_indicies(genome_path):
             import tarfile
 
             url = (
-                "https://userweb.molbiol.ox.ac.uk/public/asmith/ngs_pipeline/bt2.tar.gz"
+                "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/bt2.tar.gz"
             )
             output = os.path.join(genome_path, "bt2.tar.gz")
             r = requests.get(url, stream=True)
@@ -119,7 +119,17 @@ def set_up(
         "project_name": "test",
         "chromosome_sizes": chromsizes,
         "indicies": genome_indicies,
+        "design": "design.csv",
+        "read_type": "paired",
+        "split_fastq": "no",
+        "remove_pcr_duplicates_method": "picard",
+        "shift_atac_reads": "no",
+        "remove_blacklist": "yes",
+        "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
+        "make_bigwigs": "yes",  
         "pileup_method": "deeptools",
+        "make_heatmaps": "yes",
+        "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
         "remove_pcr_duplicates_method": "picard",
         "make_ucsc_hub": "yes",

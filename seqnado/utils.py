@@ -205,8 +205,7 @@ def check_options(value: object):
         return value
 
 
-def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool = False):
-
+def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool=False):
     if paired:
         return {
             "fq1": samples.translation[f"{wc.sample}_1.fastq.gz"],
@@ -216,6 +215,13 @@ def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool = False):
         return {"fq": samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]}
 
 
+def translate_fq_files_split(wc, samples: GenericFastqSamples, paired: bool=False):
+    if paired:
+        return [[f"fq1=", samples.translation[f"{wc.sample}_1.fastq.gz"]],
+                [f"fq2=", samples.translation[f"{wc.sample}_2.fastq.gz"]]]
+    else:
+        return [f"fq=", samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]]
+    
 def get_fq_filestem(wc, samples: GenericFastqSamples):
     fn = samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]
     basename = os.path.basename(fn)
@@ -266,7 +272,8 @@ def define_output_files(
 ) -> list:
     """Define output files for the pipeline"""
 
-    analysis_output = ["seqnado_output/qc/full_qc_report.html"]
+    analysis_output = ["seqnado_output/qc/full_qc_report.html",
+                       "seqnado_output/design.csv"]
     assay_output = []
 
     if make_ucsc_hub:
