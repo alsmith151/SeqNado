@@ -65,7 +65,7 @@ rule homer_with_input:
         options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem_mb=2000,
+        mem_mb=4000,
         time='0-02:00:00',
     shell:
         """
@@ -86,7 +86,7 @@ rule homer_no_input:
         options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem_mb=1024,
+        mem_mb=4000,
         time='0-02:00:00',
     shell:
         """
@@ -111,7 +111,7 @@ rule lanceotron_with_input:
         "library://asmith151/seqnado/seqnado_extra:latest"
     threads: 1
     resources:
-        mem_mb=1024 * 10,
+        mem_mb=10_000,
         time='0-06:00:00',
     shell:
         """
@@ -134,7 +134,7 @@ rule lanceotron_no_input:
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
-        mem_mb=1024 * 10,
+        mem_mb=10_1000,
         time='0-06:00:00',
     shell:
         """

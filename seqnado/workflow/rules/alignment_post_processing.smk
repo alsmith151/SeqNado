@@ -7,7 +7,7 @@ rule sort_bam:
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
-        mem_mb=768
+        mem_mb=1000
     threads: 8
     log:
         "seqnado_output/logs/sorted/{sample}.log",
@@ -85,7 +85,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
         params:
             options=utils.check_options(config['picard']['options']),
         resources:
-            mem_mb=500
+            mem_mb=5000
         log:
             "seqnado_output/logs/duplicates/{sample}.log",
         shell: """

@@ -12,7 +12,7 @@ rule fastqc_raw:
         basename=lambda wc, output: seqnado.utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
     threads: 1
     resources:
-        mem_mb=500,
+        mem_mb=1500,
     log:
         "seqnado_output/logs/fastqc_raw/{sample}_{read}.log",
     shell:
@@ -34,7 +34,7 @@ rule fastqc_trimmed:
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}_{read}.log",
     resources:
-        mem_mb=500,
+        mem_mb=1500,
     threads: 4
     shell:
         """fastqc -o {params.outdir} {input.fq} > {log} 2>&1"""
