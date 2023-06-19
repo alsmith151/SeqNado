@@ -1,6 +1,5 @@
 import os
 import subprocess
-import seqnado.utils
 
 method = snakemake.config.get("remove_pcr_duplicates_method")
 
