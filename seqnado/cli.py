@@ -82,7 +82,7 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
                 "--profile",
                 os.path.abspath(
                     os.path.join(
-                        PACKAGE_DIR, "workflow/envs/profiles/profile_drmaa_singularity"
+                        PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity"
                     )
                 ),
             ]

@@ -59,13 +59,15 @@ def get_hub_input(wildcards):
                     sample=SAMPLE_NAMES,
                 )
             )
-            input_files.extend(
-                expand(
-                    "seqnado_output/peaks/{method}/{sample}.bigBed",
-                    method=config["peak_calling_method"],
-                    sample=SAMPLE_NAMES_IP,
+
+            if config["call_peaks"]:
+                input_files.extend(
+                    expand(
+                        "seqnado_output/peaks/{method}/{sample}.bigBed",
+                        method=config["peak_calling_method"],
+                        sample=SAMPLE_NAMES_IP,
+                    )
                 )
-            )
 
         case "ATAC":
             input_files.extend(
@@ -75,13 +77,15 @@ def get_hub_input(wildcards):
                     sample=SAMPLE_NAMES,
                 )
             )
-            input_files.extend(
-                expand(
-                    "seqnado_output/peaks/{method}/{sample}.bigBed",
-                    method=config["peak_calling_method"],
-                    sample=SAMPLE_NAMES,
+
+            if config["call_peaks"]:
+                input_files.extend(
+                    expand(
+                        "seqnado_output/peaks/{method}/{sample}.bigBed",
+                        method=config["peak_calling_method"],
+                        sample=SAMPLE_NAMES,
+                    )
                 )
-            )
 
         case _:
             input_files = []
