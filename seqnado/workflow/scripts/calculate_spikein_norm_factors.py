@@ -7,6 +7,7 @@ from loguru import logger
 # Set up logging
 logger.add(snakemake.log[0], level="INFO")
 
+
 def get_readcounts(bam_files: List[pathlib.Path]):
     readcounts = {}
     for bam_file in bam_files:
