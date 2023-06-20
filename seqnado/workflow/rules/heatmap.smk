@@ -12,6 +12,7 @@ rule heatmap_matrix:
         config["deeptools"]["threads"],
     resources:
         time="02:00:00",
+        mem_mb=2000,
     log: 
         "seqnado_output/logs/heatmap/{method}/{sample}.log",
     shell: 
