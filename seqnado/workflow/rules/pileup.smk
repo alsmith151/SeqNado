@@ -49,7 +49,7 @@ rule deeptools_make_bigwigs:
     params:
         options=utils.check_options(config["deeptools"]["bamcoverage"]),
     resources:
-        mem_mb=1000,
+        mem_mb=2000,
         time='0-02:00:00',
     threads: config["deeptools"]["threads"]
     log:
@@ -68,7 +68,7 @@ rule deeptools_make_bigwigs_rna_plus:
         bigwig="seqnado_output/bigwigs/deeptools/{sample}_plus.bigWig",
     threads: config["deeptools"]["threads"]
     resources:
-        mem_mb=500,
+        mem_mb=2000,
         time='0-02:00:00',
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}_plus.log",
@@ -86,7 +86,7 @@ rule deeptools_make_bigwigs_rna_minus:
         bigwig="seqnado_output/bigwigs/deeptools/{sample}_minus.bigWig",
     threads: config["deeptools"]["threads"]
     resources:
-        mem_mb=500,
+        mem_mb=2000,
         time='0-02:00:00',
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}_minus.log",
