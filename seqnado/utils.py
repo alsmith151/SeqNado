@@ -125,6 +125,24 @@ def get_fastq_files(path: str, recursive=False) -> pd.DataFrame:
     return files
 
 
+
+def has_bowtie2_index(prefix: str) -> bool:
+    """
+    Checks if bowtie2 index is present.
+    """
+
+    path_prefix = pathlib.Path(prefix).resolve()
+    path_dir = path_prefix.parent
+    path_prefix_stem = path_prefix.stem
+
+    bowtie2_indicies = list(path_dir.glob(f"{path_prefix_stem}*.bt2"))
+
+    if len(bowtie2_indicies) > 0:
+        return True
+
+
+
+
 def get_singularity_command(workflow: snakemake.Workflow, command: str):
     """
     Runs a command in a singularity container.
