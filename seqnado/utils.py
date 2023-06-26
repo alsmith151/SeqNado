@@ -352,7 +352,7 @@ def define_output_files(
             )
         
         if kwargs["run_deseq2"]:
-            project_id = kwargs["DESeq2"].get("project_id")
+            project_id = kwargs["deseq2"].get("project_id")
             assay_output.append(f"DESeq2_{project_id}.html") 
 
 
