@@ -7,7 +7,7 @@ rule sort_bam:
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
-        mem_mb=1000
+        mem_mb=8000
     threads: 8
     log:
         "seqnado_output/logs/sorted/{sample}.log",
