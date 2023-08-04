@@ -18,7 +18,7 @@ remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
 shift_atac_reads: "False"
 
 remove_blacklist: "{{cookiecutter.remove_blacklist}}"
-blacklist: "path/to/hg38-blacklist.v2.bed.gz"
+blacklist: "{{cookiecutter.blacklist}}"
 
 make_bigwigs: "{{cookiecutter.make_bigwigs}}"  
 pileup_method: "{{cookiecutter.pileup_method}}"
