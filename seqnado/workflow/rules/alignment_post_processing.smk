@@ -12,7 +12,7 @@ rule sort_bam:
     log:
         "seqnado_output/logs/sorted/{sample}.log",
     shell:"""
-        samtools sort {input.bam} -@ {threads} -o {output.bam} &&
+        samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M &&
         echo 'Sorted bam number of mapped reads:' > {log} 2>&1 &&
         samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
         """
