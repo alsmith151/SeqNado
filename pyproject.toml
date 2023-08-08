@@ -21,7 +21,7 @@ dependencies = [
     "pandas",
     "cookiecutter",
     "pyyaml",
-    "snakemake<=7.30",
+    "snakemake<=7.32.2",
     "setuptools_scm",
     "drmaa",
     "seaborn",
