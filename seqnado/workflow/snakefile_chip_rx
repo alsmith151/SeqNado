@@ -6,6 +6,9 @@ import glob
 from snakemake.utils import min_version
 import seqnado.utils
 import pandas as pd
+import pathlib
+
+
 
 ASSAY = "ChIP"
 configfile: "config_chip.yml"
@@ -31,6 +34,9 @@ else:
         FASTQ_SAMPLES = seqnado.utils.ChipseqFastqSamples.from_files(fq_files)
     else:
         raise ValueError("No FASTQ files found in the working directory")
+    
+
+assert seqnado.utils.has_bowtie2_index(config["genome"].get("indicies_spikein", "")), f"Spike-in genome index not found at {config['genome'].get('indicies_spikein', '')}"
 
 DESIGN = FASTQ_SAMPLES.design
 ANTIBODIES = FASTQ_SAMPLES.antibodies
@@ -43,17 +49,23 @@ include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
+include: "rules/align_spikein.smk"
 include: "rules/peak_call.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
+include: "rules/normalisation.smk"
 
+
+ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
 
 ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
                                             sample_names_ip=SAMPLE_NAMES_IP,
                                             **config
                                             )
+# Add normalisation factors to output
+ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
 
 
 

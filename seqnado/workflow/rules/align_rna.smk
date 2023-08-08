@@ -13,7 +13,8 @@ rule align_paired:
         bam=temp("seqnado_output/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),
     threads: config["star"]["threads"]
     resources:
-        mem_mb=(32000 // config["star"]["threads"]),
+        mem_mb=32000,
+        time='0-06:00:00',
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
@@ -31,7 +32,7 @@ rule rename_aligned:
     input:
         bam=rules.align_paired.output.bam,
     output:
-        bam="seqnado_output/aligned/sorted/{sample}.bam",
+        bam="seqnado_output/aligned/raw/{sample}.bam",
     shell:
         "mv {input.bam} {output.bam}"
 

@@ -4,12 +4,14 @@ channels:
   - bioconda
   - defaults
 dependencies:
+- bedtools
 - bcftools
 - bowtie2
 - click
 - cookiecutter
 - deeptools
 - fastqc
+- fastqsplitter
 - homer
 - macs2
 - multiqc
@@ -22,7 +24,7 @@ dependencies:
 - python>=3.8
 - samtools>1.7
 - seaborn
-- snakemake
+- snakemake<=7.30
 - star
 - subread
 - trackhub

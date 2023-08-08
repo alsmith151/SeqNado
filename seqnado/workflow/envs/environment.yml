@@ -15,6 +15,7 @@ dependencies:
   - deeptools
   - trim-galore
   - fastqc
+  - fastqsplitter
   - multiqc
   - trackhub
   - seaborn

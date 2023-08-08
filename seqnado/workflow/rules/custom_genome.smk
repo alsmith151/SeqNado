@@ -1,5 +1,5 @@
-rule rename_chr_cat_fasta:
-# renames the chromosome names in the custom fasta file to not match the reference genome
+
+rule rename_chr_cat_fasta: # renames the chromosome names in the custom fasta file to not match the reference genome
     input: 
         custom_fasta = "/project/milne_group/cchahrou/reference/genome/dm6/dm6.fa.gz",
         reference_fasta = "/project/milne_group/cchahrou/reference/genome/hg38/hg38.fa",
