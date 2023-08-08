@@ -11,11 +11,12 @@ local-cores: 1
 latency-wait: "5"
 use-conda: "False"
 use-singularity: "True"
-singularity-args: -B /ceph  -B /databank
+singularity-args: -B /ceph -B /databank
 jobs: "50"
 printshellcmds: "True"
 rerun-incomplete: "True"
 keep-going: "True"
+retries: "3"
 
 
 # Example resource configuration
