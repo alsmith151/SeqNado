@@ -49,6 +49,7 @@ def cli_design(method, files, output="design.csv"):
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp", "chip-rx"]))
+@click.option("--version", help="Print version and exit", is_flag=True)
 @click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)
 @click.option(
     "--preset",
@@ -61,9 +62,16 @@ def cli_design(method, files, output="design.csv"):
     type=click.Choice(choices=["lc", "ls", "ss"]),
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
-def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
+def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local", version=False):
 
     """Runs the data processing pipeline"""
+
+    if version:
+        from importlib.metadata import version
+        _version = version('seqnado')
+        print(f"SeqNado version {_version}")
+        return
+    
 
     cmd = [
         "snakemake",
