@@ -12,6 +12,8 @@ format:
     theme: cosmo 
     highlight-style: github-dark
     number-sections: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=F}
@@ -37,10 +39,6 @@ suppressPackageStartupMessages(library(circlize))
 suppressPackageStartupMessages(library(qvalue))
 suppressPackageStartupMessages(library(DT))
 suppressPackageStartupMessages(library(clusterProfiler))
-suppressPackageStartupMessages(library(rstudioapi))
-
-current_path = rstudioapi::getActiveDocumentContext()$path 
-setwd(dirname(current_path))
 ```
 
 # Sample Information {.tabset}
@@ -57,13 +55,16 @@ kable(sample_info, row.names = F, align = "c", "simple")
 # DE analysis - DESeq2 {.tabset}
 
 ```{r DEseq2}
+de_dir <- "seqnado_output/deseq2_results/"
+unlink(de_dir, recursive = T)
+dir.create(de_dir)
+
 counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#")
 colnames(counts) <- gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", colnames(counts))
 rownames(counts) <- counts$Geneid
 counts <- counts[,colnames(counts) %in% make.names(sample_info$sample)]
-colnames(counts) <- sample_info$sample_name
+colnames(counts) <- sample_info$sample
 counts <- counts[rowSums(counts)>0, ]
-write.csv(counts, "gene_counts.csv")
 
 dds <- DESeqDataSetFromMatrix(countData = counts,
                               colData = sample_info,
@@ -71,10 +72,6 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
 
 dds <- DESeq(dds, quiet = T)
 vst <- suppressMessages(vst(dds))
-
-de_dir <- "seqnado_output/deseq2_results/"
-unlink(de_dir, recursive = T)
-dir.create(de_dir)
 
 res_names <- resultsNames(dds)[-1] 
 res <- results(dds, name = res_names)
@@ -87,9 +84,9 @@ mean_normCounts <- data.frame(gene = rownames(normCounts))
 for (i in 1:length(levels(sample_info$deseq2))) {
   ind_group <- levels(sample_info$deseq2)[i]
   group_info <- sample_info[sample_info$deseq2==ind_group, ]
-  sam_names <- as.character(group_info$sample_name)
+  sam_names <- as.character(group_info$sample)
   sub_mean <- data.frame(mean = apply(normCounts[, colnames(normCounts) %in% sam_names], 1, mean))
-  colnames(sub_mean)[1] <- paste0("mean_", unique(group_info$group))
+  colnames(sub_mean)[1] <- paste0("mean_", unique(group_info$deseq2))
   sub_mean$gene <- rownames(sub_mean)
   mean_normCounts <- merge(mean_normCounts, sub_mean)
 }
@@ -101,6 +98,7 @@ DE_results_full <- DE_results_full[order(DE_results_full$padj), ]
 outname <- paste0(de_dir,"DEseq2_", res_names, ".csv")
 write.csv(DE_results_full, outname, row.names = F)
 DE_results <- DE_results[!is.na(DE_results$padj), ]
+DE_results <- DE_results[order(DE_results$padj), ]
 
 # pre-ranked for GSEA
 resrnk <- DE_results[!duplicated(DE_results$gene), c("gene", "stat")]
@@ -122,10 +120,11 @@ sampleDists <- as.matrix(dist(t(vst_count)))
 cond_col <- c(brewer.pal(4, "Paired"))
 cond_col <- cond_col[c(2,4)]
 names(cond_col) <- unique(sample_info$deseq2)
+
 row_ha = rowAnnotation(group = sample_info$deseq2,
                        col = list(group = cond_col))
 col_ha = HeatmapAnnotation(group = sample_info$deseq2,
-                       col = list(group = cond_col))
+                           col = list(group = cond_col))
 set.seed(123)
 HM_sampleDists <- Heatmap(sampleDists, 
                           top_annotation = col_ha,
@@ -165,7 +164,7 @@ ggplot(DE_results, aes(pvalue)) +
   geom_histogram(binwidth = 0.01, fill="lightblue") +
   scale_x_continuous(expand = c(0, 0),) + 
   scale_y_continuous(expand = c(0, 0),) + 
-  ggtitle(paste0("DESeq2 - ", res_names," - pvalues")) +
+  ggtitle(paste0(res_names," - pvalues")) +
   theme_light() 
 
 qobj <- qvalue(p = DE_results$pvalue)
@@ -400,8 +399,13 @@ DE_results<- DE_results[order(DE_results$padj),]
 top_DE_genes <- as.data.frame(normCounts)
 top_DE_genes$gene <- rownames(top_DE_genes)
 top_DE_genes <- top_DE_genes[top_DE_genes$gene %in% DE_results[1:12,]$gene,]
-top_DE_genes <- pivot_longer(top_DE_genes, cols = sample_info$sample, values_to = "count", names_to = "sample_name")
-top_DE_genes <- merge(sample_info,top_DE_genes)
+top_DE_genes$gene <- factor(top_DE_genes$gene, levels = top_DE_genes$gene)
+
+top_DE_genes <- pivot_longer(top_DE_genes, 
+                             cols = sample_info$sample, 
+                             values_to = "count", 
+                             names_to = "sample")
+top_DE_genes <- merge(sample_info, top_DE_genes)
 
 p <- ggplot(data=top_DE_genes, aes(x=deseq2, y=count, col=deseq2)) +
     geom_boxplot() +
