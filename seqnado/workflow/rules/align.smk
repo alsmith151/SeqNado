@@ -9,7 +9,7 @@ if config["split_fastq"] == "no":
             index=config["genome"]["indicies"],
             options=utils.check_options(config["bowtie2"]["options"]),
         output:
-            bam="seqnado_output/aligned/raw/{sample}.bam",
+            bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
         threads: config["bowtie2"]["threads"]
         resources:
             mem_mb=4000,
