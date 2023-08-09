@@ -37,6 +37,10 @@ suppressPackageStartupMessages(library(circlize))
 suppressPackageStartupMessages(library(qvalue))
 suppressPackageStartupMessages(library(DT))
 suppressPackageStartupMessages(library(clusterProfiler))
+suppressPackageStartupMessages(library(rstudioapi))
+
+current_path = rstudioapi::getActiveDocumentContext()$path 
+setwd(dirname(current_path))
 ```
 
 # Sample Information {.tabset}
@@ -56,7 +60,7 @@ kable(sample_info, row.names = F, align = "c", "simple")
 counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#")
 colnames(counts) <- gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", colnames(counts))
 rownames(counts) <- counts$Geneid
-counts <- counts[,colnames(counts) %in% sample_info$sample]
+counts <- counts[,colnames(counts) %in% make.names(sample_info$sample)]
 colnames(counts) <- sample_info$sample_name
 counts <- counts[rowSums(counts)>0, ]
 write.csv(counts, "gene_counts.csv")
@@ -396,7 +400,7 @@ DE_results<- DE_results[order(DE_results$padj),]
 top_DE_genes <- as.data.frame(normCounts)
 top_DE_genes$gene <- rownames(top_DE_genes)
 top_DE_genes <- top_DE_genes[top_DE_genes$gene %in% DE_results[1:12,]$gene,]
-top_DE_genes <- pivot_longer(top_DE_genes, cols = sample_info$sample_name, values_to = "count", names_to = "sample_name")
+top_DE_genes <- pivot_longer(top_DE_genes, cols = sample_info$sample, values_to = "count", names_to = "sample_name")
 top_DE_genes <- merge(sample_info,top_DE_genes)
 
 p <- ggplot(data=top_DE_genes, aes(x=deseq2, y=count, col=deseq2)) +
