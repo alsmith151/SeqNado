@@ -32,7 +32,7 @@ rule rename_aligned:
     input:
         bam=rules.align_paired.output.bam,
     output:
-        bam="seqnado_output/aligned/raw/{sample}.bam",
+        bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     shell:
         "mv {input.bam} {output.bam}"
 
