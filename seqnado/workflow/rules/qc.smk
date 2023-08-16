@@ -67,7 +67,7 @@ if config["split_fastq"] == "no":
         log:
             "seqnado_output/logs/multiqc.log",
         resources:
-            mem_mb=1000,
+            mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
         shell:
             "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
 
