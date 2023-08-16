@@ -28,8 +28,8 @@ repos:
         # https://pre-commit.com/#top_level-default_language_version
         language_version: python3.10
 
-  # - repo: https://github.com/snakemake/snakefmt
-  #   rev: v0.8.0 # Replace by any tag/version ≥0.2.4 : https://github.com/snakemake/snakefmt/releases
-  #   hooks:
-  #     - id: snakefmt
-  #       args: []
+  - repo: https://github.com/snakemake/snakefmt
+    rev: v0.8.4 # Replace by any tag/version ≥0.2.4 : https://github.com/snakemake/snakefmt/releases
+    hooks:
+      - id: snakefmt
+        args: []
