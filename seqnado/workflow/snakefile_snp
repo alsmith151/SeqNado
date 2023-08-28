@@ -51,11 +51,6 @@ ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             **config)
 
 
-
-rule all:
-    input:
-        ANALYSIS_OUTPUT
-
 rule all:
     input:
         ANALYSIS_OUTPUT
