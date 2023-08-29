@@ -52,7 +52,7 @@ include: "rules/hub.smk"
 
 # Define output files
 ANALYSIS_OUTPUT = utils.define_output_files(
-    sample_names=SAMPLE_NAMES, assay=ASSAY, run_deseq2=RUN_DESEQ2, **config
+    sample_names=SAMPLE_NAMES, assay=ASSAY, **config
 )
 
 

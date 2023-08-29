@@ -15,10 +15,6 @@
     "paired",
     "single"
   ],
-  "split_fastq": [
-    "yes",
-    "no"
-  ],
   "remove_pcr_duplicates_method": [
     "picard",
     "deeptools",

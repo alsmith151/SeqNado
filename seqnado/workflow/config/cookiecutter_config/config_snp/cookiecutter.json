@@ -38,5 +38,14 @@
   "remove_pcr_duplicates_method": [
     "picard",
     "deeptools"
+  ],
+  "make_ucsc_hub": [
+    "yes",
+    "no"
+  ],
+  "UCSC_hub_directory": "path/to/ publically accessible location on the server",
+  "email": "Email address (UCSC required)",
+  "color_by": [
+    "samplename"
   ]
 }
