@@ -81,7 +81,6 @@ if config["split_fastq"] == "False":
             mem_mb=1000,
         shell:
             "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
-
 else:
     rule multiqc:
         input:
@@ -100,3 +99,5 @@ else:
             mem_mb=1000,
         shell:
             "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
+
+    

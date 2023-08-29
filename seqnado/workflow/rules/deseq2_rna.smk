@@ -17,5 +17,5 @@ if config["run_deseq2"]:
             cd "$base_dir"
             quarto render {input.qmd} --no-cache --output {output.deseq2} --log {log}
             """
-
-localrules: deseq2_report_rnaseq
+    
+    localrules: deseq2_report_rnaseq

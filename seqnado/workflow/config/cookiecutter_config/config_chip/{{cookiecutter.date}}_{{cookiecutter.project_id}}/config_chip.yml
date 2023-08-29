@@ -13,6 +13,8 @@ genome:
 design: "design.csv"
 
 read_type: "{{cookiecutter.read_type}}"
+split_fastq: "{{cookiecutter.split_fastq}}"
+split_fastq_parts: "{{cookiecutter.split_fastq_parts}}"
 remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
 shift_atac_reads: "False"
 
