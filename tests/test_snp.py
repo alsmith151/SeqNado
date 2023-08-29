@@ -128,6 +128,10 @@ def set_up(
             "fasta_index": f"{data_path}/genome/chr21_rename.fa.fai",
             "call_snps": "yes",
             "annotate_snps": "no",
+            "make_ucsc_hub": "no",
+            "UCSC_hub_directory": "test_hub",
+            "email": "test",
+            "color_by": "samplename",
         },
         no_input=True,
     )
