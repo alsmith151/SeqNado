@@ -37,7 +37,7 @@ rule heatmap_plot:
         colormap = utils.check_options(config["heatmap"]["colormap"]),
     resources:
         time="02:00:00",
-        mem_mb=2000,
+        mem_mb=8000,
     log: 
         "seqnado_output/logs/heatmap/{method}/plot/{sample}.log",
     shell: 
