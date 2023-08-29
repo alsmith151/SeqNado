@@ -58,7 +58,7 @@ use rule samtools_stats as samtools_stats_filtered with:
     output:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
 
-if config["split_fastq"] == "no":
+if config["split_fastq"] == "False":
     rule multiqc:
         input:
             expand(

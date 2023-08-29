@@ -17,8 +17,8 @@
     "single"
   ],
   "split_fastq": [
-    "yes",
-    "no"
+    "True",
+    "False"
   ],
   "split_fastq_parts": "int",
   "remove_blacklist": [

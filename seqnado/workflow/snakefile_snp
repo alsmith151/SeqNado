@@ -34,17 +34,17 @@ else:
 
 DESIGN = FASTQ_SAMPLES.design
 SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
-SPLIT_FASTQ = config["split_fastq"]
 
-include: "rules/alignment_post_processing.smk"
-include: "rules/hub.smk"
-include: "rules/qc.smk"
-include: "rules/variant.smk"
-if SPLIT_FASTQ == "yes":
+if config["split_fastq"]:
     include: "rules/fastq_split.smk" 
 else:
     include: "rules/fastq_trim.smk"
     include: "rules/align.smk"
+include: "rules/alignment_post_processing.smk"
+include: "rules/hub.smk"
+include: "rules/qc.smk"
+include: "rules/variant.smk"
+
 
 
 ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
