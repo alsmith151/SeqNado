@@ -43,7 +43,7 @@ ucsc_hub_details:
 
 trim_galore:
     threads: 4
-    options: 
+    options: --2colour 20 
 
 bowtie2:
     threads: 4

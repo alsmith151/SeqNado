@@ -37,7 +37,7 @@ remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
 
 trim_galore:
     threads: 4
-    options: 
+    options: --2colour 20 
 
 bowtie2:
     threads: 4
