@@ -58,7 +58,6 @@ def config_path(data_path):
 
 @pytest.fixture(scope="module")
 def genome_indicies(genome_path):
-
     indicies = os.path.join(genome_path, "GenomeDir")
     gtf = os.path.join(genome_path, "chr21.gtf")
     fasta = os.path.join(genome_path, "chr21_rename.fa")
@@ -116,37 +115,37 @@ def set_up(
     fastqs,
     config_path,
 ):
-
     cwd = os.getcwd()
     os.chdir(run_directory)
 
     cookiecutter(
-    f"{package_path}/workflow/config/cookiecutter_config/config_rna/",
-    extra_context={
-        "genome": "hg19",
-        "date": "{% now 'utc', '%Y-%m-%d' %}",
-        "project_name": "test",
-        "chromosome_sizes": chromsizes,
-        "indicies": genome_indicies,
-        "design": "design.csv",
-        "read_type": "paired",
-        "split_fastq": "no",
-        "remove_pcr_duplicates_method": "picard",
-        "shift_atac_reads": "no",
-        "remove_blacklist": "yes",
-        "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
-        "make_bigwigs": "yes",  
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "make_ucsc_hub": "no",
-        "UCSC_hub_directory": "test_hub",
-        "email": "test",
-        "color_by": "samplename",
-        "gtf": f"{data_path}/genome/chr21.gtf",
-    },
-    no_input=True,
+        f"{package_path}/workflow/config/cookiecutter_config/config_rna/",
+        extra_context={
+            "genome": "hg19",
+            "date": "{% now 'utc', '%Y-%m-%d' %}",
+            "project_name": "test",
+            "chromosome_sizes": chromsizes,
+            "indicies": genome_indicies,
+            "design": "design.csv",
+            "read_type": "paired",
+            "split_fastq": "False",
+            "run_deseq2": "no",
+            "remove_pcr_duplicates_method": "picard",
+            "shift_atac_reads": "no",
+            "remove_blacklist": "yes",
+            "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
+            "make_bigwigs": "yes",
+            "pileup_method": "deeptools",
+            "make_heatmaps": "yes",
+            "call_peaks": "yes",
+            "peak_calling_method": "lanceotron",
+            "make_ucsc_hub": "no",
+            "UCSC_hub_directory": "test_hub",
+            "email": "test",
+            "color_by": "samplename",
+            "gtf": f"{data_path}/genome/chr21.gtf",
+        },
+        no_input=True,
     )
 
     # Move config files and fastq files
@@ -155,14 +154,12 @@ def set_up(
     for fq in fastqs:
         shutil.copy(fq, ".")
 
-
     yield
 
     os.chdir(cwd)
 
 
 def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
-
     cmd = [
         "seqnado",
         "rna",
