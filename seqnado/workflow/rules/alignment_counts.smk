@@ -11,7 +11,7 @@ rule feature_counts:
         options=utils.check_options(config["featurecounts"]["options"]),
     threads: config["featurecounts"]["threads"]
     resources:
-        mem_mb=5000,
+        mem_mb=lambda wildcards, attempt: 3000 * 2**attempt,
         time='0-02:00:00',
     log:
         "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
