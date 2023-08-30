@@ -39,7 +39,8 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
         params:
             blacklist=utils.check_options(config["blacklist"]),
         resources:
-            mem_mb=3000
+            mem_mb=3000,
+            time="24:00:00",
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:"""

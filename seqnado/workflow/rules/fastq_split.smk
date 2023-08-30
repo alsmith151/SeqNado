@@ -58,6 +58,7 @@ if config["split_fastq"]:
                 samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} >> {log} 2>&1 &&
                 mv {output.bam}_sorted {output.bam}
                 """
+                
 
         rule merge_bams:
             input:
