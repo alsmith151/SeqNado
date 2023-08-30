@@ -231,15 +231,18 @@ def define_output_files(
 
     elif assay == "SNP":
         if call_snps:
-            assay_output.expand(
-                "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
-                sample=sample_names,
+            assay_output.append(
+                expand(
+                    "seqnado_output/variant/{sample}.vcf.gz",
+                    "seqnado_output/variant/{sample}_filtered.stats.txt",
+                    sample=sample_names,
+                ),
             )
 
         if annotate_snps:
             assay_output.append(
                 expand(
-                    "seqnado_output/variant/{sample}_filtered.stats.txt",
+                    "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
                     sample=sample_names,
                 ),
             )
