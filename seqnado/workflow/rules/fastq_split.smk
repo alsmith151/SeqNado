@@ -64,7 +64,7 @@ if config["split_fastq"]:
             input:
                 expand("seqnado_output/aligned/split/{{sample}}_{part}.bam", part=PARTS),
             output:
-                bam="seqnado_output/aligned/raw/{sample}.bam",
+                bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
             threads: 8
             log:"seqnado_output/logs/merge/{sample}.log",
             shell:"""
