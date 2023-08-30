@@ -39,7 +39,8 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
         params:
             blacklist=utils.check_options(config["blacklist"]),
         resources:
-            mem_mb=3000
+            mem_mb=3000,
+            time="24:00:00",
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:"""
@@ -85,7 +86,8 @@ if config["remove_pcr_duplicates_method"] == "picard":
         params:
             options=utils.check_options(config['picard']['options']),
         resources:
-            mem_mb=5000
+            mem_mb=5000,
+            time="24:00:00",
         log:
             "seqnado_output/logs/duplicates/{sample}.log",
         shell: """

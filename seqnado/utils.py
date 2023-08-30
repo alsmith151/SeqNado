@@ -13,14 +13,12 @@ from snakemake.io import expand
 
 
 FILETYPE_TO_DIR_MAPPING = {
-            "tag": "tag_dirs",
-            "bigwig": "bigwigs/deeptools",
-            "bam": "aligned",
-        }
+    "tag": "tag_dirs",
+    "bigwig": "bigwigs/deeptools",
+    "bam": "aligned",
+}
 
 FILETYPE_TO_EXTENSION_MAPPING = {"tag": "/", "bigwig": ".bigWig", "bam": ".bam"}
-
-
 
 
 def is_on(param: str) -> bool:
@@ -116,14 +114,12 @@ def set_up_chromsizes(config: Dict):
 
 
 def get_fastq_files(path: str, recursive=False) -> pd.DataFrame:
-
     files = (
         pathlib.Path(path).glob("**/*.fastq.gz")
         if recursive
         else pathlib.Path(path).glob("*.fastq.gz")
     )
     return files
-
 
 
 def has_bowtie2_index(prefix: str) -> bool:
@@ -139,8 +135,6 @@ def has_bowtie2_index(prefix: str) -> bool:
 
     if len(bowtie2_indicies) > 0:
         return True
-
-
 
 
 def get_singularity_command(workflow: snakemake.Workflow, command: str):
@@ -165,7 +159,6 @@ def get_singularity_command(workflow: snakemake.Workflow, command: str):
 
 class GenericFastqSamples:
     def __init__(self, design):
-
         # Expected columns: sample, fq1, fq2
         self.design = design
         self.design = self.design.assign(
@@ -174,7 +167,6 @@ class GenericFastqSamples:
 
     @classmethod
     def from_files(cls, files: List[Union[pathlib.Path, str]]) -> "GenericFastqSamples":
-
         df = pd.DataFrame(files, columns=["fn"])
 
         df[["sample", "read"]] = (
@@ -223,7 +215,7 @@ def check_options(value: object):
         return value
 
 
-def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool=False):
+def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool = False):
     if paired:
         return {
             "fq1": samples.translation[f"{wc.sample}_1.fastq.gz"],
@@ -233,37 +225,41 @@ def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool=False):
         return {"fq": samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]}
 
 
-def translate_fq_files_split(wc, samples: GenericFastqSamples, paired: bool=False):
+def translate_fq_files_split(wc, samples: GenericFastqSamples, paired: bool = False):
     if paired:
-        return [[f"fq1=", samples.translation[f"{wc.sample}_1.fastq.gz"]],
-                [f"fq2=", samples.translation[f"{wc.sample}_2.fastq.gz"]]]
+        return [
+            [f"fq1=", samples.translation[f"{wc.sample}_1.fastq.gz"]],
+            [f"fq2=", samples.translation[f"{wc.sample}_2.fastq.gz"]],
+        ]
     else:
         return [f"fq=", samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]]
-    
+
+
 def get_fq_filestem(wc, samples: GenericFastqSamples):
     fn = samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]
     basename = os.path.basename(fn)
     return os.path.splitext(basename.replace(".gz", ""))[0]
 
 
-
 def get_treatment_file(wc, assay, filetype):
-
     extension_for_filetype = FILETYPE_TO_EXTENSION_MAPPING[filetype]
     directory_for_filetype = FILETYPE_TO_DIR_MAPPING[filetype]
 
     treatment = f"seqnado_output/{directory_for_filetype}/{wc.treatment}{extension_for_filetype}"
-    
+
     return treatment
 
-def get_control_file(wc, design,  assay, filetype):
 
+def get_control_file(wc, design, assay, filetype):
     extension_for_filetype = FILETYPE_TO_EXTENSION_MAPPING[filetype]
     directory_for_filetype = FILETYPE_TO_DIR_MAPPING[filetype]
 
     if assay == "ChIP":
-
-        df = design.assign(treatment = lambda df: df[["sample", "antibody"]]["sample"].str.cat(df["antibody"], sep="_"))
+        df = design.assign(
+            treatment=lambda df: df[["sample", "antibody"]]["sample"].str.cat(
+                df["antibody"], sep="_"
+            )
+        )
         sample_row = df.query("treatment == @wc.treatment").iloc[0]
         has_control = not pd.isna(sample_row["control"])
 
@@ -271,7 +267,7 @@ def get_control_file(wc, design,  assay, filetype):
             control = f"seqnado_output/{directory_for_filetype}/{sample_row['control']}{extension_for_filetype}"
         else:
             control = "NA"
-    
+
     return control
 
 
@@ -286,23 +282,24 @@ def define_output_files(
     make_ucsc_hub: bool = False,
     call_snps: bool = False,
     annotate_snps: bool = False,
+    run_deseq2: bool = False,
     **kwargs,
 ) -> list:
     """Define output files for the pipeline"""
 
-    analysis_output = ["seqnado_output/qc/full_qc_report.html",
-                       "seqnado_output/design.csv"]
+    analysis_output = [
+        "seqnado_output/qc/full_qc_report.html",
+        "seqnado_output/design.csv",
+    ]
     assay_output = []
 
     if make_ucsc_hub:
         hub_dir = kwargs["ucsc_hub_details"].get("directory")
         hub_name = kwargs["ucsc_hub_details"].get("name")
-        hub_file = os.path.join(hub_dir,  f"{hub_name}.hub.txt")
+        hub_file = os.path.join(hub_dir, f"{hub_name}.hub.txt")
         analysis_output.append(hub_file)
 
-
     if assay in ["ChIP", "ATAC"]:
-
         if make_bigwigs and pileup_method:
             assay_output.extend(
                 expand(
@@ -340,7 +337,6 @@ def define_output_files(
             )
 
     elif assay == "RNA":
-
         if make_bigwigs and pileup_method:
             assay_output.extend(
                 expand(
@@ -350,11 +346,10 @@ def define_output_files(
                     strand=["plus", "minus"],
                 )
             )
-        
-        if kwargs["run_deseq2"]:
-            project_id = kwargs["deseq2"].get("project_id")
-            assay_output.append(f"DESeq2_{project_id}.html") 
 
+        if run_deseq2:
+            project_id = kwargs["deseq2"].get("project_id")
+            assay_output.append(f"DESeq2_{project_id}.html")
 
         assay_output.extend(
             [
@@ -367,26 +362,26 @@ def define_output_files(
         )
 
     elif assay == "SNP":
-
         if call_snps:
-            assay_output.expand(
-                "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
-                sample=sample_names,
+            assay_output.append(
+                expand(
+                    "seqnado_output/variant/{sample}.vcf.gz",
+                    "seqnado_output/variant/{sample}_filtered.stats.txt",
+                    sample=sample_names,
+                ),
             )
 
         if annotate_snps:
             assay_output.append(
                 expand(
-                    "seqnado_output/variant/{sample}_filtered.stats.txt",
+                    "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
                     sample=sample_names,
                 ),
             )
 
     analysis_output.extend(assay_output)
 
-
     return analysis_output
-
 
 
 def sample_names_follow_convention(
@@ -403,7 +398,6 @@ def sample_names_follow_convention(
 
 class ChipseqFastqSamples:
     def __init__(self, design):
-
         # Expected columns: sample, antibody, fq1, fq2, control
         self.design = design
         self.design = self.design.assign(
@@ -412,7 +406,6 @@ class ChipseqFastqSamples:
 
     @classmethod
     def from_files(cls, files: List) -> "ChipseqFastqSamples":
-
         df = pd.DataFrame(files, columns=["fn"])
 
         df[["sample", "read"]] = (
@@ -441,7 +434,6 @@ class ChipseqFastqSamples:
 
     @property
     def fastq_ip_files(self):
-
         fastq_files = []
 
         for sample in self.design.itertuples():
@@ -455,7 +447,6 @@ class ChipseqFastqSamples:
 
     @property
     def fastq_control_files(self):
-
         fastq_files = []
 
         for sample in self.design.itertuples():
@@ -515,29 +506,27 @@ class ChipseqFastqSamples:
         )
         return _design.set_index("treatment")["control"].to_dict()
 
-
     def _translate_control_samples(self):
         fq_translation = {}
         for fq in self.fastq_control_files:
             for control in self.design["control"]:
                 if str(control) in fq:
-                    
                     read = re.match(r".*/?.*_R?([12])(?:_001)?.fastq.gz", fq).group(1)
                     fq_translation[f"{control}_{read}.fastq.gz"] = os.path.realpath(fq)
 
         return fq_translation
-    
-    def _translate_ip_samples(self):
 
+    def _translate_ip_samples(self):
         fq_translation = {}
         for sample in self.design.itertuples():
             for read, fq in enumerate([sample.fq1, sample.fq2]):
-
                 if os.path.exists(fq):
-                    fq_translation[f"{sample.sample}_{sample.antibody}_{read + 1}.fastq.gz"] = os.path.realpath(fq)
+                    fq_translation[
+                        f"{sample.sample}_{sample.antibody}_{read + 1}.fastq.gz"
+                    ] = os.path.realpath(fq)
 
         return fq_translation
-    
+
     @property
     def translation(self):
         """Create a dictionary with the fastq files and their new names"""
@@ -545,6 +534,3 @@ class ChipseqFastqSamples:
         fq_translation.update(self._translate_ip_samples())
         fq_translation.update(self._translate_control_samples())
         return fq_translation
-
-    
-
