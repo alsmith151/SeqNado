@@ -1,6 +1,6 @@
 import seqnado.utils as utils
 PARTS=[str (x) for x in range(int(config["split_fastq_parts"]))]
-if config["split_fastq"] == "yes":
+if config["split_fastq"]:
     if config["read_type"] == "paired":
         rule split_fq:
             input:
@@ -24,9 +24,10 @@ if config["split_fastq"] == "yes":
             output:
                 trimmed1=temp("seqnado_output/trimmed/{sample}_{part}_1_trimmed.fq.gz"),
                 trimmed2=temp("seqnado_output/trimmed/{sample}_{part}_2_trimmed.fq.gz"),
-            threads: 4
+            threads: 16
             resources:
-                mem_mb=750,
+                mem_mb=8000,
+                time="24:00:00",
             params:
                 options=utils.check_options(config['trim_galore']['options']),
                 trim_dir="seqnado_output/trimmed"
@@ -48,7 +49,8 @@ if config["split_fastq"] == "yes":
                 options=utils.check_options(config["bowtie2"]["options"]),
             threads: config["bowtie2"]["threads"]
             resources:
-                mem_mb=4000 // int(config["bowtie2"]["threads"])
+                mem_mb=4000 * int(config["bowtie2"]["threads"]),
+                time="24:00:00",
             log:"seqnado_output/logs/aligned/split/{sample}_part{part}.log",
             shell:"""
                 bowtie2 -p {threads} -x {params.index} -1 {input.fq1} -2 {input.fq2} {params.options} 2> {log} |
@@ -56,13 +58,14 @@ if config["split_fastq"] == "yes":
                 samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} >> {log} 2>&1 &&
                 mv {output.bam}_sorted {output.bam}
                 """
+                
 
         rule merge_bams:
             input:
                 expand("seqnado_output/aligned/split/{{sample}}_{part}.bam", part=PARTS),
             output:
                 bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
-            threads: 4
+            threads: 8
             log:"seqnado_output/logs/merge/{sample}.log",
             shell:"""
             samtools merge -o {output.bam} -@ {threads} -h {input} >> {log} 2>&1

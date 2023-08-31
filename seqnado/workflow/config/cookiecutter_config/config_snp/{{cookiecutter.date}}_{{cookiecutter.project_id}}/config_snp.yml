@@ -20,7 +20,15 @@ call_snps: "{{cookiecutter.call_snps}}"
 annotate_snps: "{{cookiecutter.annotate_snps}}"
 
 make_bigwigs: "no"
-make_ucsc_hub: "no"
+
+make_ucsc_hub: "{{cookiecutter.make_ucsc_hub}}"
+ucsc_hub_details:
+    directory: "{{cookiecutter.UCSC_hub_directory}}"
+    name: "{{cookiecutter.project_name}}"
+    short: "{{cookiecutter.project_name}}"
+    long: "{{cookiecutter.project_name}}"
+    email: "{{cookiecutter.email}}"
+    color_by: "{{cookiecutter.color_by}}"
 
 ###################################
 #  Optional configuration         #
@@ -37,7 +45,7 @@ remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
 
 trim_galore:
     threads: 4
-    options: 
+    options: --2colour 20 
 
 bowtie2:
     threads: 4

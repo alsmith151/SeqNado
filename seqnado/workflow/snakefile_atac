@@ -47,7 +47,6 @@ include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
 
-
 ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES, 
                                             assay=ASSAY,
                                             **config)

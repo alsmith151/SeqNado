@@ -126,6 +126,19 @@ Pipeline based on snakemake to process ChIP-seq, ATAC-seq, RNA-seq and short rea
         |-------------|----------------------------------|----------------------------------|
         | SAMPLE-NAME | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          |
 
+    c) Running DeSeq2 for RNA-seq
+
+    An additional column must be added to the file design.csv to indicate which samples are in the control group
+
+        | sample                | fq1                              | fq2                              | deseq2         |
+        |-----------------------|----------------------------------|----------------------------------|----------------|
+        | SAMPLE-NAME-control-1 | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          |control         |
+        | SAMPLE-NAME-control-2 | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          |control         |
+        | SAMPLE-NAME-control-3 | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          |control         |
+        | SAMPLE-NAME-treated-1 | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          |treated         |
+        | SAMPLE-NAME-treated-2 | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          |treated         |
+        | SAMPLE-NAME-treated-3 | SAMPLE-NAME_R1.fastq.gz          | SAMPLE-NAME_R2.fastq.gz          |treated         |
+
 
 1. **Running the pipeline**
 
