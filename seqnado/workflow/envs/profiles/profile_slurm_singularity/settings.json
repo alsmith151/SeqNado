@@ -1,0 +1,5 @@
+{
+    "SBATCH_DEFAULTS": "--partition=short --time=0-01:00:00 --mem=3G",
+    "CLUSTER_NAME": "",
+    "CLUSTER_CONFIG": ""
+}

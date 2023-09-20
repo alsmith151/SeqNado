@@ -12,6 +12,8 @@ format:
     theme: cosmo 
     highlight-style: github-dark
     number-sections: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=F}
@@ -46,40 +48,30 @@ sample_info <- read.csv("design.csv", stringsAsFactors = T)
 sample_info <- sample_info[,colnames(sample_info)[!grepl("fq", colnames(sample_info))]]
 sample_info$deseq2 <- relevel(sample_info$deseq2, ref = "control")
 sample_info <- sample_info[order(sample_info$deseq2),]
-sample_info$group <- do.call(paste, 
-                              c(sample_info[,!colnames(sample_info) %in%
-                                             c("sample", "replicate", "deseq2" )], 
-                                sep="_"))
-sample_info$sample_name <- do.call(paste, 
-                              c(sample_info[,c("cell", "condition", "replicate")], 
-                                sep="_"))
 
-group_level <- unique(sample_info$group)
-sample_info$group <- factor(sample_info$group, levels = group_level)
 kable(sample_info, row.names = F, align = "c", "simple")
 ```
 
 # DE analysis - DESeq2 {.tabset}
 
 ```{r DEseq2}
-counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#")
-colnames(counts) <- gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", colnames(counts))
-rownames(counts) <- counts$Geneid
-counts <- counts[,colnames(counts) %in% sample_info$sample]
-colnames(counts) <- sample_info$sample_name
-counts <- counts[rowSums(counts)>0, ]
-write.csv(counts, "gene_counts.csv")
-
-dds <- DESeqDataSetFromMatrix(countData = counts,
-                              colData = sample_info,
-                              design = ~ group)
-
-dds <- DESeq(dds, quiet = T)
-rlogged2 <- suppressMessages(rlog(dds))
-
 de_dir <- "seqnado_output/deseq2_results/"
 unlink(de_dir, recursive = T)
 dir.create(de_dir)
+
+counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#")
+colnames(counts) <- gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", colnames(counts))
+rownames(counts) <- counts$Geneid
+counts <- counts[,colnames(counts) %in% make.names(sample_info$sample)]
+colnames(counts) <- sample_info$sample
+counts <- counts[rowSums(counts)>0, ]
+
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = sample_info,
+                              design = ~ deseq2)
+
+dds <- DESeq(dds, quiet = T)
+vst <- suppressMessages(vst(dds))
 
 res_names <- resultsNames(dds)[-1] 
 res <- results(dds, name = res_names)
@@ -89,12 +81,12 @@ outname_cnts <- paste0(de_dir,"DEseq2_", res_names, "_normalised_counts.csv")
 write.csv(normCounts, outname_cnts, row.names = F)
 
 mean_normCounts <- data.frame(gene = rownames(normCounts))
-for (i in 1:length(levels(sample_info$group))) {
-  ind_group <- levels(sample_info$group)[i]
-  group_info <- sample_info[sample_info$group==ind_group, ]
-  sam_names <- as.character(group_info$sample_name)
+for (i in 1:length(levels(sample_info$deseq2))) {
+  ind_group <- levels(sample_info$deseq2)[i]
+  group_info <- sample_info[sample_info$deseq2==ind_group, ]
+  sam_names <- as.character(group_info$sample)
   sub_mean <- data.frame(mean = apply(normCounts[, colnames(normCounts) %in% sam_names], 1, mean))
-  colnames(sub_mean)[1] <- paste0("mean_", unique(group_info$group))
+  colnames(sub_mean)[1] <- paste0("mean_", unique(group_info$deseq2))
   sub_mean$gene <- rownames(sub_mean)
   mean_normCounts <- merge(mean_normCounts, sub_mean)
 }
@@ -106,6 +98,7 @@ DE_results_full <- DE_results_full[order(DE_results_full$padj), ]
 outname <- paste0(de_dir,"DEseq2_", res_names, ".csv")
 write.csv(DE_results_full, outname, row.names = F)
 DE_results <- DE_results[!is.na(DE_results$padj), ]
+DE_results <- DE_results[order(DE_results$padj), ]
 
 # pre-ranked for GSEA
 resrnk <- DE_results[!duplicated(DE_results$gene), c("gene", "stat")]
@@ -118,19 +111,20 @@ write.table(resrnk, file=outrnk, quote=F, row.names = F, col.names = F, sep="\t"
 
 ## Sample distance matrix {.tabset}
 
-Normalisation was performed in DESeq2 and data rlog transformed to allow for visualisation.
+Normalisation was performed in DESeq2 and data vst transformed to allow for visualisation.
 
 ```{r distance_matrix}
-rlogcount <- assay(rlogged2)
-sampleDists <- as.matrix(dist(t(rlogcount)))
+vst_count <- assay(vst)
+sampleDists <- as.matrix(dist(t(vst_count)))
 
 cond_col <- c(brewer.pal(4, "Paired"))
 cond_col <- cond_col[c(2,4)]
-names(cond_col) <- unique(sample_info$group)
-row_ha = rowAnnotation(group = sample_info$group,
+names(cond_col) <- unique(sample_info$deseq2)
+
+row_ha = rowAnnotation(group = sample_info$deseq2,
                        col = list(group = cond_col))
-col_ha = HeatmapAnnotation(group = sample_info$group,
-                       col = list(group = cond_col))
+col_ha = HeatmapAnnotation(group = sample_info$deseq2,
+                           col = list(group = cond_col))
 set.seed(123)
 HM_sampleDists <- Heatmap(sampleDists, 
                           top_annotation = col_ha,
@@ -149,16 +143,16 @@ draw(HM_sampleDists, merge_legend = TRUE)
 
 ## Overview by PCA {.tabset}
 
-Normalisation was performed in DESeq2 and data rlog transformed to allow for visualisation.
+Normalisation was performed in DESeq2 and data vst transformed to allow for visualisation.
 
 ```{r pca}
-pcaData <- plotPCA(rlogged2, intgroup=c("group"), returnData=T)
+pcaData <- plotPCA(vst, intgroup=c("deseq2"), returnData=T)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
-ggplot(pcaData, aes(PC1, PC2, color=group)) + 
+ggplot(pcaData, aes(PC1, PC2, color=deseq2)) + 
   geom_point(size = 2) + 
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) +
-  geom_label_repel(aes(label = name, fill = group), color = "white", size=3,show.legend = F) +
+  geom_label_repel(aes(label = name, fill = deseq2), color = "white", size=3,show.legend = F) +
   ggtitle("PCA - PC1 vs PC2") +
   theme_light() 
 ```
@@ -170,7 +164,7 @@ ggplot(DE_results, aes(pvalue)) +
   geom_histogram(binwidth = 0.01, fill="lightblue") +
   scale_x_continuous(expand = c(0, 0),) + 
   scale_y_continuous(expand = c(0, 0),) + 
-  ggtitle(paste0("DESeq2 - ", res_names," - pvalues")) +
+  ggtitle(paste0(res_names," - pvalues")) +
   theme_light() 
 
 qobj <- qvalue(p = DE_results$pvalue)
@@ -227,10 +221,6 @@ ggplot(DEsummary_long, aes(x=pvalue, y=count, fill=FoldChange_threshold, group=F
 
 ## Top 100 DE genes
 
-For full DESeq2 results see:
-
-`seqnado_output/deseq2_results/DEseq2_group_SEM_MENi_vs_SEM_DMSO.csv`
-
 ```{r DE_genes_table}
 DE_results_padj0.05 <- DE_results_full[1:100,]
 DE_results_padj0.05 <- data.frame(lapply(DE_results_padj0.05,
@@ -272,8 +262,8 @@ DEmat <- as.matrix(t(scale(t(DEmat))))
 
 cond_col <- c(brewer.pal(4, "Paired"))
 cond_col <- cond_col[c(2,4)]
-names(cond_col) <- unique(sample_info$group)
-HA = HeatmapAnnotation(group = sample_info$group,
+names(cond_col) <- unique(sample_info$deseq2)
+HA = HeatmapAnnotation(group = sample_info$deseq2,
                        col = list(group = cond_col))
 
 # heatmap
@@ -286,9 +276,9 @@ DEheatmap <- Heatmap(DEmat,
                      show_column_names = FALSE,
                      show_column_dend = FALSE,
                      cluster_columns = T,
-                     column_split = sample_info$group,
+                     column_split = sample_info$deseq2,
                      col <- colorRamp2(seq(1.5, -1.5, length = 11), 
-                                       rev(brewer.pal(n = 11, name = "RdBu"))),
+                                       brewer.pal(n = 11, name = "RdBu")),
                      heatmap_legend_param = list(title = "Relative Expression \n(Row z-score)",
                                                  title_position = "topcenter",
                                                  direction = "horizontal"))
@@ -381,7 +371,7 @@ for (c in c("Up", "Down")) {
   label_list <- append(label_list,res4MAplot_ind[1:5,1])
 }
 res4MAplot$label <- ifelse(res4MAplot$gene %in% label_list, "label", NA)
-res4MAplot$label <- res4plot$gene[res4MAplot$label == "label"]
+res4MAplot$label <- res4MAplot$gene[res4MAplot$label == "label"]
 
 g <- ggplot(res4MAplot, aes(baseMean, log2FoldChange, colour=significant, label=label)) + 
   geom_point(size=1) + 
@@ -409,10 +399,15 @@ DE_results<- DE_results[order(DE_results$padj),]
 top_DE_genes <- as.data.frame(normCounts)
 top_DE_genes$gene <- rownames(top_DE_genes)
 top_DE_genes <- top_DE_genes[top_DE_genes$gene %in% DE_results[1:12,]$gene,]
-top_DE_genes <- pivot_longer(top_DE_genes, cols = sample_info$sample_name, values_to = "count", names_to = "sample_name")
-top_DE_genes <- merge(sample_info,top_DE_genes)
+top_DE_genes$gene <- factor(top_DE_genes$gene, levels = top_DE_genes$gene)
 
-p <- ggplot(data=top_DE_genes, aes(x=group, y=count, col=group)) +
+top_DE_genes <- pivot_longer(top_DE_genes, 
+                             cols = sample_info$sample, 
+                             values_to = "count", 
+                             names_to = "sample")
+top_DE_genes <- merge(sample_info, top_DE_genes)
+
+p <- ggplot(data=top_DE_genes, aes(x=deseq2, y=count, col=deseq2)) +
     geom_boxplot() +
     geom_point(position=position_jitter(w=0.1,h=0)) +
     # geom_label_repel(aes(label = sample), show.legend = F) +

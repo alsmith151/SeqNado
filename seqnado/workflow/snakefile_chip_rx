@@ -6,6 +6,9 @@ import glob
 from snakemake.utils import min_version
 import seqnado.utils
 import pandas as pd
+import pathlib
+
+
 
 ASSAY = "ChIP"
 configfile: "config_chip.yml"
@@ -31,6 +34,9 @@ else:
         FASTQ_SAMPLES = seqnado.utils.ChipseqFastqSamples.from_files(fq_files)
     else:
         raise ValueError("No FASTQ files found in the working directory")
+    
+
+assert seqnado.utils.has_bowtie2_index(config["genome"].get("indicies_spikein", "")), f"Spike-in genome index not found at {config['genome'].get('indicies_spikein', '')}"
 
 DESIGN = FASTQ_SAMPLES.design
 ANTIBODIES = FASTQ_SAMPLES.antibodies

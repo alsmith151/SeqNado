@@ -7,12 +7,12 @@ rule sort_bam:
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
-        mem_mb=768
+        mem_mb=lambda wildcards, attempt: 4000 * 2**attempt,
     threads: 8
     log:
         "seqnado_output/logs/sorted/{sample}.log",
     shell:"""
-        samtools sort {input.bam} -@ {threads} -o {output.bam} &&
+        samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M &&
         echo 'Sorted bam number of mapped reads:' > {log} 2>&1 &&
         samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
         """
@@ -39,7 +39,8 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
         params:
             blacklist=utils.check_options(config["blacklist"]),
         resources:
-            mem_mb=3000
+            mem_mb=3000,
+            time="24:00:00",
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:"""
@@ -85,7 +86,8 @@ if config["remove_pcr_duplicates_method"] == "picard":
         params:
             options=utils.check_options(config['picard']['options']),
         resources:
-            mem_mb=500
+            mem_mb=5000,
+            time="24:00:00",
         log:
             "seqnado_output/logs/duplicates/{sample}.log",
         shell: """

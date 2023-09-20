@@ -15,7 +15,9 @@ def cli_config(method, cookiecutter_options, help=False):
     """
     cmd = [
         "cookiecutter",
-        os.path.join(PACKAGE_DIR, "workflow/config/cookiecutter_config", f"config_{method}"),
+        os.path.join(
+            PACKAGE_DIR, "workflow/config/cookiecutter_config", f"config_{method}"
+        ),
     ]
 
     if cookiecutter_options:
@@ -33,22 +35,29 @@ def cli_design(method, files, output="design.csv"):
     Generates a SeqNado design file from a list of files.
     """
 
-    assert len(files) > 0, "No files provided. Please provide a list of files separated by spaces."
-
+    assert (
+        len(files) > 0
+    ), "No files provided. Please provide a list of files separated by spaces."
 
     if not method == "chip":
         from seqnado.utils import GenericFastqSamples
+
         design = GenericFastqSamples.from_files(files).design
     else:
         from seqnado.utils import ChipseqFastqSamples
+
         design = ChipseqFastqSamples.from_files(files).design
-    
+
     design = design.drop(columns=["paired"], errors="ignore")
     design.to_csv(output, index=False)
-    
+
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
-@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp", "chip-rx", "consensus-peaks"]))
+@click.argument(
+    "method",
+    type=click.Choice(["atac", "chip", "rna", "snp", "chip-rx", "consensus-peaks"]),
+)
+@click.option("--version", help="Print version and exit", is_flag=True)
 @click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)
 @click.option(
     "--preset",
@@ -61,9 +70,18 @@ def cli_design(method, files, output="design.csv"):
     type=click.Choice(choices=["lc", "ls", "ss"]),
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
-def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
+def cli_pipeline(
+    method, pipeline_options, help=False, cores=1, preset="local", version=False
+):
 
     """Runs the data processing pipeline"""
+
+    if version:
+        from importlib.metadata import version
+
+        _version = version("seqnado")
+        print(f"SeqNado version {_version}")
+        return
 
     cmd = [
         "snakemake",
@@ -82,7 +100,7 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
                 "--profile",
                 os.path.abspath(
                     os.path.join(
-                        PACKAGE_DIR, "workflow/envs/profiles/profile_drmaa_singularity"
+                        PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity"
                     )
                 ),
             ]
@@ -99,9 +117,8 @@ def cli_pipeline(method, pipeline_options, help=False, cores=1, preset="local"):
             ]
         )
 
-
     with open(f"{PACKAGE_DIR}/data/logo.txt", "r") as f:
         logo = f.read()
-    
+
     print(logo)
     completed = subprocess.run(cmd)

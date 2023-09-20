@@ -58,7 +58,6 @@ def config_path(data_path):
 
 @pytest.fixture(scope="module")
 def genome_indicies(genome_path):
-
     indicies = os.path.join(genome_path, "bt2")
 
     if not os.path.exists(indicies):
@@ -66,9 +65,7 @@ def genome_indicies(genome_path):
             import requests
             import tarfile
 
-            url = (
-                "https://userweb.molbiol.ox.ac.uk/public/asmith/ngs_pipeline/bt2.tar.gz"
-            )
+            url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/bt2.tar.gz"
             output = os.path.join(genome_path, "bt2.tar.gz")
             r = requests.get(url, stream=True)
             with open(output, "wb") as f:
@@ -107,38 +104,38 @@ def set_up(
     fastqs,
     config_path,
 ):
-
     cwd = os.getcwd()
     os.chdir(run_directory)
 
     cookiecutter(
-    f"{package_path}/workflow/config/cookiecutter_config/config_chip/",
-    extra_context={
-        "genome": "hg19",
-        "date": "{% now 'utc', '%Y-%m-%d' %}",
-        "project_name": "test",
-        "chromosome_sizes": chromsizes,
-        "indicies": genome_indicies,
-        "design": "design.csv",
-        "read_type": "paired",
-        "split_fastq": "no",
-        "remove_pcr_duplicates_method": "picard",
-        "shift_atac_reads": "no",
-        "remove_blacklist": "yes",
-        "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
-        "make_bigwigs": "yes",  
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "remove_pcr_duplicates_method": "picard",
-        "make_ucsc_hub": "yes",
-        "UCSC_hub_directory": "test_hub",
-        "email": "test",
-        "color_by": "samplename",
-        "gtf": f"{data_path}/genome/chr21.gtf",
-    },
-    no_input=True,
+        f"{package_path}/workflow/config/cookiecutter_config/config_chip/",
+        extra_context={
+            "genome": "hg19",
+            "date": "{% now 'utc', '%Y-%m-%d' %}",
+            "project_name": "test",
+            "chromosome_sizes": chromsizes,
+            "indicies": genome_indicies,
+            "design": "design.csv",
+            "read_type": "paired",
+            "split_fastq": "False",
+            "split_fastq_parts": "1",
+            "remove_pcr_duplicates_method": "picard",
+            "shift_atac_reads": "no",
+            "remove_blacklist": "yes",
+            "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
+            "make_bigwigs": "yes",
+            "pileup_method": "deeptools",
+            "make_heatmaps": "yes",
+            "call_peaks": "yes",
+            "peak_calling_method": "lanceotron",
+            "remove_pcr_duplicates_method": "picard",
+            "make_ucsc_hub": "yes",
+            "UCSC_hub_directory": "test_hub",
+            "email": "test",
+            "color_by": "samplename",
+            "gtf": f"{data_path}/genome/chr21.gtf",
+        },
+        no_input=True,
     )
 
     # Move config files and fastq files
@@ -146,7 +143,6 @@ def set_up(
     os.chdir(f"{current_date}_test")
     for fq in fastqs:
         shutil.copy(fq, ".")
-
 
     yield
 

@@ -1,6 +1,6 @@
 import seqnado.utils as utils
 
-if config["split_fastq"] == "no":
+if config["split_fastq"] == "False":
     rule align_paired:
         input:
             fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
@@ -9,10 +9,10 @@ if config["split_fastq"] == "no":
             index=config["genome"]["indicies"],
             options=utils.check_options(config["bowtie2"]["options"]),
         output:
-            bam="seqnado_output/aligned/raw/{sample}.bam",
+            bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
         threads: config["bowtie2"]["threads"]
         resources:
-            mem_mb=4000 // int(config["bowtie2"]["threads"])
+            mem_mb=4000,
         log:
             "seqnado_output/logs/align/{sample}.log",
         shell:
@@ -33,7 +33,7 @@ rule align_paired:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     threads: config["bowtie2"]["threads"]
     resources:
-        mem_mb=4000 // int(config["bowtie2"]["threads"]),
+        mem_mb=4000,
         time='0-04:00:00',
     log:
         "seqnado_output/logs/align/{sample}.log",
