@@ -136,7 +136,6 @@ def define_output_files(
     make_ucsc_hub: bool = False,
     call_snps: bool = False,
     annotate_snps: bool = False,
-    run_deseq2: bool = False,
     **kwargs,
 ) -> list:
     """Define output files for the pipeline"""
@@ -215,7 +214,7 @@ def define_output_files(
                 )
             )
 
-        if run_deseq2:
+        if kwargs["run_deseq2"]:
             project_id = kwargs["deseq2"].get("project_id")
             assay_output.append(f"DESeq2_{project_id}.html")
 
@@ -231,18 +230,15 @@ def define_output_files(
 
     elif assay == "SNP":
         if call_snps:
-            assay_output.append(
-                expand(
-                    "seqnado_output/variant/{sample}.vcf.gz",
-                    "seqnado_output/variant/{sample}_filtered.stats.txt",
-                    sample=sample_names,
-                ),
+            assay_output.expand(
+                "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
+                sample=sample_names,
             )
 
         if annotate_snps:
             assay_output.append(
                 expand(
-                    "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
+                    "seqnado_output/variant/{sample}_filtered.stats.txt",
                     sample=sample_names,
                 ),
             )
@@ -634,6 +630,102 @@ class DesignIP(BaseModel):
         raise ValueError(
             f"Could not find experiment with sample name {sample_name} and ip {ip} and control {control}"
         )
+
+    @computed_field
+    @property
+    def is_paired(self) -> bool:
+        """
+        Return True if the fastq file is paired.
+
+        """
+        return True if self.read_number else False
+
+    @computed_field
+    @property
+    def is_lane(self) -> bool:
+        """
+        Return True if the fastq file is lane split.
+
+        """
+        return "_L00" in self.sample_name
+
+    def __lt__(self, other):
+        return self.path < other.path
+
+    def __gt__(self, other):
+        return self.path > other.path
+
+    def __eq__(self, other):
+        return self.path == other.path
+
+
+class FastqFileIP(FastqFile):
+    ip: str = Field(default=None, description="IP performed on the sample")
+    is_control: bool = Field(default=None, description="Is the sample a control")
+
+    def model_post_init(self, *args):
+        if self.ip is None:
+            self.ip = self.predict_ip()
+
+        if self.is_control is None:
+            self.is_control = self.predict_is_control()
+
+    def predict_ip(self) -> Optional[str]:
+        """
+        Predict the IP performed on the sample.
+
+        Uses the sample base to predict the IP performed on the sample.
+
+        """
+        try:
+            return self.sample_base.split("_")[-1]
+        except IndexError:
+            logger.warning(f"Could not predict IP for {self.sample_base}")
+            return None
+
+    def sample_name_without_antibody(self) -> str:
+        """
+        Return the sample name without the antibody name.
+
+        """
+        return re.sub(f"_{self.antibody}_", "_", self.sample_name)
+
+    def predict_is_control(self) -> bool:
+        """
+        Return True if the fastq file is an input.
+
+        """
+
+        input_substrings = ["input", "mock", "igg", "control"]
+        return any([substring in self.ip.lower() for substring in input_substrings])
+
+    @computed_field
+    @property
+    def sample_base_without_ip(self) -> str:
+        """
+        Return the sample base without the antibody name.
+
+        """
+        return re.sub(
+            f"(_{self.ip})?(_S\\d+)?(_L00\\d)?(_R?[12])?(_001)?",
+            "",
+            self.sample_name,
+        )
+
+
+class AssayNonIP(BaseModel):
+    name: str = Field(default=None, description="Name of the assay")
+    r1: FastqFile
+    r2: Optional[FastqFile] = None
+    metadata: Optional[dict] = None
+
+    @property
+    def fastq_paths(self):
+        return [self.r1.path, self.r2.path] if self.is_paired else [self.r1.path]
+
+    @property
+    def is_paired(self):
+        return self.r2 is not None
 
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
