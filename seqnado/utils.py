@@ -345,7 +345,7 @@ def define_output_files(
                     read=["1", "2"],
                 ),
                 *expand(
-                    "seqnado_output/aligned/spikein/{sample}_ref.txt",
+                    "seqnado_output/aligned/spikein/{sample}_stats.tsv",
                     sample=sample_names,
                 ),
             ]

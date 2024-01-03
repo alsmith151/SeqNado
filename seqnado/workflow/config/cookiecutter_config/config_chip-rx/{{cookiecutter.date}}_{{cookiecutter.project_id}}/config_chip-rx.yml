@@ -51,7 +51,7 @@ trim_galore:
 
 bowtie2:
     threads: 4
-    options:
+    options: --no-mixed --no-discordant
 
 picard:
     threads: 4

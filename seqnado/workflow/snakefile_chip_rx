@@ -49,16 +49,16 @@ include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-# include: "rules/peak_call.smk"
-# include: "rules/pileup.smk"
-# include: "rules/heatmap.smk"
+include: "rules/peak_call.smk"
+include: "rules/pileup.smk"
+include: "rules/heatmap.smk"
 include: "rules/hub.smk"
-# include: "rules/normalisation.smk"
 include: "rules/chip_refnorm.smk"
+include: "rules/normalisation.smk"
 
 
-# ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
-ruleorder: split_bam > align_paired
+ruleorder: move_ref_bam > align_paired
+ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
 
 ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
@@ -66,7 +66,7 @@ ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             **config
                                             )
 # Add normalisation factors to output
-# ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.tsv")
+ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
 
 rule all:
     input:
