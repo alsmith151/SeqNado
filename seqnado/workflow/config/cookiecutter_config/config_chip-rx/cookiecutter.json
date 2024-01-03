@@ -1,0 +1,65 @@
+{
+  "user_name": "Your name",
+  "date": [
+    "{% now 'utc', '%Y-%m-%d' %}"
+  ],
+  "project_name": "Project name",
+  "project_id": [
+    "{{cookiecutter.project_name.lower().replace(' ', '_') }}"
+  ],
+  "genome": "hg38",
+  "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes",
+  "indicies": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38",
+  "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf",
+  "sample_genome": "hg38",
+  "exo_genome": "dm6",
+  "read_type": [
+    "paired",
+    "single"
+  ],
+  "split_fastq": [
+    "True",
+    "False"
+  ],
+  "split_fastq_parts": "int",
+  "remove_pcr_duplicates_method": [
+    "picard",
+    "deeptools"
+  ],
+  "remove_blacklist": [
+    "yes",
+    "no"
+  ],
+  "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz",
+  "make_bigwigs": [
+    "yes",
+    "no"
+  ],
+  "pileup_method": [
+    "deeptools",
+    "homer"
+  ],
+  "make_heatmaps": [
+    "yes",
+    "no"
+  ],
+  "call_peaks": [
+    "yes",
+    "no"
+  ],
+  "peak_calling_method": [
+    "macs",
+    "lanceotron",
+    "homer"
+  ],
+  "make_ucsc_hub": [
+    "yes",
+    "no"
+  ],
+  "UCSC_hub_directory": "path/to/ publically accessible location on the server",
+  "email": "Email address (UCSC required)",
+  "color_by": [
+    "samplename",
+    "method"
+  ]
+}

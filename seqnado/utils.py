@@ -272,7 +272,7 @@ def get_control_file(wc, design, assay, filetype):
 
 
 def define_output_files(
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "ChIP-rx"],
     sample_names: list = None,
     pileup_method: list = None,
     peak_calling_method: list = None,
@@ -335,6 +335,17 @@ def define_output_files(
                     method=pileup_method,
                 )
             )
+    # elif assay == "ChIP-rx":
+    #     assay_output.extend(
+    #         [
+    #             "seqnado_output/qc/full_fastqscreen_report.html",
+    #             *expand(
+    #                 "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
+    #                 sample=sample_names,
+    #                 read=["1", "2"],
+    #             ),
+    #         ]
+    #     )
 
     elif assay == "RNA":
         if make_bigwigs and pileup_method:

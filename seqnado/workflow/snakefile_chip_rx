@@ -9,9 +9,8 @@ import pandas as pd
 import pathlib
 
 
-
-ASSAY = "ChIP"
-configfile: "config_chip.yml"
+ASSAY = "ChIP-rx"
+configfile: "config_chip-rx.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
 seqnado.utils.format_config_dict(config)
@@ -36,7 +35,7 @@ else:
         raise ValueError("No FASTQ files found in the working directory")
     
 
-assert seqnado.utils.has_bowtie2_index(config["genome"].get("indicies_spikein", "")), f"Spike-in genome index not found at {config['genome'].get('indicies_spikein', '')}"
+# assert seqnado.utils.has_bowtie2_index(config["genome"].get("indicies_spikein", "")), f"Spike-in genome index not found at {config['genome'].get('indicies_spikein', '')}"
 
 DESIGN = FASTQ_SAMPLES.design
 ANTIBODIES = FASTQ_SAMPLES.antibodies
@@ -49,15 +48,16 @@ include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/align_spikein.smk"
-include: "rules/peak_call.smk"
-include: "rules/pileup.smk"
-include: "rules/heatmap.smk"
+# include: "rules/peak_call.smk"
+# include: "rules/pileup.smk"
+# include: "rules/heatmap.smk"
 include: "rules/hub.smk"
-include: "rules/normalisation.smk"
+# include: "rules/normalisation.smk"
+include: "rules/chip_refnorm.smk"
 
 
-ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
+# ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
+ruleorder: split_bam > align_paired
 
 ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
@@ -65,7 +65,7 @@ ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             **config
                                             )
 # Add normalisation factors to output
-ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
+# ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
 
 
 

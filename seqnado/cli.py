@@ -7,7 +7,7 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
-@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
+@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp", "chip-rx"]))
 @click.argument("cookiecutter_options", nargs=-1, type=click.UNPROCESSED)
 def cli_config(method, cookiecutter_options, help=False):
     """

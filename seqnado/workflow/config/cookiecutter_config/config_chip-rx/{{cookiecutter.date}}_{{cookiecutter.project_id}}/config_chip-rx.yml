@@ -1,0 +1,86 @@
+version: 1.0
+
+###################################
+# Essential configuration options #
+###################################
+
+genome:
+    name: "{{cookiecutter.genome}}"
+    chromosome_sizes: "{{cookiecutter.chromosome_sizes}}"
+    indicies: "{{cookiecutter.indicies}}"
+    gtf: "{{cookiecutter.gtf}}"
+    sample_genome: "{{cookiecutter.sample_genome}}"
+    exo_genome: "{{cookiecutter.exo_genome}}"
+    
+design: "design.csv"
+
+read_type: "{{cookiecutter.read_type}}"
+split_fastq: "{{cookiecutter.split_fastq}}"
+split_fastq_parts: "{{cookiecutter.split_fastq_parts}}"
+remove_pcr_duplicates_method: "{{cookiecutter.remove_pcr_duplicates_method}}"
+shift_atac_reads: "False"
+
+remove_blacklist: "{{cookiecutter.remove_blacklist}}"
+blacklist: "{{cookiecutter.blacklist}}"
+
+make_bigwigs: "{{cookiecutter.make_bigwigs}}"  
+pileup_method: "{{cookiecutter.pileup_method}}"
+make_heatmaps: "{{cookiecutter.make_heatmaps}}"
+
+call_peaks: "{{cookiecutter.call_peaks}}"
+peak_calling_method: "{{cookiecutter.peak_calling_method}}"
+
+make_ucsc_hub: "{{cookiecutter.make_ucsc_hub}}"
+ucsc_hub_details:
+    directory: "{{cookiecutter.UCSC_hub_directory}}"
+    name: "{{cookiecutter.project_name}}"
+    short: "{{cookiecutter.project_name}}"
+    long: "{{cookiecutter.project_name}}"
+    email: "{{cookiecutter.email}}"
+    color_by: "{{cookiecutter.color_by}}"
+
+
+#################################
+# Tool specific options         #
+#################################
+
+trim_galore:
+    threads: 4
+    options: --2colour 20 
+
+bowtie2:
+    threads: 4
+    options:
+
+picard:
+    threads: 4
+    options:
+
+homer:
+    use_input: true
+    maketagdirectory:
+    makebigwig:
+    findpeaks:
+
+deeptools:
+    threads: 8
+    alignmentsieve: --minMappingQuality 30 
+    # Options passed to deeptools BamCoverage
+    # These need to be replaced
+    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
+
+macs:
+    version: 2
+    callpeak:
+
+lanceotron:
+    # Instructs lanceotron to use the matched input file for peak calling
+    # No effect if input file is not matched
+    use_input: True
+    # Options passed to callPeaks[Input] command
+    callpeak: -c 0.5
+
+heatmap:
+    options:
+    colormap: RdYlBu_r
