@@ -13,6 +13,7 @@
   "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf",
   "sample_genome": "hg38",
   "exo_genome": "dm6",
+  "fastq_screen_config": "/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf",
   "read_type": [
     "paired",
     "single"

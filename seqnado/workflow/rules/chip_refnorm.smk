@@ -1,25 +1,35 @@
+from seqnado import utils
+
 rule fastq_screen:
     input:
-        unpack(lambda wc: seqnado.utils.translate_fq_files(wc, samples=FASTQ_SAMPLES, paired=False)),
+        unpack(lambda wc: utils.translate_fq_files(wc, samples=FASTQ_SAMPLES, paired=False)),
     output:
         fq_screen="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
+        fq_screen_png="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.png",
+        fq_screen_txt="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
     params:
         outdir="seqnado_output/qc/fastq_screen",
-        conf="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf",
+        conf=config["genome"]["fastq_screen_config"],
+        tmpdir="seqnado_output/qc/fastqc_raw/{sample}_{read}",
+        basename=lambda wc, output: utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
     threads: config["bowtie2"]["threads"]
     resources:
-        mem_mb=1500,
+        mem_mb=lambda wildcards, attempt: 4000 * 2**attempt,
     log:
         "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
     shell:"""
-    fastq_screen --conf {params.conf} --threads {threads} --subset 10000 --aligner bowtie2 --threads 8 {input.fq}  --outdir {params.outdir}
+    fastq_screen --conf {params.conf} --threads {threads} --subset 10000 --aligner bowtie2 --threads 8 {input.fq}  --outdir {params.tmpdir} &&
+        mv {params.tmpdir}/{params.basename}_screen.html {output.fq_screen} &&
+        mv {params.tmpdir}/{params.basename}_screen.png {output.fq_screen_png} &&
+        mv {params.tmpdir}/{params.basename}_screen.txt {output.fq_screen_txt} &&
+        rm -r {params.tmpdir}
     """
 
 
 rule multiqc_fastqscreen:
     input:
         expand(
-            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
+            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
             sample=SAMPLE_NAMES,
             read=[1, 2],
         ),
@@ -84,8 +94,9 @@ rule split_bam:
         bam=rules.filter_bam_spikein.output.bam,
         bai=rules.index_bam_spikein_filtered.output.bai,
     output:
-        bam=temp("seqnado_output/aligned/spikein/{sample}_sample.bam"),
-        clean_bam="seqnado_output/aligned/raw/{sample}.bam",
+        ref_bam="seqnado_output/aligned/spikein/{sample}_ref.bam",
+        exo_bam="seqnado_output/aligned/spikein/{sample}_exo.bam",
+        bam="seqnado_output/aligned/raw/{sample}_exo.bam",
     params:
         genome_prefix=config["genome"]["sample_genome"],
         exo_prefix=config["genome"]["exo_genome"],
@@ -93,8 +104,48 @@ rule split_bam:
         map_qual=30,
     log:
         "seqnado_output/logs/split_bam/{sample}.log"
-    script:
+    shell:"""
+        samtools view -h {input.bam} | awk '{{if($0 ~ /^@/ || $3 ~ /^chr/) print}}' | samtools view -b -o {output.ref_bam} &&
+        samtools view -h {input.bam} | awk '{{if($0 ~ /^@/ || $3 ~ /^{params.exo_prefix}/) print}}' | samtools view -b -o {output.exo_bam} &&
+        cp {output.ref_bam} {output.bam} &&
+        echo 'reference_reads:' > {log} 2>&1 &&
+        samtools view -F 0x04 -c {output.ref_bam} >> {log} 2>&1 &&
+        echo 'spikein_reads:' >> {log} 2>&1 &&
+        samtools view -F 0x04 -c {output.exo_bam} >> {log} 2>&1
         """
-        ../scripts/split_bam.py -i {input.bam} -o {params.prefix} -g {params.genome_prefix} -p {params.exo_prefix} -q {params.map_qual} > {log} 2>&1 &&
-        mv {output.bam} > {output.clean_bam}
-        """
+
+use rule index_bam as index_bam_split with:
+    input:
+        bam=rules.split_bam.output.ref_bam,
+    output:
+        bai=temp("seqnado_output/aligned/spikein/{sample}_ref.bam.bai"),
+    log:
+        "seqnado_output/logs/aligned_spikein/{sample}.index.log"
+
+use rule samtools_stats as samtools_stats_reference with:
+    input:
+        bam=rules.split_bam.output.ref_bam,
+    output:
+        stats="seqnado_output/aligned/spikein/{sample}_ref.txt",
+
+use rule samtools_stats as samtools_stats_exo with:
+    input:
+        bam=rules.split_bam.output.exo_bam,
+    output:
+        stats="seqnado_output/aligned/spikein/{sample}_exo.txt",
+
+# rule calculate_normalisation_factors:
+#     input:
+#         bam_ref = expand(bam=rules.split_bam.output.ref_bam),
+#         bam_spikein = expand(bam=rules.split_bam.output.exo_bam),
+#         bam_spikein_index = expand(bam=rules.index_bam_split.output.bai),
+#         design = rules.save_design.output[0],
+#     output:
+#         normalisation_table = "seqnado_output/normalisation_factors.tsv",
+#         # normalisation_factors = "seqnado_output/normalisation_factors.json"
+#     container:
+#         None
+#     log:
+#         "seqnado_output/logs/normalisation_factors.log"
+#     script:
+#         "../scripts/calculate_spikein_norm_factors.py"

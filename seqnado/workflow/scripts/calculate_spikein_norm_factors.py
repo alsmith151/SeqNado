@@ -26,50 +26,29 @@ with logger.catch():
     readcounts_spikein = get_readcounts(bam_spikein)
 
     # Read in design matrix
-    df_design_raw = pd.read_csv(snakemake.input.design, sep=",").assign(
-        ip=lambda df: df["sample"] + "_" + df["antibody"]
-    )[["sample", "antibody", "ip", "control"]]
-
-    df_design = df_design_raw.melt(
-        id_vars=["sample", "antibody"], var_name="type", value_name="name"
-    )
+    df_design = pd.read_csv(snakemake.input.design, sep=",")[["sample", "antibody"]]
 
     # Merge readcounts with design matrix
     df_counts = pd.DataFrame(
-        [readcounts_ref, readcounts_spikein], index=["ref", "spikein"]
-    ).T
+        [readcounts_ref, readcounts_spikein], index=["reference", "spikein"]
+    )
 
     df_counts = df_design.merge(df_counts, left_on="name", right_index=True)
 
     # Pivot for easier handling
     df_counts = df_counts.pivot_table(
-        index=["sample", "antibody"], columns="type", values=["ref", "spikein"]
+        index=["sample"], columns="type", values=["reference", "spikein"]
     )
     df_counts.columns = ["_".join(col) for col in df_counts.columns.values]
     df_counts = df_counts.reset_index()
 
-    # Calculate normalization factors
-    df_counts = df_counts.assign(
-        reads_per_spikein_ip=lambda df: df["ref_ip"] / df["spikein_ip"],
-        reads_per_spikein_control=lambda df: df["ref_control"] / df["spikein_control"],
-        relative_signal=lambda df: df["reads_per_spikein_ip"]
-        / df["reads_per_spikein_control"],
-        reads_per_million_ip=lambda df: 10e6 / df["ref_ip"],
-        reads_per_million_control=lambda df: 10e6 / df["ref_control"],
-        norm_factor=lambda df: df["relative_signal"] * df["reads_per_million_ip"],
+    # subset columns of interest
+    df_counts = df_counts[["sample", "reference", "spikein"]]
+
+    df_counts["chip_spike_in_norm_factor"] = 1 / (df_counts["spikein"] / 1e6)
+    df_counts["exo_perc"] = (
+        df_counts["spikein"] / df_counts["reference"] * 100
     )
 
     # Write out normalization factors
-    df_counts = df_counts.merge(df_design_raw, on=["sample", "antibody"])
     df_counts.to_csv(snakemake.output.normalisation_table, sep="\t", index=False)
-
-    norm_ip = df_counts[["ip", "norm_factor"]].set_index("ip")["norm_factor"]
-    norm_control = (
-        df_counts[["control", "norm_factor"]]
-        .assign(norm_factor=1)
-        .drop_duplicates()
-        .set_index("control")["norm_factor"]
-    )
-
-    norm = pd.concat([norm_ip, norm_control])
-    norm.to_json(snakemake.output.normalisation_factors)

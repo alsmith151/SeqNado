@@ -11,6 +11,7 @@ genome:
     gtf: "{{cookiecutter.gtf}}"
     sample_genome: "{{cookiecutter.sample_genome}}"
     exo_genome: "{{cookiecutter.exo_genome}}"
+    fastq_screen_config: "{{cookiecutter.fastq_screen_config}}"
     
 design: "design.csv"
 

@@ -335,17 +335,21 @@ def define_output_files(
                     method=pileup_method,
                 )
             )
-    # elif assay == "ChIP-rx":
-    #     assay_output.extend(
-    #         [
-    #             "seqnado_output/qc/full_fastqscreen_report.html",
-    #             *expand(
-    #                 "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
-    #                 sample=sample_names,
-    #                 read=["1", "2"],
-    #             ),
-    #         ]
-    #     )
+    elif assay == "ChIP-rx":
+        assay_output.extend(
+            [
+                "seqnado_output/qc/full_fastqscreen_report.html",
+                *expand(
+                    "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
+                    sample=sample_names,
+                    read=["1", "2"],
+                ),
+                *expand(
+                    "seqnado_output/aligned/spikein/{sample}_ref.txt",
+                    sample=sample_names,
+                ),
+            ]
+        )
 
     elif assay == "RNA":
         if make_bigwigs and pileup_method:

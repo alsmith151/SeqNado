@@ -43,6 +43,7 @@ SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
 SAMPLE_NAMES_IP = FASTQ_SAMPLES.sample_names_ip
 SAMPLE_NAMES_CONTROL = FASTQ_SAMPLES.sample_names_control
 SAMPLE_NAMES_PAIRED = FASTQ_SAMPLES.paired_ip_and_control
+GENOME_PREFIX=config["genome"]["sample_genome"]
 
 include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
@@ -65,9 +66,7 @@ ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             **config
                                             )
 # Add normalisation factors to output
-# ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
-
-
+# ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.tsv")
 
 rule all:
     input:

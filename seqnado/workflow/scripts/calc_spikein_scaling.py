@@ -1,8 +1,31 @@
-import os
 import pandas as pd
+import pathlib
+import pysam
+from typing import List
+from loguru import logger
 
-main_dir = "/ceph/project/milne_group/cchahrou/Shared/Ana/spike_in/2023-09-13_fly"
-split_dir = os.path.join(main_dir, "split_paired_primary/split")
+# Set up logging
+logger.add(snakemake.log[0], level="INFO")
+
+
+def get_readcounts(bam_files: List[pathlib.Path]):
+    readcounts = {}
+    for bam_file in bam_files:
+        bam = pysam.AlignmentFile(bam_file, "rb")
+        readcounts[bam_file.stem] = bam.mapped
+    return pd.Series(readcounts)
+
+
+with logger.catch():
+    logger.info("Calculating normalization factors")
+
+    # Calculate readcounts for reference and spikein samples
+    bam_ref = [pathlib.Path(p) for p in snakemake.input.bam_ref]
+    bam_spikein = [pathlib.Path(p) for p in snakemake.input.bam_spikein]
+    readcounts_ref = get_readcounts(bam_ref)
+    readcounts_spikein = get_readcounts(bam_spikein)
+
+
 
 # List all .txt files from split_dir
 files = [f for f in os.listdir(split_dir) if f.endswith(".txt")]
