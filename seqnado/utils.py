@@ -540,7 +540,7 @@ class Design(BaseModel):
 
 
 class DesignIP(BaseModel):
-    experiments: Dict[str, ExperimentIP] = Field(
+    assays: Dict[str, ExperimentIP] = Field(
         default_factory=dict,
         description="Dictionary of experiment classes keyed by sample name",
     )
@@ -548,13 +548,13 @@ class DesignIP(BaseModel):
     @computed_field
     @property
     def sample_names(self) -> List[str]:
-        return list(self.experiments.keys())
+        return list(self.assays.keys())
 
     @computed_field
     @property
     def fastq_paths(self) -> List[pathlib.Path]:
         paths = []
-        for experiment in self.experiments.values():
+        for experiment in self.assays.values():
             paths.extend(experiment.ip_files.fastq_paths)
 
             if experiment.control_files is not None:
@@ -599,7 +599,7 @@ class DesignIP(BaseModel):
         """
 
         data = {}
-        for experiment_name, experiment in self.experiments.items():
+        for experiment_name, experiment in self.assays.items():
             data[experiment_name] = {}
             data[experiment_name]["ip_r1"] = experiment.ip_files.r1.path
             if experiment.ip_files.r2 is not None:
