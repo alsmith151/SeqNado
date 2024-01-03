@@ -1,16 +1,14 @@
-from typing import Dict, List, Union, Tuple, Literal
+import hashlib
 import os
 import pathlib
-import pandas as pd
-import numpy as np
-import snakemake
-import hashlib
-from collections import defaultdict
 import re
+from collections import defaultdict
+from typing import Dict, List, Literal, Tuple, Union
 
-
+import numpy as np
+import pandas as pd
+import snakemake
 from snakemake.io import expand
-
 
 FILETYPE_TO_DIR_MAPPING = {
     "tag": "tag_dirs",
@@ -73,44 +71,21 @@ def format_config_dict(config: Dict) -> Dict:
 
     """
     for key, value in config.items():
-        config[key] = convert_empty_yaml_entry_to_string(value)
+        if isinstance(value, dict):
+            config[key] = format_config_dict(value)
+        else:
+            entry = convert_empty_yaml_entry_to_string(value)
 
-        if isinstance(config[key], str):
-            if is_on(config[key]):
+            if is_on(entry):
                 config[key] = True
-            elif is_off(config[key]):
+            elif is_off(entry):
                 config[key] = False
-            elif is_none(config[key]):
-                config[key] = None
+            elif is_none(entry):
+                config[key] = False
+            else:
+                config[key] = entry
 
     return config
-
-
-def set_up_chromsizes(config: Dict):
-    """
-    Ensures that genome chromsizes are present.
-
-    If chromsizes are not provided this function attempts to download them from UCSC.
-    The P.PARAMS dictionary is updated with the location of the chromsizes.
-
-    """
-
-    try:
-        config["genome"]["name"]
-    except KeyError:
-        raise "Genome name has not been provided."
-
-    if config["genome"].get("chrom_sizes"):
-        pass
-
-    elif os.path.exists("chrom_sizes.txt.tmp"):
-        config["genome"]["chrom_sizes"] = "chrom_sizes.txt.tmp"
-
-    else:
-        from pybedtools.helpers import get_chromsizes_from_ucsc
-
-        get_chromsizes_from_ucsc(config["genome"]["name"], "chrom_sizes.txt.tmp")
-        config["genome"]["chrom_sizes"] = "chrom_sizes.txt.tmp"
 
 
 def get_fastq_files(path: str, recursive=False) -> pd.DataFrame:
@@ -137,138 +112,11 @@ def has_bowtie2_index(prefix: str) -> bool:
         return True
 
 
-def get_singularity_command(workflow: snakemake.Workflow, command: str):
-    """
-    Runs a command in a singularity container.
-    """
-
-    container_url = workflow.global_container_img
-    container_dir = workflow.persistence.container_img_path
-
-    md5 = hashlib.md5()
-    md5.update(container_url.encode())
-    container_hash = md5.hexdigest()
-
-    container = os.path.join(container_dir, container_hash + ".simg")
-
-    command = command.replace(r"\n", r" \\")
-    command = f"bash -c '{command}'"
-
-    return f"singularity exec -H $PWD {workflow.singularity_args} {container} {command}"
-
-
-class GenericFastqSamples:
-    def __init__(self, design):
-        # Expected columns: sample, fq1, fq2
-        self.design = design
-        self.design = self.design.assign(
-            paired=(~self.design[["fq1", "fq2"]].isna().any(axis=1))
-        )
-
-    @classmethod
-    def from_files(cls, files: List[Union[pathlib.Path, str]]) -> "GenericFastqSamples":
-        df = pd.DataFrame(files, columns=["fn"])
-
-        df[["sample", "read"]] = (
-            df["fn"].apply(str).str.extract("(?!.*/)?(.*).*_R?([12]).fastq.gz")
-        )
-
-        df["sample"] = df["sample"].apply(
-            lambda p: pathlib.Path(p).name
-            if isinstance(p, pathlib.Path)
-            else os.path.basename(p)
-        )
-        df["read"] = "fq" + df["read"]
-
-        df = (
-            df.pivot(columns="read", index=["sample"])
-            .droplevel(level=0, axis=1)
-            .reset_index()
-        )
-
-        return cls(design=df)
-
-    @property
-    def fastq_files(self):
-        return sorted([*self.design["fq1"], *self.design["fq2"]])
-
-    @property
-    def sample_names_all(self):
-        return self.design["sample"].to_list()
-
-    @property
-    def translation(self):
-        fq_translation = {}
-        for sample in self.design.itertuples():
-            for read in [1, 2]:
-                fq_translation[f"{sample.sample}_{read}.fastq.gz"] = os.path.realpath(
-                    str(getattr(sample, f"fq{read}"))
-                )
-
-        return fq_translation
-
-
 def check_options(value: object):
     if value in [None, np.nan, ""]:
         return ""
     else:
         return value
-
-
-def translate_fq_files(wc, samples: GenericFastqSamples, paired: bool = False):
-    if paired:
-        return {
-            "fq1": samples.translation[f"{wc.sample}_1.fastq.gz"],
-            "fq2": samples.translation[f"{wc.sample}_2.fastq.gz"],
-        }
-    else:
-        return {"fq": samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]}
-
-
-def translate_fq_files_split(wc, samples: GenericFastqSamples, paired: bool = False):
-    if paired:
-        return [
-            [f"fq1=", samples.translation[f"{wc.sample}_1.fastq.gz"]],
-            [f"fq2=", samples.translation[f"{wc.sample}_2.fastq.gz"]],
-        ]
-    else:
-        return [f"fq=", samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]]
-
-
-def get_fq_filestem(wc, samples: GenericFastqSamples):
-    fn = samples.translation[f"{wc.sample}_{wc.read}.fastq.gz"]
-    basename = os.path.basename(fn)
-    return os.path.splitext(basename.replace(".gz", ""))[0]
-
-
-def get_treatment_file(wc, assay, filetype):
-    extension_for_filetype = FILETYPE_TO_EXTENSION_MAPPING[filetype]
-    directory_for_filetype = FILETYPE_TO_DIR_MAPPING[filetype]
-
-    treatment = f"seqnado_output/{directory_for_filetype}/{wc.treatment}{extension_for_filetype}"
-
-    return treatment
-
-
-def get_control_file(wc, design, assay, filetype):
-    extension_for_filetype = FILETYPE_TO_EXTENSION_MAPPING[filetype]
-    directory_for_filetype = FILETYPE_TO_DIR_MAPPING[filetype]
-
-    if assay == "ChIP":
-        df = design.assign(
-            treatment=lambda df: df[["sample", "antibody"]]["sample"].str.cat(
-                df["antibody"], sep="_"
-            )
-        )
-        sample_row = df.query("treatment == @wc.treatment").iloc[0]
-        has_control = not pd.isna(sample_row["control"])
-
-        if has_control:
-            control = f"seqnado_output/{directory_for_filetype}/{sample_row['control']}{extension_for_filetype}"
-        else:
-            control = "NA"
-
-    return control
 
 
 def define_output_files(
@@ -282,7 +130,6 @@ def define_output_files(
     make_ucsc_hub: bool = False,
     call_snps: bool = False,
     annotate_snps: bool = False,
-    run_deseq2: bool = False,
     **kwargs,
 ) -> list:
     """Define output files for the pipeline"""
@@ -347,7 +194,7 @@ def define_output_files(
                 )
             )
 
-        if run_deseq2:
+        if kwargs["run_deseq2"]:
             project_id = kwargs["deseq2"].get("project_id")
             assay_output.append(f"DESeq2_{project_id}.html")
 
@@ -363,18 +210,15 @@ def define_output_files(
 
     elif assay == "SNP":
         if call_snps:
-            assay_output.append(
-                expand(
-                    "seqnado_output/variant/{sample}.vcf.gz",
-                    "seqnado_output/variant/{sample}_filtered.stats.txt",
-                    sample=sample_names,
-                ),
+            assay_output.expand(
+                "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
+                sample=sample_names,
             )
 
         if annotate_snps:
             assay_output.append(
                 expand(
-                    "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
+                    "seqnado_output/variant/{sample}_filtered.stats.txt",
                     sample=sample_names,
                 ),
             )
@@ -384,153 +228,455 @@ def define_output_files(
     return analysis_output
 
 
-def sample_names_follow_convention(
-    df: pd.DataFrame, name_column: str = "basename"
-) -> bool:
-    naming_pattern_paired = r"(.*)_(.*)_R?[12].fastq(.gz)?"
-    naming_pattern_single = r"(.*)_(.*).fastq(.gz)?"
+import os
+import pathlib
+import re
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-    return (
-        df[name_column].str.match(naming_pattern_paired)
-        | df[name_column].str.match(naming_pattern_single)
-    ).all()
+import pandas as pd
+from loguru import logger
+from pydantic import BaseModel, Field, computed_field, validator
+from pydantic.dataclasses import dataclass
 
 
-class ChipseqFastqSamples:
-    def __init__(self, design):
-        # Expected columns: sample, antibody, fq1, fq2, control
-        self.design = design
-        self.design = self.design.assign(
-            paired=(~self.design[["fq1", "fq2"]].isna().any(axis=1))
+class FastqFile(BaseModel):
+    path: pathlib.Path
+
+    @computed_field
+    @property
+    def sample_name(self) -> str:
+        return pathlib.Path(str(self.path).removesuffix(".gz")).stem
+
+    @computed_field
+    @property
+    def sample_base(self) -> str:
+        to_sub = {
+            r"_\S\d+_": "_",
+            r"_L00\d_": "_",
+            r"_R?[12](_001)?$": "",
+        }
+
+        base = self.sample_name
+        for pattern, rep in to_sub.items():
+            base = re.sub(pattern, rep, base)
+
+        return base
+
+    @computed_field
+    @property
+    def read_number(self) -> Optional[int]:
+        """
+        Return the read number of the fastq file.
+
+        Checks multiple regex patterns to find the read number.
+
+        """
+
+        regex_std_illumina_paired = re.compile(r".*_R?([12])(_001)?")
+        regexes = [regex_std_illumina_paired]
+
+        for regex in regexes:
+            match = regex.match(self.sample_name)
+            if match:
+                return int(match.group(1))
+
+        logger.warning(
+            f"Could not find read number for {self.sample_name} assuming unpaired."
         )
+
+    @computed_field
+    @property
+    def is_paired(self) -> bool:
+        """
+        Return True if the fastq file is paired.
+
+        """
+        return True if self.read_number else False
+
+    @computed_field
+    @property
+    def is_lane(self) -> bool:
+        """
+        Return True if the fastq file is lane split.
+
+        """
+        return "_L00" in self.sample_name
+
+    def __lt__(self, other):
+        return self.path < other.path
+
+    def __gt__(self, other):
+        return self.path > other.path
+
+    def __eq__(self, other):
+        return self.path == other.path
+
+
+class FastqFileIP(FastqFile):
+    ip: str = Field(default=None, description="IP performed on the sample")
+    is_control: bool = Field(default=None, description="Is the sample a control")
+
+    def model_post_init(self, *args):
+        if self.ip is None:
+            self.ip = self.predict_ip()
+
+        if self.is_control is None:
+            self.is_control = self.predict_is_control()
+
+    def predict_ip(self) -> Optional[str]:
+        """
+        Predict the IP performed on the sample.
+
+        Uses the sample base to predict the IP performed on the sample.
+
+        """
+        try:
+            return self.sample_base.split("_")[-1]
+        except IndexError:
+            logger.warning(f"Could not predict IP for {self.sample_base}")
+            return None
+
+    def sample_name_without_antibody(self) -> str:
+        """
+        Return the sample name without the antibody name.
+
+        """
+        return re.sub(f"_{self.antibody}_", "_", self.sample_name)
+
+    def predict_is_control(self) -> bool:
+        """
+        Return True if the fastq file is an input.
+
+        """
+
+        input_substrings = ["input", "mock", "igg", "control"]
+        return any([substring in self.ip.lower() for substring in input_substrings])
+
+    @computed_field
+    @property
+    def sample_base_without_ip(self) -> str:
+        """
+        Return the sample base without the antibody name.
+
+        """
+        return re.sub(
+            f"(_{self.ip})?(_S\\d+)?(_L00\\d)?(_R?[12])?(_001)?",
+            "",
+            self.sample_name,
+        )
+
+
+class AssayNonIP(BaseModel):
+    name: str = Field(default=None, description="Name of the assay")
+    r1: FastqFile
+    r2: Optional[FastqFile] = None
+    metadata: Optional[dict] = None
+
+    @property
+    def fastq_paths(self):
+        return [self.r1.path, self.r2.path] if self.is_paired else [self.r1.path]
+
+    @property
+    def is_paired(self):
+        return self.r2 is not None
 
     @classmethod
-    def from_files(cls, files: List) -> "ChipseqFastqSamples":
-        df = pd.DataFrame(files, columns=["fn"])
+    def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
+        """
+        Create a SampleInfo object from a list of FastqFiles.
 
-        df[["sample", "read"]] = (
-            df["fn"].apply(str).str.extract("(?!.*/)?(.*)_.*_R?([12]).fastq.gz")
-        )
+        """
 
-        df["sample"] = df["sample"].apply(lambda p: pathlib.Path(p).name)
-        df["read"] = "fq" + df["read"]
+        sample_name = fq[0].sample_base
 
-        df["antibody"] = df["fn"].astype(str).str.split("_").str[-2]
+        if len(fq) == 1:
+            return cls(name=sample_name, r1=fq[0], **kwargs)
+        elif len(fq) == 2:
+            return cls(name=sample_name, r1=fq[0], r2=fq[1], **kwargs)
+        else:
+            raise ValueError(f"Invalid number of fastq files for {sample_name}.")
 
-        df = (
-            df.pivot(columns="read", index=["sample", "antibody"])
-            .droplevel(level=0, axis=1)
-            .reset_index()
-        )
 
-        df_input = df.loc[df["antibody"].str.lower().str.contains("input")]
-        df_input = df_input.assign(
-            control=df_input["sample"] + "_" + df_input["antibody"]
-        )
-        df_ip = df.loc[~df["antibody"].str.lower().str.contains("input")]
-        df = df_ip.merge(df_input[["sample", "control"]], on="sample", how="left")
+class AssayIP(AssayNonIP):
+    name: str = Field(default=None, description="Name of the assay")
+    r1: FastqFileIP
+    r2: Optional[FastqFileIP] = None
+    metadata: Optional[dict] = None
 
-        return cls(design=df)
 
+class ExperimentIP(BaseModel):
+    ip_files: AssayIP
+    control_files: AssayIP = None
+    name: str = Field(default=None, description="Name of the assay")
+    ip: str = Field(default=None, description="IP performed on the sample")
+    control: Optional[str] = Field(
+        default=None, description="IP performed on the control"
+    )
+    metadata: Optional[dict] = None
+
+    def model_post_init(self, *args) -> None:
+        if self.name is None:
+            self.name = (
+                f"{self.ip_files.r1.sample_base_without_ip}_{self.ip_files.r1.ip}"
+            )
+
+        if self.ip is None:
+            self.ip = self.ip_files.r1.ip
+
+        if self.control is None and self.control_files is not None:
+            self.control = self.control_files.r1.ip
+
+    @classmethod
+    def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
+        """
+        Create a SampleInfo object from a list of FastqFiles.
+
+        """
+
+        fq_ip = [f for f in fq if not f.is_control]
+        fq_control = [f for f in fq if f.is_control]
+
+        assert len(fq_ip) > 0, "No IP files found"
+        assert len(fq_ip) < 3, "Too many IP files found"
+        assert len(fq_control) < 3, "Too many control files found"
+
+        if len(fq_control) == 0:
+            return cls(ip_files=AssayIP.from_fastq_files(fq_ip, **kwargs), **kwargs)
+        else:
+            return cls(
+                ip_files=AssayIP.from_fastq_files(fq_ip, **kwargs),
+                control_files=AssayIP.from_fastq_files(fq_control, **kwargs),
+                **kwargs,
+            )
+
+
+class Design(BaseModel):
+    assays: Dict[str, AssayNonIP] = Field(
+        default_factory=dict,
+        description="Dictionary of assay classes keyed by sample name",
+    )
+
+    @computed_field
     @property
-    def fastq_ip_files(self):
-        fastq_files = []
+    def sample_names(self) -> List[str]:
+        return list(self.assays.keys())
 
-        for sample in self.design.itertuples():
-            if sample.paired:
-                for ii, fq in enumerate([sample.fq1, sample.fq2]):
-                    fastq_files.append(fq)
+    @computed_field
+    @property
+    def fastq_paths(self) -> List[pathlib.Path]:
+        paths = []
+        for assay in self.assays.values():
+            paths.append(assay.r1.path)
+            if assay.r2 is not None:
+                paths.append(assay.r2.path)
+
+        return paths
+
+    @classmethod
+    def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
+        """
+        Create a SampleInfo object from a list of FastqFiles.
+
+        """
+
+        sample_names = set([f.sample_base for f in fq])
+        assays = {}
+        for sample_name in sample_names:
+            assays[sample_name] = AssayNonIP.from_fastq_files(
+                [f for f in fq if f.sample_base == sample_name], **kwargs
+            )
+
+        return cls(assays=assays, **kwargs)
+
+    @classmethod
+    def from_directory(
+        cls, path: pathlib.Path, metadata: Dict[str, Any] = None, **kwargs
+    ):
+        """
+        Create a SampleInfo object from a directory of fastq files.
+
+        """
+
+        fq = list(pathlib.Path(path).glob("*.fastq.gz"))
+        fq = sorted([FastqFile(path=f) for f in fq])
+        return cls.from_fastq_files(fq, metadata=metadata, **kwargs)
+
+    @classmethod
+    def from_dataframe(cls, df: pd.DataFrame, simplified: bool = True, **kwargs):
+        assays = {}
+        for assay_name, row in df.iterrows():
+            if simplified:
+                metadata = {}
+                for k, v in row.items():
+                    if k not in ["r1", "r2"]:
+                        metadata[k] = v
+                assays[assay_name] = AssayNonIP(
+                    name=assay_name,
+                    r1=FastqFile(path=row["r1"]),
+                    r2=FastqFile(path=row["r2"]),
+                    metadata=metadata,
+                )
             else:
-                for fq in getattr(sample, "fq1"):
-                    fastq_files.append(fq)
-        return sorted(fastq_files)
+                raise NotImplementedError("Not implemented")
+        return cls(assays=assays, **kwargs)
 
+    def to_dataframe(self, simplify: bool = True) -> pd.DataFrame:
+        """
+        Return the SampleInfo object as a pandas DataFrame.
+
+        """
+
+        if not simplify:
+            df = pd.DataFrame.from_dict(
+                {k: v.model_dump() for k, v in self.assays.items()}, orient="index"
+            )
+        else:
+            data = {}
+            for assay_name, assay in self.assays.items():
+                data[assay_name] = {}
+                data[assay_name]["r1"] = assay.r1.path
+                if assay.r2 is not None:
+                    data[assay_name]["r2"] = assay.r2.path
+
+                if assay.metadata is not None:
+                    for k, v in assay.metadata.items():
+                        data[assay_name][k] = v
+
+            df = pd.DataFrame.from_dict(data, orient="index")
+
+        return df
+
+
+class DesignIP(BaseModel):
+    experiments: Dict[str, ExperimentIP] = Field(
+        default_factory=dict,
+        description="Dictionary of experiment classes keyed by sample name",
+    )
+
+    @computed_field
     @property
-    def fastq_control_files(self):
-        fastq_files = []
+    def sample_names(self) -> List[str]:
+        return list(self.experiments.keys())
 
-        for sample in self.design.itertuples():
-            path = pathlib.Path(sample.fq1).parent
-            fqs = [fq for fq in path.glob(f"{sample.control}*.fastq.gz")]
-            for fq in fqs:
-                fastq_files.append(str(fq))
-
-        return sorted(list(set(fastq_files)))
-
+    @computed_field
     @property
-    def fastq_files(self):
-        return sorted([*self.fastq_ip_files, *self.fastq_control_files])
+    def fastq_paths(self) -> List[pathlib.Path]:
+        paths = []
+        for experiment in self.experiments.values():
+            paths.extend(experiment.ip_files.fastq_paths)
 
-    @property
-    def sample_names_all(self):
-        samples_ip = (
-            self.design["sample"].apply(pathlib.Path).apply(lambda p: p.name)
-            + "_"
-            + self.design["antibody"]
-        )
-        samples_control = pd.Series(
-            self.design["control"]
-            .dropna()
-            .apply(lambda p: pathlib.Path(p).name)
-            .unique()
-        )
-        return pd.concat([samples_ip, samples_control]).to_list()
+            if experiment.control_files is not None:
+                paths.extend(experiment.control_files.fastq_paths)
 
-    @property
-    def sample_names_ip(self):
-        samples_ip = (
-            self.design["sample"].apply(pathlib.Path).apply(lambda p: p.name)
-            + "_"
-            + self.design["antibody"]
-        )
-        return samples_ip
+        return paths
 
-    @property
-    def sample_names_control(self):
-        samples_control = pd.Series(
-            self.design["control"]
-            .dropna()
-            .apply(lambda p: pathlib.Path(p).name)
-            .unique()
-        )
-        return samples_control
+    @classmethod
+    def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
+        """
+        Create a SampleInfo object from a list of FastqFiles.
 
-    @property
-    def antibodies(self):
-        return self.design["antibody"].unique()
+        """
 
-    @property
-    def paired_ip_and_control(self):
-        _design = self.design.assign(
-            treatment=lambda df: df["sample"] + "_" + df["antibody"]
-        )
-        return _design.set_index("treatment")["control"].to_dict()
+        samples = defaultdict(list)
+        for f in fq:
+            samples[f.sample_base_without_ip].append(f)
 
-    def _translate_control_samples(self):
-        fq_translation = {}
-        for fq in self.fastq_control_files:
-            for control in self.design["control"]:
-                if str(control) in fq:
-                    read = re.match(r".*/?.*_R?([12])(?:_001)?.fastq.gz", fq).group(1)
-                    fq_translation[f"{control}_{read}.fastq.gz"] = os.path.realpath(fq)
+        experiments = {}
+        for sample_name, sample in samples.items():
+            experiments[sample_name] = ExperimentIP.from_fastq_files(sample, **kwargs)
 
-        return fq_translation
+        return cls(experiments=experiments, **kwargs)
 
-    def _translate_ip_samples(self):
-        fq_translation = {}
-        for sample in self.design.itertuples():
-            for read, fq in enumerate([sample.fq1, sample.fq2]):
-                if os.path.exists(fq):
-                    fq_translation[
-                        f"{sample.sample}_{sample.antibody}_{read + 1}.fastq.gz"
-                    ] = os.path.realpath(fq)
+    @classmethod
+    def from_directory(
+        cls, path: pathlib.Path, metadata: Dict[str, Any] = None, **kwargs
+    ):
+        """
+        Create a SampleInfo object from a directory of fastq files.
 
-        return fq_translation
+        """
 
-    @property
-    def translation(self):
-        """Create a dictionary with the fastq files and their new names"""
-        fq_translation = {}
-        fq_translation.update(self._translate_ip_samples())
-        fq_translation.update(self._translate_control_samples())
-        return fq_translation
+        fq = list(pathlib.Path(path).glob("*.fastq.gz"))
+        fq = sorted([FastqFileIP(path=f) for f in fq])
+        return cls.from_fastq_files(fq, metadata=metadata, **kwargs)
+
+    def to_dataframe(self, simplify: bool = True):
+        """
+        Return the SampleInfo object as a pandas DataFrame.
+
+        """
+
+        data = {}
+        for experiment_name, experiment in self.experiments.items():
+            data[experiment_name] = {}
+            data[experiment_name]["ip_r1"] = experiment.ip_files.r1.path
+            if experiment.ip_files.r2 is not None:
+                data[experiment_name]["ip_r2"] = experiment.ip_files.r2.path
+
+            if experiment.control_files is not None:
+                data[experiment_name]["control_r1"] = experiment.control_files.r1.path
+                if experiment.control_files.r2 is not None:
+                    data[experiment_name][
+                        "control_r2"
+                    ] = experiment.control_files.r2.path
+
+            if experiment.metadata is not None:
+                for k, v in experiment.metadata.items():
+                    data[experiment_name][k] = v
+
+            data[experiment_name]["ip"] = experiment.ip
+            data[experiment_name]["control"] = experiment.control
+
+        df = pd.DataFrame.from_dict(data, orient="index")
+
+        return df
+
+    @classmethod
+    def from_dataframe(cls, df: pd.DataFrame, simplified: bool = True, **kwargs):
+        experiments = {}
+        for experiment_name, row in df.iterrows():
+            if simplified:
+                metadata = {}
+                for k, v in row.items():
+                    if k not in [
+                        "ip_r1",
+                        "ip_r2",
+                        "control_r1",
+                        "control_r2",
+                        "ip",
+                        "control",
+                    ]:
+                        metadata[k] = v
+
+                ip = row["ip"]
+                control = row["control"]
+
+                if "control_r1" not in row:
+                    experiments[experiment_name] = ExperimentIP(
+                        ip_files=AssayIP(
+                            r1=FastqFileIP(path=row["ip_r1"]),
+                            r2=FastqFileIP(path=row["ip_r2"]),
+                        ),
+                        ip=ip,
+                        control=None,
+                        metadata=metadata,
+                    )
+                else:
+                    experiments[experiment_name] = ExperimentIP(
+                        ip_files=AssayIP(
+                            r1=FastqFileIP(path=row["ip_r1"]),
+                            r2=FastqFileIP(path=row["ip_r2"]),
+                        ),
+                        control_files=AssayIP(
+                            r1=FastqFileIP(path=row["control_r1"]),
+                            r2=FastqFileIP(path=row["control_r2"]),
+                        ),
+                        ip=ip,
+                        control=control,
+                        metadata=metadata,
+                    )
+            else:
+                raise NotImplementedError("Not implemented")
+
+        return cls(experiments=experiments, **kwargs)
