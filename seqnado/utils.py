@@ -3,11 +3,14 @@ import os
 import pathlib
 import re
 from collections import defaultdict
-from typing import Dict, List, Literal, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import snakemake
+from loguru import logger
+from pydantic import BaseModel, Field, computed_field, validator
+from pydantic.dataclasses import dataclass
 from snakemake.io import expand
 
 FILETYPE_TO_DIR_MAPPING = {
@@ -226,18 +229,6 @@ def define_output_files(
     analysis_output.extend(assay_output)
 
     return analysis_output
-
-
-import os
-import pathlib
-import re
-from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple, Union
-
-import pandas as pd
-from loguru import logger
-from pydantic import BaseModel, Field, computed_field, validator
-from pydantic.dataclasses import dataclass
 
 
 class FastqFile(BaseModel):
