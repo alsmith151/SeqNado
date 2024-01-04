@@ -305,8 +305,8 @@ def define_output_files(
             if assay == "ChIP":
                 assay_output.extend(
                     [
-                        "seqnado_output/normalisation_factors.tsv",
                         "seqnado_output/qc/full_fastqscreen_report.html",
+                        "seqnado_output/normalisation_factors.tsv",
                     ]
                 )
 

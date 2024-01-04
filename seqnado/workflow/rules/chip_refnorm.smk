@@ -43,16 +43,27 @@ rule multiqc_fastqscreen:
         "multiqc -o seqnado_output/qc -n full_fastqscreen_report.html --force seqnado_output/qc/fastq_screen > {log} 2>&1"
 
 
-use rule align_paired as align_paired_spikein with:
+
+rule align_paired_spikein:
     input:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
+    params:
+        index=config["genome"]["indicies"],
+        options="--no-mixed --no-discordant",
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
-    params:
-        options="--no-mixed --no-discordant",
+    threads: config["bowtie2"]["threads"]
+    resources:
+        mem_mb=lambda wildcards, attempt: 4000 * 2**attempt,
     log:
-        "seqnado_output/logs/aligned_spikein/{sample}.log"
+        "seqnado_output/logs/align/{sample}.log",
+    shell:"""
+        bowtie2 -p {threads} {params.options} -x {params.index} -1 {input.fq1} -2 {input.fq2} 2> {log} |
+        samtools view -bS - > {output.bam} &&
+        samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} >> {log} 2>&1 &&
+        mv {output.bam}_sorted {output.bam}
+        """
 
 
 use rule sort_bam as sort_bam_spikein with:
