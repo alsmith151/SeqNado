@@ -9,7 +9,7 @@ rule fastq_screen:
         fq_screen_txt="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
     params:
         outdir="seqnado_output/qc/fastq_screen",
-        conf=config["genome"]["fastq_screen_config"],
+        conf=config["spikein"]["fastq_screen_config"],
         tmpdir="seqnado_output/qc/fastqc_raw/{sample}_{read}",
         basename=lambda wc, output: utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
     threads: config["bowtie2"]["threads"]
@@ -49,6 +49,8 @@ use rule align_paired as align_paired_spikein with:
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
+    params:
+        options="--no-mixed --no-discordant",
     log:
         "seqnado_output/logs/aligned_spikein/{sample}.log"
 
@@ -100,8 +102,8 @@ rule split_bam:
         exo_bam=temp("seqnado_output/aligned/spikein/{sample}_exo.bam"),
         stats="seqnado_output/aligned/spikein/{sample}_stats.tsv",
     params:
-        genome_prefix=config["genome"]["sample_genome"],
-        exo_prefix=config["genome"]["exo_genome"],
+        genome_prefix=config["spikein"]["reference_genome"],
+        exo_prefix=config["spikein"]["spikein_genome"],
         prefix="seqnado_output/aligned/spikein/{sample}",
         map_qual=30,
     log:"seqnado_output/logs/split_bam/{sample}.log"
@@ -120,3 +122,15 @@ rule move_ref_bam:
     shell:"""
     mv {input.bam} {output.bam}
     """
+
+rule calculate_normalisation_factors:
+    input:
+        expand(rules.split_bam.output.stats, sample=SAMPLE_NAMES),
+    output:
+        normalisation_table = "seqnado_output/normalisation_factors.tsv",
+        normalisation_factors = "seqnado_output/normalisation_factors.json",
+        scale_factors="seqnado_output/scaling_factors.json",
+    log:
+        "seqnado_output/logs/normalisation_factors.log"
+    script:
+        "../scripts/calculate_spikein_norm_orlando.py"

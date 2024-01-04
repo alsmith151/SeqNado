@@ -272,7 +272,8 @@ def get_control_file(wc, design, assay, filetype):
 
 
 def define_output_files(
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "ChIP-rx"],
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    chip_spikein_normalisation: bool = False,
     sample_names: list = None,
     pileup_method: list = None,
     peak_calling_method: list = None,
@@ -300,6 +301,15 @@ def define_output_files(
         analysis_output.append(hub_file)
 
     if assay in ["ChIP", "ATAC"]:
+        if chip_spikein_normalisation:
+            if assay == "ChIP":
+                assay_output.extend(
+                    [
+                        "seqnado_output/normalisation_factors.tsv",
+                        "seqnado_output/qc/full_fastqscreen_report.html",
+                    ]
+                )
+
         if make_bigwigs and pileup_method:
             assay_output.extend(
                 expand(
@@ -335,21 +345,7 @@ def define_output_files(
                     method=pileup_method,
                 )
             )
-    elif assay == "ChIP-rx":
-        assay_output.extend(
-            [
-                "seqnado_output/qc/full_fastqscreen_report.html",
-                *expand(
-                    "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
-                    sample=sample_names,
-                    read=["1", "2"],
-                ),
-                *expand(
-                    "seqnado_output/aligned/spikein/{sample}_stats.tsv",
-                    sample=sample_names,
-                ),
-            ]
-        )
+    
 
     elif assay == "RNA":
         if make_bigwigs and pileup_method:

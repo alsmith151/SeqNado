@@ -48,6 +48,11 @@ include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
+if config["spikein"]["chip_spikein_normalisation"] == "yes":
+    include: "rules/chip_refnorm.smk"
+    include: "rules/normalisation.smk"
+    ruleorder: move_ref_bam > align_paired
+    ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
 
 ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,

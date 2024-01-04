@@ -11,6 +11,13 @@
   "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes",
   "indicies": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38",
   "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf",
+  "chip_spikein_normalisation": [
+    "yes",
+    "no"
+  ],
+  "reference_genome": "hg38",
+  "spikein_genome": "dm6",
+  "fastq_screen_config": "/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf",
   "read_type": [
     "paired",
     "single"

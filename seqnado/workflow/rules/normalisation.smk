@@ -1,7 +1,7 @@
 from seqnado import utils
 
 def get_norm_factor(wildcards):
-    with open("seqnado_output/normalisation_factors.json") as f:
+    with open("seqnado_output/scaling_factors.json") as f:
         norm_factors = json.load(f)
     return norm_factors[wildcards.sample]
 
@@ -36,19 +36,6 @@ def format_homer_make_bigwigs_options(wildcards):
     options += f" -norm {norm}"
 
     return options
-
-
-rule calculate_normalisation_factors:
-    input:
-        expand(rules.split_bam.output.stats, sample=SAMPLE_NAMES),
-    output:
-        normalisation_table = "seqnado_output/normalisation_factors.tsv",
-        normalisation_factors = "seqnado_output/normalisation_factors.json",
-        scale_factors="seqnado_output/scaling_factors.json",
-    log:
-        "seqnado_output/logs/normalisation_factors.log"
-    script:
-        "../scripts/calculate_spikein_norm_orlando.py"
 
 use rule deeptools_make_bigwigs as deeptools_make_bigwigs_norm with:
     input:

@@ -12,6 +12,12 @@ genome:
 
 design: "design.csv"
 
+spikein:
+    chip_spikein_normalisation: "{{cookiecutter.chip_spikein_normalisation}}"
+    reference_genome: "{{cookiecutter.reference_genome}}"
+    spikein_genome: "{{cookiecutter.spikein_genome}}"
+    fastq_screen_config: "{{cookiecutter.fastq_screen_config}}"
+
 read_type: "{{cookiecutter.read_type}}"
 split_fastq: "{{cookiecutter.split_fastq}}"
 split_fastq_parts: "{{cookiecutter.split_fastq_parts}}"
