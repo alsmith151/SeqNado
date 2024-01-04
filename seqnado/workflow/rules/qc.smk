@@ -52,7 +52,7 @@ def get_fastqc_files(wildcards):
     """Return a list of fastq files for a given sample name."""
     import pathlib
 
-    fastqc_dir = pathlib.Path("seqnado_output/qc/fastqc_raw")
+    fastqc_dir = pathlib.Path("seqnado_output/qc/fastqc_raw/")
 
     fastqc_files = []
     fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
