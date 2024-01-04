@@ -2,6 +2,7 @@ import click
 import os
 import subprocess
 
+
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
 
@@ -121,4 +122,5 @@ def cli_pipeline(
         logo = f.read()
 
     print(logo)
+
     completed = subprocess.run(cmd)

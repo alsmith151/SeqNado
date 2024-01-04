@@ -125,6 +125,12 @@ def check_options(value: object):
 class FastqFile(BaseModel):
     path: pathlib.Path
 
+    def model_post_init(self, *args):
+        self.path = pathlib.Path(self.path).resolve()
+
+        if not self.path.exists():
+            raise FileNotFoundError(f"{self.path} does not exist.")
+
     @computed_field
     @property
     def sample_name(self) -> str:
@@ -591,10 +597,10 @@ def symlink_files(
     r2_path_new = pathlib.Path(f"{output_dir}/{assay_name}_2.fastq.gz")
 
     if not r1_path_new.exists():
-        r1_path_new.symlink_to(assay.r1)
+        r1_path_new.symlink_to(assay.r1.path)
 
     if assay.r2 and not r2_path_new.exists():
-        r2_path_new.symlink_to(assay.r2)
+        r2_path_new.symlink_to(assay.r2.path)
 
 
 def symlink_fastq_files(
@@ -608,16 +614,16 @@ def symlink_fastq_files(
 
     if isinstance(design, Design):
         for assay_name, assay in design.assays.items():
-            symlink_files(assay, assay_name)
+            symlink_files(output_dir, assay, assay_name)
 
     elif isinstance(design, DesignIP):
         for experiment_name, experiment in design.assays.items():
             for assay_name, assay in experiment.ip_files.items():
-                symlink_files(assay, assay_name)
+                symlink_files(output_dir, assay, assay_name)
 
             if experiment.control_files:
                 for assay_name, assay in experiment.control_files.items():
-                    symlink_files(assay, assay_name)
+                    symlink_files(output_dir, assay, assay_name)
 
 
 def define_output_files(

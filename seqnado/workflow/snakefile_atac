@@ -56,6 +56,9 @@ include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
 
+wildcard_constraints:
+    read = r"[12]"
+
 
 rule all:
     input:
