@@ -138,10 +138,16 @@ def define_output_files(
     """Define output files for the pipeline"""
 
     analysis_output = [
-        "seqnado_output/qc/full_qc_report.html",
+        "seqnado_output/qc/fastq_raw_qc.html",
+        "seqnado_output/qc/fastq_trimmed_qc.html",
+        "seqnado_output/qc/alignment_raw_qc.html",
+        "seqnado_output/qc/alignment_filtered_qc.html",
         "seqnado_output/design.csv",
     ]
     assay_output = []
+
+    if kwargs["remove_pcr_duplicates_method"] == "picard":
+        analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
 
     if make_ucsc_hub:
         hub_dir = kwargs["ucsc_hub_details"].get("directory")

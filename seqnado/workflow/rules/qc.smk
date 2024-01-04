@@ -112,3 +112,19 @@ rule multiqc_alignment_filtered:
         mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_filtered -n alignment_filtered_qc.html --force > {log} 2>&1"
+
+
+rule multiqc_library_complexity:
+    input:
+        expand(
+            "seqnado_output/aligned/duplicates_removed/{sample}.metrics",
+            sample=SAMPLE_NAMES,
+        ),
+    output:
+        "seqnado_output/qc/library_complexity_qc.html",
+    log:
+        "seqnado_output/logs/multiqc_library_complexity.log",
+    resources:
+        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+    shell:
+        "multiqc -o seqnado_output/qc seqnado_output/aligned/duplicates_removed -n library_complexity_qc.html --force > {log} 2>&1"
