@@ -464,6 +464,9 @@ class Design(BaseModel):
 
         return paths
 
+    def query(self, sample_name: str) -> AssayNonIP:
+        return self.assays[sample_name]
+
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
         """
@@ -562,6 +565,23 @@ class DesignIP(BaseModel):
 
         return paths
 
+    def query(self, sample_name: str, ip: str, control: str = None) -> ExperimentIP:
+        """
+        Extract an experiment from the design.
+        """
+
+        for experiment in self.assays.values():
+            if experiment.name == f"{sample_name}_{ip}":
+                if control is not None:
+                    if experiment.control == control:
+                        return experiment
+                else:
+                    return experiment
+
+        raise ValueError(
+            f"Could not find experiment with sample name {sample_name} and ip {ip} and control {control}"
+        )
+
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
         """
@@ -573,11 +593,11 @@ class DesignIP(BaseModel):
         for f in fq:
             samples[f.sample_base_without_ip].append(f)
 
-        experiments = {}
+        assays = {}
         for sample_name, sample in samples.items():
-            experiments[sample_name] = ExperimentIP.from_fastq_files(sample, **kwargs)
+            assays[sample_name] = ExperimentIP.from_fastq_files(sample, **kwargs)
 
-        return cls(experiments=experiments, **kwargs)
+        return cls(assays=assays, **kwargs)
 
     @classmethod
     def from_directory(
@@ -670,4 +690,4 @@ class DesignIP(BaseModel):
             else:
                 raise NotImplementedError("Not implemented")
 
-        return cls(experiments=experiments, **kwargs)
+        return cls(assays=experiments, **kwargs)
