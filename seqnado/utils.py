@@ -122,121 +122,6 @@ def check_options(value: object):
         return value
 
 
-def define_output_files(
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
-    sample_names: list = None,
-    pileup_method: list = None,
-    peak_calling_method: list = None,
-    make_bigwigs: bool = False,
-    call_peaks: bool = False,
-    make_heatmaps: bool = False,
-    make_ucsc_hub: bool = False,
-    call_snps: bool = False,
-    annotate_snps: bool = False,
-    **kwargs,
-) -> list:
-    """Define output files for the pipeline"""
-
-    analysis_output = [
-        "seqnado_output/qc/fastq_raw_qc.html",
-        "seqnado_output/qc/fastq_trimmed_qc.html",
-        "seqnado_output/qc/alignment_raw_qc.html",
-        "seqnado_output/qc/alignment_filtered_qc.html",
-        "seqnado_output/design.csv",
-    ]
-    assay_output = []
-
-    if kwargs["remove_pcr_duplicates_method"] == "picard":
-        analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
-
-    if make_ucsc_hub:
-        hub_dir = kwargs["ucsc_hub_details"].get("directory")
-        hub_name = kwargs["ucsc_hub_details"].get("name")
-        hub_file = os.path.join(hub_dir, f"{hub_name}.hub.txt")
-        analysis_output.append(hub_file)
-
-    if assay in ["ChIP", "ATAC"]:
-        if make_bigwigs and pileup_method:
-            assay_output.extend(
-                expand(
-                    "seqnado_output/bigwigs/{method}/{sample}.bigWig",
-                    sample=sample_names,
-                    method=pileup_method,
-                )
-            )
-
-        if call_peaks and peak_calling_method:
-            if assay == "ChIP":
-                assay_output.extend(
-                    expand(
-                        "seqnado_output/peaks/{method}/{ip}.bed",
-                        ip=kwargs["sample_names_ip"],
-                        method=peak_calling_method,
-                    )
-                )
-            else:
-                assay_output.extend(
-                    expand(
-                        "seqnado_output/peaks/{method}/{sample}.bed",
-                        sample=sample_names,
-                        method=peak_calling_method,
-                    )
-                )
-
-        if make_heatmaps:
-            assay_output.extend(
-                expand(
-                    "seqnado_output/heatmap/{method}/{sample}.png",
-                    sample=sample_names,
-                    method=pileup_method,
-                )
-            )
-
-    elif assay == "RNA":
-        if make_bigwigs and pileup_method:
-            assay_output.extend(
-                expand(
-                    "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
-                    sample=sample_names,
-                    method=pileup_method,
-                    strand=["plus", "minus"],
-                )
-            )
-
-        if kwargs["run_deseq2"]:
-            project_id = kwargs["deseq2"].get("project_id")
-            assay_output.append(f"DESeq2_{project_id}.html")
-
-        assay_output.extend(
-            [
-                "seqnado_output/feature_counts/read_counts.tsv",
-                *expand(
-                    "seqnado_output/aligned/{sample}.bam",
-                    sample=sample_names,
-                ),
-            ]
-        )
-
-    elif assay == "SNP":
-        if call_snps:
-            assay_output.expand(
-                "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
-                sample=sample_names,
-            )
-
-        if annotate_snps:
-            assay_output.append(
-                expand(
-                    "seqnado_output/variant/{sample}_filtered.stats.txt",
-                    sample=sample_names,
-                ),
-            )
-
-    analysis_output.extend(assay_output)
-
-    return analysis_output
-
-
 class FastqFile(BaseModel):
     path: pathlib.Path
 
@@ -697,3 +582,154 @@ class DesignIP(BaseModel):
                 raise NotImplementedError("Not implemented")
 
         return cls(assays=experiments, **kwargs)
+
+
+def symlink_files(
+    output_dir: pathlib.Path, assay: Union[AssayNonIP, AssayIP], assay_name: str
+):
+    r1_path_new = pathlib.Path(f"{output_dir}/{assay_name}_1.fastq.gz")
+    r2_path_new = pathlib.Path(f"{output_dir}/{assay_name}_2.fastq.gz")
+
+    if not r1_path_new.exists():
+        r1_path_new.symlink_to(assay.r1)
+
+    if assay.r2 and not r2_path_new.exists():
+        r2_path_new.symlink_to(assay.r2)
+
+
+def symlink_fastq_files(
+    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
+) -> None:
+    """
+    Symlink the fastq files to the output directory.
+    """
+    output_dir = pathlib.Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(design, Design):
+        for assay_name, assay in design.assays.items():
+            symlink_files(assay, assay_name)
+
+    elif isinstance(design, DesignIP):
+        for experiment_name, experiment in design.assays.items():
+            for assay_name, assay in experiment.ip_files.items():
+                symlink_files(assay, assay_name)
+
+            if experiment.control_files:
+                for assay_name, assay in experiment.control_files.items():
+                    symlink_files(assay, assay_name)
+
+
+def define_output_files(
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    sample_names: list = None,
+    pileup_method: list = None,
+    peak_calling_method: list = None,
+    make_bigwigs: bool = False,
+    call_peaks: bool = False,
+    make_heatmaps: bool = False,
+    make_ucsc_hub: bool = False,
+    call_snps: bool = False,
+    annotate_snps: bool = False,
+    **kwargs,
+) -> list:
+    """Define output files for the pipeline"""
+
+    analysis_output = [
+        "seqnado_output/qc/fastq_raw_qc.html",
+        "seqnado_output/qc/fastq_trimmed_qc.html",
+        "seqnado_output/qc/alignment_raw_qc.html",
+        "seqnado_output/qc/alignment_filtered_qc.html",
+        "seqnado_output/design.csv",
+    ]
+    assay_output = []
+
+    if kwargs["remove_pcr_duplicates_method"] == "picard":
+        analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
+
+    if make_ucsc_hub:
+        hub_dir = kwargs["ucsc_hub_details"].get("directory")
+        hub_name = kwargs["ucsc_hub_details"].get("name")
+        hub_file = os.path.join(hub_dir, f"{hub_name}.hub.txt")
+        analysis_output.append(hub_file)
+
+    if assay in ["ChIP", "ATAC"]:
+        if make_bigwigs and pileup_method:
+            assay_output.extend(
+                expand(
+                    "seqnado_output/bigwigs/{method}/{sample}.bigWig",
+                    sample=sample_names,
+                    method=pileup_method,
+                )
+            )
+
+        if call_peaks and peak_calling_method:
+            if assay == "ChIP":
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/peaks/{method}/{ip}.bed",
+                        ip=kwargs["sample_names_ip"],
+                        method=peak_calling_method,
+                    )
+                )
+            else:
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/peaks/{method}/{sample}.bed",
+                        sample=sample_names,
+                        method=peak_calling_method,
+                    )
+                )
+
+        if make_heatmaps:
+            assay_output.extend(
+                expand(
+                    "seqnado_output/heatmap/{method}/{sample}.png",
+                    sample=sample_names,
+                    method=pileup_method,
+                )
+            )
+
+    elif assay == "RNA":
+        if make_bigwigs and pileup_method:
+            assay_output.extend(
+                expand(
+                    "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
+                    sample=sample_names,
+                    method=pileup_method,
+                    strand=["plus", "minus"],
+                )
+            )
+
+        if kwargs["run_deseq2"]:
+            project_id = kwargs["deseq2"].get("project_id")
+            assay_output.append(f"DESeq2_{project_id}.html")
+
+        assay_output.extend(
+            [
+                "seqnado_output/feature_counts/read_counts.tsv",
+                *expand(
+                    "seqnado_output/aligned/{sample}.bam",
+                    sample=sample_names,
+                ),
+            ]
+        )
+
+    elif assay == "SNP":
+        if call_snps:
+            assay_output.expand(
+                "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
+                sample=sample_names,
+            )
+
+        if annotate_snps:
+            assay_output.append(
+                expand(
+                    "seqnado_output/variant/{sample}_filtered.stats.txt",
+                    sample=sample_names,
+                ),
+            )
+
+    analysis_output.extend(assay_output)
+
+    return analysis_output

@@ -20,16 +20,22 @@ container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 # Experiment config #
 ####################
 
+# Load config
 utils.format_config_dict(config)
 
-# Design
+# Generate design
 if os.path.exists(config["design"]):
     df = pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
     DESIGN = Design.from_dataframe(df)
 else:
     DESIGN = Design.from_directory(".")
 
+# Attempt to symlink the fastq files
+assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directory or no design file provided."
+utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
+
+# Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
 ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
@@ -40,8 +46,8 @@ ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
 # Pipeline config #
 ###################
 
-include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
+include: "rules/qc.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call.smk"

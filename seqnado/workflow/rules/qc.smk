@@ -48,13 +48,14 @@ use rule samtools_stats as samtools_stats_filtered with:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
 
 
+def get_fastqc_files(wildcards):
+    fqs = get_linked_fastq_files(wildcards)
+    return [f"seqnado_output/qc/fastqc_raw/{fq}.html" for fq in fqs]
+
+
 rule multiqc_raw:
     input:
-        expand(
-            "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
-            sample=SAMPLE_NAMES,
-            read=[1, 2],
-        ),
+        get_fastqc_files,
     output:
         "seqnado_output/qc/fastq_raw_qc.html",
     log:
