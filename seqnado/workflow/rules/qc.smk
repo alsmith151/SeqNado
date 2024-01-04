@@ -1,43 +1,32 @@
 import os
 import seqnado.utils
 
+
 rule fastqc_raw:
     input:
-        unpack(lambda wc: seqnado.utils.translate_fq_files(wc, samples=FASTQ_SAMPLES, paired=False)),
+        "seqnado_output/fastq/{sample}_{read}.fastq.gz",
     output:
-        qc="seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
+        html="capcruncher_output/interim/qc/fastqc_raw/{sample}_{read}.html",
+        zip="capcruncher_output/interim/qc/fastqc_raw/{sample}_{read}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
     params:
-        outdir="seqnado_output/qc/fastqc_raw",
-        tmpdir="seqnado_output/qc/fastqc_raw/{sample}_{read}",
-        basename=lambda wc, output: seqnado.utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
+        extra="--quiet",
     threads: 1
     resources:
         mem_mb=1500,
     log:
         "seqnado_output/logs/fastqc_raw/{sample}_{read}.log",
-    shell:
-        """
-        mkdir -p {params.tmpdir} &&
-        fastqc -o {params.tmpdir} {input.fq} > {log} 2>&1 &&
-        mv {params.tmpdir}/{params.basename}_fastqc.html {output.qc} &&
-        mv {params.tmpdir}/{params.basename}_fastqc.zip {params.outdir}/{wildcards.sample}_{wildcards.read}_fastqc.zip &&
-        rm -r {params.tmpdir}
-        """
+    wrapper:
+        "v3.0.1/bio/fastqc"
 
-rule fastqc_trimmed:
+
+use rule fastqc_raw as fastqc_trimmed with:
     input:
-        fq="seqnado_output/trimmed/{sample}_{read}.fastq.gz",
+        "seqnado_output/trimmed/{sample}_{read}.fastq.gz",
     output:
-        qc="seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
-    params:
-        outdir="seqnado_output/qc/fastqc_trimmed",
+        html="seqnado_output/qc/fastqc_trimmed/{sample}_{read}.html",
+        zip="seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}_{read}.log",
-    resources:
-        mem_mb=1500,
-    threads: 4
-    shell:
-        """fastqc -o {params.outdir} {input.fq} > {log} 2>&1"""
 
 
 rule samtools_stats:
@@ -58,7 +47,9 @@ use rule samtools_stats as samtools_stats_filtered with:
     output:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
 
+
 if config["split_fastq"] == "False":
+
     rule multiqc:
         input:
             expand(
@@ -72,7 +63,10 @@ if config["split_fastq"] == "False":
                 read=[1, 2],
             ),
             expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
-            expand("seqnado_output/qc/alignment_filtered/{sample}.txt", sample=SAMPLE_NAMES),
+            expand(
+                "seqnado_output/qc/alignment_filtered/{sample}.txt",
+                sample=SAMPLE_NAMES,
+            ),
         output:
             "seqnado_output/qc/full_qc_report.html",
         log:
@@ -81,7 +75,9 @@ if config["split_fastq"] == "False":
             mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
         shell:
             "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
+
 else:
+
     rule multiqc:
         input:
             expand(
@@ -90,7 +86,10 @@ else:
                 read=[1, 2],
             ),
             expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
-            expand("seqnado_output/qc/alignment_filtered/{sample}.txt", sample=SAMPLE_NAMES),
+            expand(
+                "seqnado_output/qc/alignment_filtered/{sample}.txt",
+                sample=SAMPLE_NAMES,
+            ),
         output:
             "seqnado_output/qc/full_qc_report.html",
         log:
@@ -99,5 +98,3 @@ else:
             mem_mb=lambda wildcards, attempt: 1000 * 2**attempt,
         shell:
             "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
-
-    
