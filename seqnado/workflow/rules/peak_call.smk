@@ -9,11 +9,26 @@ def get_lanceotron_threshold(wildcards):
     threshold = threshold_pattern.search(options).group(1)
     return threshold
 
-    
+
+def get_control_bam(wildcards):
+    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
+    return "seqnado_output/alignments/{sample}_{exp.control}.bam"
+
+
+def get_control_tag(wildcards):
+    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
+    return "seqnado_output/tag_dirs/{sample}_{exp.control}"
+
+
+def get_control_bigwig(wildcards):
+    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
+    return "seqnado_output/bigwigs/deeptools/{sample}_{exp.control}.bigWig"
+
+
 rule macs2_with_input:
     input:
-        treatment = lambda wc: seqnado.utils.get_treatment_file(wc,assay=ASSAY, filetype="bam"),
-        control = lambda wc: seqnado.utils.get_control_file(wc, design=DESIGN, assay=ASSAY, filetype="bam"),
+        treatment="seqnado_output/alignments/{sample}_{treatment}.bam",
+        control=get_control_bam,
     output:
         peaks="seqnado_output/peaks/macs/{wildcards.treatment}.bed",
     params:
@@ -22,7 +37,7 @@ rule macs2_with_input:
     threads: 1
     resources:
         mem_mb=2000,
-        time='0-02:00:00',
+        time="0-02:00:00",
     log:
         "seqnado_output/logs/macs/{wildcards.treatment}.bed",
     shell:
@@ -31,9 +46,10 @@ rule macs2_with_input:
         cat {params.narrow} | cut -f 1-3 > {output.peaks}
         """
 
+
 rule macs2_no_input:
     input:
-        treatment = lambda wc: seqnado.utils.get_treatment_file(wc, assay=ASSAY, filetype="bam"),
+        treatment="seqnado_output/alignments/{sample}_{treatment}.bam",
     output:
         peaks="seqnado_output/peaks/macs/{treatment}.bed",
     params:
@@ -43,7 +59,7 @@ rule macs2_no_input:
     threads: 1
     resources:
         mem_mb=2000,
-        time='0-02:00:00',
+        time="0-02:00:00",
     log:
         "seqnado_output/logs/macs/{treatment}.bed",
     shell:
@@ -55,8 +71,8 @@ rule macs2_no_input:
 
 rule homer_with_input:
     input:
-        treatment=lambda wc: seqnado.utils.get_treatment_file(wc,assay=ASSAY, filetype="tag"),
-        control=lambda wc: seqnado.utils.get_control_file(wc, design=DESIGN, assay=ASSAY, filetype="tag"),
+        treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
+        control=get_control_tag,
     output:
         peaks="seqnado_output/peaks/homer/{treatment}.bed",
     log:
@@ -66,7 +82,7 @@ rule homer_with_input:
     threads: 1
     resources:
         mem_mb=4000,
-        time='0-02:00:00',
+        time="0-02:00:00",
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.control} > {log} 2>&1 &&
@@ -77,7 +93,7 @@ rule homer_with_input:
 
 rule homer_no_input:
     input:
-        treatment=lambda wc: seqnado.utils.get_treatment_file(wc, assay=ASSAY, filetype="tag"),
+        treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
     output:
         peaks="seqnado_output/peaks/homer/{treatment}.bed",
     log:
@@ -87,7 +103,7 @@ rule homer_no_input:
     threads: 1
     resources:
         mem_mb=4000,
-        time='0-02:00:00',
+        time="0-02:00:00",
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -98,8 +114,8 @@ rule homer_no_input:
 
 rule lanceotron_with_input:
     input:
-        treatment=lambda wc: seqnado.utils.get_treatment_file(wc,assay=ASSAY, filetype="bigwig"),
-        control=lambda wc: seqnado.utils.get_control_file(wc, design=DESIGN, assay=ASSAY, filetype="bigwig"),
+        treatment="seqnado_output/bigwigs/deeptools/{sample}_{treatment}.bigwig",
+        control=get_control_bigwig,
     output:
         peaks="seqnado_output/peaks/lanceotron/{treatment}.bed",
     log:
@@ -112,7 +128,7 @@ rule lanceotron_with_input:
     threads: 1
     resources:
         mem_mb=10_000,
-        time='0-06:00:00',
+        time="0-06:00:00",
     shell:
         """
         lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
@@ -122,7 +138,7 @@ rule lanceotron_with_input:
 
 rule lanceotron_no_input:
     input:
-        treatment=lambda wc: seqnado.utils.get_treatment_file(wc,assay=ASSAY, filetype="bigwig"),
+        treatment="seqnado_output/bigwigs/deeptools/{sample}_{treatment}.bigwig",
     output:
         peaks="seqnado_output/peaks/lanceotron/{treatment}.bed",
     log:
@@ -135,7 +151,7 @@ rule lanceotron_no_input:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
         mem_mb=10_1000,
-        time='0-06:00:00',
+        time="0-06:00:00",
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
