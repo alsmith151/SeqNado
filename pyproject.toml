@@ -27,7 +27,8 @@ dependencies = [
     "seaborn",
     "wget",
     "tracknado",
-    "pydantic"
+    "pydantic",
+    "snakemake-wrapper-utils"
 ]
 
 [project.scripts]

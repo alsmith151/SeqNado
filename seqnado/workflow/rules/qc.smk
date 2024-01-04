@@ -2,12 +2,12 @@ import os
 import seqnado.utils
 
 
-rule fastqc_raw:
+rule fastqc_raw_paired:
     input:
         "seqnado_output/fastqs/{sample}_{read}.fastq.gz",
     output:
-        html="capcruncher_output/interim/qc/fastqc_raw/{sample}_{read}.html",
-        zip="capcruncher_output/interim/qc/fastqc_raw/{sample}_{read}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
+        html="seqnado_output/qc/fastqc_raw/{sample}_{read}.html",
+        zip="seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
     params:
         extra="--quiet",
     threads: 1
@@ -19,7 +19,7 @@ rule fastqc_raw:
         "v3.0.1/bio/fastqc"
 
 
-use rule fastqc_raw as fastqc_trimmed with:
+use rule fastqc_raw_paired as fastqc_trimmed_paired with:
     input:
         "seqnado_output/trimmed/{sample}_{read}.fastq.gz",
     output:
@@ -48,20 +48,24 @@ use rule samtools_stats as samtools_stats_filtered with:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
 
 
-def get_fastq_files(wildcards):
+def get_fastqc_files(wildcards):
     """Return a list of fastq files for a given sample name."""
     import pathlib
 
-    fastq_files = []
+    fastqc_dir = pathlib.Path("seqnado_output/qc/fastqc_raw")
+
+    fastqc_files = []
     fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
     for fq_file in fq_files:
-        fastq_files.append(str(fq_file))
-    return fastq_files
+        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + ".html")
+        fastqc_files.append(str(fq_file))
+
+    return fastqc_files
 
 
 rule multiqc_raw:
     input:
-        get_fastq_files,
+        get_fastqc_files,
     output:
         "seqnado_output/qc/fastq_raw_qc.html",
     log:

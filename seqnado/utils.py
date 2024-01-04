@@ -118,6 +118,8 @@ def has_bowtie2_index(prefix: str) -> bool:
 def check_options(value: object):
     if value in [None, np.nan, ""]:
         return ""
+    elif is_off(value):
+        return ""
     else:
         return value
 
