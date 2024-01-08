@@ -339,13 +339,11 @@ def define_output_files(
 
         if make_heatmaps:
             assay_output.extend(
-                expand(
-                    "seqnado_output/heatmap/{method}/{sample}.png",
-                    sample=sample_names,
-                    method=pileup_method,
-                )
+                [
+                    "seqnado_output/heatmap/heatmap.pdf",
+                    "seqnado_output/heatmap/metaplot.pdf",
+                ]
             )
-    
 
     elif assay == "RNA":
         if make_bigwigs and pileup_method:

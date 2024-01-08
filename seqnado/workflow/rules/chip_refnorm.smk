@@ -4,9 +4,9 @@ rule fastq_screen:
     input:
         unpack(lambda wc: utils.translate_fq_files(wc, samples=FASTQ_SAMPLES, paired=False)),
     output:
-        fq_screen="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
-        fq_screen_png="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.png",
-        fq_screen_txt="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
+        fq_screen=temp("seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html"),
+        fq_screen_png=temp("seqnado_output/qc/fastq_screen/{sample}_{read}_screen.png"),
+        fq_screen_txt=temp("seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt"),
     params:
         outdir="seqnado_output/qc/fastq_screen",
         conf=config["spikein"]["fastq_screen_config"],
@@ -30,6 +30,8 @@ rule multiqc_fastqscreen:
     input:
         expand(
             "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
+            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
+            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.png",
             sample=SAMPLE_NAMES,
             read=[1, 2],
         ),
@@ -90,9 +92,9 @@ rule filter_bam_spikein:
     log:
         "seqnado_output/logs/aligned_spikein/{sample}_filter.log"
     shell:"""
-    samtools view -b -f 2 -F 260 -q 30 -@ 8 {input.bam} > {output.bam} &&
+    samtools view -b -F 3332 -q 30 -@ 8 {input.bam} > {output.bam} &&
     echo 'Filtered bam number of mapped reads:' > {log} 2>&1 &&
-    samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
+    samtools view -c {output.bam} >> {log} 2>&1
     """
 
 use rule index_bam as index_bam_spikein_filtered with:
@@ -122,14 +124,14 @@ rule split_bam:
         samtools view -h {input.bam} | awk '{{if($0 ~ /^@/ || $3 ~ /^chr/) print}}' | samtools view -b -o {output.ref_bam} &&
         samtools view -h {input.bam} | awk '{{if($0 ~ /^@/ || $3 ~ /^{params.exo_prefix}/) print}}' | samtools view -b -o {output.exo_bam} &&
         echo -e "sample\treference_reads\tspikein_reads" > {output.stats} &&
-        echo -e "{wildcards.sample}\t$(samtools view -f 2 -c {output.ref_bam})\t$(samtools view -f 2 -c {output.exo_bam})" >> {output.stats}
+        echo -e "{wildcards.sample}\t$(samtools view -c {output.ref_bam})\t$(samtools view -c {output.exo_bam})" >> {output.stats}
         """
 
 rule move_ref_bam:
     input:
         bam=rules.split_bam.output.ref_bam,
     output:
-        bam="seqnado_output/aligned/raw/{sample}.bam",
+        bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     shell:"""
     mv {input.bam} {output.bam}
     """
