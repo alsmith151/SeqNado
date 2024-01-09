@@ -199,7 +199,7 @@ def create_config(assay):
     fastq_dir = os.path.join(dir_name, "fastq")
     os.makedirs(fastq_dir, exist_ok=True)
     
-    with open(os.path.join(dir_name, f"config_{assay}.yaml"), 'w') as file:
+    with open(os.path.join(dir_name, f"config_{assay}.yml"), 'w') as file:
         file.write(template.render(template_data))
 
     # add deseq2 qmd file if rna
@@ -207,5 +207,5 @@ def create_config(assay):
         with open(os.path.join(dir_name, f"deseq2_{template_data['project_name']}.qmd"), 'w') as file:
             file.write(template_deseq2.render(template_data))
             
-    print(f"Directory '{dir_name}' has been created with the 'config_{assay}.yaml' file.")
+    print(f"Directory '{dir_name}' has been created with the 'config_{assay}.yml' file.")
 
