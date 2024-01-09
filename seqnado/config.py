@@ -44,11 +44,12 @@ def setup_configuration(assay, template_data):
         template_data['remove_pcr_duplicates'] = get_user_input("Remove PCR duplicates? (yes/no)", default="yes", is_boolean=True),
     elif assay == "rna":
         template_data['remove_pcr_duplicates'] = get_user_input("Remove PCR duplicates? (yes/no)", default="no", is_boolean=True),
+    if assay in ["chip", "atac"]:
+        if template_data['remove_pcr_duplicates']:
+            template_data['remove_pcr_duplicates_method'] = get_user_input("Remove PCR duplicates method:", default="picard", choices=["picard", "deeptools"])
+    elif assay == "rna":
+        template_data['remove_pcr_duplicates_method'] = "False"
     
-    if template_data['remove_pcr_duplicates']:
-        template_data.update({
-            'remove_pcr_duplicates_method': get_user_input("Remove PCR duplicates method:", default="picard", choices=["picard", "deeptools"])
-        })
 
     template_data['remove_blacklist'] = get_user_input("Do you want to remove blacklist regions? (yes/no)", default="yes", is_boolean=True)
     if template_data['remove_blacklist']:
