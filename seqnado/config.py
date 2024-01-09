@@ -107,45 +107,45 @@ TOOL_OPTIONS = """
 #################################
 
 trim_galore:
-threads: 4
-options: --2colour 20 
+    threads: 4
+    options: --2colour 20 
 
 bowtie2:
-threads: 4
-options:
+    threads: 4
+    options:
 
 picard:
-threads: 4
-options:
+    threads: 4
+    options:
 
 homer:
-use_input: true
-maketagdirectory:
-makebigwig:
-findpeaks:
+    use_input: true
+    maketagdirectory:
+    makebigwig:
+    findpeaks:
 
 deeptools:
-threads: 8
-alignmentsieve: --minMappingQuality 30 
-# Options passed to deeptools BamCoverage
-# These need to be replaced
-# e.g. --extendReads -bs 1 --normalizeUsing RPKM
-bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
+    threads: 8
+    alignmentsieve: --minMappingQuality 30 
+    # Options passed to deeptools BamCoverage
+    # These need to be replaced
+    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
 
 macs:
-version: 2
-callpeak:
+    version: 2
+    callpeak:
 
 lanceotron:
-# Instructs lanceotron to use the matched input file for peak calling
-# No effect if input file is not matched
-use_input: True
-# Options passed to callPeaks[Input] command
-callpeak: -c 0.5
+    # Instructs lanceotron to use the matched input file for peak calling
+    # No effect if input file is not matched
+    use_input: True
+    # Options passed to callPeaks[Input] command
+    callpeak: -c 0.5
 
 heatmap:
-options:
-colormap: RdYlBu_r
+    options:
+    colormap: RdYlBu_r
 """
 
 TOOL_OPTIONS_RNA = """
@@ -154,32 +154,32 @@ TOOL_OPTIONS_RNA = """
 #################################
 
 trim_galore:
-threads: 4
-options: --2colour 20 
+    threads: 4
+    options: --2colour 20 
 
 star:
-threads: 4
-options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
+    threads: 4
+    options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
 
 picard:
-threads: 4
-options:
+    threads: 4
+    options:
 
 featurecounts:
-threads: 4
-options: -p
+    threads: 4
+    options: -p
 
 homer:
-maketagdirectory:
-makebigwig:
+    maketagdirectory:
+    makebigwig:
 
 deeptools:
-threads: 8
-alignmentsieve: --minMappingQuality 30 
-# Options passed to deeptools BamCoverage
-# These need to be replaced
-# e.g. --extendReads -bs 1 --normalizeUsing RPKM
-bamcoverage: -bs 1 --normalizeUsing CPM
+    threads: 8
+    alignmentsieve: --minMappingQuality 30 
+    # Options passed to deeptools BamCoverage
+    # These need to be replaced
+    # e.g. --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage: -bs 1 --normalizeUsing CPM
 """
 
 def create_config(assay):
