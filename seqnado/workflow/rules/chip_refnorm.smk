@@ -29,11 +29,10 @@ rule fastq_screen:
 rule multiqc_fastqscreen:
     input:
         expand(
-            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
-            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html",
-            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.png",
+            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.{ext}",
             sample=SAMPLE_NAMES,
             read=[1, 2],
+            ext=["txt", "png", "html"]
         ),
     output:
         "seqnado_output/qc/full_fastqscreen_report.html",

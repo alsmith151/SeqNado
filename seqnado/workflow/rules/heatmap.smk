@@ -18,7 +18,7 @@ rule heatmap_matrix:
         config["deeptools"]["threads"],
     resources:
         time="02:00:00",
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem_mb=lambda wildcards, attempt: 16000 * 2**attempt,
     log: 
         "seqnado_output/logs/heatmap/matrix.log",
     shell: """computeMatrix scale-regions --beforeRegionStartLength 3000 --afterRegionStartLength 3000 --regionBodyLength 5000 --smartLabels --missingDataAsZero -p {threads} {params.options} -S {input.bigwigs} -R {params.gtf} -o {output.matrix} >> {log} 2>&1"""

@@ -8,22 +8,13 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
-@click.argument("cookiecutter_options", nargs=-1, type=click.UNPROCESSED)
-def cli_config(method, cookiecutter_options, help=False):
+def cli_config(method, help=False):
     """
     Runs the config for the data processing pipeline.
     """
-    cmd = [
-        "cookiecutter",
-        os.path.join(
-            PACKAGE_DIR, "workflow/config/cookiecutter_config", f"config_{method}"
-        ),
-    ]
+    import seqnado.config as config
+    config.create_config(method)
 
-    if cookiecutter_options:
-        cmd.extend(cookiecutter_options)
-
-    completed = subprocess.run(cmd)
 
 
 @click.command()
