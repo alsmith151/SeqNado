@@ -185,6 +185,8 @@ bamcoverage: -bs 1 --normalizeUsing CPM
 def create_config(assay):
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template("seqnado/workflow/config/config.yaml.jinja")
+    template_deseq2 = env.get_template("seqnado/workflow/config/deseq2.qmd.jinja")
+    
     # Initialize template data
     template_data = {'assay': assay}
 
@@ -200,5 +202,10 @@ def create_config(assay):
     with open(os.path.join(dir_name, f"config_{assay}.yaml"), 'w') as file:
         file.write(template.render(template_data))
 
+    # add deseq2 qmd file if rna
+    if assay == "rna":
+        with open(os.path.join(dir_name, f"deseq2_{template_data['project_name']}.qmd"), 'w') as file:
+            file.write(template_deseq2.render(template_data))
+            
     print(f"Directory '{dir_name}' has been created with the 'config_{assay}.yaml' file.")
 
