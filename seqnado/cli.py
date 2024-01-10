@@ -8,12 +8,15 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
-def cli_config(method, help=False):
+@click.option("-g", "--genome", default="other", help="Genome to use",
+              type=click.Choice(choices=['dm6', 'hg19', 'hg38', 'hg38_dm6', 'hg38_mm39', 'hg38_spikein', 'mm10', 'mm39', 'other']),)
+
+def cli_config(method, help=False, genome="other"):
     """
     Runs the config for the data processing pipeline.
     """
     import seqnado.config as config
-    config.create_config(method)
+    config.create_config(method, genome)
 
 
 

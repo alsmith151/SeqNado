@@ -294,6 +294,14 @@ def define_output_files(
     ]
     assay_output = []
 
+    if make_heatmaps:
+            assay_output.extend(
+                [
+                    "seqnado_output/heatmap/heatmap.pdf",
+                    "seqnado_output/heatmap/metaplot.pdf",
+                ]
+            )
+
     if make_ucsc_hub:
         hub_dir = kwargs["ucsc_hub_details"].get("directory")
         hub_name = kwargs["ucsc_hub_details"].get("name")
@@ -337,14 +345,6 @@ def define_output_files(
                     )
                 )
 
-        if make_heatmaps:
-            assay_output.extend(
-                [
-                    "seqnado_output/heatmap/heatmap.pdf",
-                    "seqnado_output/heatmap/metaplot.pdf",
-                ]
-            )
-
     elif assay == "RNA":
         if make_bigwigs and pileup_method:
             assay_output.extend(
@@ -355,7 +355,7 @@ def define_output_files(
                     strand=["plus", "minus"],
                 )
             )
-
+            
         if run_deseq2:
             project_id = kwargs["deseq2"].get("project_id")
             assay_output.append(f"DESeq2_{project_id}.html")

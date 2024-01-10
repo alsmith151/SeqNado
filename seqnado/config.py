@@ -1,6 +1,7 @@
 import os
 import datetime
 from jinja2 import Environment, FileSystemLoader
+import json
 
 # Helper Functions
 def get_user_input(prompt, default=None, is_boolean=False, choices=None):
@@ -13,11 +14,13 @@ def get_user_input(prompt, default=None, is_boolean=False, choices=None):
             continue
         return user_input
 
-def setup_configuration(assay, template_data):
+
+
+def setup_configuration(assay, genome, template_data):
     username = os.getenv('USER', 'unknown_user')
     today = datetime.datetime.now().strftime('%Y-%m-%d')
     project_name = get_user_input("What is your project name?", default=f"{username}_project")
-    genome = get_user_input("What is your genome name?", default="hg38", choices=['dm6', 'hg19', 'hg38', 'hg38_dm6', 'hg38_mm39', 'hg38_spikein', 'mm9', 'mm10', 'mm10_TetR_ChrX_and_Chr8', 'mm39', 'other'])
+    
     common_config = {
         'username': username,
         'project_date': today,
@@ -26,14 +29,55 @@ def setup_configuration(assay, template_data):
     }
     
     template_data.update(common_config)
-    
-    if assay in ["chip", "atac"]:
-        template_data['indicies'] = get_user_input("Path to Bowtie2 genome indices:", default=f"/ceph/project/milne_group/shared/seqnado_reference/{genome}/UCSC/bt2_index/{genome}") 
-    elif assay == "rna":
-        template_data['indicies'] = get_user_input("Path to STAR genome indices:", default=f"/ceph/project/milne_group/shared/seqnado_reference/{genome}/UCSC/STAR_2.7.10b")
 
-    template_data['chromosome_sizes'] = get_user_input("Path to chromosome sizes file:", default=f"/ceph/project/milne_group/shared/seqnado_reference/{genome}/UCSC/sequence/{genome}.chrom.sizes")
-    template_data['gtf'] = get_user_input("Path to GTF file:", default=f"/ceph/project/milne_group/shared/seqnado_reference/{genome}/UCSC/genes/{genome}.ncbiRefSeq.gtf")
+    with open('seqnado/workflow/config/preset_genomes.json', 'r') as file:
+        genome_values = json.load(file)
+
+    genome_dict = {}
+
+    if genome == "other":
+        if assay in ["chip", "atac"]:
+            genome_dict = {
+                "other": {
+                    "index": get_user_input("Path to Bowtie2 genome index:"),
+                    "chromosome_sizes": get_user_input("Path to chromosome sizes file:"),
+                    "gtf": get_user_input("Path to GTF file:"),
+                    "blacklist": get_user_input("Path to blacklist bed file:")
+                }
+            }
+        elif assay == "rna":
+            genome_dict = {
+                "other": {
+                    "index": get_user_input("Path to STAR v2.7.10b genome index:"),
+                    "chromosome_sizes": get_user_input("Path to chromosome sizes file:"),
+                    "gtf": get_user_input("Path to GTF file:"),
+                    "blacklist": get_user_input("Path to blacklist bed file:")
+                }
+            }
+
+    elif genome in genome_values:
+        if assay in ["chip", "atac"]:
+            genome_dict = {
+                genome: {
+                    "index": genome_values[genome]['bt2_index'],
+                    "chromosome_sizes": genome_values[genome]['chromosome_sizes'],
+                    "gtf": genome_values[genome]['gtf'],
+                    "blacklist": genome_values[genome]['blacklist']
+                }
+            }
+        elif assay == "rna":
+            genome_dict = {
+                genome: {
+                    "index": genome_values[genome]['star_index'],
+                    "chromosome_sizes": genome_values[genome]['chromosome_sizes'],
+                    "gtf": genome_values[genome]['gtf'],
+                    "blacklist": genome_values[genome]['blacklist']
+                }
+            }
+
+    template_data['indicies'] = genome_dict[genome]['index']
+    template_data['chromosome_sizes'] = genome_dict[genome]['chromosome_sizes']
+    template_data['gtf'] = genome_dict[genome]['gtf']
     template_data['read_type'] = get_user_input("What is your read type?", default="paired", choices=["paired", "single"])
 
     template_data['split_fastq'] = get_user_input("Do you want to split FASTQ files? (yes/no)", default="no", is_boolean=True)
@@ -53,7 +97,7 @@ def setup_configuration(assay, template_data):
 
     template_data['remove_blacklist'] = get_user_input("Do you want to remove blacklist regions? (yes/no)", default="yes", is_boolean=True)
     if template_data['remove_blacklist']:
-        template_data['blacklist'] = get_user_input("Path to blacklist file:", default=f"/ceph/project/milne_group/shared/seqnado_reference/{genome}/UCSC/blacklist/{genome}.blacklist.bed")
+        template_data['blacklist'] = genome_dict[genome]['blacklist']
     
     if assay == "atac":
         template_data['shift_atac_reads'] = get_user_input("Shift ATAC-seq reads? (yes/no)", default="yes", is_boolean=True)
@@ -181,18 +225,22 @@ deeptools:
     # These need to be replaced
     # e.g. --extendReads -bs 1 --normalizeUsing RPKM
     bamcoverage: -bs 1 --normalizeUsing CPM
+
+heatmap:
+    options:
+    colormap: RdYlBu_r
 """
 
-def create_config(assay):
+def create_config(assay, genome):
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template("seqnado/workflow/config/config.yaml.jinja")
     template_deseq2 = env.get_template("seqnado/workflow/config/deseq2.qmd.jinja")
     
     # Initialize template data
-    template_data = {'assay': assay}
+    template_data = {'assay': assay, 'genome': genome}
 
     # Setup configuration
-    setup_configuration(assay, template_data)
+    setup_configuration(assay, genome, template_data)
 
     # Create directory and render template
     dir_name = f"{template_data['project_date']}_{template_data['assay']}_{template_data['project_name']}"

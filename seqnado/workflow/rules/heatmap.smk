@@ -2,6 +2,8 @@ import seqnado.utils
 
 if ASSAY == "ChIP":
     prefix = SAMPLE_NAMES_IP 
+elif ASSAY == "RNA":
+    prefix = [x + y for x in SAMPLE_NAMES for y in ["_plus", "_minus"]]
 else:
     prefix = SAMPLE_NAMES
 
@@ -34,10 +36,7 @@ rule heatmap_plot:
         mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
     log: 
         "seqnado_output/logs/heatmap/heatmap.log",
-    shell: """plotHeatmap -m {input.matrix} \
-        -out {output.heatmap} \
-        --colorMap {params.colormap} \
-        --boxAroundHeatmaps no"""
+    shell: """plotHeatmap -m {input.matrix} -out {output.heatmap} --colorMap {params.colormap} --boxAroundHeatmaps no"""
 
 
 rule heatmap_metaplot:
@@ -51,7 +50,4 @@ rule heatmap_metaplot:
         mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
     log: 
         "seqnado_output/logs/heatmap/metaplot.log",
-    shell: """plotProfile -m {input.matrix} \
-        -out {output.metaplot} \
-        --colorMap {params.colormap} \
-        --perGroup"""
+    shell: """plotProfile -m {input.matrix} -out {output.metaplot} --perGroup"""
