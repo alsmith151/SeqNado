@@ -37,21 +37,20 @@ def cli_design(method, files, output="design.csv"):
     """
     import pathlib
     import sys
+    from seqnado.utils import Design, DesignIP, FastqFile, FastqFileIP
 
     if not files:
-        fastq = list(pathlib.Path(".").glob("*.fastq.gz"))
+        files = list(pathlib.Path(".").glob("*.fastq.gz"))
 
-        if not fastq:
+        if not files:
             raise ValueError("No fastq files provided or found in current directory.")
 
     if not method == "chip":
-        from seqnado.utils import Design
-
-        design = Design.from_fastq_files(files)
+        design = Design.from_fastq_files([FastqFile(fq) for fq in files])
     else:
         from seqnado.utils import DesignIP
 
-        design = DesignIP.from_fastq_files(files)
+        design = DesignIP.from_fastq_files([FastqFileIP(fq) for fq in files])
 
     design.to_dataframe().to_csv(output, index=False)
 
