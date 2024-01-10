@@ -35,8 +35,5 @@ with logger.catch():
     # Save the DataFrame with the calculated normalization factors
     df_counts.to_csv(snakemake.output.normalisation_table, sep="\t", index=False)
 
-    norm = df_counts[["sample", "norm_factor"]].set_index("sample")["norm_factor"]
-    norm.to_json(snakemake.output.normalisation_factors)
-
     scale = df_counts[["sample", "scale_factor"]].set_index("sample")["scale_factor"]
-    scale.to_json(snakemake.output.scale_factors)
+    norm.to_json(snakemake.output.normalisation_factors)

@@ -54,7 +54,7 @@ ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             **config
                                             )
 
-if config["spikein"]["chip_spikein_normalisation"]:
+if config["spikein"]:
     include: "rules/chip_refnorm.smk"
     include: "rules/normalisation.smk"
     ruleorder: move_ref_bam > align_paired

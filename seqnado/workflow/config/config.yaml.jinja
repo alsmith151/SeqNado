@@ -16,21 +16,22 @@ genome:
 
 read_type: "{{read_type}}"
 
-split_fastq: "{{split_fastq}}"
-split_fastq_parts: "{{split_fastq_parts}}"
+remove_blacklist: "{{remove_blacklist}}"
+blacklist: "{{blacklist}}"
 
 remove_pcr_duplicates_method: "{{remove_pcr_duplicates_method}}"
 
 shift_atac_reads: "{{shift_atac_reads}}"
 
-remove_blacklist: "{{remove_blacklist}}"
-blacklist: "{{blacklist}}"
-
-spikein:
-    chip_spikein_normalisation: "{{chip_spikein_normalisation}}"
+spikein: "{{spikein}}"
+spikein_options:
+    normalisation_method: "{{normalisation_method}}"
     reference_genome: "{{reference_genome}}"
     spikein_genome: "{{spikein_genome}}"
     fastq_screen_config: "{{fastq_screen_config}}"
+
+split_fastq: "{{split_fastq}}"
+split_fastq_parts: "{{split_fastq_parts}}"
 
 make_bigwigs: "{{make_bigwigs}}"  
 pileup_method: "{{pileup_method}}"
@@ -50,4 +51,7 @@ ucsc_hub_details:
     email: "{{email}}"
     color_by: "{{color_by}}"
 
+#################################
+# Tool specific options         #
+#################################
 {{options}}
