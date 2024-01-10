@@ -36,4 +36,4 @@ with logger.catch():
     df_counts.to_csv(snakemake.output.normalisation_table, sep="\t", index=False)
 
     scale = df_counts[["sample", "scale_factor"]].set_index("sample")["scale_factor"]
-    norm.to_json(snakemake.output.normalisation_factors)
+    scale.to_json(snakemake.output.normalisation_factors)
