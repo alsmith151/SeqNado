@@ -36,9 +36,10 @@ def setup_configuration(assay, genome, template_data):
     genome_dict = {}
 
     if genome == "other":
+        genome = get_user_input("What is your genome name?", default="other")
         if assay in ["chip", "atac"]:
             genome_dict = {
-                "other": {
+                genome: {
                     "index": get_user_input("Path to Bowtie2 genome index:"),
                     "chromosome_sizes": get_user_input("Path to chromosome sizes file:"),
                     "gtf": get_user_input("Path to GTF file:"),
@@ -47,7 +48,7 @@ def setup_configuration(assay, genome, template_data):
             }
         elif assay == "rna":
             genome_dict = {
-                "other": {
+                genome: {
                     "index": get_user_input("Path to STAR v2.7.10b genome index:"),
                     "chromosome_sizes": get_user_input("Path to chromosome sizes file:"),
                     "gtf": get_user_input("Path to GTF file:"),
@@ -75,6 +76,7 @@ def setup_configuration(assay, genome, template_data):
                 }
             }
 
+    template_data['genome'] = genome
     template_data['indicies'] = genome_dict[genome]['index']
     template_data['chromosome_sizes'] = genome_dict[genome]['chromosome_sizes']
     template_data['gtf'] = genome_dict[genome]['gtf']
