@@ -9,22 +9,16 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
-@click.argument("cookiecutter_options", nargs=-1, type=click.UNPROCESSED)
-def cli_config(method, cookiecutter_options, help=False):
+@click.option("-g", "--genome", default="other", help="Genome to use",
+              type=click.Choice(choices=['dm6', 'hg19', 'hg38', 'hg38_dm6', 'hg38_mm39', 'hg38_spikein', 'mm10', 'mm39', 'other']),)
+
+def cli_config(method, help=False, genome="other"):
     """
     Runs the config for the data processing pipeline.
     """
-    cmd = [
-        "cookiecutter",
-        os.path.join(
-            PACKAGE_DIR, "workflow/config/cookiecutter_config", f"config_{method}"
-        ),
-    ]
+    import seqnado.config as config
+    config.create_config(method, genome)
 
-    if cookiecutter_options:
-        cmd.extend(cookiecutter_options)
-
-    completed = subprocess.run(cmd)
 
 
 @click.command()
@@ -58,7 +52,7 @@ def cli_design(method, files, output="design.csv"):
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument(
     "method",
-    type=click.Choice(["atac", "chip", "rna", "snp", "chip-rx", "consensus-peaks"]),
+    type=click.Choice(["atac", "chip", "rna", "snp", "consensus-peaks"]),
 )
 @click.option("--version", help="Print version and exit", is_flag=True)
 @click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)

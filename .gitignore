@@ -11,8 +11,7 @@ dist/*
 **.egg-info
 .ipynb_checkpoints/
 seqnado/_version.py
-
-2023*
-tests/test_chip_rx.py
 test.json
 fastq_class_sandbox.ipynb
+2023*
+2024*

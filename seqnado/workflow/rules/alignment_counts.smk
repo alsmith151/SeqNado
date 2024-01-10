@@ -4,7 +4,7 @@ rule feature_counts:
     input:
         bam=expand("seqnado_output/aligned/{sample}.bam", sample=SAMPLE_NAMES),
         bai=expand("seqnado_output/aligned/{sample}.bam.bai", sample=SAMPLE_NAMES),
-        annotation=config["genome"]["annotation"],
+        annotation=config["genome"]["gtf"],
     output:
         counts="seqnado_output/feature_counts/read_counts.tsv",
     params:

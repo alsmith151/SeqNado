@@ -53,6 +53,7 @@ include: "rules/alignment_counts.smk"
 include: "rules/pileup.smk"
 include: "rules/deseq2_rna.smk"
 include: "rules/hub.smk"
+include: "rules/heatmap.smk"
 
 
 # Define output files

@@ -3,9 +3,9 @@ if config["run_deseq2"]:
     rule deseq2_report_rnaseq:
         input:
             counts="seqnado_output/feature_counts/read_counts.tsv",
-            qmd=f"DESeq2_{config['deseq2']['project_id']}.qmd",
+            qmd=f"DESeq2_{config['project_name']}.qmd",
         output:
-            deseq2=f"DESeq2_{config['deseq2']['project_id']}.html",
+            deseq2=f"DESeq2_{config['project_name']}.html",
         log:
             "seqnado_output/logs/deseq2/deseq2.log",
         container:
