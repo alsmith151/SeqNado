@@ -136,8 +136,7 @@ def test_seqnado_config_creation(
 
     cmd = [
         "seqnado-config", 
-        "atac",
-        "-g other"
+        "atac"
     ]        
 
     # Run the script with subprocess

@@ -137,7 +137,6 @@ def test_seqnado_config_creation(
     cmd = [
         "seqnado-config", 
         "chip"
-        "-g other"
     ]
 
     # Run the script with subprocess
