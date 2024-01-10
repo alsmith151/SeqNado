@@ -48,7 +48,7 @@ use rule samtools_stats as samtools_stats_filtered with:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
 
 
-def get_fastqc_files(wildcards):
+def get_fastqc_files(*args, **kwargs):
     """Return a list of fastq files for a given sample name."""
     import pathlib
 
