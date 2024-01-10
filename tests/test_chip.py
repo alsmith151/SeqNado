@@ -134,7 +134,11 @@ def test_seqnado_config_creation(
     config_file_path = temp_dir / f"{date}_chip_test/config_chip.yml"
     user_inputs = "\n".join(user_inputs.values())
 
-    cmd = ["seqnado-config", "chip"]
+    cmd = [
+        "seqnado-config", 
+        "chip"
+        "-g other"
+    ]
 
     # Run the script with subprocess
     process = subprocess.Popen(
