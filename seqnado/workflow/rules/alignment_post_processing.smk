@@ -14,7 +14,7 @@ rule sort_bam:
     shell:"""
         samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M &&
         echo 'Sorted bam number of mapped reads:' > {log} 2>&1 &&
-        samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
+        samtools view -f 2 -c {output.bam} >> {log} 2>&1
         """
 
 rule index_bam:
@@ -48,7 +48,7 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
             samtools index -b {output.bam} -o {output.bai} &&
             echo "Removed blacklisted regions" > {log} &&
             echo 'Number of mapped reads' >> {log} 2>&1 &&
-            samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
+            samtools view -f 2 -c {output.bam} >> {log} 2>&1
             """
 
 else:
@@ -69,7 +69,7 @@ else:
                 mv {input.bai} {output.bai} &&
                 echo "No blacklisted regions specified" > {log} &&
                 echo 'Number of mapped reads' >> {log} 2>&1 &&
-                samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
+                samtools view -f 2 -c {output.bam} >> {log} 2>&1
                 """
 
 
@@ -94,7 +94,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
             picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} > {log} 2>&1 && 
             mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
             echo 'duplicates_removed bam number of mapped reads:' >> {log} 2>&1 &&
-            samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
+            samtools view -f 2 -c {output.bam} >> {log} 2>&1
             """
 
 else:
@@ -132,7 +132,7 @@ if config["shift_atac_reads"]:
             samtools sort {output.tmp} -@ {threads} -o {output.bam} && 
             samtools index {output.bam} && 
             echo 'Shifted reads' > {log} 2>&1 &&
-            samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
+            samtools view -f 2 -c {output.bam} >> {log} 2>&1
             """
         
 else:
@@ -151,7 +151,7 @@ else:
             mv {input.bam} {output.bam} && 
             mv {input.bam}.bai {output.bai} && 
             echo 'Number of reads' >> {log} 2>&1 &&
-            samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
+            samtools view -f 2 -c {output.bam} >> {log} 2>&1
             """
 
 rule move_bam_to_final_location:
@@ -168,7 +168,7 @@ rule move_bam_to_final_location:
         mv {input.bai} {output.bai} &&    
         echo "BAM moved to final location" > {log} && 
         echo 'Number of reads' > {log} 2>&1 &&
-        samtools view -F 0x04 -c {output.bam} >> {log} 2>&1
+        samtools view -f 2 -c {output.bam} >> {log} 2>&1
         """
 
 localrules: move_bam_to_final_location

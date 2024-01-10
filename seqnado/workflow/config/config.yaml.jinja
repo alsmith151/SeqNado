@@ -1,0 +1,57 @@
+user: "{{username}}"
+project_date: "{{project_date}}"
+project_name: "{{project_name}}"
+
+design: "design.csv"
+
+###################################
+# Essential configuration options #
+###################################
+
+genome:
+    name: "{{genome}}"
+    indicies: "{{indicies}}"
+    chromosome_sizes: "{{chromosome_sizes}}"
+    gtf: "{{gtf}}"
+
+read_type: "{{read_type}}"
+
+remove_blacklist: "{{remove_blacklist}}"
+blacklist: "{{blacklist}}"
+
+remove_pcr_duplicates_method: "{{remove_pcr_duplicates_method}}"
+
+shift_atac_reads: "{{shift_atac_reads}}"
+
+spikein: "{{spikein}}"
+spikein_options:
+    normalisation_method: "{{normalisation_method}}"
+    reference_genome: "{{reference_genome}}"
+    spikein_genome: "{{spikein_genome}}"
+    fastq_screen_config: "{{fastq_screen_config}}"
+
+split_fastq: "{{split_fastq}}"
+split_fastq_parts: "{{split_fastq_parts}}"
+
+make_bigwigs: "{{make_bigwigs}}"  
+pileup_method: "{{pileup_method}}"
+make_heatmaps: "{{make_heatmaps}}"
+
+call_peaks: "{{call_peaks}}"
+peak_calling_method: "{{peak_calling_method}}"
+
+run_deseq2: "{{run_deseq2}}"
+
+make_ucsc_hub: "{{make_ucsc_hub}}"
+ucsc_hub_details:
+    directory: "{{UCSC_hub_directory}}"
+    name: "{{project_name}}"
+    short: "{{project_name}}"
+    long: "{{project_name}}"
+    email: "{{email}}"
+    color_by: "{{color_by}}"
+
+#################################
+# Tool specific options         #
+#################################
+{{options}}

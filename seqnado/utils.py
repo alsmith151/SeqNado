@@ -121,6 +121,7 @@ def check_options(value: object):
 
 def define_output_files(
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    chip_spikein_normalisation: bool = False,
     sample_names: list = None,
     pileup_method: list = None,
     peak_calling_method: list = None,
@@ -140,6 +141,14 @@ def define_output_files(
     ]
     assay_output = []
 
+    if make_heatmaps:
+            assay_output.extend(
+                [
+                    "seqnado_output/heatmap/heatmap.pdf",
+                    "seqnado_output/heatmap/metaplot.pdf",
+                ]
+            )
+
     if make_ucsc_hub:
         hub_dir = kwargs["ucsc_hub_details"].get("directory")
         hub_name = kwargs["ucsc_hub_details"].get("name")
@@ -147,6 +156,15 @@ def define_output_files(
         analysis_output.append(hub_file)
 
     if assay in ["ChIP", "ATAC"]:
+        if chip_spikein_normalisation:
+            if assay == "ChIP":
+                assay_output.extend(
+                    [
+                        "seqnado_output/qc/full_fastqscreen_report.html",
+                        "seqnado_output/normalisation_factors.tsv",
+                    ]
+                )
+
         if make_bigwigs and pileup_method:
             assay_output.extend(
                 expand(
@@ -174,15 +192,6 @@ def define_output_files(
                     )
                 )
 
-        if make_heatmaps:
-            assay_output.extend(
-                expand(
-                    "seqnado_output/heatmap/{method}/{sample}.png",
-                    sample=sample_names,
-                    method=pileup_method,
-                )
-            )
-
     elif assay == "RNA":
         if make_bigwigs and pileup_method:
             assay_output.extend(
@@ -194,7 +203,7 @@ def define_output_files(
                 )
             )
 
-        if kwargs["run_deseq2"]:
+        if run_deseq2:
             project_id = kwargs["deseq2"].get("project_id")
             assay_output.append(f"DESeq2_{project_id}.html")
 
