@@ -46,6 +46,10 @@ jobs:
     - name: Conda list
       shell: pwsh
       run: mamba list
+    - name: Test config works
+      shell: pwsh
+      run: |
+        seqnado-config chip
     - name: Test design works
       shell: pwsh
       run: |
