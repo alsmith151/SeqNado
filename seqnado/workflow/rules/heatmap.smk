@@ -19,7 +19,7 @@ rule heatmap_matrix:
     threads: 
         config["deeptools"]["threads"],
     resources:
-        time="02:00:00",
+        time='0-08:00:00',
         mem_mb=lambda wildcards, attempt: 16000 * 2**attempt,
     log: 
         "seqnado_output/logs/heatmap/matrix.log",
