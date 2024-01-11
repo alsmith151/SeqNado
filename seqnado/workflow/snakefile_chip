@@ -73,8 +73,9 @@ rule all:
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")
     sps_files = glob.glob("sps-*")
+    simg_files = glob.glob("*.simg")
 
-    for fn in [*slurm_files, *sps_files]:
+    for fn in [*slurm_files, *sps_files, *simg_files]:
         try:
             if not os.path.isdir(fn):
                 os.remove(fn)

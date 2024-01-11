@@ -119,7 +119,6 @@ def setup_configuration(assay, genome, template_data):
     if template_data['split_fastq']:
         template_data.update['split_fastq_parts'] = get_user_input("How many parts do you want to split the FASTQ files into?", default="4")
 
-    
     template_data['make_bigwigs'] = get_user_input("Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True)
     if template_data['make_bigwigs']:
         template_data['pileup_method'] = get_user_input("Pileup method:", default="deeptools", choices=["deeptools", "homer"])
@@ -184,7 +183,7 @@ lanceotron:
     callpeak: -c 0.5
 
 heatmap:
-    options:
+    options: --binSize 100 --beforeRegionStartLength 3000 --afterRegionStartLength 3000 --regionBodyLength 5000
     colormap: RdYlBu_r
 """
 
@@ -215,7 +214,7 @@ deeptools:
     bamcoverage: -bs 1 --normalizeUsing CPM
 
 heatmap:
-    options:
+    options: --binSize 100 --beforeRegionStartLength 3000 --afterRegionStartLength 3000 --regionBodyLength 5000
     colormap: RdYlBu_r
 """
 

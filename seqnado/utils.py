@@ -195,7 +195,7 @@ class GenericFastqSamples:
     @property
     def sample_names_all(self):
         return self.design["sample"].to_list()
-
+    
     @property
     def translation(self):
         fq_translation = {}
@@ -346,6 +346,16 @@ def define_output_files(
                 )
 
     elif assay == "RNA":
+        assay_output.extend(
+            [
+                "seqnado_output/feature_counts/read_counts.tsv",
+                *expand(
+                    "seqnado_output/aligned/{sample}.bam",
+                    sample=sample_names,
+                ),
+            ]
+        )
+
         if make_bigwigs and pileup_method:
             assay_output.extend(
                 expand(
@@ -357,18 +367,9 @@ def define_output_files(
             )
             
         if run_deseq2:
-            project_id = kwargs["deseq2"].get("project_id")
-            assay_output.append(f"DESeq2_{project_id}.html")
+            project_id = kwargs["project_name"]
+            assay_output.append(f"deseq2_{project_id}.html")
 
-        assay_output.extend(
-            [
-                "seqnado_output/feature_counts/read_counts.tsv",
-                *expand(
-                    "seqnado_output/aligned/{sample}.bam",
-                    sample=sample_names,
-                ),
-            ]
-        )
 
     elif assay == "SNP":
         if call_snps:
