@@ -18,17 +18,18 @@ license = {text = "GNU GENERAL PUBLIC LICENSE Version 3"}
 dynamic = ["version"]
 dependencies = [
     "click",
-    "pandas",
     "cookiecutter",
-    "pyyaml",
-    "snakemake<=9.0.0",
-    "setuptools_scm",
     "drmaa",
-    "seaborn",
-    "wget",
-    "tracknado",
+    "pandas",
+    "pulp<=2.7.0"
     "pydantic",
-    "snakemake-wrapper-utils"
+    "pyyaml",
+    "seaborn",
+    "setuptools_scm",
+    "snakemake-wrapper-utils",
+    "snakemake<=9.0.0",
+    "tracknado",
+    "wget",
 ]
 
 [project.scripts]
