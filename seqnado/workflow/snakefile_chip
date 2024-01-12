@@ -69,7 +69,7 @@ if config["spikein"]:
     ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
     ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
     ANALYSIS_OUTPUT.append("seqnado_output/qc/full_fastqscreen_report.html",)
-    
+
 
 
 # Define wildcard constraints
