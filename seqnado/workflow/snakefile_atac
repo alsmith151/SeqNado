@@ -56,11 +56,6 @@ include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
 
-wildcard_constraints:
-    read = r"[12]",
-    sample = r"[A-Zaz0-9_-]+"
-
-
 rule all:
     input:
         ANALYSIS_OUTPUT
