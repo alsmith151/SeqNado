@@ -449,8 +449,33 @@ class DesignIP(BaseModel):
 
     @computed_field
     @property
+    def sample_names_ip(self) -> List[str]:
+        sample_names = set()
+        for experiment in self.assays.values():
+            sample_names.add(experiment.ip_files.name)
+
+        return list(sample_names)
+
+    @property
+    def sample_names_control(self) -> List[str]:
+        sample_names = set()
+        for experiment in self.assays.values():
+            if experiment.control is not None:
+                sample_names.add(experiment.control_files.name)
+
+        return list(sample_names)
+
+    @property
     def sample_names(self) -> List[str]:
-        return list(self.assays.keys())
+        return self.sample_names_ip + self.sample_names_control
+
+    @property
+    def ip_names(self) -> List[str]:
+        return list(set([experiment.ip for experiment in self.assays.values()]))
+
+    @property
+    def control_names(self) -> List[str]:
+        return list(set([experiment.control for experiment in self.assays.values()]))
 
     @computed_field
     @property
@@ -599,10 +624,16 @@ def symlink_files(
     r2_path_new = pathlib.Path(f"{output_dir}/{assay_name}_2.fastq.gz")
 
     if not r1_path_new.exists():
-        r1_path_new.symlink_to(assay.r1.path)
+        try:
+            r1_path_new.symlink_to(assay.r1.path.resolve())
+        except FileExistsError:
+            logger.warning(f"Symlink for {r1_path_new} already exists.")
 
     if assay.r2 and not r2_path_new.exists():
-        r2_path_new.symlink_to(assay.r2.path)
+        try:
+            r2_path_new.symlink_to(assay.r2.path.resolve())
+        except FileExistsError:
+            logger.warning(f"Symlink for {r2_path_new} already exists.")
 
 
 def symlink_fastq_files(
@@ -620,12 +651,14 @@ def symlink_fastq_files(
 
     elif isinstance(design, DesignIP):
         for experiment_name, experiment in design.assays.items():
-            for assay_name, assay in experiment.ip_files.items():
-                symlink_files(output_dir, assay, assay_name)
+            assay = experiment.ip_files
+            assay_name = assay.name
+            symlink_files(output_dir, assay, assay_name)
 
             if experiment.control_files:
-                for assay_name, assay in experiment.control_files.items():
-                    symlink_files(output_dir, assay, assay_name)
+                assay = experiment.control_files
+                assay_name = assay.name
+                symlink_files(output_dir, assay, assay_name)
 
 
 def define_output_files(
@@ -676,7 +709,7 @@ def define_output_files(
                 assay_output.extend(
                     expand(
                         "seqnado_output/peaks/{method}/{ip}.bed",
-                        ip=kwargs["sample_names_ip"],
+                        ip=kwargs["ip"],
                         method=peak_calling_method,
                     )
                 )
