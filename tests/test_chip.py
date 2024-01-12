@@ -1,10 +1,10 @@
 import glob
 import os
+import pathlib
+import pytest
 import shutil
 import subprocess
 from datetime import datetime
-from cookiecutter.main import cookiecutter
-import pytest
 
 
 @pytest.fixture(scope="module")
@@ -93,54 +93,79 @@ def run_directory(tmpdir_factory):
     return fn
 
 
+@pytest.fixture(scope="module")
+def user_inputs(
+    data_path,
+    genome_indicies,
+    chromsizes,
+):
+    return {
+        "project_name": "test",
+        "genome_name": "hg19",
+        "index": genome_indicies,
+        "chromsizes": chromsizes,
+        "gtf": f"{data_path}/genome/chr21.gtf",
+        "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
+        "read_type": "paired",
+        "remove_blacklist": "yes",
+        "remove_pcr_duplicates": "yes",
+        "remove_pcr_duplicates_method": "picard",
+        "spikein": "no",
+        "split_fastq": "no",
+        "make_bigwigs": "yes",
+        "pileup_method": "deeptools",
+        "make_heatmaps": "yes",
+        "call_peaks": "yes",
+        "peak_calling_method": "lanceotron",
+        "make_ucsc_hub": "yes",
+        "UCSC_hub_directory": "test_hub",
+        "email": "test",
+        "color_by": "samplename",
+    }
+
+@pytest.fixture(scope="module")
+def test_seqnado_config_creation(
+    run_directory,
+    user_inputs
+    ):
+    temp_dir = pathlib.Path(run_directory)
+    date = datetime.now().strftime("%Y-%m-%d")
+    config_file_path = temp_dir / f"{date}_chip_test/config_chip.yml"
+    user_inputs = "\n".join(user_inputs.values())
+
+    cmd = [
+        "seqnado-config", 
+        "chip"
+    ]
+
+    # Run the script with subprocess
+    process = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=temp_dir
+    )
+
+    stdout, stderr = process.communicate(input=user_inputs)
+
+    # Assert that the config file was created
+    assert os.path.exists(config_file_path), "Config file not created."
+    
 @pytest.fixture(scope="module", autouse=True)
 def set_up(
     run_directory,
-    data_path,
-    package_path,
-    repo_path,
-    genome_indicies,
-    chromsizes,
     fastqs,
-    config_path,
+    user_inputs,
+    test_seqnado_config_creation
 ):
     cwd = os.getcwd()
     os.chdir(run_directory)
 
-    cookiecutter(
-        f"{package_path}/workflow/config/cookiecutter_config/config_chip/",
-        extra_context={
-            "genome": "hg19",
-            "date": "{% now 'utc', '%Y-%m-%d' %}",
-            "project_name": "test",
-            "chromosome_sizes": chromsizes,
-            "indicies": genome_indicies,
-            "design": "design.csv",
-            "read_type": "paired",
-            "split_fastq": "False",
-            "split_fastq_parts": "1",
-            "remove_pcr_duplicates_method": "picard",
-            "shift_atac_reads": "no",
-            "remove_blacklist": "yes",
-            "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
-            "make_bigwigs": "yes",
-            "pileup_method": "deeptools",
-            "make_heatmaps": "yes",
-            "call_peaks": "yes",
-            "peak_calling_method": "lanceotron",
-            "remove_pcr_duplicates_method": "picard",
-            "make_ucsc_hub": "yes",
-            "UCSC_hub_directory": "test_hub",
-            "email": "test",
-            "color_by": "samplename",
-            "gtf": f"{data_path}/genome/chr21.gtf",
-        },
-        no_input=True,
-    )
-
     # Move config files and fastq files
     current_date = datetime.now().strftime("%Y-%m-%d")
-    os.chdir(f"{current_date}_test")
+    os.chdir(f"{current_date}_chip_test")
     for fq in fastqs:
         shutil.copy(fq, ".")
 

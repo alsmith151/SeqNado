@@ -4,41 +4,46 @@ import shutil
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
-import seqnado.utils
+from seqnado.utils import DesignIP
+import seqnado.utils as utils
 import pandas as pd
 
+####################
+# Hardcoded config #
+####################
 ASSAY = "ChIP"
 configfile: "config_chip.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
-seqnado.utils.format_config_dict(config)
+####################
+# Experiment config #
+####################
 
-# Get experiment design
+# Load config
+utils.format_config_dict(config)
+
+# Generate design
 if os.path.exists(config["design"]):
-    # Expect columns - sample fq1 fq2 antibody control
-    FASTQ_SAMPLES = seqnado.utils.ChipseqFastqSamples(
-        pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
-    )
-    assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
-
-    for col in ["sample", "fq1", "fq2", "antibody", "control"]:
-        assert col in FASTQ_SAMPLES.design.columns, f"Design file must contain columns sample, fq1, fq2, antibody, control. Columns found: {FASTQ_SAMPLES.design.columns}"
-
+    df = pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
+    DESIGN = DesignIP.from_dataframe(df)
 else:
-    # Use pattern matching to get samples
-    fq_files = list(seqnado.utils.get_fastq_files("."))
-    if fq_files:
-        FASTQ_SAMPLES = seqnado.utils.ChipseqFastqSamples.from_files(fq_files)
-    else:
-        raise ValueError("No FASTQ files found in the working directory")
+    DESIGN = DesignIP.from_directory(".")
 
-DESIGN = FASTQ_SAMPLES.design
-ANTIBODIES = FASTQ_SAMPLES.antibodies
-SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
-SAMPLE_NAMES_IP = FASTQ_SAMPLES.sample_names_ip
-SAMPLE_NAMES_CONTROL = FASTQ_SAMPLES.sample_names_control
-SAMPLE_NAMES_PAIRED = FASTQ_SAMPLES.paired_ip_and_control
+# Attempt to symlink the fastq files
+assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directory or no design file provided."
+utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
+
+
+
+# Define global variables
+SAMPLE_NAMES = DESIGN.sample_names
+SAMPLE_NAMES_IP = DESIGN.sample_names_ip
+SAMPLE_NAMES_CONTROL = DESIGN.sample_names_control
+IP = DESIGN.ip_names
+CONTROL = DESIGN.control_names
+
+# Load required rules
 include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
@@ -49,11 +54,30 @@ include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
 
-ANALYSIS_OUTPUT = seqnado.utils.define_output_files(sample_names=SAMPLE_NAMES,
+# Define output files
+ANALYSIS_OUTPUT = seqnado.utils.define_output_files(
+                                            sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
-                                            sample_names_ip=SAMPLE_NAMES_IP,
+                                            ip=SAMPLE_NAMES_IP,
                                             **config
                                             )
+
+if config["spikein"]:
+    include: "rules/chip_refnorm.smk"
+    include: "rules/normalisation.smk"
+    ruleorder: move_ref_bam > align_paired
+    ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
+    ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
+    ANALYSIS_OUTPUT.append("seqnado_output/qc/full_fastqscreen_report.html",)
+
+
+
+# Define wildcard constraints
+wildcard_constraints:
+    read = r"[12]",
+    sample = "|".join(SAMPLE_NAMES),
+    treatment= "|".join(SAMPLE_NAMES_IP),
+    control = "|".join(SAMPLE_NAMES_CONTROL),
 
 
 

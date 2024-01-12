@@ -4,41 +4,50 @@ import shutil
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
+from seqnado.utils import Design
 import seqnado.utils as utils
 import pandas as pd
 
+####################
+# Hardcoded config #
+####################
 ASSAY = "ATAC"
 configfile: "config_atac.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
 
+####################
+# Experiment config #
+####################
+
+# Load config
 utils.format_config_dict(config)
 
-# Get experiment design
+# Generate design
 if os.path.exists(config["design"]):
-    # Expect columns - sample fq1 fq2
-    FASTQ_SAMPLES = utils.GenericFastqSamples(
-        pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
-    )
-    assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
-    for col in ["sample", "fq1", "fq2"]:
-        assert col in FASTQ_SAMPLES.design.columns, f"Design file must contain columns sample, fq1, fq2. Columns found: {FASTQ_SAMPLES.design.columns}"
-
+    df = pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
+    DESIGN = Design.from_dataframe(df)
 else:
-    # Use pattern matching to get samples
-    fq_files = list(utils.get_fastq_files("."))
-    if fq_files:
-        FASTQ_SAMPLES = utils.GenericFastqSamples.from_files(fq_files)
-    else:
-        raise ValueError("No FASTQ files found in the working directory")
+    DESIGN = Design.from_directory(".")
+
+# Attempt to symlink the fastq files
+assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directory or no design file provided."
+utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
-# Design
-DESIGN = FASTQ_SAMPLES.design
-SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
+# Define global variables
+SAMPLE_NAMES = DESIGN.sample_names
+ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
+                                            assay=ASSAY,
+                                            **config)
 
-include: "rules/qc.smk"
+
+###################
+# Pipeline config #
+###################
+
 include: "rules/fastq_trim.smk"
+include: "rules/qc.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call.smk"
@@ -46,10 +55,6 @@ include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
-
-ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES, 
-                                            assay=ASSAY,
-                                            **config)
 
 rule all:
     input:
