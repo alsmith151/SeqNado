@@ -11,7 +11,10 @@ rule align_paired:
         prefix="seqnado_output/aligned/star/{sample}_"
     output:
         bam=temp("seqnado_output/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),
-        bam2=temp("seqnado_output/aligned/star/{sample}_Aligned.toTranscriptome.out.bam"),
+        star_out=temp(
+            "seqnado_output/aligned/star/{sample}_{ext}", 
+            ext = ["_Aligned.toTranscriptome.out.bam", "Log.out", "Log.progress.out", "ReadsPerGene.out.tab", "SJ.out.tab"]
+            ),
     threads: config["star"]["threads"]
     resources:
         mem_mb=32000,
