@@ -13,7 +13,7 @@ authors = [
     {name = "Catherine Chahrour", email = "catherine.chahrour@msdtc.ox.ac.uk"}]
 description = "Pipelines for genomics analysis"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 license = {text = "GNU GENERAL PUBLIC LICENSE Version 3"}
 dynamic = ["version"]
 dependencies = [
@@ -21,7 +21,7 @@ dependencies = [
     "pandas",
     "cookiecutter",
     "pyyaml",
-    "snakemake<=7.32.3",
+    "snakemake<=9.0.0",
     "setuptools_scm",
     "drmaa",
     "seaborn",
