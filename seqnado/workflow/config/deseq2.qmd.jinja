@@ -24,7 +24,7 @@ knitr::opts_chunk$set(
 	fig.width = 8,
 	message = FALSE,
 	warning = FALSE,
-	cache = TRUE,
+	cache = FALSE,
 	cache.lazy = FALSE,
   results = 'asis'	
 )
@@ -39,33 +39,50 @@ suppressPackageStartupMessages(library(circlize))
 suppressPackageStartupMessages(library(qvalue))
 suppressPackageStartupMessages(library(DT))
 suppressPackageStartupMessages(library(clusterProfiler))
+suppressPackageStartupMessages(library(org.Hs.eg.db))
+suppressPackageStartupMessages(library(msigdbr))
+suppressPackageStartupMessages(library(fgsea))
 ```
 
-# Sample Information {.tabset}
+# Background {.tabset}
+
+::: panel-tabset
+
+## Sample information
 
 ```{r sample_information}
 sample_info <- read.csv("design.csv") %>%
-  select(-contains("fq")) %>%
+  dplyr::select(-contains("fq")) %>%
   mutate(deseq2 = fct_relevel(deseq2, "control")) %>%
   arrange(deseq2)
 
-kable(sample_info, align = "c", format = "simple", row.names = FALSE)
+print(kable(sample_info, align = "l", format = "simple", row.names = FALSE))
 
 ```
 
-# Counts
+## Counts
 
 ```{r counts}
 counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#") %>%
   rename_with(~ gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", .), everything()) %>%
   column_to_rownames(var = "Geneid") %>%
-  select(one_of(make.names(sample_info$sample))) %>%
+  dplyr::select(one_of(make.names(sample_info$sample))) %>%
   setNames(sample_info$sample) %>%
   filter(rowSums(.) > 0)
 
+total_counts <- data.frame(
+  sample = colnames(counts), 
+  total_counts = colSums(counts), 
+  mean_counts = colMeans(counts))
+
+print(kable(total_counts, align = "l", format = "simple", row.names = FALSE))
+
 ```
+:::
 
 # DE analysis - DESeq2 {.tabset}
+
+::: panel-tabset
 
 ```{r DEseq2}
 de_dir <- "seqnado_output/deseq2_results/"
@@ -94,14 +111,14 @@ mean_normCounts <- normCounts %>%
       group_info <- filter(sample_info, deseq2 == ind_group)
       sam_names <- group_info$sample
       sub_mean <- normCounts %>%
-        select(all_of(sam_names)) %>%
+        dplyr::select(all_of(sam_names)) %>%
         rowMeans(na.rm = TRUE) %>%
         as_tibble() %>%
         rename(!!paste0("mean_", unique(group_info$deseq2)) := value)
     })
   ) %>%
   rownames_to_column(var = "gene") %>%
-  select(gene, starts_with("mean"))
+  dplyr::select(gene, starts_with("mean"))
 
 
 DE_results <- as.data.frame(res) %>%
@@ -113,8 +130,6 @@ DE_results <- as.data.frame(res) %>%
 outname <- paste0(de_dir, "DEseq2_", res_names, ".csv")
 write.csv(DE_results, outname, row.names = FALSE)
 ```
-
-::: {.panel-tabset}
 
 ## Sample distance matrix {.tabset}
 
@@ -149,7 +164,7 @@ HM_sampleDists <- Heatmap(
 draw(HM_sampleDists, merge_legend = TRUE)
 ```
 
-## Overview by PCA {.tabset}
+## Overview by PCA
 
 Normalisation was performed in DESeq2 and data vst transformed to allow for visualisation.
 
@@ -183,12 +198,11 @@ qobj <- qvalue(p = DE_results$pvalue)
 summary(qobj)
 
 ```
-
 :::
 
 # DE results - DESeq2 {.tabset}
 
-::: {.panel-tabset}
+::: panel-tabset
 
 ## Number of DE genes
 
@@ -260,12 +274,11 @@ kable(
     )
   )
 ```
-
 :::
 
 # Plots {.tabset}
 
-::: {.panel-tabset}
+::: panel-tabset
 
 ## Heatmap - DE genes
 
@@ -277,7 +290,7 @@ DE_results_sig <- DE_results[DE_results$padj < 0.05,]
 DEmat <- normCounts %>%
   as.data.frame() %>%
   filter(gene %in% DE_results_sig$gene) %>%
-  select(-matches("gene"), everything()) %>%  # Ensure no duplicate 'gene' column
+  dplyr::select(-matches("gene"), everything()) %>%  # Ensure no duplicate 'gene' column
   column_to_rownames(var = "gene") %>%
   t() %>%
   scale() %>%
@@ -347,19 +360,12 @@ draw(DEheatmap, heatmap_legend_side = "bottom", annotation_legend_side = "right"
 labelled - 5 top (by padj) upregulated and downregulated significant DE genes p-adj \< 0.05
 
 ```{r volcano}
-display.brewer.all(colorblindFriendly = T)
-RdBu
 colors <- brewer.pal(5, "RdBu")[c(5,1)] %>% 
   append("grey") %>% 
   set_names(c("Down", "Up", "NotSig"))
-"#EF8A62" "#67A9CF"    "grey"
-
-print(g)
-colors <- c("#0072B2", "#D55E00", "grey") %>%
-  set_names(c("Down", "Up", "NotSig"))
 
 res4plot <- DE_results %>%
-  select(gene, log2FoldChange, padj) %>%
+  dplyr::select(gene, log2FoldChange, padj) %>%
   arrange(padj) %>% 
   mutate(
     DE = case_when(
@@ -397,7 +403,7 @@ labelled - 5 top (by logFC) upregulated and downregulated significant DE genes p
 
 ```{r MA_plot}
 res4MAplot <- DE_results %>%
-  select(gene, baseMean, log2FoldChange, padj) %>%
+  dplyr::select(gene, baseMean, log2FoldChange, padj) %>%
   arrange(desc(abs(log2FoldChange))) %>%
   mutate(
     significant = case_when(
@@ -426,9 +432,7 @@ print(g)
 
 ```
 
-:::
-
-# Top 12 DE genes {.tabset}
+## Top 12 DE genes
 
 ```{r top_DEgenes}
 top_DE_genes <- normCounts %>%
@@ -453,8 +457,127 @@ p <- ggplot(data = top_DE_genes, aes(x = deseq2, y = count, color = deseq2)) +
 
 print(p)
 ```
+:::
+
+# Gene Ontology - Biological Process {.tabset}
+
+::: panel-tabset
+
+## downregulated
+
+```{r go_downreg}
+background_genes <- normCounts$gene
+bg_gene.df <- bitr(background_genes, fromType = "SYMBOL", 
+        toType = c("ENSEMBL", "ENTREZID"), 
+        OrgDb = org.Hs.eg.db)
+  
+down_sig <- DE_results[DE_results$padj < 0.05 & DE_results$log2FoldChange < 0, ]$gene
+
+if (length(down_sig > 0)) {
+  gene.df <- bitr(
+    down_sig, fromType = "SYMBOL", 
+    toType = c("ENSEMBL", "ENTREZID"), 
+    OrgDb = org.Hs.eg.db)
+
+  ego_down <- enrichGO(
+    gene = gene.df$ENTREZID, 
+    OrgDb = org.Hs.eg.db, 
+    universe = bg_gene.df$ENTREZID, 
+    keyType = 'ENTREZID', 
+    ont = "BP", 
+    pAdjustMethod = "BH", 
+    pvalueCutoff  = 0.05)
+  if (nrow(ego_down) > 0) {
+    ego_down <- setReadable(ego_down, OrgDb = org.Hs.eg.db)
+    print(dotplot(ego_down, showCategory=20))
+  }
+} else {
+  print("No downregulated genes")
+  cat("\n \n")
+}
+
+```
+
+## upregulated
+
+```{r go_upreg}
+up_sig <- DE_results[DE_results$padj < 0.05 & DE_results$log2FoldChange > 0, ]$gene
+
+if (length(up_sig > 0)) {
+  gene.df_up <- bitr(
+    up_sig, fromType = "SYMBOL", 
+    toType = c("ENSEMBL", "ENTREZID"), 
+    OrgDb = org.Hs.eg.db)
+
+  ego_up <- enrichGO(
+    gene = gene.df_up$ENTREZID, 
+    OrgDb = org.Hs.eg.db, 
+    universe = bg_gene.df$ENTREZID, 
+    keyType = 'ENTREZID', 
+    ont = "BP", 
+    pAdjustMethod = "BH", 
+    pvalueCutoff  = 0.1)
+  if (nrow(ego_up) > 0) {
+    ego_up <- setReadable(ego_up, OrgDb = org.Hs.eg.db)
+    print(dotplot(ego_up, showCategory=20))
+  }
+} else {
+  print("No upregulated genes")
+  cat("\n \n")
+}
+
+
+```
+:::
+
+# GSEA {.tabset}
+
+::: panel-tabset
+
+## GSEA Summary
+
+```{r gsea}
+
+pathwaysDF <- msigdbr(species = "Homo sapiens", category="H")
+pathways <- split(as.character(pathwaysDF$gene_symbol), pathwaysDF$gs_name)
+
+resrnk <- DE_results[!duplicated(DE_results$gene), c("gene", "stat")]
+ranks <- as.numeric(resrnk$stat)
+names(ranks) <- resrnk$gene
+
+set.seed(123)
+gsea_result <- fgsea(
+  pathways = pathways, 
+  stats = ranks, 
+  minSize = 15, 
+  maxSize = 500)
+  
+gsea_result <- gsea_result %>%
+  mutate(significant = ifelse(padj < 0.25, "<0.25", ">0.25")) %>%
+  arrange(NES)
+  
+p <- ggplot(gsea_result, aes(x = NES, y = reorder(pathway, NES))) +
+  geom_point(aes(size = size, color = padj, shape = significant)) +
+  geom_vline(xintercept = 0, colour = "grey") +
+  scale_colour_gradient(name = "padj", 
+                        low = "#D55E00", high = "#0072B2") +
+  scale_shape_manual(values = c(19, 1)) +
+  theme_light() +
+  theme(axis.text = element_text(size = 8), 
+        axis.title = element_text(size = 12, face = "bold"), 
+        legend.title = element_text(size = 10), 
+        legend.text = element_text(size = 10)) +
+  xlim(-4, 4) +
+  ylab("Pathway") +
+  ggtitle(res_names)
+print(p)
+
+```
+
+:::
 
 # Session Info
+
 
 ```{r session_info, results='markup'}
 sessionInfo()
