@@ -44,12 +44,25 @@ suppressPackageStartupMessages(library(clusterProfiler))
 # Sample Information {.tabset}
 
 ```{r sample_information}
-sample_info <- read.csv("design.csv", stringsAsFactors = T)
-sample_info <- sample_info[,colnames(sample_info)[!grepl("fq", colnames(sample_info))]]
-sample_info$deseq2 <- relevel(sample_info$deseq2, ref = "control")
-sample_info <- sample_info[order(sample_info$deseq2),]
+sample_info <- read.csv("design.csv") %>%
+  select(-contains("fq")) %>%
+  mutate(deseq2 = fct_relevel(deseq2, "control")) %>%
+  arrange(deseq2)
 
-kable(sample_info, row.names = F, align = "c", "simple")
+kable(sample_info, align = "c", format = "simple", row.names = FALSE)
+
+```
+
+# Counts
+
+```{r counts}
+counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#") %>%
+  rename_with(~ gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", .), everything()) %>%
+  column_to_rownames(var = "Geneid") %>%
+  select(one_of(make.names(sample_info$sample))) %>%
+  setNames(sample_info$sample) %>%
+  filter(rowSums(.) > 0)
+
 ```
 
 # DE analysis - DESeq2 {.tabset}
@@ -59,13 +72,6 @@ de_dir <- "seqnado_output/deseq2_results/"
 unlink(de_dir, recursive = T)
 dir.create(de_dir)
 
-counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#")
-colnames(counts) <- gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", colnames(counts))
-rownames(counts) <- counts$Geneid
-counts <- counts[,colnames(counts) %in% make.names(sample_info$sample)]
-colnames(counts) <- sample_info$sample
-counts <- counts[rowSums(counts)>0, ]
-
 dds <- DESeqDataSetFromMatrix(countData = counts,
                               colData = sample_info,
                               design = ~ deseq2)
@@ -73,38 +79,39 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
 dds <- DESeq(dds, quiet = T)
 vst <- suppressMessages(vst(dds))
 
-res_names <- resultsNames(dds)[-1] 
+res_names <- resultsNames(dds)[-1]
 res <- results(dds, name = res_names)
 
-normCounts <- counts(dds, normalized = T)
-outname_cnts <- paste0(de_dir,"DEseq2_", res_names, "_normalised_counts.csv")
-write.csv(normCounts, outname_cnts, row.names = F)
+normCounts <- counts(dds, normalized = TRUE) %>% 
+  as_tibble(rownames = "gene")
+outname_cnts <- paste0(de_dir, "DEseq2_", res_names, "_normalised_counts.csv")
+write.csv(normCounts, outname_cnts, row.names = FALSE)
 
-mean_normCounts <- data.frame(gene = rownames(normCounts))
-for (i in 1:length(levels(sample_info$deseq2))) {
-  ind_group <- levels(sample_info$deseq2)[i]
-  group_info <- sample_info[sample_info$deseq2==ind_group, ]
-  sam_names <- as.character(group_info$sample)
-  sub_mean <- data.frame(mean = apply(normCounts[, colnames(normCounts) %in% sam_names], 1, mean))
-  colnames(sub_mean)[1] <- paste0("mean_", unique(group_info$deseq2))
-  sub_mean$gene <- rownames(sub_mean)
-  mean_normCounts <- merge(mean_normCounts, sub_mean)
-}
+mean_normCounts <- normCounts %>%
+  column_to_rownames("gene") %>% 
+  bind_cols(
+    map_dfc(levels(sample_info$deseq2), function(ind_group) {
+      group_info <- filter(sample_info, deseq2 == ind_group)
+      sam_names <- group_info$sample
+      sub_mean <- normCounts %>%
+        select(all_of(sam_names)) %>%
+        rowMeans(na.rm = TRUE) %>%
+        as_tibble() %>%
+        rename(!!paste0("mean_", unique(group_info$deseq2)) := value)
+    })
+  ) %>%
+  rownames_to_column(var = "gene") %>%
+  select(gene, starts_with("mean"))
 
-DE_results <- as.data.frame(res)
-DE_results$gene <- rownames(DE_results)
-DE_results_full <- merge(DE_results, mean_normCounts)
-DE_results_full <- DE_results_full[order(DE_results_full$padj), ]
-outname <- paste0(de_dir,"DEseq2_", res_names, ".csv")
-write.csv(DE_results_full, outname, row.names = F)
-DE_results <- DE_results[!is.na(DE_results$padj), ]
-DE_results <- DE_results[order(DE_results$padj), ]
 
-# pre-ranked for GSEA
-resrnk <- DE_results[!duplicated(DE_results$gene), c("gene", "stat")]
-outrnk <- paste0(de_dir,"DEseq2_",res_names, "_gsea_preranked.rnk")
-write.table(resrnk, file=outrnk, quote=F, row.names = F, col.names = F, sep="\t")
+DE_results <- as.data.frame(res) %>%
+  mutate(gene = rownames(.)) %>%
+  inner_join(mean_normCounts, by = "gene") %>%
+  filter(!is.na(padj)) %>%
+  arrange(padj) 
 
+outname <- paste0(de_dir, "DEseq2_", res_names, ".csv")
+write.csv(DE_results, outname, row.names = FALSE)
 ```
 
 ::: {.panel-tabset}
@@ -117,26 +124,27 @@ Normalisation was performed in DESeq2 and data vst transformed to allow for visu
 vst_count <- assay(vst)
 sampleDists <- as.matrix(dist(t(vst_count)))
 
-cond_col <- c(brewer.pal(4, "Paired"))
-cond_col <- cond_col[c(2,4)]
-names(cond_col) <- unique(sample_info$deseq2)
+cond_col <- brewer.pal(3, "Set2")[1:2] %>% 
+  set_names(unique(sample_info$deseq2))
 
 row_ha = rowAnnotation(group = sample_info$deseq2,
                        col = list(group = cond_col))
 col_ha = HeatmapAnnotation(group = sample_info$deseq2,
                            col = list(group = cond_col))
 set.seed(123)
-HM_sampleDists <- Heatmap(sampleDists, 
-                          top_annotation = col_ha,
-                          left_annotation = row_ha,
-                          row_title = NULL,
-                          show_row_names = T,
-                          cluster_rows = T,
-                          column_title = NULL, 
-                          show_column_names = F,
-                          cluster_columns = T,
-                          show_heatmap_legend = FALSE,
-                          col=colorRamp2(c(0, max(sampleDists)), c("black", "white")))
+HM_sampleDists <- Heatmap(
+  sampleDists, 
+  top_annotation = col_ha,
+  left_annotation = row_ha,
+  row_title = NULL,
+  show_row_names = T,
+  cluster_rows = T,
+  column_title = NULL, 
+  show_column_names = F,
+  cluster_columns = T,
+  show_heatmap_legend = FALSE,
+  col=colorRamp2(c(0, max(sampleDists)), c("black", "white"))
+)
 
 draw(HM_sampleDists, merge_legend = TRUE)
 ```
@@ -148,11 +156,15 @@ Normalisation was performed in DESeq2 and data vst transformed to allow for visu
 ```{r pca}
 pcaData <- plotPCA(vst, intgroup=c("deseq2"), returnData=T)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
+
 ggplot(pcaData, aes(PC1, PC2, color=deseq2)) + 
   geom_point(size = 2) + 
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) +
-  geom_label_repel(aes(label = name, fill = deseq2), color = "white", size=3,show.legend = F) +
+  geom_label_repel(aes(label = name, fill = deseq2), 
+                   color = "white", size=3,show.legend = F) +
+  scale_color_manual(values = cond_col) +
+  scale_fill_manual(values = cond_col) +
   ggtitle("PCA - PC1 vs PC2") +
   theme_light() 
 ```
@@ -181,62 +193,72 @@ summary(qobj)
 ## Number of DE genes
 
 ```{r DE_genes}
-DEsummary <- DE_results %>% dplyr::summarise(
-  'log2FC>0_0.05' = sum(padj < 0.05 & log2FoldChange >0),
-  'log2FC<0_0.05' = sum(padj < 0.05 & log2FoldChange <0),
-  'log2FC>0_0.01' = sum(padj < 0.01 & log2FoldChange >0),
-  'log2FC<0_0.01' = sum(padj < 0.01 & log2FoldChange <0),
-  'log2FC>0_0.001' = sum(padj < 0.001 & log2FoldChange >0),
-  'log2FC<0_0.001' = sum(padj < 0.001 & log2FoldChange <0),
-  'log2FC>1_0.05' = sum(padj < 0.05 & log2FoldChange >0 & abs(log2FoldChange) >1),
-  'log2FC<1_0.05' = sum(padj < 0.05 & log2FoldChange <0 & abs(log2FoldChange) >1),
-  'log2FC>1_0.01' = sum(padj < 0.01 & log2FoldChange >0 & abs(log2FoldChange) >1),
-  'log2FC<1_0.01' = sum(padj < 0.01 & log2FoldChange <0 & abs(log2FoldChange) >1),
-  'log2FC>1_0.001' = sum(padj < 0.001 & log2FoldChange >0 & abs(log2FoldChange) >1),
-  'log2FC<1_0.001' = sum(padj < 0.001 & log2FoldChange <0 & abs(log2FoldChange) >1),
-  'log2FC>2_0.05' = sum(padj < 0.05 & log2FoldChange >0 & abs(log2FoldChange) >2),
-  'log2FC<2_0.05' = sum(padj < 0.05 & log2FoldChange <0 & abs(log2FoldChange) >2),
-  'log2FC>2_0.01' = sum(padj < 0.01 & log2FoldChange >0 & abs(log2FoldChange) >2),
-  'log2FC<2_0.01' = sum(padj < 0.01 & log2FoldChange <0 & abs(log2FoldChange) >2),
-  'log2FC>2_0.001' = sum(padj < 0.001 & log2FoldChange >0 & abs(log2FoldChange) >2),
-  'log2FC<2_0.001' = sum(padj < 0.001 & log2FoldChange <0 & abs(log2FoldChange) >2))
+DE_summary_fn <- function(df, fcs, pvals) {
+  summary_df <- data.frame()
+  for (fc in fcs) {
+    for (pval in pvals) {
+      up_count = sum(df$padj < pval & df$log2FoldChange >  fc)
+      down_count = sum(df$padj < pval & df$log2FoldChange < -fc)
 
-DEsummary$comparison <- res_names
-DEsummary_long <- pivot_longer(DEsummary, cols = starts_with("log"), values_to = "count")
-DEsummary_long <- separate(DEsummary_long, col = name, 
-                           into = c("log2FoldChange", "pvalue"), 
-                           sep = "_")
+      summary_df[1, paste0('log2FC>', fc, '_', pval)] <- up_count
+      summary_df[1, paste0('log2FC<', fc, '_', pval)] <- down_count
+    }
+  }
 
-DEsummary_long$FoldChange_threshold <- gsub("[>|<]", "_", DEsummary_long$log2FoldChange)
-DEsummary_long$FC_direction <- gsub("(log2FC)([>|<])(\\d)", "\\2", DEsummary_long$log2FoldChange)
-DEsummary_long[DEsummary_long$FC_direction =="<",]$count <- DEsummary_long[DEsummary_long$FC_direction =="<",]$count *-1
+  summary_df %>%
+    pivot_longer(cols = starts_with("log"), values_to = "count") %>%
+    separate(col = name, into = c("log2FoldChange", "pvalue"), sep = "_") %>%
+    mutate(
+      FC_direction = ifelse(str_detect(log2FoldChange, ">"), "up", "down"), 
+      FoldChange_threshold = str_extract(log2FoldChange, "(?<=<|>)(\\d+)"), 
+      count = ifelse(str_detect(log2FoldChange, ">"), count, -count)
+    )
+}
 
-ggplot(DEsummary_long, aes(x=pvalue, y=count, fill=FoldChange_threshold, group=FoldChange_threshold)) + 
+fold_changes <- c(0:3)
+pvalues <- c(0.05, 0.01, 0.001)
+DEsummary <- DE_summary_fn(DE_results, fold_changes, pvalues)
+
+p <- ggplot(DEsummary, aes(x=pvalue, y=count, 
+                      fill=FoldChange_threshold,
+                      group=FoldChange_threshold)) +
   geom_bar(stat="identity", position=position_dodge()) +
   geom_hline(yintercept=0, color = "grey") +
-  ggtitle(paste("DE genes -", res_names)) + 
-  theme_light() 
+  ggtitle(paste("DE genes - LRT")) +
+  scale_fill_brewer(palette = "Dark2") +
+  theme_light()
+print(p)
 
 ```
 
 ## Top 100 DE genes
 
 ```{r DE_genes_table}
-DE_results_padj0.05 <- DE_results_full[1:100,]
-DE_results_padj0.05 <- data.frame(lapply(DE_results_padj0.05,
-                                         function(y) if(is.numeric(y)) signif(y, 5) else y)) 
+DE_results_sig <- DE_results[DE_results$padj < 0.05,]
 
-
-datatable(DE_results_padj0.05, 
+if (nrow(DE_results_sig) >100) {
+  datatable(DE_results_sig[1:100,], 
           caption = res_names, 
-          rownames = DE_results_padj0.05$gene, 
+          rownames = DE_results_sig[1:100,]$gene, 
           filter = 'top')
+} else {
+  datatable(DE_results_sig, 
+          caption = res_names, 
+          rownames = DE_results_sig$gene, 
+          filter = 'top')
+}
+
 ```
 
 ## Column description
 
 ```{r columns}
-kable(data.frame(column = colnames(DE_results_padj0.05[,c(2:7)]), description = mcols(res)$description))
+kable(
+  data.frame(
+    column = colnames(DE_results[,c(2:7)]), 
+    description = mcols(res)$description
+    )
+  )
 ```
 
 :::
@@ -251,37 +273,40 @@ DE significant genes p-adj \< 0.05
 
 ```{r heatmap}
 DE_results_sig <- DE_results[DE_results$padj < 0.05,]
-DEmat <- as.data.frame(normCounts)
-DEmat$gene <- rownames(DEmat)
-DEmat <- DEmat[DEmat$gene %in% DE_results_sig$gene,]
-rownames(DEmat) <- DEmat$gene
-DEmat <- DEmat[,!grepl("gene", colnames(DEmat))]
 
-# z-score
-DEmat <- as.matrix(t(scale(t(DEmat))))
+DEmat <- normCounts %>%
+  as.data.frame() %>%
+  filter(gene %in% DE_results_sig$gene) %>%
+  select(-matches("gene"), everything()) %>%  # Ensure no duplicate 'gene' column
+  column_to_rownames(var = "gene") %>%
+  t() %>%
+  scale() %>%
+  t() %>%
+  as.matrix()
 
-cond_col <- c(brewer.pal(4, "Paired"))
-cond_col <- cond_col[c(2,4)]
-names(cond_col) <- unique(sample_info$deseq2)
 HA = HeatmapAnnotation(group = sample_info$deseq2,
                        col = list(group = cond_col))
-
 # heatmap
 set.seed(123)
-DEheatmap <- Heatmap(DEmat,
-                     top_annotation = HA,
-                     cluster_rows = T,
-                     show_row_names=F,
-                     show_row_dend = FALSE,
-                     show_column_names = FALSE,
-                     show_column_dend = FALSE,
-                     cluster_columns = T,
-                     column_split = sample_info$deseq2,
-                     col <- colorRamp2(seq(1.5, -1.5, length = 11), 
-                                       brewer.pal(n = 11, name = "RdBu")),
-                     heatmap_legend_param = list(title = "Relative Expression \n(Row z-score)",
-                                                 title_position = "topcenter",
-                                                 direction = "horizontal"))
+DEheatmap <- Heatmap(
+  DEmat,
+  top_annotation = HA,
+  cluster_rows = T,
+  show_row_names=F,
+  show_row_dend = FALSE,
+  show_column_names = FALSE,
+  show_column_dend = FALSE,
+  cluster_columns = T,
+  column_split = sample_info$deseq2,
+  col = colorRamp2(
+    seq(1.5, -1.5, length = 11), 
+    brewer.pal(n = 11, name = "RdBu")),
+  heatmap_legend_param = list(
+    title = "Relative Expression \n(Row z-score)",
+    title_position = "topcenter",
+    direction = "horizontal")
+)
+
 
 draw(DEheatmap, heatmap_legend_side = "bottom", annotation_legend_side = "right")
 
@@ -293,19 +318,25 @@ DE significant genes p-adj \< 0.05
 
 ```{r heatmap_cluster}
 set.seed(123)
-DEheatmap <- Heatmap(DEmat,
-                     top_annotation = col_ha,
-                     cluster_rows = T,
-                     show_row_names=F,
-                     show_row_dend = T,
-                     show_column_names = T,
-                     cluster_columns = T,
-                     # row_km = 2,
-                     col <- colorRamp2(seq(1.5, -1.5, length = 11),
-                                       brewer.pal(n = 11, name = "RdBu")),
-                     heatmap_legend_param = list(title = "Relative Expression \n(Row z-score)",
-                                               title_position = "topcenter",
-                                               direction = "horizontal"))
+DEheatmap <- Heatmap(
+  DEmat,
+  top_annotation = col_ha,
+  cluster_rows = T,
+  show_row_names=F,
+  show_row_dend = T,
+  show_column_names = T,
+  cluster_columns = T,
+  row_km = 2,
+  column_km = 2,
+  col = colorRamp2(
+    seq(1.5, -1.5, length = 11),
+    brewer.pal(n = 11, name = "RdBu")),
+  heatmap_legend_param = list(
+    title = "Relative Expression \n(Row z-score)",
+    title_position = "topcenter",
+    direction = "horizontal")
+)
+
 
 draw(DEheatmap, heatmap_legend_side = "bottom", annotation_legend_side = "right")
   
@@ -316,24 +347,34 @@ draw(DEheatmap, heatmap_legend_side = "bottom", annotation_legend_side = "right"
 labelled - 5 top (by padj) upregulated and downregulated significant DE genes p-adj \< 0.05
 
 ```{r volcano}
-colors <- c("#0072B2", "#D55E00",  "grey")
-names(colors) <- c("Down", "Up", "NotSig")
+display.brewer.all(colorblindFriendly = T)
+RdBu
+colors <- brewer.pal(5, "RdBu")[c(5,1)] %>% 
+  append("grey") %>% 
+  set_names(c("Down", "Up", "NotSig"))
+"#EF8A62" "#67A9CF"    "grey"
 
-res4plot <- DE_results[,c("gene", "log2FoldChange", "padj") ]
-res4plot$DE <- ifelse(res4plot$padj < 0.05, ifelse(res4plot$log2FoldChange < 0, "Down", "Up"), "NotSig")
-res4plot <- res4plot[order(res4plot$padj),]
-label_list <- NULL
-for (c in c("Up", "Down")) {
-  res4plot_ind <- res4plot[res4plot$DE==c,]
-  label_list <- append(label_list,res4plot_ind[1:5,1])
-}
-res4plot$label <- ifelse(res4plot$gene %in% label_list, "label", NA)
-res4plot$label <- res4plot$gene[res4plot$label == "label"]
+print(g)
+colors <- c("#0072B2", "#D55E00", "grey") %>%
+  set_names(c("Down", "Up", "NotSig"))
 
-# res4plot$label <- NA
-# res4plot$label[1:5] <- res4plot$gene[1:5]
+res4plot <- DE_results %>%
+  select(gene, log2FoldChange, padj) %>%
+  arrange(padj) %>% 
+  mutate(
+    DE = case_when(
+      padj < 0.05 & log2FoldChange < 0 ~ "Down",
+      padj < 0.05 & log2FoldChange >= 0 ~ "Up",
+      TRUE ~ "NotSig"
+    ),
+    label = if_else(gene %in% union(
+      head(filter(., DE == "Up")$gene, 5),
+      head(filter(., DE == "Down")$gene, 5)
+    ), gene, as.character(NA))
+  ) 
+  
 maxLFC <- max(abs(res4plot$log2FoldChange))
-maxpadj <- max(abs(-log10(res4plot$padj)))
+maxpadj <- max(-log10(res4plot$padj), na.rm = TRUE)
 
 g <- ggplot(data=res4plot, aes(x=log2FoldChange, y=-log10(padj), col=DE, label=label)) +
   geom_point(size=1) +
@@ -348,8 +389,6 @@ g <- ggplot(data=res4plot, aes(x=log2FoldChange, y=-log10(padj), col=DE, label=l
   ylim(0, maxpadj) +
   ggtitle(paste(res_names))
 print(g)
-
-
 ```
 
 ## MA plot
@@ -357,30 +396,28 @@ print(g)
 labelled - 5 top (by logFC) upregulated and downregulated significant DE genes p-adj \< 0.05
 
 ```{r MA_plot}
-colors <- c("#0072B2", "#D55E00",  "grey")
-names(colors) <- c("Down", "Up", "NotSig")
+res4MAplot <- DE_results %>%
+  select(gene, baseMean, log2FoldChange, padj) %>%
+  arrange(desc(abs(log2FoldChange))) %>%
+  mutate(
+    significant = case_when(
+      padj < 0.05 & log2FoldChange < 0 ~ "Down",
+      padj < 0.05 & log2FoldChange >= 0 ~ "Up",
+      TRUE ~ "NotSig"
+    ),
+    label = if_else(gene %in% union(
+      head(filter(., significant == "Up")$gene, 5),
+      head(filter(., significant == "Down")$gene, 5)
+    ), gene, as.character(NA))
+  ) 
 
-res4MAplot <- DE_results[,c("gene", "baseMean", "log2FoldChange", "padj") ]
-res4MAplot$significant <- ifelse(res4MAplot$padj < 0.05, 
-                                 ifelse(res4MAplot$log2FoldChange < 0, "Down", "Up"),
-                                 "NotSig")
-res4MAplot <- res4MAplot[order(abs(res4MAplot$log2FoldChange), decreasing = T),]
-label_list <- NULL
-for (c in c("Up", "Down")) {
-  res4MAplot_ind <- res4MAplot[res4MAplot$significant==c,]
-  label_list <- append(label_list,res4MAplot_ind[1:5,1])
-}
-res4MAplot$label <- ifelse(res4MAplot$gene %in% label_list, "label", NA)
-res4MAplot$label <- res4MAplot$gene[res4MAplot$label == "label"]
-
-g <- ggplot(res4MAplot, aes(baseMean, log2FoldChange, colour=significant, label=label)) + 
-  geom_point(size=1) + 
+g <- ggplot(res4MAplot, aes(x = baseMean, y = log2FoldChange, colour = significant, label = label)) +
+  geom_point(size = 1) +
   theme_minimal() +
-  geom_label_repel(aes(label = label), show.legend = F) +
+  geom_label_repel(aes(label = label), show.legend = FALSE) +
   scale_colour_manual(values = colors) +
-  geom_hline(yintercept = 0, linetype='dotted', col="black") + 
-  labs(x="mean of normalized counts", y="log2 fold change") + 
-  # scale_y_continuous(limits=c(-4, 4)) +
+  geom_hline(yintercept = 0, linetype = 'dotted', color = "black") +
+  labs(x = "mean of normalized counts", y = "log2 fold change") +
   scale_x_log10() +
   ggtitle(res_names)
 
@@ -394,29 +431,27 @@ print(g)
 # Top 12 DE genes {.tabset}
 
 ```{r top_DEgenes}
-DE_results<- DE_results[order(DE_results$padj),]
+top_DE_genes <- normCounts %>%
+  as.data.frame() %>%
+  filter(gene %in% DE_results$gene[1:12]) %>%
+  pivot_longer(
+    cols = sample_info$sample, 
+    values_to = "count", 
+    names_to = "sample"
+  ) %>%
+  left_join(sample_info, by = "sample") %>%
+  mutate(gene = factor(gene, levels = unique(gene)))
 
-top_DE_genes <- as.data.frame(normCounts)
-top_DE_genes$gene <- rownames(top_DE_genes)
-top_DE_genes <- top_DE_genes[top_DE_genes$gene %in% DE_results[1:12,]$gene,]
-top_DE_genes$gene <- factor(top_DE_genes$gene, levels = top_DE_genes$gene)
-
-top_DE_genes <- pivot_longer(top_DE_genes, 
-                             cols = sample_info$sample, 
-                             values_to = "count", 
-                             names_to = "sample")
-top_DE_genes <- merge(sample_info, top_DE_genes)
-
-p <- ggplot(data=top_DE_genes, aes(x=deseq2, y=count, col=deseq2)) +
+p <- ggplot(data = top_DE_genes, aes(x = deseq2, y = count, color = deseq2)) +
     geom_boxplot() +
-    geom_point(position=position_jitter(w=0.1,h=0)) +
-    # geom_label_repel(aes(label = sample), show.legend = F) +
+    geom_point(position = position_jitter(width = 0.1, height = 0)) +
     theme_light() +
-    ylab("Normalised Count") +
-    facet_wrap(gene~.) +
+    ylab("Normalized Count") +
+    scale_color_manual(values = cond_col) +
+    facet_wrap(~ gene) +
     ggtitle(res_names)
-print(p)
 
+print(p)
 ```
 
 # Session Info
