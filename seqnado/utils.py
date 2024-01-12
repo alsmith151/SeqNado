@@ -3,11 +3,14 @@ import os
 import pathlib
 import re
 from collections import defaultdict
-from typing import Dict, List, Literal, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import snakemake
+from loguru import logger
+from pydantic import BaseModel, Field, computed_field, validator
+from pydantic.dataclasses import dataclass
 from snakemake.io import expand
 
 FILETYPE_TO_DIR_MAPPING = {
@@ -115,6 +118,8 @@ def has_bowtie2_index(prefix: str) -> bool:
 def check_options(value: object):
     if value in [None, np.nan, ""]:
         return ""
+    elif is_off(value):
+        return ""
     else:
         return value
 
@@ -136,10 +141,16 @@ def define_output_files(
     """Define output files for the pipeline"""
 
     analysis_output = [
-        "seqnado_output/qc/full_qc_report.html",
+        "seqnado_output/qc/fastq_raw_qc.html",
+        "seqnado_output/qc/fastq_trimmed_qc.html",
+        "seqnado_output/qc/alignment_raw_qc.html",
+        "seqnado_output/qc/alignment_filtered_qc.html",
         "seqnado_output/design.csv",
     ]
     assay_output = []
+
+    if kwargs["remove_pcr_duplicates_method"] == "picard":
+        analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
 
     if make_heatmaps:
             assay_output.extend(
@@ -237,20 +248,15 @@ def define_output_files(
     return analysis_output
 
 
-import os
-import pathlib
-import re
-from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple, Union
-
-import pandas as pd
-from loguru import logger
-from pydantic import BaseModel, Field, computed_field, validator
-from pydantic.dataclasses import dataclass
-
 
 class FastqFile(BaseModel):
     path: pathlib.Path
+
+    def model_post_init(self, *args):
+        self.path = pathlib.Path(self.path).resolve()
+
+        if not self.path.exists():
+            raise FileNotFoundError(f"{self.path} does not exist.")
 
     @computed_field
     @property
@@ -482,6 +488,9 @@ class Design(BaseModel):
 
         return paths
 
+    def query(self, sample_name: str) -> AssayNonIP:
+        return self.assays[sample_name]
+
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
         """
@@ -558,27 +567,165 @@ class Design(BaseModel):
 
 
 class DesignIP(BaseModel):
-    experiments: Dict[str, ExperimentIP] = Field(
+    assays: Dict[str, ExperimentIP] = Field(
         default_factory=dict,
         description="Dictionary of experiment classes keyed by sample name",
     )
 
     @computed_field
     @property
+    def sample_names_ip(self) -> List[str]:
+        sample_names = set()
+        for experiment in self.assays.values():
+            sample_names.add(experiment.ip_files.name)
+
+        return list(sample_names)
+
+    @property
+    def sample_names_control(self) -> List[str]:
+        sample_names = set()
+        for experiment in self.assays.values():
+            if experiment.control is not None:
+                sample_names.add(experiment.control_files.name)
+
+        return list(sample_names)
+
+    @property
     def sample_names(self) -> List[str]:
-        return list(self.experiments.keys())
+        return self.sample_names_ip + self.sample_names_control
+
+    @property
+    def ip_names(self) -> List[str]:
+        return list(set([experiment.ip for experiment in self.assays.values()]))
+
+    @property
+    def control_names(self) -> List[str]:
+        return list(set([experiment.control for experiment in self.assays.values()]))
 
     @computed_field
     @property
     def fastq_paths(self) -> List[pathlib.Path]:
         paths = []
-        for experiment in self.experiments.values():
+        for experiment in self.assays.values():
             paths.extend(experiment.ip_files.fastq_paths)
 
             if experiment.control_files is not None:
                 paths.extend(experiment.control_files.fastq_paths)
 
         return paths
+
+    def query(self, sample_name: str, ip: str, control: str = None) -> ExperimentIP:
+        """
+        Extract an experiment from the design.
+        """
+
+        for experiment in self.assays.values():
+            if experiment.name == f"{sample_name}_{ip}":
+                if control is not None:
+                    if experiment.control == control:
+                        return experiment
+                else:
+                    return experiment
+
+        raise ValueError(
+            f"Could not find experiment with sample name {sample_name} and ip {ip} and control {control}"
+        )
+
+    @computed_field
+    @property
+    def is_paired(self) -> bool:
+        """
+        Return True if the fastq file is paired.
+
+        """
+        return True if self.read_number else False
+
+    @computed_field
+    @property
+    def is_lane(self) -> bool:
+        """
+        Return True if the fastq file is lane split.
+
+        """
+        return "_L00" in self.sample_name
+
+    def __lt__(self, other):
+        return self.path < other.path
+
+    def __gt__(self, other):
+        return self.path > other.path
+
+    def __eq__(self, other):
+        return self.path == other.path
+
+
+class FastqFileIP(FastqFile):
+    ip: str = Field(default=None, description="IP performed on the sample")
+    is_control: bool = Field(default=None, description="Is the sample a control")
+
+    def model_post_init(self, *args):
+        if self.ip is None:
+            self.ip = self.predict_ip()
+
+        if self.is_control is None:
+            self.is_control = self.predict_is_control()
+
+    def predict_ip(self) -> Optional[str]:
+        """
+        Predict the IP performed on the sample.
+
+        Uses the sample base to predict the IP performed on the sample.
+
+        """
+        try:
+            return self.sample_base.split("_")[-1]
+        except IndexError:
+            logger.warning(f"Could not predict IP for {self.sample_base}")
+            return None
+
+    def sample_name_without_antibody(self) -> str:
+        """
+        Return the sample name without the antibody name.
+
+        """
+        return re.sub(f"_{self.antibody}_", "_", self.sample_name)
+
+    def predict_is_control(self) -> bool:
+        """
+        Return True if the fastq file is an input.
+
+        """
+
+        input_substrings = ["input", "mock", "igg", "control"]
+        return any([substring in self.ip.lower() for substring in input_substrings])
+
+    @computed_field
+    @property
+    def sample_base_without_ip(self) -> str:
+        """
+        Return the sample base without the antibody name.
+
+        """
+        return re.sub(
+            f"(_{self.ip})?(_S\\d+)?(_L00\\d)?(_R?[12])?(_001)?",
+            "",
+            self.sample_name,
+        )
+
+
+class AssayNonIP(BaseModel):
+    name: str = Field(default=None, description="Name of the assay")
+    r1: FastqFile
+    r2: Optional[FastqFile] = None
+    metadata: Optional[dict] = None
+
+    @property
+    def fastq_paths(self):
+        return [self.r1.path, self.r2.path] if self.is_paired else [self.r1.path]
+
+    @property
+    def is_paired(self):
+        return self.r2 is not None
 
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
@@ -591,11 +738,11 @@ class DesignIP(BaseModel):
         for f in fq:
             samples[f.sample_base_without_ip].append(f)
 
-        experiments = {}
+        assays = {}
         for sample_name, sample in samples.items():
-            experiments[sample_name] = ExperimentIP.from_fastq_files(sample, **kwargs)
+            assays[sample_name] = ExperimentIP.from_fastq_files(sample, **kwargs)
 
-        return cls(experiments=experiments, **kwargs)
+        return cls(assays=assays, **kwargs)
 
     @classmethod
     def from_directory(
@@ -617,7 +764,7 @@ class DesignIP(BaseModel):
         """
 
         data = {}
-        for experiment_name, experiment in self.experiments.items():
+        for experiment_name, experiment in self.assays.items():
             data[experiment_name] = {}
             data[experiment_name]["ip_r1"] = experiment.ip_files.r1.path
             if experiment.ip_files.r2 is not None:
@@ -688,4 +835,164 @@ class DesignIP(BaseModel):
             else:
                 raise NotImplementedError("Not implemented")
 
-        return cls(experiments=experiments, **kwargs)
+        return cls(assays=experiments, **kwargs)
+
+
+def symlink_files(
+    output_dir: pathlib.Path, assay: Union[AssayNonIP, AssayIP], assay_name: str
+):
+    r1_path_new = pathlib.Path(f"{output_dir}/{assay_name}_1.fastq.gz")
+    r2_path_new = pathlib.Path(f"{output_dir}/{assay_name}_2.fastq.gz")
+
+    if not r1_path_new.exists():
+        try:
+            r1_path_new.symlink_to(assay.r1.path.resolve())
+        except FileExistsError:
+            logger.warning(f"Symlink for {r1_path_new} already exists.")
+
+    if assay.r2 and not r2_path_new.exists():
+        try:
+            r2_path_new.symlink_to(assay.r2.path.resolve())
+        except FileExistsError:
+            logger.warning(f"Symlink for {r2_path_new} already exists.")
+
+
+def symlink_fastq_files(
+    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
+) -> None:
+    """
+    Symlink the fastq files to the output directory.
+    """
+    output_dir = pathlib.Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(design, Design):
+        for assay_name, assay in design.assays.items():
+            symlink_files(output_dir, assay, assay_name)
+
+    elif isinstance(design, DesignIP):
+        for experiment_name, experiment in design.assays.items():
+            assay = experiment.ip_files
+            assay_name = assay.name
+            symlink_files(output_dir, assay, assay_name)
+
+            if experiment.control_files:
+                assay = experiment.control_files
+                assay_name = assay.name
+                symlink_files(output_dir, assay, assay_name)
+
+
+def define_output_files(
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    chip_spikein_normalisation: bool = False,
+    sample_names: list = None,
+    pileup_method: list = None,
+    peak_calling_method: list = None,
+    make_bigwigs: bool = False,
+    call_peaks: bool = False,
+    make_heatmaps: bool = False,
+    make_ucsc_hub: bool = False,
+    call_snps: bool = False,
+    annotate_snps: bool = False,
+    **kwargs,
+) -> list:
+    """Define output files for the pipeline"""
+
+    analysis_output = [
+        "seqnado_output/qc/fastq_raw_qc.html",
+        "seqnado_output/qc/fastq_trimmed_qc.html",
+        "seqnado_output/qc/alignment_raw_qc.html",
+        "seqnado_output/qc/alignment_filtered_qc.html",
+        "seqnado_output/design.csv",
+    ]
+    assay_output = []
+
+    if kwargs["remove_pcr_duplicates_method"] == "picard":
+        analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
+
+    if make_ucsc_hub:
+        hub_dir = kwargs["ucsc_hub_details"].get("directory")
+        hub_name = kwargs["ucsc_hub_details"].get("name")
+        hub_file = os.path.join(hub_dir, f"{hub_name}.hub.txt")
+        analysis_output.append(hub_file)
+
+    if assay in ["ChIP", "ATAC"]:
+        if chip_spikein_normalisation:
+            if assay == "ChIP":
+                assay_output.extend(
+                    [
+                        "seqnado_output/qc/full_fastqscreen_report.html",
+                        "seqnado_output/normalisation_factors.tsv",
+                    ]
+                )
+
+        if make_bigwigs and pileup_method:
+            assay_output.extend(
+                expand(
+                    "seqnado_output/bigwigs/{method}/{sample}.bigWig",
+                    sample=sample_names,
+                    method=pileup_method,
+                )
+            )
+
+        if call_peaks and peak_calling_method:
+            if assay == "ChIP":
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/peaks/{method}/{ip}.bed",
+                        ip=kwargs["ip"],
+                        method=peak_calling_method,
+                    )
+                )
+            else:
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/peaks/{method}/{sample}.bed",
+                        sample=sample_names,
+                        method=peak_calling_method,
+                    )
+                )
+
+    elif assay == "RNA":
+        if make_bigwigs and pileup_method:
+            assay_output.extend(
+                expand(
+                    "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
+                    sample=sample_names,
+                    method=pileup_method,
+                    strand=["plus", "minus"],
+                )
+            )
+
+        if kwargs["run_deseq2"]:
+            project_id = kwargs["deseq2"].get("project_id")
+            assay_output.append(f"DESeq2_{project_id}.html")
+
+        assay_output.extend(
+            [
+                "seqnado_output/feature_counts/read_counts.tsv",
+                *expand(
+                    "seqnado_output/aligned/{sample}.bam",
+                    sample=sample_names,
+                ),
+            ]
+        )
+
+    elif assay == "SNP":
+        if call_snps:
+            assay_output.expand(
+                "seqnado_output/variant/{sample}_filtered.anno.vcf.gz",
+                sample=sample_names,
+            )
+
+        if annotate_snps:
+            assay_output.append(
+                expand(
+                    "seqnado_output/variant/{sample}_filtered.stats.txt",
+                    sample=sample_names,
+                ),
+            )
+
+    analysis_output.extend(assay_output)
+
+    return analysis_output

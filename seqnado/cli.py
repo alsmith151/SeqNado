@@ -2,6 +2,7 @@ import click
 import os
 import subprocess
 
+
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
 
@@ -28,22 +29,24 @@ def cli_design(method, files, output="design.csv"):
     """
     Generates a SeqNado design file from a list of files.
     """
+    import pathlib
+    import sys
+    from seqnado.utils import Design, DesignIP, FastqFile, FastqFileIP
 
-    assert (
-        len(files) > 0
-    ), "No files provided. Please provide a list of files separated by spaces."
+    if not files:
+        files = list(pathlib.Path(".").glob("*.fastq.gz"))
+
+        if not files:
+            raise ValueError("No fastq files provided or found in current directory.")
 
     if not method == "chip":
-        from seqnado.utils import GenericFastqSamples
-
-        design = GenericFastqSamples.from_files(files).design
+        design = Design.from_fastq_files([FastqFile(path=fq) for fq in files])
     else:
-        from seqnado.utils import ChipseqFastqSamples
+        from seqnado.utils import DesignIP
 
-        design = ChipseqFastqSamples.from_files(files).design
+        design = DesignIP.from_fastq_files([FastqFileIP(path=fq) for fq in files])
 
-    design = design.drop(columns=["paired"], errors="ignore")
-    design.to_csv(output, index=False)
+    design.to_dataframe().to_csv(output, index=False)
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
@@ -67,7 +70,6 @@ def cli_design(method, files, output="design.csv"):
 def cli_pipeline(
     method, pipeline_options, help=False, cores=1, preset="local", version=False
 ):
-
     """Runs the data processing pipeline"""
 
     if version:
@@ -115,4 +117,5 @@ def cli_pipeline(
         logo = f.read()
 
     print(logo)
+
     completed = subprocess.run(cmd)
