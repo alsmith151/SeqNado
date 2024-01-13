@@ -42,7 +42,7 @@ def is_on(param: str) -> bool:
 
 def is_off(param: str):
     """Returns True if parameter in "off" values"""
-    values = ["", "None", "none", "f", "n", "no", "false", "0"]
+    values = ["", "none", "f", "n", "no", "false", "0"]
     if str(param).lower() in values:
         return True
     else:
@@ -695,7 +695,7 @@ def define_output_files(
         analysis_output.append(hub_file)
 
     if assay in ["ChIP", "ATAC"]:
-        if assay == "ChIP" and kwargs["chip_spikein_normalisation"]:
+        if assay == "ChIP" and kwargs["spikein"]:
             assay_output.extend(
                 [
                     "seqnado_output/qc/full_fastqscreen_report.html",
