@@ -182,12 +182,12 @@ def set_up(
     os.chdir(cwd)
 
 
-def test_pipeline_singularity(genome_path, genome_indicies, chromsizes):
+def test_pipeline_singularity(genome_path, genome_indicies, chromsizes, cores):
     cmd = [
         "seqnado",
         "rna",
         "--cores",
-        "4",
+        str(cores),
         "--configfile",
         "config_rna.yml",
         "--use-singularity",
