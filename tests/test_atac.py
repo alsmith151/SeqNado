@@ -159,7 +159,7 @@ def set_up(
     run_directory,
     fastqs,
     user_inputs,
-    test_seqnado_config_creation
+    test_seqnado_config_creation,
 ):
     cwd = os.getcwd()
     os.chdir(run_directory)
@@ -175,14 +175,14 @@ def set_up(
     os.chdir(cwd)
 
 
-def test_pipeline_singularity(genome_path):
+def test_pipeline_singularity(genome_path, cores):
     indicies_dir = os.path.join(genome_path, "bt2")
 
     cmd = [
         "seqnado",
         "atac",
         "--cores",
-        "4",
+        str(cores),
         "--configfile",
         "config_atac.yml",
         "--use-singularity",
