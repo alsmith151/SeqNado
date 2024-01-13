@@ -153,9 +153,9 @@ rna,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_2.fastq.gz,/tmp
 
 !!! Note
     The design file is a CSV file with the following columns:
-    * The first column is the sample name
-    * `r1` - The path to the read 1 fastq file
-    * `r2` - The path to the read 2 fastq file
+      * The first column is the sample name
+      * `r1` - The path to the read 1 fastq file
+      * `r2` - The path to the read 2 fastq file
 
 
 #### ChIP-seq design file
@@ -169,13 +169,13 @@ CTCF,CTCF_CTCF_2.fastq.gz,CTCF_CTCF_1.fastq.gz,CTCF_input_2.fastq.gz,CTCF_input_
 
 !!! Note
     The design file is a CSV file with the following columns:
-    * The first column is the sample name
-    * `ip_r1` - The path to the IP read 1 fastq file
-    * `ip_r2` - The path to the IP read 2 fastq file
-    * `control_r1` - The path to the control read 1 fastq file
-    * `control_r2` - The path to the control read 2 fastq file
-    * `ip` - The name of the IP sample
-    * `control` - The name of the control sample
+      * The first column is the sample name
+      * `ip_r1` - The path to the IP read 1 fastq file
+      * `ip_r2` - The path to the IP read 2 fastq file
+      * `control_r1` - The path to the control read 1 fastq file
+      * `control_r2` - The path to the control read 2 fastq file
+      * `ip` - The name of the IP sample
+      * `control` - The name of the control sample
 
 
 #### RNA-seq design file
