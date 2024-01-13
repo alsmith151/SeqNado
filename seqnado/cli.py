@@ -62,7 +62,7 @@ def cli_design(method, files, output="design.csv"):
 
         design = DesignIP.from_fastq_files([FastqFileIP(path=fq) for fq in files])
 
-    design.to_dataframe().to_csv(output, index=False)
+    design.to_dataframe().to_csv(output)
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
