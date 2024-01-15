@@ -21,7 +21,7 @@ dependencies = [
     "cookiecutter",
     "drmaa",
     "pandas",
-    "pulp<=2.7.0",
+    "pulp<=2.8.0",
     "pydantic",
     "pyyaml",
     "seaborn",
