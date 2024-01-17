@@ -136,7 +136,10 @@ class FastqFile(BaseModel):
     @computed_field
     @property
     def sample_name(self) -> str:
-        return pathlib.Path(str(self.path).removesuffix(".gz")).stem
+        name = pathlib.Path(str(self.path).removesuffix(".gz")).stem
+        if name.endswith("_001"):
+            name = name.removesuffix("_001")
+        return name
 
     @computed_field
     @property
@@ -750,7 +753,7 @@ def define_output_files(
             )
 
         if kwargs["run_deseq2"]:
-            assay_output.append(f"DESeq2.html")
+            assay_output.append(f"DESeq2_{kwargs['project_name']}.html")
 
         assay_output.extend(
             [
