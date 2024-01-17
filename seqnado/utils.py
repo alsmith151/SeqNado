@@ -753,7 +753,12 @@ def define_output_files(
             )
 
         if kwargs["run_deseq2"]:
-            assay_output.append(f"deseq2_{kwargs['project_name']}.html")
+            if kwargs["can_run_deseq2"]:
+                assay_output.append(f"deseq2_{kwargs['project_name']}.html")
+            else:
+                logger.warning(
+                    "Not running DESeq2 as no 'deseq2' column in design file."
+                )
 
         assay_output.extend(
             [

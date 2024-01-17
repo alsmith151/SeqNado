@@ -42,7 +42,7 @@ utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
 SAMPLE_NAMES = DESIGN.sample_names
-RUN_DESEQ2 = DESIGN.to_dataframe().columns.str.contains("deseq2").any()
+CAN_RUN_DESEQ2 = DESIGN.to_dataframe().columns.str.contains("deseq2").any()
 
 
 include: "rules/qc.smk"
@@ -55,10 +55,9 @@ include: "rules/deseq2_rna.smk"
 include: "rules/hub.smk"
 include: "rules/heatmap.smk"
 
-
 # Define output files
 ANALYSIS_OUTPUT = utils.define_output_files(
-    sample_names=SAMPLE_NAMES, assay=ASSAY, **config
+    sample_names=SAMPLE_NAMES, assay=ASSAY, can_run_deseq2=CAN_RUN_DESEQ2, **config
 )
 
 
