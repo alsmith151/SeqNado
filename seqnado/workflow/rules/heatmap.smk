@@ -23,7 +23,7 @@ rule heatmap_matrix:
         mem_mb=lambda wildcards, attempt: 16000 * 2**attempt,
     log: 
         "seqnado_output/logs/heatmap/matrix.log",
-    shell: """computeMatrix scale-regions --beforeRegionStartLength 3000 --afterRegionStartLength 3000 --regionBodyLength 5000 --smartLabels --missingDataAsZero -p {threads} {params.options} -S {input.bigwigs} -R {params.gtf} -o {output.matrix} >> {log} 2>&1"""
+    shell: """computeMatrix scale-regions -p {threads} {params.options} --smartLabels --missingDataAsZero -S {input.bigwigs} -R {params.gtf} -o {output.matrix} >> {log} 2>&1"""
 
 rule heatmap_plot:
     input:
@@ -44,8 +44,6 @@ rule heatmap_metaplot:
         matrix="seqnado_output/heatmap/heatmap_matrix.mat.gz",
     output:
         metaplot="seqnado_output/heatmap/metaplot.pdf",
-    params:
-        colormap = utils.check_options(config["heatmap"]["colormap"]),
     resources:
         mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
     log: 

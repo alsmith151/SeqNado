@@ -92,6 +92,8 @@ def cli_pipeline(
         from importlib.metadata import version
 
         _version = version("seqnado")
+
+        _version = version("seqnado")
         print(f"SeqNado version {_version}")
         return
 

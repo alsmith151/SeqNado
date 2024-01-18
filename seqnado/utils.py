@@ -666,6 +666,7 @@ def symlink_fastq_files(
 
 def define_output_files(
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    chip_spikein_normalisation: bool = False,
     sample_names: list = None,
     pileup_method: list = None,
     peak_calling_method: list = None,
@@ -691,6 +692,14 @@ def define_output_files(
     if kwargs["remove_pcr_duplicates_method"] == "picard":
         analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
 
+    if make_heatmaps:
+            assay_output.extend(
+                [
+                    "seqnado_output/heatmap/heatmap.pdf",
+                    "seqnado_output/heatmap/metaplot.pdf",
+                ]
+            )
+
     if make_ucsc_hub:
         hub_dir = pathlib.Path(kwargs["ucsc_hub_details"]["directory"])
         hub_name = kwargs["ucsc_hub_details"]["name"]
@@ -698,13 +707,14 @@ def define_output_files(
         analysis_output.append(str(hub_txt))
 
     if assay in ["ChIP", "ATAC"]:
-        if assay == "ChIP" and kwargs["spikein"]:
-            assay_output.extend(
-                [
-                    "seqnado_output/qc/full_fastqscreen_report.html",
-                    "seqnado_output/normalisation_factors.tsv",
-                ]
-            )
+        if assay == "ChIP" and chip_spikein_normalisation:
+            if assay == "ChIP":
+                assay_output.extend(
+                    [
+                        "seqnado_output/qc/full_fastqscreen_report.html",
+                        "seqnado_output/normalisation_factors.tsv",
+                    ]
+                )
 
         if make_bigwigs and pileup_method:
             assay_output.extend(
@@ -733,15 +743,17 @@ def define_output_files(
                     )
                 )
 
-        if make_heatmaps:
-            assay_output.extend(
-                [
-                    "seqnado_output/heatmap/heatmap.pdf",
-                    "seqnado_output/heatmap/metaplot.pdf",
-                ]
-            )
-
     elif assay == "RNA":
+        assay_output.extend(
+            [
+                "seqnado_output/feature_counts/read_counts.tsv",
+                *expand(
+                    "seqnado_output/aligned/{sample}.bam",
+                    sample=sample_names,
+                ),
+            ]
+        )
+
         if make_bigwigs and pileup_method:
             assay_output.extend(
                 expand(
@@ -760,15 +772,6 @@ def define_output_files(
                     "Not running DESeq2 as no 'deseq2' column in design file."
                 )
 
-        assay_output.extend(
-            [
-                "seqnado_output/feature_counts/read_counts.tsv",
-                *expand(
-                    "seqnado_output/aligned/{sample}.bam",
-                    sample=sample_names,
-                ),
-            ]
-        )
 
     elif assay == "SNP":
         if call_snps:
