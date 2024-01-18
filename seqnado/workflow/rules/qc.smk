@@ -1,43 +1,32 @@
 import os
 import seqnado.utils
 
-rule fastqc_raw:
+
+rule fastqc_raw_paired:
     input:
-        unpack(lambda wc: seqnado.utils.translate_fq_files(wc, samples=FASTQ_SAMPLES, paired=False)),
+        "seqnado_output/fastqs/{sample}_{read}.fastq.gz",
     output:
-        qc="seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
+        html="seqnado_output/qc/fastqc_raw/{sample}_{read}.html",
+        zip="seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
     params:
-        outdir="seqnado_output/qc/fastqc_raw",
-        tmpdir="seqnado_output/qc/fastqc_raw/{sample}_{read}",
-        basename=lambda wc, output: seqnado.utils.get_fq_filestem(wc, samples=FASTQ_SAMPLES),
+        extra="--quiet",
     threads: 1
     resources:
         mem_mb=1500,
     log:
         "seqnado_output/logs/fastqc_raw/{sample}_{read}.log",
-    shell:
-        """
-        mkdir -p {params.tmpdir} &&
-        fastqc -o {params.tmpdir} {input.fq} > {log} 2>&1 &&
-        mv {params.tmpdir}/{params.basename}_fastqc.html {output.qc} &&
-        mv {params.tmpdir}/{params.basename}_fastqc.zip {params.outdir}/{wildcards.sample}_{wildcards.read}_fastqc.zip &&
-        rm -r {params.tmpdir}
-        """
+    wrapper:
+        "v3.0.1/bio/fastqc"
 
-rule fastqc_trimmed:
+
+use rule fastqc_raw_paired as fastqc_trimmed_paired with:
     input:
-        fq="seqnado_output/trimmed/{sample}_{read}.fastq.gz",
+        "seqnado_output/trimmed/{sample}_{read}.fastq.gz",
     output:
-        qc="seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
-    params:
-        outdir="seqnado_output/qc/fastqc_trimmed",
+        html="seqnado_output/qc/fastqc_trimmed/{sample}_{read}.html",
+        zip="seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}_{read}.log",
-    resources:
-        mem_mb=1500,
-    threads: 4
-    shell:
-        """fastqc -o {params.outdir} {input.fq} > {log} 2>&1"""
 
 
 rule samtools_stats:
@@ -81,23 +70,95 @@ if config["split_fastq"] == "False":
             mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
         shell:
             "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
-else:
-    rule multiqc:
-        input:
-            expand(
-                "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
-                sample=SAMPLE_NAMES,
-                read=[1, 2],
-            ),
-            expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
-            expand("seqnado_output/qc/alignment_filtered/{sample}.txt", sample=SAMPLE_NAMES),
-        output:
-            "seqnado_output/qc/full_qc_report.html",
-        log:
-            "seqnado_output/logs/multiqc.log",
-        resources:
-            mem_mb=lambda wildcards, attempt: 1000 * 2**attempt,
-        shell:
-            "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
 
-    
+def get_fastqc_files(*args, **kwargs):
+    """Return a list of fastq files for a given sample name."""
+    import pathlib
+
+    fastqc_dir = pathlib.Path("seqnado_output/qc/fastqc_raw/")
+
+    fastqc_files = []
+    fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
+    for fq_file in fq_files:
+        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + ".html")
+        fastqc_files.append(str(fastqc_file))
+
+    return fastqc_files
+
+
+rule multiqc_raw:
+    input:
+        get_fastqc_files,
+    output:
+        "seqnado_output/qc/fastq_raw_qc.html",
+    log:
+        "seqnado_output/logs/multiqc_raw.log",
+    resources:
+        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+    shell:
+        "multiqc -o seqnado_output/qc seqnado_output/qc/fastqc_raw -n fastq_raw_qc.html --force > {log} 2>&1"
+
+
+rule multiqc_trimmed:
+    input:
+        expand(
+            "seqnado_output/qc/fastqc_trimmed/{sample}_{read}.html",
+            sample=SAMPLE_NAMES,
+            read=[1, 2],
+        ),
+    output:
+        "seqnado_output/qc/fastq_trimmed_qc.html",
+    log:
+        "seqnado_output/logs/multiqc_trimmed.log",
+    resources:
+        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+    shell:
+        "multiqc -o seqnado_output/qc seqnado_output/qc/fastqc_trimmed -n fastq_trimmed_qc.html --force > {log} 2>&1"
+
+
+rule multiqc_alignment_raw:
+    input:
+        expand(
+            "seqnado_output/qc/alignment_raw/{sample}.txt",
+            sample=SAMPLE_NAMES,
+        ),
+    output:
+        "seqnado_output/qc/alignment_raw_qc.html",
+    log:
+        "seqnado_output/logs/multiqc_alignment_raw.log",
+    resources:
+        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+    shell:
+        "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_raw -n alignment_raw_qc.html --force > {log} 2>&1"
+
+
+rule multiqc_alignment_filtered:
+    input:
+        expand(
+            "seqnado_output/qc/alignment_filtered/{sample}.txt",
+            sample=SAMPLE_NAMES,
+        ),
+    output:
+        "seqnado_output/qc/alignment_filtered_qc.html",
+    log:
+        "seqnado_output/logs/multiqc_alignment_filtered.log",
+    resources:
+        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+    shell:
+        "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_filtered -n alignment_filtered_qc.html --force > {log} 2>&1"
+
+
+rule multiqc_library_complexity:
+    input:
+        expand(
+            "seqnado_output/aligned/duplicates_removed/{sample}.metrics",
+            sample=SAMPLE_NAMES,
+        ),
+    output:
+        "seqnado_output/qc/library_complexity_qc.html",
+    log:
+        "seqnado_output/logs/multiqc_library_complexity.log",
+    resources:
+        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+    shell:
+        "multiqc -o seqnado_output/qc seqnado_output/aligned/duplicates_removed -n library_complexity_qc.html --force > {log} 2>&1"

@@ -174,14 +174,14 @@ def set_up(
     os.chdir(cwd)
 
 
-def test_pipeline_singularity(genome_path):
+def test_pipeline_singularity(genome_path, cores):
     indicies_dir = os.path.join(genome_path, "bt2")
 
     cmd = [
         "seqnado",
         "chip",
         "--cores",
-        "4",
+        str(cores),
         "--configfile",
         "config_chip.yml",
         "--use-singularity",

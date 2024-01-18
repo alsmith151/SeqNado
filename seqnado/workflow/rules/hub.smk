@@ -93,15 +93,13 @@ def get_hub_input(wildcards):
     return input_files
 
 
-
 rule save_design:
     output:
         "seqnado_output/design.csv",
     container:
         None
     run:
-        DESIGN.to_csv("seqnado_output/design.csv", index=False)
-
+        DESIGN.to_dataframe().to_csv("seqnado_output/design.csv", index=False)
 
 
 rule bed_to_bigbed:
@@ -123,15 +121,21 @@ rule bed_to_bigbed:
         """
 
 
+def get_hub_txt_path():
+    import pathlib
+
+    hub_dir = pathlib.Path(config["ucsc_hub_details"]["directory"])
+    hub_name = config["ucsc_hub_details"]["name"]
+    hub_txt = hub_dir / (f"{hub_name}.hub.txt").replace(" ", "")
+    return str(hub_txt)
+
+
 rule generate_hub:
     input:
         data=get_hub_input,
-        report="seqnado_output/qc/full_qc_report.html",
+        report="seqnado_output/qc/alignment_filtered_qc.html",
     output:
-        hub=os.path.join(
-            config["ucsc_hub_details"]["directory"],
-            f"{config['ucsc_hub_details']['name']}.hub.txt",
-        ),
+        hub=get_hub_txt_path(),
     log:
         log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log",
     container:
