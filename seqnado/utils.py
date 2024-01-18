@@ -692,10 +692,10 @@ def define_output_files(
         analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
 
     if make_ucsc_hub:
-        hub_dir = kwargs["ucsc_hub_details"].get("directory")
-        hub_name = kwargs["ucsc_hub_details"].get("name")
-        hub_file = os.path.join(hub_dir, f"{hub_name}.hub.txt")
-        analysis_output.append(hub_file)
+        hub_dir = pathlib.Path(kwargs["ucsc_hub_details"]["directory"])
+        hub_name = kwargs["ucsc_hub_details"]["name"]
+        hub_txt = hub_dir / f"{hub_name}.hub.txt"
+        analysis_output.append(str(hub_txt))
 
     if assay in ["ChIP", "ATAC"]:
         if assay == "ChIP" and kwargs["spikein"]:
