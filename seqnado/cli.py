@@ -70,10 +70,6 @@ def cli_design(method, files, output="design.csv"):
     "method",
     type=click.Choice(["atac", "chip", "rna", "snp", "consensus-peaks"]),
 )
-@click.argument(
-    "method",
-    type=click.Choice(["atac", "chip", "rna", "snp", "consensus-peaks"]),
-)
 @click.option("--version", help="Print version and exit", is_flag=True)
 @click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)
 @click.option(
