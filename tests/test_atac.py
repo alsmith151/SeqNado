@@ -1,10 +1,10 @@
-from datetime import datetime
 import glob
 import os
 import pathlib
 import pytest
 import shutil
 import subprocess
+from datetime import datetime
 
 
 @pytest.fixture(scope="module")
