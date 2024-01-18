@@ -29,7 +29,7 @@ utils.format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
-    df = pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
+    df = pd.read_csv(config["design"], sep="[\s+,\t]", engine="python", index_col=0)
     DESIGN = Design.from_dataframe(df)
 else:
     DESIGN = Design.from_directory(".")
@@ -42,7 +42,9 @@ utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
 SAMPLE_NAMES = DESIGN.sample_names
-RUN_DESEQ2 = DESIGN.to_dataframe().columns.str.contains("deseq2").any()
+CAN_RUN_DESEQ2 = DESIGN.to_dataframe().columns.str.contains("deseq2").any()
+PROJECT_NAME = config['project_name'].replace(" ", "_").strip()
+del config['project_name']
 
 
 include: "rules/qc.smk"
@@ -55,12 +57,10 @@ include: "rules/deseq2_rna.smk"
 include: "rules/hub.smk"
 include: "rules/heatmap.smk"
 
-
 # Define output files
 ANALYSIS_OUTPUT = utils.define_output_files(
-    sample_names=SAMPLE_NAMES, assay=ASSAY, **config
+    sample_names=SAMPLE_NAMES, assay=ASSAY, can_run_deseq2=CAN_RUN_DESEQ2, project_name=PROJECT_NAME,  **config
 )
-
 
 rule all:
     input:

@@ -136,7 +136,10 @@ class FastqFile(BaseModel):
     @computed_field
     @property
     def sample_name(self) -> str:
-        return pathlib.Path(str(self.path).removesuffix(".gz")).stem
+        name = pathlib.Path(str(self.path).removesuffix(".gz")).stem
+        if name.endswith("_001"):
+            name = name.removesuffix("_001")
+        return name
 
     @computed_field
     @property
@@ -689,10 +692,10 @@ def define_output_files(
         analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
 
     if make_ucsc_hub:
-        hub_dir = kwargs["ucsc_hub_details"].get("directory")
-        hub_name = kwargs["ucsc_hub_details"].get("name")
-        hub_file = os.path.join(hub_dir, f"{hub_name}.hub.txt")
-        analysis_output.append(hub_file)
+        hub_dir = pathlib.Path(kwargs["ucsc_hub_details"]["directory"])
+        hub_name = kwargs["ucsc_hub_details"]["name"]
+        hub_txt = hub_dir / f"{hub_name}.hub.txt"
+        analysis_output.append(str(hub_txt))
 
     if assay in ["ChIP", "ATAC"]:
         if assay == "ChIP" and kwargs["spikein"]:
@@ -750,8 +753,12 @@ def define_output_files(
             )
 
         if kwargs["run_deseq2"]:
-            project_id = kwargs["deseq2"].get("project_id")
-            assay_output.append(f"DESeq2_{project_id}.html")
+            if kwargs["can_run_deseq2"]:
+                assay_output.append(f"deseq2_{kwargs['project_name']}.html")
+            else:
+                logger.warning(
+                    "Not running DESeq2 as no 'deseq2' column in design file."
+                )
 
         assay_output.extend(
             [
