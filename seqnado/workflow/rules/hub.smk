@@ -137,7 +137,7 @@ rule generate_hub:
     output:
         hub=get_hub_txt_path(),
     log:
-        log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log",
+        log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log".strip(),
     container:
         None
     params:
