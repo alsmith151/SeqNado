@@ -159,8 +159,8 @@ rule move_bam_to_final_location:
         bam="seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam",
         bai="seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai",
     output:
-        bam="seqnado_output/aligned/{sample,[A-Za-z0-9_\-]+}.bam",
-        bai="seqnado_output/aligned/{sample,[A-Za-z0-9_\-]+}.bam.bai",
+        bam="seqnado_output/aligned/{sample,[A-Za-z0-9_-]+}.bam",
+        bai="seqnado_output/aligned/{sample,[A-Za-z0-9_-]+}.bam.bai",
     log:
         "seqnado_output/logs/move_bam/{sample}.log",
     shell:"""
