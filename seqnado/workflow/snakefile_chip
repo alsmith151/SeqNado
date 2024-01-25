@@ -75,7 +75,6 @@ if config["spikein"]:
 # Define wildcard constraints
 wildcard_constraints:
     treatment= "|".join(IP),
-    control = "|".join(CONTROL),
 
 
 

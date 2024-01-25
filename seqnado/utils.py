@@ -470,7 +470,10 @@ class DesignIP(BaseModel):
             if experiment.control is not None:
                 sample_names.add(experiment.control_files.name)
 
-        return list(sample_names)
+        if all([s is None for s in sample_names]):
+            return []
+        else:
+            return list(sample_names)
 
     @property
     def sample_names(self) -> List[str]:
@@ -482,7 +485,11 @@ class DesignIP(BaseModel):
 
     @property
     def control_names(self) -> List[str]:
-        return list(set([experiment.control for experiment in self.assays.values()]))
+        names = list(set([experiment.control for experiment in self.assays.values()]))
+        if all([s is None for s in names]):
+            return []
+        else:
+            return names
 
     @computed_field
     @property
@@ -547,7 +554,6 @@ class DesignIP(BaseModel):
         for base, assay in itertools.groupby(
             assays.values(), lambda x: x.r1.sample_base_without_ip
         ):
-
             assay = list(assay)
 
             if len(assay) == 1:
@@ -621,9 +627,11 @@ class DesignIP(BaseModel):
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame, simplified: bool = True, **kwargs):
+
         experiments = {}
         for experiment_name, row in df.iterrows():
             if simplified:
+                # Add the metadata
                 metadata = {}
                 for k, v in row.items():
                     if k not in [
@@ -636,14 +644,18 @@ class DesignIP(BaseModel):
                     ]:
                         metadata[k] = v
 
+                # Add the experiment
                 ip = row["ip"]
                 control = row["control"]
 
                 if "control_r1" not in row:
                     experiments[experiment_name] = ExperimentIP(
                         ip_files=AssayIP(
+                            name=experiment_name,
                             r1=FastqFileIP(path=row["ip_r1"]),
-                            r2=FastqFileIP(path=row["ip_r2"]),
+                            r2=FastqFileIP(path=row["ip_r2"])
+                            if "ip_r2" in row
+                            else None,
                         ),
                         ip=ip,
                         control=None,
@@ -652,12 +664,18 @@ class DesignIP(BaseModel):
                 else:
                     experiments[experiment_name] = ExperimentIP(
                         ip_files=AssayIP(
+                            name=experiment_name,
                             r1=FastqFileIP(path=row["ip_r1"]),
-                            r2=FastqFileIP(path=row["ip_r2"]),
+                            r2=FastqFileIP(path=row["ip_r2"])
+                            if "ip_r2" in row
+                            else None,
                         ),
                         control_files=AssayIP(
+                            name=experiment_name,
                             r1=FastqFileIP(path=row["control_r1"]),
-                            r2=FastqFileIP(path=row["control_r2"]),
+                            r2=FastqFileIP(path=row["control_r2"])
+                            if "control_r2" in row
+                            else None,
                         ),
                         ip=ip,
                         control=control,
