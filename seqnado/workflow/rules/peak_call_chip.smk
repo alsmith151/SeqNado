@@ -155,7 +155,7 @@ rule lanceotron_no_input:
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
-        cat {params.outdir}/{wildcards.treatment}_L-tron.bed | cut -f 1-3 > {output.peaks}
+        cat {params.outdir}/{wildcards.sample}_{wildcards.treatment}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
 
 
