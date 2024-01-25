@@ -123,20 +123,15 @@ def user_inputs(
         "color_by": "samplename",
     }
 
+
 @pytest.fixture(scope="module")
-def test_seqnado_config_creation(
-    run_directory,
-    user_inputs
-    ):
+def test_seqnado_config_creation(run_directory, user_inputs):
     temp_dir = pathlib.Path(run_directory)
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = temp_dir / f"{date}_chip_test/config_chip.yml"
     user_inputs = "\n".join(user_inputs.values())
 
-    cmd = [
-        "seqnado-config", 
-        "chip"
-    ]
+    cmd = ["seqnado-config", "chip"]
 
     # Run the script with subprocess
     process = subprocess.Popen(
@@ -145,21 +140,17 @@ def test_seqnado_config_creation(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=temp_dir
+        cwd=temp_dir,
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
 
     # Assert that the config file was created
     assert os.path.exists(config_file_path), "Config file not created."
-    
+
+
 @pytest.fixture(scope="module", autouse=True)
-def set_up(
-    run_directory,
-    fastqs,
-    user_inputs,
-    test_seqnado_config_creation
-):
+def set_up(run_directory, fastqs, user_inputs, test_seqnado_config_creation):
     cwd = os.getcwd()
     os.chdir(run_directory)
 
@@ -168,6 +159,17 @@ def set_up(
     os.chdir(f"{current_date}_chip_test")
     for fq in fastqs:
         shutil.copy(fq, ".")
+
+    # Add missing options to config file
+    import yaml
+
+    with open("config_atac.yml", "r") as stream:
+        config = yaml.safe_load(stream)
+        config["peak_calling_method"] = ["lanceotron", "homer", "macs"]
+        config["pileup_method"] = ["deeptools", "homer"]
+
+    with open("config_atac.yml", "w") as stream:
+        yaml.dump(config, stream)
 
     yield
 
