@@ -163,12 +163,12 @@ def set_up(run_directory, fastqs, user_inputs, test_seqnado_config_creation):
     # Add missing options to config file
     import yaml
 
-    with open("config_atac.yml", "r") as stream:
+    with open("config_chip.yml", "r") as stream:
         config = yaml.safe_load(stream)
         config["peak_calling_method"] = ["lanceotron", "homer", "macs"]
         config["pileup_method"] = ["deeptools", "homer"]
 
-    with open("config_atac.yml", "w") as stream:
+    with open("config_chip.yml", "w") as stream:
         yaml.dump(config, stream)
 
     yield
