@@ -41,7 +41,6 @@ ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
                                             **config)
 
-
 ###################
 # Pipeline config #
 ###################
@@ -50,10 +49,14 @@ include: "rules/fastq_trim.smk"
 include: "rules/qc.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call.smk"
+include: "rules/peak_call_other.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
+
+
+
+
 
 
 rule all:

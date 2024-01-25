@@ -12,7 +12,7 @@ def get_lanceotron_threshold(wildcards):
 
 def get_control_bam(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    return "seqnado_output/alignments/{sample}_{exp.control}.bam"
+    return "seqnado_output/aligned/{sample}_{exp.control}.bam"
 
 
 def get_control_tag(wildcards):
@@ -27,10 +27,10 @@ def get_control_bigwig(wildcards):
 
 rule macs2_with_input:
     input:
-        treatment="seqnado_output/alignments/{sample}_{treatment}.bam",
+        treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
         control=get_control_bam,
     output:
-        peaks="seqnado_output/peaks/macs/{wildcards.treatment}.bed",
+        peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
         options=seqnado.utils.check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
@@ -39,7 +39,7 @@ rule macs2_with_input:
         mem_mb=2000,
         time="0-02:00:00",
     log:
-        "seqnado_output/logs/macs/{wildcards.treatment}.bed",
+        "seqnado_output/logs/macs/{sample}_{treatment}.bed",
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAMPE {params.options} > {log} 2>&1 &&
@@ -49,9 +49,9 @@ rule macs2_with_input:
 
 rule macs2_no_input:
     input:
-        treatment="seqnado_output/alignments/{sample}_{treatment}.bam",
+        treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
     output:
-        peaks="seqnado_output/peaks/macs/{treatment}.bed",
+        peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
         options=seqnado.utils.check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
@@ -61,7 +61,7 @@ rule macs2_no_input:
         mem_mb=2000,
         time="0-02:00:00",
     log:
-        "seqnado_output/logs/macs/{treatment}.bed",
+        "seqnado_output/logs/macs/{sample}_{treatment}.bed",
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} -f BAMPE {params.options} > {log} 2>&1 &&
@@ -74,9 +74,9 @@ rule homer_with_input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
         control=get_control_tag,
     output:
-        peaks="seqnado_output/peaks/homer/{treatment}.bed",
+        peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/homer/{treatment}.bed",
+        "seqnado_output/logs/homer/{sample}_{treatment}.bed",
     params:
         options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
     threads: 1
@@ -95,9 +95,9 @@ rule homer_no_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
     output:
-        peaks="seqnado_output/peaks/homer/{treatment}.bed",
+        peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/homer/{treatment}.bed",
+        "seqnado_output/logs/homer/{sample}_{treatment}.bed",
     params:
         options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
     threads: 1
@@ -114,12 +114,12 @@ rule homer_no_input:
 
 rule lanceotron_with_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/{treatment}.bigWig",
+        treatment="seqnado_output/bigwigs/deeptools/{sample}_{treatment}.bigWig",
         control=get_control_bigwig,
     output:
-        peaks="seqnado_output/peaks/lanceotron/{treatment}.bed",
+        peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/lanceotron/{treatment}.bed",
+        "seqnado_output/logs/lanceotron/{sample}_{treatment}.bed",
     params:
         threshold=get_lanceotron_threshold,
         outdir=lambda wc, output: os.path.dirname(output.peaks),
@@ -138,11 +138,11 @@ rule lanceotron_with_input:
 
 rule lanceotron_no_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/{treatment}.bigWig",
+        treatment="seqnado_output/bigwigs/deeptools/{sample}_{treatment}.bigWig",
     output:
-        peaks="seqnado_output/peaks/lanceotron/{treatment}.bed",
+        peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/lanceotron/{treatment}.bed",
+        "seqnado_output/logs/lanceotron/{sample}_{treatment}.bed",
     params:
         options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
