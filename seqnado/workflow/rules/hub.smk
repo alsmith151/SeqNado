@@ -63,9 +63,10 @@ def get_hub_input(wildcards):
             if config["call_peaks"]:
                 input_files.extend(
                     expand(
-                        "seqnado_output/peaks/{method}/{sample}.bigBed",
+                        "seqnado_output/peaks/{method}/{sample}_{treatment}.bigBed",
                         method=config["peak_calling_method"],
                         sample=SAMPLE_NAMES_IP,
+                        treatment=IP + CONTROL,
                     )
                 )
 
@@ -112,7 +113,7 @@ rule bed_to_bigbed:
     resources:
         mem_mb=500,
     log:
-        "seqnado_output/logs/bed_to_bigbed/{directory}_{sample}.log",
+        "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v > {input.bed}.tmp &&
