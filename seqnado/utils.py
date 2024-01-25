@@ -575,21 +575,6 @@ class DesignIP(BaseModel):
 
         return cls(assays=experiments, **kwargs)
 
-        # ip_samples = defaultdict(list)
-        # for f in fq:
-        #     if not f.is_control:
-        #         ip_samples[f.sample_base_without_ip].append(f)
-
-        # samples = defaultdict(list)
-        # for f in fq:
-        #     samples[f.sample_base_without_ip].append(f)
-
-        # assays = {}
-        # for sample_name, sample in samples.items():
-        #     assays[sample_name] = ExperimentIP.from_fastq_files(sample, **kwargs)
-
-        # return cls(assays=assays, **kwargs)
-
     @classmethod
     def from_directory(
         cls, path: pathlib.Path, metadata: Dict[str, Any] = None, **kwargs
