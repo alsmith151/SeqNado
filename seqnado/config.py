@@ -143,6 +143,10 @@ def setup_configuration(assay, genome, template_data):
         template_data['UCSC_hub_directory'] = get_user_input("UCSC hub directory:", default="/path/to/ucsc_hub/")
         template_data['email'] = get_user_input("What is your email address?", default=f"{username}@example.com")
         template_data['color_by'] = get_user_input("Color by (for UCSC hub):", default="samplename")
+    else :
+        template_data['UCSC_hub_directory'] = "."
+        template_data['email'] = f"{username}@example.com"
+        template_data['color_by'] = "samplename"
 
     if assay in ["chip", "atac"]:
         template_data['options'] = TOOL_OPTIONS
