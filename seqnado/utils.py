@@ -687,7 +687,7 @@ class DesignIP(BaseModel):
         return cls(assays=experiments, **kwargs)
 
 
-def symlink_files(
+def symlink_files_paired(
     output_dir: pathlib.Path, assay: Union[AssayNonIP, AssayIP], assay_name: str
 ):
     r1_path_new = pathlib.Path(f"{output_dir}/{assay_name}_1.fastq.gz")
@@ -706,6 +706,18 @@ def symlink_files(
             logger.warning(f"Symlink for {r2_path_new} already exists.")
 
 
+def symlink_files_single(
+    output_dir: pathlib.Path, assay: Union[AssayNonIP, AssayIP], assay_name: str
+):
+    r1_path_new = pathlib.Path(f"{output_dir}/{assay_name}.fastq.gz")
+
+    if not r1_path_new.exists():
+        try:
+            r1_path_new.symlink_to(assay.r1.path.resolve())
+        except FileExistsError:
+            logger.warning(f"Symlink for {r1_path_new} already exists.")
+
+
 def symlink_fastq_files(
     design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
 ) -> None:
@@ -717,18 +729,28 @@ def symlink_fastq_files(
 
     if isinstance(design, Design):
         for assay_name, assay in design.assays.items():
-            symlink_files(output_dir, assay, assay_name)
+            if assay.is_paired:
+                symlink_files_paired(output_dir, assay, assay_name)
+            else:
+                symlink_files_single(output_dir, assay, assay_name)
 
     elif isinstance(design, DesignIP):
         for experiment_name, experiment in design.assays.items():
             assay = experiment.ip_files
             assay_name = assay.name
-            symlink_files(output_dir, assay, assay_name)
+
+            if assay.is_paired:
+                symlink_files_paired(output_dir, assay, assay_name)
+            else:
+                symlink_files_single(output_dir, assay, assay_name)
 
             if experiment.control_files:
                 assay = experiment.control_files
                 assay_name = assay.name
-                symlink_files(output_dir, assay, assay_name)
+                if assay.is_paired:
+                    symlink_files_paired(output_dir, assay, assay_name)
+                else:
+                    symlink_files_single(output_dir, assay, assay_name)
 
 
 def define_output_files(

@@ -62,6 +62,7 @@ ANALYSIS_OUTPUT = seqnado.utils.define_output_files(
                                             **config
                                             )
 
+
 if config["spikein"]:
     include: "rules/chip_refnorm.smk"
     include: "rules/normalisation.smk"
