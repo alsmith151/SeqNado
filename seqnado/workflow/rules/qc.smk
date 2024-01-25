@@ -25,6 +25,10 @@ rule fastqc_raw_single:
     output:
         html="seqnado_output/qc/fastqc_raw/{sample}.html",
         zip="seqnado_output/qc/fastqc_raw/{sample}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
+    log:
+        "seqnado_output/logs/fastqc_raw/{sample}.log",
+    wrapper:
+        "v3.0.1/bio/fastqc"
 
 
 use rule fastqc_raw_paired as fastqc_trimmed_paired with:
