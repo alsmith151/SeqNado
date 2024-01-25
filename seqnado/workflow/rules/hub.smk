@@ -63,10 +63,9 @@ def get_hub_input(wildcards):
             if config["call_peaks"]:
                 input_files.extend(
                     expand(
-                        "seqnado_output/peaks/{method}/{sample}_{treatment}.bigBed",
+                        "seqnado_output/peaks/{method}/{sample}.bigBed",
                         method=config["peak_calling_method"],
                         sample=SAMPLE_NAMES_IP,
-                        treatment=IP + CONTROL,
                     )
                 )
 

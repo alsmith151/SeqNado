@@ -74,10 +74,8 @@ if config["spikein"]:
 
 # Define wildcard constraints
 wildcard_constraints:
-    read = r"[12]",
-    sample = "|".join(SAMPLE_NAMES),
-    treatment= "|".join(SAMPLE_NAMES_IP),
-    control = "|".join(SAMPLE_NAMES_CONTROL),
+    treatment= "|".join(IP),
+    control = "|".join(CONTROL),
 
 
 
