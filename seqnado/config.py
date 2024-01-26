@@ -6,6 +6,7 @@ import json
 package_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(package_dir, "workflow/config")
 
+# Helper Functions
 def get_user_input(prompt, default=None, is_boolean=False, choices=None):
     while True:
         user_input = input(f"{prompt} [{'/'.join(choices) if choices else default}]: ") or default
@@ -16,93 +17,9 @@ def get_user_input(prompt, default=None, is_boolean=False, choices=None):
             continue
         return user_input
 
-def load_genome_values():
-    with open(os.path.join(template_dir, 'preset_genomes.json'), 'r') as f:
-        return json.load(f)
-
-def prompt_for_genome_info(assay, genome):
-    prompts = {
-        "indices": "Path to Bowtie2 genome index:" if assay in ["chip", "atac"] else "Path to STAR v2.7.10b genome index:",
-        "chromosome_sizes": "Path to chromosome sizes file:",
-        "gtf": "Path to GTF file:",
-        "blacklist": "Path to blacklist bed file:"
-    }
-    return {key: get_user_input(prompt) for key, prompt in prompts.items()}
-
-def get_genome_dict(assay, genome, genome_values):
-    if genome == "other":
-        genome = get_user_input("What is your genome name?", default="other")
-        return {genome: prompt_for_genome_info(assay, genome)}
-    elif genome in genome_values:
-        index_key = 'bt2_index' if assay in ["chip", "atac"] else 'star_index'
-        genome_info = genome_values[genome].copy()
-        genome_info['indices'] = genome_info.pop(index_key)
-        return {genome: genome_info}
-    return {}
-
-def update_template_data(assay, genome_dict, genome, template_data):
-    genome_info = genome_dict.get(genome, {})
-    
-    for key in ['indices', 'chromosome_sizes', 'gtf', 'blacklist']:
-        template_data[key] = genome_info.get(key)
-
-    # Common settings for all assays
-    template_data['remove_blacklist'] = get_user_input("Do you want to remove blacklist regions? (yes/no)", default="yes", is_boolean=True)
-    if template_data['remove_blacklist']:
-        template_data['blacklist'] = genome_info.get('blacklist')
-
-    # Assay-specific configurations
-    if assay in ["chip", "atac"]:
-        template_data['remove_pcr_duplicates'] = get_user_input("Remove PCR duplicates? (yes/no)", default="yes", is_boolean=True)
-        
-        template_data['call_peaks'] = get_user_input("Do you want to call peaks? (yes/no)", default="no", is_boolean=True)
-
-        if template_data['call_peaks']:
-            template_data['peak_calling_method'] = get_user_input("Peak caller:", default="macs", choices=["lanceotron", "macs", "homer"])
-
-        if assay == "chip":
-            template_data['spikein'] = get_user_input("Do you have chip spikein? (yes/no)", default="no", is_boolean=True)
-            if template_data['spikein']:
-                template_data['normalisation_method'] = get_user_input("Normalisation method:", default="orlando", choices=["orlando", "with_input"])
-                template_data['reference_genome'] = get_user_input("Reference genome:", default="hg38")
-                template_data['spikein_genome'] = get_user_input("Spikein genome:", default="dm6")
-                
-        if assay == "atac":
-            template_data['shift_atac_reads'] = get_user_input("Shift ATAC-seq reads? (yes/no)", default="yes" if assay == "atac" else "no", is_boolean=True)
-
-    elif assay == "rna":
-        template_data['remove_pcr_duplicates'] = get_user_input("Remove PCR duplicates? (yes/no)", default="no", is_boolean=True)
-        template_data['run_deseq2'] = get_user_input("Run DESeq2? (yes/no)", default="no", is_boolean=True)
-
-    # PCR duplicates method
-    if template_data.get('remove_pcr_duplicates'):
-        template_data['remove_pcr_duplicates_method'] = get_user_input("Remove PCR duplicates method:", default="picard", choices=["picard"])
-    else:
-        template_data['remove_pcr_duplicates_method'] = "False"
-
-    # General options for all assays
-    template_data['make_bigwigs'] = get_user_input("Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True)
-    if template_data['make_bigwigs']:
-        template_data['pileup_method'] = get_user_input("Pileup method:", default="deeptools", choices=["deeptools", "homer"])
-
-    template_data['make_ucsc_hub'] = get_user_input("Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True)
-    if template_data['make_ucsc_hub']:
-        template_data['UCSC_hub_directory'] = get_user_input("UCSC hub directory:", default="/path/to/ucsc_hub/")
-        template_data['email'] = get_user_input("What is your email address?", default=f"{template_data['username']}@example.com")
-        template_data['color_by'] = get_user_input("Color by (for UCSC hub):", default="samplename")
-    else:
-        template_data['UCSC_hub_directory'] = "."
-        template_data['email'] = f"{template_data['username']}@example.com"
-        template_data['color_by'] = "samplename"
-        
-    if assay in ["chip", "atac"]:
-        template_data['options'] = TOOL_OPTIONS
-    elif assay == "rna":
-        template_data['options'] = TOOL_OPTIONS_RNA
 
 
 def setup_configuration(assay, genome, template_data):
-    # Collect common configurations
     username = os.getenv('USER', 'unknown_user')
     today = datetime.datetime.now().strftime('%Y-%m-%d')
     project_name = get_user_input("What is your project name?", default=f"{username}_project")
@@ -113,16 +30,122 @@ def setup_configuration(assay, genome, template_data):
         'project_name': project_name,
         'genome': genome
     }
+    
     template_data.update(common_config)
 
-    # Load genome values
-    genome_values = load_genome_values()
+    with open(os.path.join(template_dir, 'preset_genomes.json'), 'r') as f:
+        genome_values = json.load(f)
+
+    genome_dict = {}
+
+    if genome == "other":
+        genome = get_user_input("What is your genome name?", default="other")
+        if assay in ["chip", "atac"]:
+            genome_dict = {
+                genome: {
+                    "index": get_user_input("Path to Bowtie2 genome index:"),
+                    "chromosome_sizes": get_user_input("Path to chromosome sizes file:"),
+                    "gtf": get_user_input("Path to GTF file:"),
+                    "blacklist": get_user_input("Path to blacklist bed file:")
+                }
+            }
+        elif assay == "rna":
+            genome_dict = {
+                genome: {
+                    "index": get_user_input("Path to STAR v2.7.10b genome index:"),
+                    "chromosome_sizes": get_user_input("Path to chromosome sizes file:"),
+                    "gtf": get_user_input("Path to GTF file:"),
+                    "blacklist": get_user_input("Path to blacklist bed file:")
+                }
+            }
+
+    elif genome in genome_values:
+        if assay in ["chip", "atac"]:
+            genome_dict = {
+                genome: {
+                    "index": genome_values[genome]['bt2_index'],
+                    "chromosome_sizes": genome_values[genome]['chromosome_sizes'],
+                    "gtf": genome_values[genome]['gtf'],
+                    "blacklist": genome_values[genome]['blacklist']
+                }
+            }
+        elif assay == "rna":
+            genome_dict = {
+                genome: {
+                    "index": genome_values[genome]['star_index'],
+                    "chromosome_sizes": genome_values[genome]['chromosome_sizes'],
+                    "gtf": genome_values[genome]['gtf'],
+                    "blacklist": genome_values[genome]['blacklist']
+                }
+            }
+
+    template_data['genome'] = genome
+    template_data['indices'] = genome_dict[genome]['index']
+    template_data['chromosome_sizes'] = genome_dict[genome]['chromosome_sizes']
+    template_data['gtf'] = genome_dict[genome]['gtf']
+
+    template_data['remove_blacklist'] = get_user_input("Do you want to remove blacklist regions? (yes/no)", default="yes", is_boolean=True)
+    if template_data['remove_blacklist']:
+        template_data['blacklist'] = genome_dict[genome]['blacklist']
+
+    if assay in ["chip", "atac"]:
+        template_data['remove_pcr_duplicates'] = get_user_input("Remove PCR duplicates? (yes/no)", default="yes", is_boolean=True)
+    elif assay == "rna":
+        template_data['remove_pcr_duplicates'] = get_user_input("Remove PCR duplicates? (yes/no)", default="no", is_boolean=True)
     
-    # Get genome-specific information
-    genome_dict = get_genome_dict(assay, genome, genome_values)
+    if template_data['remove_pcr_duplicates']:
+        template_data['remove_pcr_duplicates_method'] = get_user_input("Remove PCR duplicates method:", default="picard", choices=["picard"])
+
+    else:
+        template_data['remove_pcr_duplicates_method'] = "False"
+        
+    if assay == "atac":
+        template_data['shift_atac_reads'] = get_user_input("Shift ATAC-seq reads? (yes/no)", default="yes", is_boolean=True)
+    elif assay in ["chip", "rna"]:
+        template_data['shift_atac_reads'] = "False"
+
+    if assay == "chip":
+        template_data['spikein'] = get_user_input("Do you have spikein? (yes/no)", default="no", is_boolean=True)
+        if template_data['spikein']:
+                template_data['normalisation_method'] = get_user_input("Normalisation method:", default="orlando", choices=["orlando", "with_input"])
+                template_data['reference_genome'] = get_user_input("Reference genome:", default="hg38")
+                template_data['spikein_genome'] = get_user_input("Spikein genome:", default="dm6")
+                template_data['fastq_screen_config'] = get_user_input("Path to fastqscreen config:", default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf")
+    elif assay in ["atac", "rna"]:
+        template_data['normalisation_method'] = "False"
+        
+    template_data['make_bigwigs'] = get_user_input("Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True)
+    if template_data['make_bigwigs']:
+        template_data['pileup_method'] = get_user_input("Pileup method:", default="deeptools", choices=["deeptools", "homer"])
+        template_data['make_heatmaps'] = get_user_input("Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True)
     
-    # Update template data with genome-specific and assay-specific information
-    update_template_data(assay, genome_dict, genome, template_data)
+    if assay in ["chip", "atac"]:
+        template_data['call_peaks'] = get_user_input("Do you want to call peaks? (yes/no)", default="no", is_boolean=True)
+        if template_data['call_peaks']:
+            template_data['peak_calling_method'] = get_user_input("Peak caller:", default="lanceotron", choices=["lanceotron", "macs", "homer"])
+        
+    elif assay == "rna":
+        template_data['call_peaks'] = "False"
+
+    if assay == "rna":
+        template_data['run_deseq2'] = get_user_input("Run DESeq2? (yes/no)", default="no", is_boolean=True)
+    elif assay in ["chip", "atac"]:
+        template_data['run_deseq2'] = "False"
+
+    template_data['make_ucsc_hub'] = get_user_input("Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True)
+    if template_data['make_ucsc_hub']:
+        template_data['UCSC_hub_directory'] = get_user_input("UCSC hub directory:", default="/path/to/ucsc_hub/")
+        template_data['email'] = get_user_input("What is your email address?", default=f"{username}@example.com")
+        template_data['color_by'] = get_user_input("Color by (for UCSC hub):", default="samplename")
+    else :
+        template_data['UCSC_hub_directory'] = "."
+        template_data['email'] = f"{username}@example.com"
+        template_data['color_by'] = "samplename"
+
+    if assay in ["chip", "atac"]:
+        template_data['options'] = TOOL_OPTIONS
+    elif assay == "rna":
+        template_data['options'] = TOOL_OPTIONS_RNA
 
 
 # Tool Specific Options
@@ -159,7 +182,7 @@ lanceotron:
     callpeak: -c 0.5
 
 heatmap:
-    options: -m 10000 -b 3000 -a 3000
+    options:
     colormap: RdYlBu_r
 """
 
@@ -190,28 +213,34 @@ deeptools:
     bamcoverage: -bs 1 --normalizeUsing CPM
 
 heatmap:
-    options: -m 10000 -b 3000 -a 3000
+    options:
     colormap: RdYlBu_r
 """
 
 def create_config(assay, genome):
     env = Environment(loader=FileSystemLoader(template_dir), auto_reload=False)
+
     template = env.get_template("config.yaml.jinja")        
     template_deseq2 = env.get_template("deseq2.qmd.jinja")
-
+    
+    # Initialize template data
     template_data = {'assay': assay, 'genome': genome}
+
+    # Setup configuration
     setup_configuration(assay, genome, template_data)
 
+    # Create directory and render template
     dir_name = f"{template_data['project_date']}_{template_data['assay']}_{template_data['project_name']}"
     os.makedirs(dir_name, exist_ok=True)
     fastq_dir = os.path.join(dir_name, "fastq")
     os.makedirs(fastq_dir, exist_ok=True)
-
+    
     with open(os.path.join(dir_name, f"config_{assay}.yml"), 'w') as file:
         file.write(template.render(template_data))
 
+    # add deseq2 qmd file if rna
     if assay == "rna":
         with open(os.path.join(dir_name, f"deseq2_{template_data['project_name']}.qmd"), 'w') as file:
             file.write(template_deseq2.render(template_data))
-
+            
     print(f"Directory '{dir_name}' has been created with the 'config_{assay}.yml' file.")

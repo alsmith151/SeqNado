@@ -109,9 +109,9 @@ def has_bowtie2_index(prefix: str) -> bool:
     path_dir = path_prefix.parent
     path_prefix_stem = path_prefix.stem
 
-    bowtie2_indicies = list(path_dir.glob(f"{path_prefix_stem}*.bt2"))
+    bowtie2_indices = list(path_dir.glob(f"{path_prefix_stem}*.bt2"))
 
-    if len(bowtie2_indicies) > 0:
+    if len(bowtie2_indices) > 0:
         return True
 
 

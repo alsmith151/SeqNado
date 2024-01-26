@@ -57,7 +57,7 @@ def config_path(data_path):
 
 
 @pytest.fixture(scope="module")
-def genome_indicies(genome_path):
+def genome_indices(genome_path):
     indices = os.path.join(genome_path, "bt2")
 
     if not os.path.exists(indices):
@@ -96,13 +96,13 @@ def run_directory(tmpdir_factory):
 @pytest.fixture(scope="module")
 def user_inputs(
     data_path,
-    genome_indicies,
+    genome_indices,
     chromsizes,
 ):
     return {
         "project_name": "test",
         "genome_name": "hg19",
-        "index": genome_indicies,
+        "index": genome_indices,
         "chromsizes": chromsizes,
         "gtf": f"{data_path}/genome/chr21.gtf",
         "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
@@ -180,7 +180,7 @@ def set_up(
 
 
 def test_pipeline_singularity(genome_path, cores):
-    indicies_dir = os.path.join(genome_path, "bt2")
+    indices_dir = os.path.join(genome_path, "bt2")
 
     cmd = [
         "seqnado",
@@ -191,7 +191,7 @@ def test_pipeline_singularity(genome_path, cores):
         "config_atac.yml",
         "--use-singularity",
         "--singularity-args",
-        f'" -B {indicies_dir} -B {genome_path}"',
+        f'" -B {indices_dir} -B {genome_path}"',
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0

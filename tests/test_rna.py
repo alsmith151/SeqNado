@@ -57,7 +57,7 @@ def config_path(data_path):
 
 
 @pytest.fixture(scope="module")
-def genome_indicies(genome_path):
+def genome_indices(genome_path):
     indices = os.path.join(genome_path, "GenomeDir")
     gtf = os.path.join(genome_path, "chr21.gtf")
     fasta = os.path.join(genome_path, "chr21_rename.fa")
@@ -107,13 +107,13 @@ def run_directory(tmpdir_factory):
 @pytest.fixture(scope="module")
 def user_inputs(
     data_path,
-    genome_indicies,
+    genome_indices,
     chromsizes,
 ):
     return {
         "project_name": "test",
         "genome_name": "hg19",
-        "index": genome_indicies,
+        "index": genome_indices,
         "chromsizes": chromsizes,
         "gtf": f"{data_path}/genome/chr21.gtf",
         "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
@@ -180,7 +180,7 @@ def set_up(
     os.chdir(cwd)
 
 
-def test_pipeline_singularity(genome_path, genome_indicies, chromsizes, cores):
+def test_pipeline_singularity(genome_path, genome_indices, chromsizes, cores):
     cmd = [
         "seqnado",
         "rna",
@@ -190,7 +190,7 @@ def test_pipeline_singularity(genome_path, genome_indicies, chromsizes, cores):
         "config_rna.yml",
         "--use-singularity",
         "--singularity-args",
-        f'" -B {genome_indicies} -B {genome_path} -B {chromsizes} "',
+        f'" -B {genome_indices} -B {genome_path} -B {chromsizes} "',
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0
