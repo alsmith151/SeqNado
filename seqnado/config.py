@@ -106,7 +106,7 @@ def setup_configuration(assay, genome, template_data):
     template_data['email'] = get_user_input("What is your email address?", default=f"{username}@example.com") if template_data['make_ucsc_hub'] else f"{username}@example.com"
     template_data['color_by'] = get_user_input("Color by (for UCSC hub):", default="samplename") if template_data['make_ucsc_hub'] else "samplename"
     
-    template_data['options'] = TOOL_OPTIONS_RNA if assay == "rna" else TOOL_OPTIONS_RNA
+    template_data['options'] = TOOL_OPTIONS_RNA if assay == "rna" else TOOL_OPTIONS
 
 
 # Tool Specific Options
