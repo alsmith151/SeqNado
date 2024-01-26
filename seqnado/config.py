@@ -83,7 +83,6 @@ def setup_configuration(assay, genome, template_data):
     template_data['indicies'] = genome_dict[genome]['index']
     template_data['chromosome_sizes'] = genome_dict[genome]['chromosome_sizes']
     template_data['gtf'] = genome_dict[genome]['gtf']
-    template_data['read_type'] = get_user_input("What is your read type?", default="paired", choices=["paired", "single"])
 
     template_data['remove_blacklist'] = get_user_input("Do you want to remove blacklist regions? (yes/no)", default="yes", is_boolean=True)
     if template_data['remove_blacklist']:
@@ -114,11 +113,6 @@ def setup_configuration(assay, genome, template_data):
                 template_data['fastq_screen_config'] = get_user_input("Path to fastqscreen config:", default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf")
     elif assay in ["atac", "rna"]:
         template_data['normalisation_method'] = "False"
-
-    template_data['split_fastq'] = get_user_input("Do you want to split FASTQ files? (yes/no)", default="no", is_boolean=True)
-    if template_data['split_fastq']:
-        template_data.update['split_fastq_parts'] = get_user_input("How many parts do you want to split the FASTQ files into?", default="4")
-
     
     template_data['make_bigwigs'] = get_user_input("Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True)
     if template_data['make_bigwigs']:

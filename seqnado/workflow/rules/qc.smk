@@ -70,33 +70,33 @@ use rule samtools_stats as samtools_stats_filtered with:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
 
 
-if config["split_fastq"] == "False":
 
-    rule multiqc:
-        input:
-            expand(
-                "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
-                sample=SAMPLE_NAMES,
-                read=[1, 2],
-            ),
-            expand(
-                "seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
-                sample=SAMPLE_NAMES,
-                read=[1, 2],
-            ),
-            expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
-            expand(
-                "seqnado_output/qc/alignment_filtered/{sample}.txt",
-                sample=SAMPLE_NAMES,
-            ),
-        output:
-            "seqnado_output/qc/full_qc_report.html",
-        log:
-            "seqnado_output/logs/multiqc.log",
-        resources:
-            mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
-        shell:
-            "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
+
+rule multiqc:
+    input:
+        expand(
+            "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
+            sample=SAMPLE_NAMES,
+            read=[1, 2],
+        ),
+        expand(
+            "seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
+            sample=SAMPLE_NAMES,
+            read=[1, 2],
+        ),
+        expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
+        expand(
+            "seqnado_output/qc/alignment_filtered/{sample}.txt",
+            sample=SAMPLE_NAMES,
+        ),
+    output:
+        "seqnado_output/qc/full_qc_report.html",
+    log:
+        "seqnado_output/logs/multiqc.log",
+    resources:
+        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+    shell:
+        "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
 
 
 def get_fastqc_files(*args, **kwargs):

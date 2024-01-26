@@ -28,15 +28,6 @@ $ seqnado-config chip
   [6/23] chromosome_sizes (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes):
   [7/23] indicies (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38):
   [8/23] gtf (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf):
-  [9/23] Select read_type
-    1 - paired
-    2 - single
-    Choose from [1/2] (1): 1
-  [10/23] Select split_fastq
-    1 - True
-    2 - False
-    Choose from [1/2] (1): 2
-  [11/23] split_fastq_parts (int):
   [12/23] Select remove_pcr_duplicates_method
     1 - picard
     2 - deeptools
