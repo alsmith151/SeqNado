@@ -109,9 +109,9 @@ def has_bowtie2_index(prefix: str) -> bool:
     path_dir = path_prefix.parent
     path_prefix_stem = path_prefix.stem
 
-    bowtie2_indicies = list(path_dir.glob(f"{path_prefix_stem}*.bt2"))
+    bowtie2_indices = list(path_dir.glob(f"{path_prefix_stem}*.bt2"))
 
-    if len(bowtie2_indicies) > 0:
+    if len(bowtie2_indices) > 0:
         return True
 
 
@@ -297,6 +297,10 @@ class AssayIP(AssayNonIP):
     r2: Optional[FastqFileIP] = None
     metadata: Optional[dict] = None
 
+    @property
+    def is_control(self) -> bool:
+        return self.r1.is_control
+
 
 class ExperimentIP(BaseModel):
     ip_files: AssayIP
@@ -323,7 +327,7 @@ class ExperimentIP(BaseModel):
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
         """
-        Create a SampleInfo object from a list of FastqFiles.
+        Create a Experiment object from a list of FastqFiles.
 
         """
 
@@ -466,7 +470,10 @@ class DesignIP(BaseModel):
             if experiment.control is not None:
                 sample_names.add(experiment.control_files.name)
 
-        return list(sample_names)
+        if all([s is None for s in sample_names]):
+            return []
+        else:
+            return list(sample_names)
 
     @property
     def sample_names(self) -> List[str]:
@@ -478,7 +485,11 @@ class DesignIP(BaseModel):
 
     @property
     def control_names(self) -> List[str]:
-        return list(set([experiment.control for experiment in self.assays.values()]))
+        names = list(set([experiment.control for experiment in self.assays.values()]))
+        if all([s is None for s in names]):
+            return []
+        else:
+            return names
 
     @computed_field
     @property
@@ -516,15 +527,59 @@ class DesignIP(BaseModel):
 
         """
 
-        samples = defaultdict(list)
+        ## Run through the list and pair upt the read1 and read2 files
+        ## If there is only one file, then it is the read1 file
+        import itertools
+
+        # Collate the fastq files by sample name
+        fq = sorted(fq)
+        fastq_collated = dict()
         for f in fq:
-            samples[f.sample_base_without_ip].append(f)
+            if f.sample_base not in fastq_collated:
+                fastq_collated[f.sample_base] = dict()
+                fastq_collated[f.sample_base][f.read_number or 1] = f
+            else:
+                fastq_collated[f.sample_base][f.read_number] = f
 
+        # Create the assays
         assays = {}
-        for sample_name, sample in samples.items():
-            assays[sample_name] = ExperimentIP.from_fastq_files(sample, **kwargs)
+        for sample_name, fastq_files in fastq_collated.items():
+            assays[sample_name] = AssayIP(
+                name=sample_name, r1=fastq_files[1], r2=fastq_files.get(2), **kwargs
+            )
 
-        return cls(assays=assays, **kwargs)
+        # Create the experiments
+        experiments = {}
+
+        for base, assay in itertools.groupby(
+            assays.values(), lambda x: x.r1.sample_base_without_ip
+        ):
+            assay = list(assay)
+
+            if len(assay) == 1:
+                experiments[assay[0].name] = ExperimentIP(ip_files=assay[0], **kwargs)
+            elif len(assay) == 2 and any([a.is_control for a in assay]):
+                ip = [a for a in assay if not a.is_control][0]
+                control = [a for a in assay if a.is_control][0]
+                experiments[ip.name] = ExperimentIP(
+                    ip_files=ip, control_files=control, **kwargs
+                )
+            elif len(assay) >= 2 and not any([a.is_control for a in assay]):
+                for a in assay:
+                    experiments[a.name] = ExperimentIP(ip_files=a, **kwargs)
+
+            elif len(assay) >= 2 and any([a.is_control for a in assay]):
+                logger.warning(f"Multiple controls for {assay[0].name}")
+                logger.warning("Will generate all possible combinations")
+                ip = [a for a in assay if not a.is_control]
+                control = [a for a in assay if a.is_control]
+
+                for combination in itertools.product(ip, control):
+                    experiments[combination[0].name] = ExperimentIP(
+                        ip_files=combination[0], control_files=combination[1], **kwargs
+                    )
+
+        return cls(assays=experiments, **kwargs)
 
     @classmethod
     def from_directory(
@@ -572,9 +627,11 @@ class DesignIP(BaseModel):
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame, simplified: bool = True, **kwargs):
+
         experiments = {}
         for experiment_name, row in df.iterrows():
             if simplified:
+                # Add the metadata
                 metadata = {}
                 for k, v in row.items():
                     if k not in [
@@ -587,14 +644,18 @@ class DesignIP(BaseModel):
                     ]:
                         metadata[k] = v
 
+                # Add the experiment
                 ip = row["ip"]
                 control = row["control"]
 
                 if "control_r1" not in row:
                     experiments[experiment_name] = ExperimentIP(
                         ip_files=AssayIP(
+                            name=experiment_name,
                             r1=FastqFileIP(path=row["ip_r1"]),
-                            r2=FastqFileIP(path=row["ip_r2"]),
+                            r2=FastqFileIP(path=row["ip_r2"])
+                            if "ip_r2" in row
+                            else None,
                         ),
                         ip=ip,
                         control=None,
@@ -603,12 +664,18 @@ class DesignIP(BaseModel):
                 else:
                     experiments[experiment_name] = ExperimentIP(
                         ip_files=AssayIP(
+                            name=experiment_name,
                             r1=FastqFileIP(path=row["ip_r1"]),
-                            r2=FastqFileIP(path=row["ip_r2"]),
+                            r2=FastqFileIP(path=row["ip_r2"])
+                            if "ip_r2" in row
+                            else None,
                         ),
                         control_files=AssayIP(
+                            name=experiment_name,
                             r1=FastqFileIP(path=row["control_r1"]),
-                            r2=FastqFileIP(path=row["control_r2"]),
+                            r2=FastqFileIP(path=row["control_r2"])
+                            if "control_r2" in row
+                            else None,
                         ),
                         ip=ip,
                         control=control,
@@ -620,7 +687,7 @@ class DesignIP(BaseModel):
         return cls(assays=experiments, **kwargs)
 
 
-def symlink_files(
+def symlink_files_paired(
     output_dir: pathlib.Path, assay: Union[AssayNonIP, AssayIP], assay_name: str
 ):
     r1_path_new = pathlib.Path(f"{output_dir}/{assay_name}_1.fastq.gz")
@@ -639,6 +706,18 @@ def symlink_files(
             logger.warning(f"Symlink for {r2_path_new} already exists.")
 
 
+def symlink_files_single(
+    output_dir: pathlib.Path, assay: Union[AssayNonIP, AssayIP], assay_name: str
+):
+    r1_path_new = pathlib.Path(f"{output_dir}/{assay_name}.fastq.gz")
+
+    if not r1_path_new.exists():
+        try:
+            r1_path_new.symlink_to(assay.r1.path.resolve())
+        except FileExistsError:
+            logger.warning(f"Symlink for {r1_path_new} already exists.")
+
+
 def symlink_fastq_files(
     design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
 ) -> None:
@@ -650,18 +729,28 @@ def symlink_fastq_files(
 
     if isinstance(design, Design):
         for assay_name, assay in design.assays.items():
-            symlink_files(output_dir, assay, assay_name)
+            if assay.is_paired:
+                symlink_files_paired(output_dir, assay, assay_name)
+            else:
+                symlink_files_single(output_dir, assay, assay_name)
 
     elif isinstance(design, DesignIP):
         for experiment_name, experiment in design.assays.items():
             assay = experiment.ip_files
             assay_name = assay.name
-            symlink_files(output_dir, assay, assay_name)
+
+            if assay.is_paired:
+                symlink_files_paired(output_dir, assay, assay_name)
+            else:
+                symlink_files_single(output_dir, assay, assay_name)
 
             if experiment.control_files:
                 assay = experiment.control_files
                 assay_name = assay.name
-                symlink_files(output_dir, assay, assay_name)
+                if assay.is_paired:
+                    symlink_files_paired(output_dir, assay, assay_name)
+                else:
+                    symlink_files_single(output_dir, assay, assay_name)
 
 
 def define_output_files(
@@ -693,12 +782,12 @@ def define_output_files(
         analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
 
     if make_heatmaps:
-            assay_output.extend(
-                [
-                    "seqnado_output/heatmap/heatmap.pdf",
-                    "seqnado_output/heatmap/metaplot.pdf",
-                ]
-            )
+        assay_output.extend(
+            [
+                "seqnado_output/heatmap/heatmap.pdf",
+                "seqnado_output/heatmap/metaplot.pdf",
+            ]
+        )
 
     if make_ucsc_hub:
         hub_dir = pathlib.Path(kwargs["ucsc_hub_details"]["directory"])
@@ -771,7 +860,6 @@ def define_output_files(
                 logger.warning(
                     "Not running DESeq2 as no 'deseq2' column in design file."
                 )
-
 
     elif assay == "SNP":
         if call_snps:

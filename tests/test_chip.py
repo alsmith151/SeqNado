@@ -57,10 +57,10 @@ def config_path(data_path):
 
 
 @pytest.fixture(scope="module")
-def genome_indicies(genome_path):
-    indicies = os.path.join(genome_path, "bt2")
+def genome_indices(genome_path):
+    indices = os.path.join(genome_path, "bt2")
 
-    if not os.path.exists(indicies):
+    if not os.path.exists(indices):
         try:
             import requests
             import tarfile
@@ -75,16 +75,16 @@ def genome_indicies(genome_path):
             tar.extractall(path=genome_path)
             tar.close()
             os.remove(output)
-            os.rename(genome_path + "/bt2", indicies)
+            os.rename(genome_path + "/bt2", indices)
 
         except Exception as e:
             print(e)
-            print("Could not download indicies so generating them")
-            os.mkdir(indicies)
-            cmd = f"bowtie2-build {os.path.join(genome_path,'chr21_rename.fa')} {indicies}/bt2 --threads 8"
+            print("Could not download indices so generating them")
+            os.mkdir(indices)
+            cmd = f"bowtie2-build {os.path.join(genome_path,'chr21_rename.fa')} {indices}/bt2 --threads 8"
             subprocess.run(cmd.split())
 
-    return os.path.join(indicies, "chr21")
+    return os.path.join(indices, "chr21")
 
 
 @pytest.fixture(scope="module")
@@ -96,22 +96,20 @@ def run_directory(tmpdir_factory):
 @pytest.fixture(scope="module")
 def user_inputs(
     data_path,
-    genome_indicies,
+    genome_indices,
     chromsizes,
 ):
     return {
         "project_name": "test",
         "genome_name": "hg19",
-        "index": genome_indicies,
+        "indices": genome_indices,
         "chromsizes": chromsizes,
         "gtf": f"{data_path}/genome/chr21.gtf",
         "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
-        "read_type": "paired",
         "remove_blacklist": "yes",
         "remove_pcr_duplicates": "yes",
         "remove_pcr_duplicates_method": "picard",
         "spikein": "no",
-        "split_fastq": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
         "make_heatmaps": "yes",
@@ -123,20 +121,15 @@ def user_inputs(
         "color_by": "samplename",
     }
 
+
 @pytest.fixture(scope="module")
-def test_seqnado_config_creation(
-    run_directory,
-    user_inputs
-    ):
+def test_seqnado_config_creation(run_directory, user_inputs):
     temp_dir = pathlib.Path(run_directory)
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = temp_dir / f"{date}_chip_test/config_chip.yml"
     user_inputs = "\n".join(user_inputs.values())
 
-    cmd = [
-        "seqnado-config", 
-        "chip"
-    ]
+    cmd = ["seqnado-config", "chip"]
 
     # Run the script with subprocess
     process = subprocess.Popen(
@@ -145,21 +138,17 @@ def test_seqnado_config_creation(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=temp_dir
+        cwd=temp_dir,
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
 
     # Assert that the config file was created
     assert os.path.exists(config_file_path), "Config file not created."
-    
+
+
 @pytest.fixture(scope="module", autouse=True)
-def set_up(
-    run_directory,
-    fastqs,
-    user_inputs,
-    test_seqnado_config_creation
-):
+def set_up(run_directory, fastqs, user_inputs, test_seqnado_config_creation):
     cwd = os.getcwd()
     os.chdir(run_directory)
 
@@ -169,13 +158,24 @@ def set_up(
     for fq in fastqs:
         shutil.copy(fq, ".")
 
+    # Add missing options to config file
+    import yaml
+
+    with open("config_chip.yml", "r") as stream:
+        config = yaml.safe_load(stream)
+        config["peak_calling_method"] = ["lanceotron", "homer", "macs"]
+        config["pileup_method"] = ["deeptools", "homer"]
+
+    with open("config_chip.yml", "w") as stream:
+        yaml.dump(config, stream)
+
     yield
 
     os.chdir(cwd)
 
 
 def test_pipeline_singularity(genome_path, cores):
-    indicies_dir = os.path.join(genome_path, "bt2")
+    indices_dir = os.path.join(genome_path, "bt2")
 
     cmd = [
         "seqnado",
@@ -186,7 +186,7 @@ def test_pipeline_singularity(genome_path, cores):
         "config_chip.yml",
         "--use-singularity",
         "--singularity-args",
-        f'" -B {indicies_dir} -B {genome_path}"',
+        f'" -B {indices_dir} -B {genome_path}"',
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0

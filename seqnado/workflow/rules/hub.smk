@@ -112,7 +112,7 @@ rule bed_to_bigbed:
     resources:
         mem_mb=500,
     log:
-        "seqnado_output/logs/bed_to_bigbed/{directory}_{sample}.log",
+        "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v > {input.bed}.tmp &&
@@ -137,7 +137,7 @@ rule generate_hub:
     output:
         hub=get_hub_txt_path(),
     log:
-        log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log",
+        log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log".strip(),
     container:
         None
     params:

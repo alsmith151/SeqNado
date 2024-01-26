@@ -57,12 +57,12 @@ def config_path(data_path):
 
 
 @pytest.fixture(scope="module")
-def genome_indicies(genome_path):
-    indicies = os.path.join(genome_path, "GenomeDir")
+def genome_indices(genome_path):
+    indices = os.path.join(genome_path, "GenomeDir")
     gtf = os.path.join(genome_path, "chr21.gtf")
     fasta = os.path.join(genome_path, "chr21_rename.fa")
 
-    if not os.path.exists(indicies):
+    if not os.path.exists(indices):
         try:
             import requests
             import tarfile
@@ -77,16 +77,16 @@ def genome_indicies(genome_path):
             tar.extractall(path=genome_path)
             tar.close()
             os.remove(output)
-            os.rename(os.path.join(genome_path, "GenomeDir"), indicies)
+            os.rename(os.path.join(genome_path, "GenomeDir"), indices)
 
         except Exception as e:
             print(e)
-            print("Could not download indicies so generating them")
-            os.mkdir(indicies)
+            print("Could not download indices so generating them")
+            os.mkdir(indices)
             cmd = f"""STAR
                   --runMode genomeGenerate
                   --runThreadN 4
-                  --genomeDir {indicies}
+                  --genomeDir {indices}
                   --genomeFastaFiles {fasta}
                   --sjdbGTFfile {gtf}
                   --sjdbOverhang 100
@@ -94,7 +94,7 @@ def genome_indicies(genome_path):
                   """
             subprocess.run(cmd.split())
 
-    return indicies
+    return indices
 
 
 @pytest.fixture(scope="module")
@@ -107,20 +107,18 @@ def run_directory(tmpdir_factory):
 @pytest.fixture(scope="module")
 def user_inputs(
     data_path,
-    genome_indicies,
+    genome_indices,
     chromsizes,
 ):
     return {
         "project_name": "test",
         "genome_name": "hg19",
-        "index": genome_indicies,
+        "indices": genome_indices,
         "chromsizes": chromsizes,
         "gtf": f"{data_path}/genome/chr21.gtf",
         "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
-        "read_type": "paired",
         "remove_blacklist": "yes",
         "remove_pcr_duplicates": "no",
-        "split_fastq": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
         "make_heatmaps": "yes",
@@ -182,7 +180,7 @@ def set_up(
     os.chdir(cwd)
 
 
-def test_pipeline_singularity(genome_path, genome_indicies, chromsizes, cores):
+def test_pipeline_singularity(genome_path, genome_indices, chromsizes, cores):
     cmd = [
         "seqnado",
         "rna",
@@ -192,7 +190,7 @@ def test_pipeline_singularity(genome_path, genome_indicies, chromsizes, cores):
         "config_rna.yml",
         "--use-singularity",
         "--singularity-args",
-        f'" -B {genome_indicies} -B {genome_path} -B {chromsizes} "',
+        f'" -B {genome_indices} -B {genome_path} -B {chromsizes} "',
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0

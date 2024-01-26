@@ -24,7 +24,7 @@ utils.format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
-    df = pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
+    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0)
     DESIGN = DesignIP.from_dataframe(df)
 else:
     DESIGN = DesignIP.from_directory(".")
@@ -48,7 +48,7 @@ include: "rules/qc.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call.smk"
+include: "rules/peak_call_chip.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
@@ -62,6 +62,7 @@ ANALYSIS_OUTPUT = seqnado.utils.define_output_files(
                                             **config
                                             )
 
+
 if config["spikein"]:
     include: "rules/chip_refnorm.smk"
     include: "rules/normalisation.smk"
@@ -74,10 +75,7 @@ if config["spikein"]:
 
 # Define wildcard constraints
 wildcard_constraints:
-    read = r"[12]",
-    sample = "|".join(SAMPLE_NAMES),
-    treatment= "|".join(SAMPLE_NAMES_IP),
-    control = "|".join(SAMPLE_NAMES_CONTROL),
+    treatment= "|".join(IP),
 
 
 

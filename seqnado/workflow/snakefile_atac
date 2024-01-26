@@ -25,7 +25,7 @@ utils.format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
-    df = pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
+    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0)
     DESIGN = Design.from_dataframe(df)
 else:
     DESIGN = Design.from_directory(".")
@@ -41,7 +41,6 @@ ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
                                             **config)
 
-
 ###################
 # Pipeline config #
 ###################
@@ -50,10 +49,14 @@ include: "rules/fastq_trim.smk"
 include: "rules/qc.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call.smk"
+include: "rules/peak_call_other.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
+
+
+
+
 
 
 rule all:
