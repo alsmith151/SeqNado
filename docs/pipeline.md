@@ -26,7 +26,7 @@ $ seqnado-config chip
     Choose from [1] (1): 1
   [5/23] genome (hg38):
   [6/23] chromosome_sizes (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes):
-  [7/23] indicies (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38):
+  [7/23] indices (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38):
   [8/23] gtf (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf):
   [12/23] Select remove_pcr_duplicates_method
     1 - picard

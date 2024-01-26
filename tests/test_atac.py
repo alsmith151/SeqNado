@@ -58,9 +58,9 @@ def config_path(data_path):
 
 @pytest.fixture(scope="module")
 def genome_indicies(genome_path):
-    indicies = os.path.join(genome_path, "bt2")
+    indices = os.path.join(genome_path, "bt2")
 
-    if not os.path.exists(indicies):
+    if not os.path.exists(indices):
         try:
             import requests
             import tarfile
@@ -75,16 +75,16 @@ def genome_indicies(genome_path):
             tar.extractall(path=genome_path)
             tar.close()
             os.remove(output)
-            os.rename(genome_path + "/bt2", indicies)
+            os.rename(genome_path + "/bt2", indices)
 
         except Exception as e:
             print(e)
-            print("Could not download indicies so generating them")
-            os.mkdir(indicies)
-            cmd = f"bowtie2-build {os.path.join(genome_path,'chr21_rename.fa')} {indicies}/bt2 --threads 8"
+            print("Could not download indices so generating them")
+            os.mkdir(indices)
+            cmd = f"bowtie2-build {os.path.join(genome_path,'chr21_rename.fa')} {indices}/bt2 --threads 8"
             subprocess.run(cmd.split())
 
-    return os.path.join(indicies, "chr21")
+    return os.path.join(indices, "chr21")
 
 
 @pytest.fixture(scope="module")

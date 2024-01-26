@@ -58,11 +58,11 @@ def config_path(data_path):
 
 @pytest.fixture(scope="module")
 def genome_indicies(genome_path):
-    indicies = os.path.join(genome_path, "GenomeDir")
+    indices = os.path.join(genome_path, "GenomeDir")
     gtf = os.path.join(genome_path, "chr21.gtf")
     fasta = os.path.join(genome_path, "chr21_rename.fa")
 
-    if not os.path.exists(indicies):
+    if not os.path.exists(indices):
         try:
             import requests
             import tarfile
@@ -77,16 +77,16 @@ def genome_indicies(genome_path):
             tar.extractall(path=genome_path)
             tar.close()
             os.remove(output)
-            os.rename(os.path.join(genome_path, "GenomeDir"), indicies)
+            os.rename(os.path.join(genome_path, "GenomeDir"), indices)
 
         except Exception as e:
             print(e)
-            print("Could not download indicies so generating them")
-            os.mkdir(indicies)
+            print("Could not download indices so generating them")
+            os.mkdir(indices)
             cmd = f"""STAR
                   --runMode genomeGenerate
                   --runThreadN 4
-                  --genomeDir {indicies}
+                  --genomeDir {indices}
                   --genomeFastaFiles {fasta}
                   --sjdbGTFfile {gtf}
                   --sjdbOverhang 100
@@ -94,7 +94,7 @@ def genome_indicies(genome_path):
                   """
             subprocess.run(cmd.split())
 
-    return indicies
+    return indices
 
 
 @pytest.fixture(scope="module")

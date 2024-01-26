@@ -35,7 +35,7 @@ genome:
     chromosome_sizes:
         CHROMOSOME_SIZES_FILE
 
-    indicies:
+    indices:
         INDICES_DIRECTORY
 
 
