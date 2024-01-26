@@ -9,73 +9,45 @@ The pipeline is configured using a YAML file: e.g. `config_atac.yml`, `config_ch
 The following command will generate the working directory and configuration file for the ATAC-seq pipeline:
 
 ```bash
-seqnado-config atac
+seqnado-config chip
 ```
 
 You should get somthing like this:
 
 ```bash
 $ seqnado-config chip
-  [1/23] user_name (Your name): asmith
-  [2/23] Select date
-    1 - 2024-01-13
-    Choose from [1] (1):
-  [3/23] project_name (Project name): TEST
-  [4/23] Select project_id
-    1 - test
-    Choose from [1] (1): 1
-  [5/23] genome (hg38):
-  [6/23] chromosome_sizes (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes):
-  [7/23] indices (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38):
-  [8/23] gtf (/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf):
-  [12/23] Select remove_pcr_duplicates_method
-    1 - picard
-    2 - deeptools
-    Choose from [1/2] (1): 1
-  [13/23] Select remove_blacklist
-    1 - yes
-    2 - no
-    Choose from [1/2] (1): 1
-  [14/23] blacklist (/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz):
-  [15/23] Select make_bigwigs
-    1 - yes
-    2 - no
-    Choose from [1/2] (1): 1
-  [16/23] Select pileup_method
-    1 - deeptools
-    2 - homer
-    Choose from [1/2] (1): 1
-  [17/23] Select make_heatmaps
-    1 - yes
-    2 - no
-    Choose from [1/2] (1): 1
-  [18/23] Select call_peaks
-    1 - yes
-    2 - no
-    Choose from [1/2] (1): 1
-  [19/23] Select peak_calling_method
-    1 - macs
-    2 - lanceotron
-    3 - homer
-    Choose from [1/2/3] (1): 2
-  [20/23] Select make_ucsc_hub
-    1 - yes
-    2 - no
-    Choose from [1/2] (1): 1
-  [21/23] UCSC_hub_directory (path/to/ publically accessible location on the server): /project/milne_group/datashare/asmith/chipseq/TEST_HUB
-  [22/23] email (Email address (UCSC required)): alastair.smith@ndcls.ox.ac.uk
-  [23/23] Select color_by
-    1 - samplename
-    2 - method
-    Choose from [1/2] (1): 1
+  What is your project name? [cchahrou_project]: TEST
+  What is your genome name? [other]: hg38
+  Path to Bowtie2 genome indices: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38
+  Path to chromosome sizes file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes
+  Path to GTF file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf
+  Path to blacklist bed file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz
+  Do you want to remove blacklist regions? (yes/no) [yes]: yes
+  Remove PCR duplicates? (yes/no) [yes]: yes
+  Remove PCR duplicates method: [picard]: picard
+  Do you have spikein? (yes/no) [no]: yes
+  Normalisation method: [orlando/with_input]: orlando
+  Reference genome: [hg38]: hg38
+  Spikein genome: [dm6]: dm6
+  Path to fastqscreen config: [/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf]: /ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf
+  Do you want to make bigwigs? (yes/no) [no]: yes
+  Pileup method: [deeptools/homer]: deeptools
+  Do you want to make heatmaps? (yes/no) [no]: yes
+  Do you want to call peaks? (yes/no) [no]: yes
+  Peak caller: [lanceotron/macs/homer]: lanceotron
+  Do you want to make a UCSC hub? (yes/no) [no]: yes
+  UCSC hub directory: [/path/to/ucsc_hub/]: /project/milne_group/datashare/etc
+  What is your email address? [cchahrou@example.com]: email for UCSC
+  Color by (for UCSC hub): [samplename]: samplename
+  Directory '2024-01-26_chip_TEST' has been created with the 'config_chip.yml' file.
 ```
 
 This will generate the following files:
 
 ```bash
-$ tree 2024-01-13_test/
+$ tree 2024-01-13_chip_test/
 
-2024-01-13_test/
+2024-01-13_chip_test/
 ├── config_chip.yml
 └── readme_test.md
 
@@ -221,6 +193,13 @@ $ ls -l
 
 ```bash
 tmux new -s NAME_OF_SESSION
+
+# or 
+
+screen -S NAME_OF_SESSION
+
+# to exit screen session
+  ctrl+a d 
 ```
 
 
