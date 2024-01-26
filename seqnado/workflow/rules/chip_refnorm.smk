@@ -50,7 +50,7 @@ rule align_paired_spikein:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     params:
-        index=config["genome"]["indicies"],
+        index=config["genome"]["indices"],
         options="--no-mixed --no-discordant",
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
