@@ -159,7 +159,7 @@ lanceotron:
     callpeak: -c 0.5
 
 heatmap:
-    options:
+    options: -m 10000 -b 3000 -a 3000
     colormap: RdYlBu_r
 """
 
@@ -190,7 +190,7 @@ deeptools:
     bamcoverage: -bs 1 --normalizeUsing CPM
 
 heatmap:
-    options:
+    options: -m 10000 -b 3000 -a 3000
     colormap: RdYlBu_r
 """
 
