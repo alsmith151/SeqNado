@@ -102,7 +102,7 @@ def user_inputs(
     return {
         "project_name": "test",
         "genome_name": "hg19",
-        "index": genome_indices,
+        "indices": genome_indices,
         "chromsizes": chromsizes,
         "gtf": f"{data_path}/genome/chr21.gtf",
         "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",

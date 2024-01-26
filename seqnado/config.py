@@ -41,7 +41,7 @@ def setup_configuration(assay, genome, template_data):
         genome = get_user_input("What is your genome name?", default="other")
         genome_dict = {
             genome: {
-                "index": get_user_input("Path to Bowtie2 genome index:") if assay in ["chip", "atac"] else get_user_input("Path to STAR v2.7.10b genome index:"),
+                "indices": get_user_input("Path to Bowtie2 genome indices:") if assay in ["chip", "atac"] else get_user_input("Path to STAR v2.7.10b genome indices:"),
                 "chromosome_sizes": get_user_input("Path to chromosome sizes file:"),
                 "gtf": get_user_input("Path to GTF file:"),
                 "blacklist": get_user_input("Path to blacklist bed file:")
@@ -50,7 +50,7 @@ def setup_configuration(assay, genome, template_data):
     else:
         if genome in genome_values:
             genome_dict[genome] = {
-                "index": genome_values[genome].get('bt2_index' if assay in ["chip", "atac"] else 'star_index', ''),
+                "indices": genome_values[genome].get('bt2_indices' if assay in ["chip", "atac"] else 'star_indices', ''),
                 "chromosome_sizes": genome_values[genome].get('chromosome_sizes', ''),
                 "gtf": genome_values[genome].get('gtf', ''),
                 "blacklist": genome_values[genome].get('blacklist', '')
@@ -59,7 +59,7 @@ def setup_configuration(assay, genome, template_data):
     
     genome_config = {
         'genome': genome,
-        'indices': genome_dict[genome]['index'],
+        'indices': genome_dict[genome]['indices'],
         'chromosome_sizes': genome_dict[genome]['chromosome_sizes'],
         'gtf': genome_dict[genome]['gtf'],
     }
