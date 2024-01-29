@@ -41,6 +41,9 @@ seqnado-config = "seqnado.cli:cli_config"
 [project.optional-dependencies]
 #atac = ["rsbamtk @ git+https://github.com/alsmith151/rsbamtk.git"]
 
+[python-entrypoint-group.console-scripts]
+preset-slurm-sidecar = "seqnado.workflow.envs.profiles.profile_slurm_singularity.slurm_sidecar:main"
+
 [tool.setuptools_scm]
 write_to = "seqnado/_version.py"
 local_scheme = "no-local-version"
