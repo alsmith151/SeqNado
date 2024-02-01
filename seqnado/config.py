@@ -178,7 +178,7 @@ heatmap:
     colormap: RdYlBu_r
 """
 
-def create_config(assay, genome):
+def create_config(assay, genome, rerun):
     env = Environment(loader=FileSystemLoader(template_dir), auto_reload=False)
 
     template = env.get_template("config.yaml.jinja")        
@@ -189,15 +189,20 @@ def create_config(assay, genome):
 
     # Setup configuration
     setup_configuration(assay, genome, template_data)
-
-    # Create directory and render template
-    dir_name = f"{template_data['project_date']}_{template_data['assay']}_{template_data['project_name']}"
-    os.makedirs(dir_name, exist_ok=True)
-    fastq_dir = os.path.join(dir_name, "fastq")
-    os.makedirs(fastq_dir, exist_ok=True)
     
-    with open(os.path.join(dir_name, f"config_{assay}.yml"), 'w') as file:
-        file.write(template.render(template_data))
+    # Create directory and render template
+    if rerun:
+        dir_name = os.getcwd()
+        with open(os.path.join(dir_name, f"config_{assay}.yml"), 'w') as file:
+            file.write(template.render(template_data))
+    else:
+        dir_name = f"{template_data['project_date']}_{template_data['assay']}_{template_data['project_name']}"
+        os.makedirs(dir_name, exist_ok=True)
+        fastq_dir = os.path.join(dir_name, "fastq")
+        os.makedirs(fastq_dir, exist_ok=True)
+        
+        with open(os.path.join(dir_name, f"config_{assay}.yml"), 'w') as file:
+            file.write(template.render(template_data))
 
     # add deseq2 qmd file if rna
     if assay == "rna":
