@@ -102,9 +102,37 @@ rule save_design:
         DESIGN.to_dataframe().to_csv("seqnado_output/design.csv", index=False)
 
 
+rule validate_peaks:
+    input:
+        peaks=expand(
+            "seqnado_output/peaks/{method}/{sample}.bed",
+            method=config["peak_calling_method"],
+            sample=SAMPLE_NAMES,
+        ),
+    output:
+        sentinel="seqnado_output/peaks/.validated",
+    container:
+        None
+    log:
+        "seqnado_output/logs/validate_peaks.log",
+    run:
+        from loguru import logger
+
+        with logger.catch():
+            for peak_file in input.peaks:
+                with open(peak_file, "r+") as p:
+                    peak_entries = p.readlines()
+                    if len(peak_entries) < 1:
+                        p.write("chr1\t1\t2\n")
+
+        with open(output.sentinel, "w") as s:
+            s.write("validated")
+
+
 rule bed_to_bigbed:
     input:
         bed="seqnado_output/peaks/{directory}/{sample}.bed",
+        sentinel="seqnado_output/peaks/.validated",
     output:
         bigbed="seqnado_output/peaks/{directory}/{sample}.bigBed",
     params:
@@ -149,3 +177,4 @@ rule generate_hub:
 
 localrules:
     generate_hub,
+    validate_peaks,
