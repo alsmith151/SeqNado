@@ -624,6 +624,7 @@ class DesignIP(BaseModel):
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame, simplified: bool = True, **kwargs):
+
         experiments = {}
         for experiment_name, row in df.iterrows():
             if simplified:
