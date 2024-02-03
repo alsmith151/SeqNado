@@ -9,6 +9,7 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
+@click.option("-r", "--rerun", is_flag=True, help="Re-run the config")
 @click.option(
     "-g",
     "--genome",
@@ -28,13 +29,13 @@ PACKAGE_DIR = os.path.dirname(FILE)
         ]
     ),
 )
-def cli_config(method, help=False, genome="other"):
+def cli_config(method, help=False, genome="other", rerun=False):
     """
     Runs the config for the data processing pipeline.
     """
     import seqnado.config as config
 
-    config.create_config(method, genome)
+    config.create_config(method, genome, rerun)
 
 
 @click.command()
