@@ -14,6 +14,7 @@ seqnado-config chip
 # options 
 -r, --rerun # Re-run the config
 -g, --genome [dm6|hg19|hg38|hg38_dm6|hg38_mm39|hg38_spikein|mm10|mm39|other] # Genome to use if genome preset is configured
+
 ```
 
 You should get somthing like this:

@@ -145,15 +145,16 @@ class FastqFile(BaseModel):
     @property
     def sample_base(self) -> str:
         to_sub = {
-            r"_\S\d+_": "_",
+            r"_S\d+_": "_",
             r"_L00\d_": "_",
-            r"_R?[12](_001)?$": "",
+            r"_R?[12](_001)?$": "_",
+            r"__": "_",
+            r"_$": "",
         }
 
         base = self.sample_name
         for pattern, rep in to_sub.items():
             base = re.sub(pattern, rep, base)
-
         return base
 
     @computed_field
@@ -230,13 +231,6 @@ class FastqFileIP(FastqFile):
             logger.warning(f"Could not predict IP for {self.sample_base}")
             return None
 
-    def sample_name_without_antibody(self) -> str:
-        """
-        Return the sample name without the antibody name.
-
-        """
-        return re.sub(f"_{self.antibody}_", "_", self.sample_name)
-
     def predict_is_control(self) -> bool:
         """
         Return True if the fastq file is an input.
@@ -253,11 +247,14 @@ class FastqFileIP(FastqFile):
         Return the sample base without the antibody name.
 
         """
-        return re.sub(
-            f"(_{self.ip})?(_S\\d+)?(_L00\\d)?(_R?[12])?(_001)?",
+        pattern = f"(_{self.ip})?(_S\\d+)?(_L00\\d)?(_R?[12])?(_001)?"
+        base = re.sub(
+            pattern,
             "",
             self.sample_name,
         )
+
+        return base
 
 
 class AssayNonIP(BaseModel):
