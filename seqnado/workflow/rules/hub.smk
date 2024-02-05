@@ -128,7 +128,7 @@ rule save_design:
 
 rule validate_peaks:
     input:
-        get_peak_files,
+        peaks=get_peak_files,
     output:
         sentinel="seqnado_output/peaks/.validated",
     container:
@@ -143,7 +143,7 @@ rule validate_peaks:
                 with open(peak_file, "r+") as p:
                     peak_entries = p.readlines()
                     if len(peak_entries) < 1:
-                        p.write("chr1\t1\t2\n")
+                        p.write("chr21\t1\t2\n")
 
         with open(output.sentinel, "w") as s:
             s.write("validated")
