@@ -12,17 +12,26 @@ def get_lanceotron_threshold(wildcards):
 
 def get_control_bam(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    return "seqnado_output/aligned/{sample}_{exp.control}.bam"
+    control = f"seqnado_output/aligned/{wildcards.sample}_{exp.control}.bam".replace(
+        " ", ""
+    )
+    return control
 
 
 def get_control_tag(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    return "seqnado_output/tag_dirs/{sample}_{exp.control}"
+    control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.control}".replace(
+        " ", ""
+    )
+    return control
 
 
 def get_control_bigwig(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    return "seqnado_output/bigwigs/deeptools/{sample}_{exp.control}.bigWig"
+    control = f"seqnado_output/bigwigs/deeptools/{wildcards.sample}_{exp.control}.bigWig".replace(
+        " ", ""
+    )
+    return control
 
 
 rule macs2_with_input:
@@ -43,7 +52,7 @@ rule macs2_with_input:
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAMPE {params.options} > {log} 2>&1 &&
-        cat {params.narrow} | cut -f 1-3 > {output.peaks}
+        cat {params.narrow} | cut -f 1-3 > {output.peaks} || touch {output.peaks}
         """
 
 
@@ -132,7 +141,7 @@ rule lanceotron_with_input:
     shell:
         """
         lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
-        cat {params.outdir}/{wildcards.treatment}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks}
+        cat {params.outdir}/{wildcards.treatment}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks} || touch {output.peaks}
         """
 
 
@@ -159,4 +168,6 @@ rule lanceotron_no_input:
         """
 
 
-ruleorder: lanceotron_with_input > lanceotron_no_input > homer_with_input > homer_no_input > macs2_with_input > macs2_no_input
+ruleorder: lanceotron_with_input > lanceotron_no_input
+ruleorder: homer_with_input > homer_no_input
+ruleorder: macs2_with_input > macs2_no_input

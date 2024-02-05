@@ -93,6 +93,30 @@ def get_hub_input(wildcards):
     return input_files
 
 
+def get_peak_files(wildcards):
+    peak_files = []
+
+    if config["call_peaks"]:
+        if ASSAY == "ChIP":
+            peak_files.extend(
+                expand(
+                    "seqnado_output/peaks/{method}/{sample}.bed",
+                    method=config["peak_calling_method"],
+                    sample=SAMPLE_NAMES_IP,
+                )
+            )
+        elif ASSAY == "ATAC":
+            peak_files.extend(
+                expand(
+                    "seqnado_output/peaks/{method}/{sample}.bed",
+                    method=config["peak_calling_method"],
+                    sample=SAMPLE_NAMES,
+                )
+            )
+
+    return peak_files
+
+
 rule save_design:
     output:
         "seqnado_output/design.csv",
@@ -102,9 +126,33 @@ rule save_design:
         DESIGN.to_dataframe().to_csv("seqnado_output/design.csv", index=False)
 
 
+rule validate_peaks:
+    input:
+        peaks=get_peak_files,
+    output:
+        sentinel="seqnado_output/peaks/.validated",
+    container:
+        None
+    log:
+        "seqnado_output/logs/validate_peaks.log",
+    run:
+        from loguru import logger
+
+        with logger.catch():
+            for peak_file in input.peaks:
+                with open(peak_file, "r+") as p:
+                    peak_entries = p.readlines()
+                    if len(peak_entries) < 1:
+                        p.write("chr21\t1\t2\n")
+
+        with open(output.sentinel, "w") as s:
+            s.write("validated")
+
+
 rule bed_to_bigbed:
     input:
         bed="seqnado_output/peaks/{directory}/{sample}.bed",
+        sentinel="seqnado_output/peaks/.validated",
     output:
         bigbed="seqnado_output/peaks/{directory}/{sample}.bigBed",
     params:
@@ -149,3 +197,4 @@ rule generate_hub:
 
 localrules:
     generate_hub,
+    validate_peaks,
