@@ -52,7 +52,7 @@ rule macs2_with_input:
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAMPE {params.options} > {log} 2>&1 &&
-        cat {params.narrow} | cut -f 1-3 > {output.peaks}
+        cat {params.narrow} | cut -f 1-3 > {output.peaks} || touch {output.peaks}
         """
 
 
@@ -141,7 +141,7 @@ rule lanceotron_with_input:
     shell:
         """
         lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
-        cat {params.outdir}/{wildcards.treatment}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks}
+        cat {params.outdir}/{wildcards.treatment}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks} || touch {output.peaks}
         """
 
 
