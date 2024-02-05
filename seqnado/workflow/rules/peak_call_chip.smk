@@ -53,7 +53,6 @@ rule macs2_with_input:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAMPE {params.options} > {log} 2>&1 &&
         cat {params.narrow} | cut -f 1-3 > {output.peaks} &&
-        touch {output.sentinel}
         """
 
 
@@ -98,7 +97,6 @@ rule homer_with_input:
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.control} > {log} 2>&1 &&
         pos2bed.pl {output.peaks}.tmp -o {output.peaks} >> {log} 2>&1 &&
         rm {output.peaks}.tmp &&
-        touch {output.sentinel}
         """
 
 
@@ -144,7 +142,6 @@ rule lanceotron_with_input:
         """
         lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
         cat {params.outdir}/{wildcards.treatment}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks} &&
-        touch {output.sentinel}
         """
 
 
