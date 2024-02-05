@@ -12,17 +12,17 @@ def get_lanceotron_threshold(wildcards):
 
 def get_control_bam(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    return "seqnado_output/aligned/{sample}_{exp.control}.bam"
+    return f"seqnado_output/aligned/{sample}_{exp.control}.bam"
 
 
 def get_control_tag(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    return "seqnado_output/tag_dirs/{sample}_{exp.control}"
+    return f"seqnado_output/tag_dirs/{sample}_{exp.control}"
 
 
 def get_control_bigwig(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    return "seqnado_output/bigwigs/deeptools/{sample}_{exp.control}.bigWig"
+    return f"seqnado_output/bigwigs/deeptools/{sample}_{exp.control}.bigWig"
 
 
 rule macs2_with_input:
@@ -159,4 +159,6 @@ rule lanceotron_no_input:
         """
 
 
-ruleorder: lanceotron_with_input > lanceotron_no_input > homer_with_input > homer_no_input > macs2_with_input > macs2_no_input
+ruleorder: lanceotron_with_input > lanceotron_no_input
+ruleorder: homer_with_input > homer_no_input
+ruleorder: macs2_with_input > macs2_no_input
