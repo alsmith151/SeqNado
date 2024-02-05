@@ -93,6 +93,30 @@ def get_hub_input(wildcards):
     return input_files
 
 
+def get_peak_files(wildcards):
+    peak_files = []
+
+    if config["call_peaks"]:
+        if ASSAY == "ChIP":
+            peak_files.extend(
+                expand(
+                    "seqnado_output/peaks/{method}/{sample}.bed",
+                    method=config["peak_calling_method"],
+                    sample=SAMPLE_NAMES_IP,
+                )
+            )
+        elif ASSAY == "ATAC":
+            peak_files.extend(
+                expand(
+                    "seqnado_output/peaks/{method}/{sample}.bed",
+                    method=config["peak_calling_method"],
+                    sample=SAMPLE_NAMES,
+                )
+            )
+
+    return peak_files
+
+
 rule save_design:
     output:
         "seqnado_output/design.csv",
@@ -104,11 +128,7 @@ rule save_design:
 
 rule validate_peaks:
     input:
-        peaks=expand(
-            "seqnado_output/peaks/{method}/{sample}.bed",
-            method=config["peak_calling_method"],
-            sample=SAMPLE_NAMES,
-        ),
+        get_peak_files,
     output:
         sentinel="seqnado_output/peaks/.validated",
     container:
