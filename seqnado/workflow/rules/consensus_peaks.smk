@@ -1,7 +1,10 @@
+def get_bam_files_for_merge(wildcards):
+    # Find all sample names that belong to the group
+    gb = DESIGN.to_dataframe().groupby("merge")
+    samples = gb.groups[wildcards.group]
 
-
-def get_bam_files_for_merge(wildcards, groups=None):
-    return DESIGN.groupby("group").get_group(wildcards.group).fn.tolist()
+    # Get the file names for the samples
+    return expand("seqnado_output/aligned/{sample}.bam", sample=samples)
 
 
 rule merge_bams:
@@ -11,7 +14,7 @@ rule merge_bams:
         "seqnado_output/consensus_peaks/{group}.bam",
     threads: 8
     log:
-        "seqnado_output/consensus_peaks/{group}.log"
+        "seqnado_output/consensus_peaks/{group}.log",
     shell:
         """
         samtools merge {output} {input} -@ {threads}
@@ -40,4 +43,5 @@ use rule lanceotron_no_input as lanceotron_no_input_consensus with:
         treatment="seqnado_output/consensus_peaks/{treatment}.bw",
     output:
         peaks="seqnado_output/consensus_peaks/{treatment}.bed",
-
+    log:
+        "seqnado_output/consensus_peaks/{treatment}.log",

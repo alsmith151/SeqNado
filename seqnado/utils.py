@@ -751,6 +751,7 @@ def symlink_fastq_files(
 
 
 def define_output_files(
+    snakemake_design: Union[Design, DesignIP],
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
     chip_spikein_normalisation: bool = False,
     sample_names: list = None,
@@ -813,6 +814,7 @@ def define_output_files(
 
         if call_peaks and peak_calling_method:
             if assay == "ChIP":
+                # Add peak calling output
                 assay_output.extend(
                     expand(
                         "seqnado_output/peaks/{method}/{ip}.bed",
@@ -820,12 +822,22 @@ def define_output_files(
                         method=peak_calling_method,
                     )
                 )
+
             else:
                 assay_output.extend(
                     expand(
                         "seqnado_output/peaks/{method}/{sample}.bed",
                         sample=sample_names,
                         method=peak_calling_method,
+                    )
+                )
+
+        if "merge" in snakemake_design.to_dataframe().columns:
+            for group_name, df in snakemake_design.to_dataframe().groupby("merge"):
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/consensus_peaks/{group_name}.bed",
+                        group_name=group_name,
                     )
                 )
 
