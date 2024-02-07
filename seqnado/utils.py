@@ -685,7 +685,7 @@ class DesignIP(BaseModel):
 
 def symlink_file(output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str):
     """
-    Create a symlink in the output directory with the new file name for a given source file.
+    Create a symlink in the output directory with the new file name.
     """
     new_path = output_dir / new_file_name
     if not new_path.exists():
@@ -696,7 +696,7 @@ def symlink_file(output_dir: pathlib.Path, source_path: pathlib.Path, new_file_n
 
 def symlink_fastq_files(design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/") -> None:
     """
-    Symlink the fastq files to the output directory, ensuring control files retain their original names.
+    Symlink the fastq files to the output directory.
     """
     output_dir = pathlib.Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -715,13 +715,12 @@ def symlink_fastq_files(design: Union[Design, DesignIP], output_dir: str = "seqn
             if ip_assay.is_paired:
                 symlink_file(output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz")
 
-            # Control files, using original file names
             if experiment.control_files:
                 control_assay = experiment.control_files
-                control_r1_name = control_assay.r1.path.name  # Retain original file name
+                control_r1_name = control_assay.r1.path.name 
                 symlink_file(output_dir, control_assay.r1.path, control_r1_name)
                 if control_assay.is_paired:
-                    control_r2_name = control_assay.r2.path.name  # Retain original file name
+                    control_r2_name = control_assay.r2.path.name 
                     symlink_file(output_dir, control_assay.r2.path, control_r2_name)
 
 
