@@ -683,71 +683,45 @@ class DesignIP(BaseModel):
 
         return cls(assays=experiments, **kwargs)
 
-
-def symlink_files_paired(
-    output_dir: pathlib.Path, assay: Union[AssayNonIP, AssayIP], assay_name: str
-):
-    r1_path_new = pathlib.Path(f"{output_dir}/{assay_name}_1.fastq.gz")
-    r2_path_new = pathlib.Path(f"{output_dir}/{assay_name}_2.fastq.gz")
-
-    if not r1_path_new.exists():
+def symlink_file(output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str):
+    """
+    Create a symlink in the output directory with the new file name.
+    """
+    new_path = output_dir / new_file_name
+    if not new_path.exists():
         try:
-            r1_path_new.symlink_to(assay.r1.path.resolve())
+            new_path.symlink_to(source_path.resolve())
         except FileExistsError:
-            logger.warning(f"Symlink for {r1_path_new} already exists.")
+            logger.warning(f"Symlink for {new_path} already exists.")
 
-    if assay.r2 and not r2_path_new.exists():
-        try:
-            r2_path_new.symlink_to(assay.r2.path.resolve())
-        except FileExistsError:
-            logger.warning(f"Symlink for {r2_path_new} already exists.")
-
-
-def symlink_files_single(
-    output_dir: pathlib.Path, assay: Union[AssayNonIP, AssayIP], assay_name: str
-):
-    r1_path_new = pathlib.Path(f"{output_dir}/{assay_name}.fastq.gz")
-
-    if not r1_path_new.exists():
-        try:
-            r1_path_new.symlink_to(assay.r1.path.resolve())
-        except FileExistsError:
-            logger.warning(f"Symlink for {r1_path_new} already exists.")
-
-
-def symlink_fastq_files(
-    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
-) -> None:
+def symlink_fastq_files(design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/") -> None:
     """
     Symlink the fastq files to the output directory.
     """
     output_dir = pathlib.Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-
+    
     if isinstance(design, Design):
         for assay_name, assay in design.assays.items():
+            symlink_file(output_dir, assay.r1.path, f"{assay_name}_1.fastq.gz")
             if assay.is_paired:
-                symlink_files_paired(output_dir, assay, assay_name)
-            else:
-                symlink_files_single(output_dir, assay, assay_name)
+                symlink_file(output_dir, assay.r2.path, f"{assay_name}_2.fastq.gz")
 
     elif isinstance(design, DesignIP):
         for experiment_name, experiment in design.assays.items():
-            assay = experiment.ip_files
-            assay_name = assay.name
-
-            if assay.is_paired:
-                symlink_files_paired(output_dir, assay, assay_name)
-            else:
-                symlink_files_single(output_dir, assay, assay_name)
+            # IP files
+            ip_assay = experiment.ip_files
+            symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}_1.fastq.gz")
+            if ip_assay.is_paired:
+                symlink_file(output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz")
 
             if experiment.control_files:
-                assay = experiment.control_files
-                assay_name = assay.name
-                if assay.is_paired:
-                    symlink_files_paired(output_dir, assay, assay_name)
-                else:
-                    symlink_files_single(output_dir, assay, assay_name)
+                control_assay = experiment.control_files
+                control_r1_name = control_assay.r1.path.name 
+                symlink_file(output_dir, control_assay.r1.path, control_r1_name)
+                if control_assay.is_paired:
+                    control_r2_name = control_assay.r2.path.name 
+                    symlink_file(output_dir, control_assay.r2.path, control_r2_name)
 
 
 def define_output_files(
