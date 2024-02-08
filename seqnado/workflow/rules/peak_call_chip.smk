@@ -43,16 +43,17 @@ rule macs2_with_input:
     params:
         options=seqnado.utils.check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+        basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
         mem_mb=2000,
         time="0-02:00:00",
     log:
-        "seqnado_output/logs/macs/{sample}_{treatment}.bed",
+        "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} -n seqnado_output/peaks/macs/{wildcards.treatment} -f BAMPE {params.options} > {log} 2>&1 &&
-        cat {params.narrow} | cut -f 1-3 > {output.peaks} || touch {output.peaks}
+        macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} -f BAMPE {params.options} > {log} 2>&1 &&
+        cat {params.narrow} | cut -f 1-3 > {output.peaks}
         """
 
 
@@ -70,7 +71,7 @@ rule macs2_no_input:
         mem_mb=2000,
         time="0-02:00:00",
     log:
-        "seqnado_output/logs/macs/{sample}_{treatment}.bed",
+        "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} -f BAMPE {params.options} > {log} 2>&1 &&
@@ -85,7 +86,7 @@ rule homer_with_input:
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/homer/{sample}_{treatment}.bed",
+        "seqnado_output/logs/homer/{sample}_{treatment}.log",
     params:
         options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
     threads: 1
@@ -106,7 +107,7 @@ rule homer_no_input:
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/homer/{sample}_{treatment}.bed",
+        "seqnado_output/logs/homer/{sample}_{treatment}.log",
     params:
         options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
     threads: 1
@@ -128,10 +129,11 @@ rule lanceotron_with_input:
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/lanceotron/{sample}_{treatment}.bed",
+        "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
     params:
         threshold=get_lanceotron_threshold,
         outdir=lambda wc, output: os.path.dirname(output.peaks),
+        basename=lambda wc, output: output.peaks.replace(".bed", ""),
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
     threads: 1
@@ -141,7 +143,7 @@ rule lanceotron_with_input:
     shell:
         """
         lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
-        cat {params.outdir}/{wildcards.treatment}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks} || touch {output.peaks}
+        cat {params.basename}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks} 
         """
 
 
@@ -155,6 +157,7 @@ rule lanceotron_no_input:
     params:
         options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
+        basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
@@ -164,7 +167,7 @@ rule lanceotron_no_input:
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
-        cat {params.outdir}/{wildcards.sample}_{wildcards.treatment}_L-tron.bed | cut -f 1-3 > {output.peaks}
+        cat {params.basename}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
 
 
