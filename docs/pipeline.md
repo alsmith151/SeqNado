@@ -17,7 +17,7 @@ seqnado-config chip
 
 ```
 
-You should get somthing like this:
+You should get something like this:
 
 ```bash
 $ seqnado-config chip
