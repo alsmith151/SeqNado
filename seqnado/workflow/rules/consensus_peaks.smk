@@ -34,13 +34,13 @@ use rule deeptools_make_bigwigs as deeptools_make_bigwigs_consensus with:
         bam="seqnado_output/consensus_peaks/{sample}.bam",
         bai="seqnado_output/consensus_peaks/{sample}.bam.bai",
     output:
-        bigwig="seqnado_output/consensus_peaks/{sample}.bw",
+        bigwig="seqnado_output/consensus_peaks/{sample}.bigWig",
     threads: 8
 
 
 rule lanceotron_no_input_consensus:
     input:
-        group="seqnado_output/consensus_peaks/{group}.bw",
+        group="seqnado_output/consensus_peaks/{group}.bigWig",
     output:
         peaks="seqnado_output/consensus_peaks/{group}.bed",
     log:
@@ -59,3 +59,11 @@ rule lanceotron_no_input_consensus:
         lanceotron callPeaks {input.group} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
         cat {params.outdir}/{wildcards.group}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
+
+
+use rule bed_to_bigbed as bed_to_bigbed_consensus with:
+    input:
+        bed="seqnado_output/consensus_peaks/{sample}.bed",
+    output:
+        bigbed="seqnado_output/consensus_peaks/{sample}.bigBed",
+    threads: 1
