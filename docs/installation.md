@@ -30,6 +30,12 @@ curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mi
 bash Miniforge3-$(uname)-$(uname -m).sh
 ```
 
+### Install from bioconda (recommended)
+
+```bash
+mamba install seqnado
+```
+
 ## Quick installation
 
 Use the following command to install SeqNado and all dependencies:
@@ -51,7 +57,7 @@ conda activate seqnado
 
 ### Install the pipeline
 
-#### Install the package from pip (recommended)
+#### Install the package from pip 
 
 ```bash
 pip install seqnado

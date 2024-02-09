@@ -32,6 +32,9 @@ elif snakemake.params.assay == "RNA":
     df["method"] = df["fn"].apply(lambda x: x.split("/")[-2])
     df["strand"] = np.where(df["fn"].str.contains("_plus.bigWig"), "plus", "minus")
 
+# remove dupilcates from design
+df.drop_duplicates()
+
 # Create hub design
 design = tracknado.TrackDesign.from_design(
     df,
