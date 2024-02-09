@@ -94,7 +94,7 @@ def get_hub_input(wildcards):
         input_files.extend(
             expand(
                 "seqnado_output/consensus_peaks/{group}.bigWig",
-                group=DESIGN.to_dataframe().merge.unique(),
+                group=DESIGN.to_dataframe()["merge"].unique(),
             )
         )
 

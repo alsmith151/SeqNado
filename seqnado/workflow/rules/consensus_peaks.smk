@@ -67,3 +67,5 @@ use rule bed_to_bigbed as bed_to_bigbed_consensus with:
     output:
         bigbed="seqnado_output/consensus_peaks/{sample}.bigBed",
     threads: 1
+    log:
+        "seqnado_output/consensus_peaks/{sample}.log",
