@@ -133,7 +133,7 @@ def get_fastqc_files(*args, **kwargs):
     fastqc_files = []
     fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
     for fq_file in fq_files:
-        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + ".html")
+        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + "_fastqc.html")
         fastqc_files.append(str(fastqc_file))
 
     return fastqc_files
@@ -161,7 +161,7 @@ def get_trimmed_files(wc):
     fastqc_files = []
     fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
     for fq_file in fq_files:
-        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + ".html")
+        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + "_fastqc.html")
         fastqc_files.append(str(fastqc_file))
 
     return fastqc_files
