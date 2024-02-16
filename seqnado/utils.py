@@ -683,7 +683,10 @@ class DesignIP(BaseModel):
 
         return cls(assays=experiments, **kwargs)
 
-def symlink_file(output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str):
+
+def symlink_file(
+    output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
+):
     """
     Create a symlink in the output directory with the new file name.
     """
@@ -694,13 +697,16 @@ def symlink_file(output_dir: pathlib.Path, source_path: pathlib.Path, new_file_n
         except FileExistsError:
             logger.warning(f"Symlink for {new_path} already exists.")
 
-def symlink_fastq_files(design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/") -> None:
+
+def symlink_fastq_files(
+    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
+) -> None:
     """
     Symlink the fastq files to the output directory.
     """
     output_dir = pathlib.Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     if isinstance(design, Design):
         for assay_name, assay in design.assays.items():
             symlink_file(output_dir, assay.r1.path, f"{assay_name}_1.fastq.gz")
@@ -713,18 +719,21 @@ def symlink_fastq_files(design: Union[Design, DesignIP], output_dir: str = "seqn
             ip_assay = experiment.ip_files
             symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}_1.fastq.gz")
             if ip_assay.is_paired:
-                symlink_file(output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz")
+                symlink_file(
+                    output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz"
+                )
 
             if experiment.control_files:
                 control_assay = experiment.control_files
-                control_r1_name = control_assay.r1.path.name 
+                control_r1_name = control_assay.r1.path.name
                 symlink_file(output_dir, control_assay.r1.path, control_r1_name)
                 if control_assay.is_paired:
-                    control_r2_name = control_assay.r2.path.name 
+                    control_r2_name = control_assay.r2.path.name
                     symlink_file(output_dir, control_assay.r2.path, control_r2_name)
 
 
 def define_output_files(
+    snakemake_design: Union[Design, DesignIP],
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
     chip_spikein_normalisation: bool = False,
     sample_names: list = None,
@@ -787,6 +796,7 @@ def define_output_files(
 
         if call_peaks and peak_calling_method:
             if assay == "ChIP":
+                # Add peak calling output
                 assay_output.extend(
                     expand(
                         "seqnado_output/peaks/{method}/{ip}.bed",
@@ -794,12 +804,22 @@ def define_output_files(
                         method=peak_calling_method,
                     )
                 )
+
             else:
                 assay_output.extend(
                     expand(
                         "seqnado_output/peaks/{method}/{sample}.bed",
                         sample=sample_names,
                         method=peak_calling_method,
+                    )
+                )
+
+        if "merge" in snakemake_design.to_dataframe().columns:
+            for group_name, df in snakemake_design.to_dataframe().groupby("merge"):
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/peaks/consensus/{group_name}.bed",
+                        group_name=group_name,
                     )
                 )
 
