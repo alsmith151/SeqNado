@@ -37,7 +37,8 @@ utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
-ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
+ANALYSIS_OUTPUT = utils.define_output_files(snakemake_design=DESIGN,
+                                            sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
                                             **config)
 
@@ -54,7 +55,7 @@ include: "rules/peak_call_other.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
-
+include: "rules/consensus_peaks.smk"
 
 
 

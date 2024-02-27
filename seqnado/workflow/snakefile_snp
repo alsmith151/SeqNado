@@ -42,7 +42,8 @@ include: "rules/hub.smk"
 include: "rules/qc.smk"
 include: "rules/variant.smk"
 
-ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
+ANALYSIS_OUTPUT = utils.define_output_files(snakemake_design=DESIGN,
+                                            sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
                                             **config)
 

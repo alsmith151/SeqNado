@@ -90,6 +90,14 @@ def get_hub_input(wildcards):
         case _:
             input_files = []
 
+    if "merge" in DESIGN.to_dataframe().columns:
+        input_files.extend(
+            expand(
+                "seqnado_output/bigwigs/consensus/{group}.bigWig",
+                group=DESIGN.to_dataframe()["merge"].unique(),
+            )
+        )
+
     return input_files
 
 
@@ -113,6 +121,14 @@ def get_peak_files(wildcards):
                     sample=SAMPLE_NAMES,
                 )
             )
+
+    if "merge" in DESIGN.to_dataframe().columns:
+        peak_files.extend(
+            expand(
+                "seqnado_output/consensus_peaks/peaks/{group}.bigBed",
+                group=DESIGN.to_dataframe().merge.unique(),
+            )
+        )
 
     return peak_files
 
@@ -191,6 +207,7 @@ rule generate_hub:
     params:
         **get_hub_params(config),
         assay=ASSAY,
+        has_consensus_peaks="merge" in DESIGN.to_dataframe().columns,
     script:
         "../scripts/create_hub.py"
 

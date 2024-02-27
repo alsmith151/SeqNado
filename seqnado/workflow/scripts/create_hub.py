@@ -7,6 +7,7 @@ import re
 from loguru import logger
 import tracknado
 
+
 def get_rna_samplename(path: str):
     p = pathlib.Path(path)
     return re.split(r"_[plus|minus]", p.name)[0]
@@ -17,6 +18,12 @@ df = pd.DataFrame(
     snakemake.input.data,
     columns=["fn"],
 )
+
+
+# Use the TrackFiles class to deduplicate files and add metadata
+df = tracknado.TrackFiles(files=df, deduplicate=True).files
+
+
 if snakemake.params.assay == "ChIP":
     df[["samplename", "antibody"]] = df["fn"].str.extract(
         r".*/(.*)_(.*)\.(?:bigBed|bigWig)"
@@ -32,14 +39,13 @@ elif snakemake.params.assay == "RNA":
     df["method"] = df["fn"].apply(lambda x: x.split("/")[-2])
     df["strand"] = np.where(df["fn"].str.contains("_plus.bigWig"), "plus", "minus")
 
-# remove dupilcates from design
-df.drop_duplicates()
-
 # Create hub design
 design = tracknado.TrackDesign.from_design(
     df,
     color_by=snakemake.params.color_by,
-    subgroup_by=snakemake.params.subgroup_by,
+    subgroup_by=snakemake.params.subgroup_by
+    if any(snakemake.params.subgroup_by)
+    else None,
     supergroup_by=snakemake.params.supergroup_by,
     overlay_by=snakemake.params.overlay_by,
 )

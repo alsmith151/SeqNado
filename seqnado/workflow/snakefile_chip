@@ -53,13 +53,16 @@ include: "rules/peak_call_chip.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
+include: "rules/consensus_peaks.smk"
 
 
 # Define output files
 ANALYSIS_OUTPUT = seqnado.utils.define_output_files(
+                                            snakemake_design=DESIGN,
                                             sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
                                             ip=SAMPLE_NAMES_IP,
+                                            experiment_design=DESIGN,
                                             **config
                                             )
 
