@@ -35,6 +35,7 @@ else:
 DESIGN = FASTQ_SAMPLES.design
 SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
 include: "rules/fastq_trim.smk"
+include: "rules/fastq_screen.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/hub.smk"

@@ -106,6 +106,7 @@ def user_inputs(
         "chromsizes": chromsizes,
         "gtf": f"{data_path}/genome/chr21.gtf",
         "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
+        "fastq_screen": "no",
         "remove_blacklist": "yes",
         "remove_pcr_duplicates": "yes",
         "remove_pcr_duplicates_method": "picard",

@@ -650,9 +650,11 @@ class DesignIP(BaseModel):
                         ip_files=AssayIP(
                             name=experiment_name,
                             r1=FastqFileIP(path=row["ip_r1"]),
-                            r2=FastqFileIP(path=row["ip_r2"])
-                            if "ip_r2" in row
-                            else None,
+                            r2=(
+                                FastqFileIP(path=row["ip_r2"])
+                                if "ip_r2" in row
+                                else None
+                            ),
                         ),
                         ip=ip,
                         control=None,
@@ -663,16 +665,20 @@ class DesignIP(BaseModel):
                         ip_files=AssayIP(
                             name=experiment_name,
                             r1=FastqFileIP(path=row["ip_r1"]),
-                            r2=FastqFileIP(path=row["ip_r2"])
-                            if "ip_r2" in row
-                            else None,
+                            r2=(
+                                FastqFileIP(path=row["ip_r2"])
+                                if "ip_r2" in row
+                                else None
+                            ),
                         ),
                         control_files=AssayIP(
                             name=experiment_name,
                             r1=FastqFileIP(path=row["control_r1"]),
-                            r2=FastqFileIP(path=row["control_r2"])
-                            if "control_r2" in row
-                            else None,
+                            r2=(
+                                FastqFileIP(path=row["control_r2"])
+                                if "control_r2" in row
+                                else None
+                            ),
                         ),
                         ip=ip,
                         control=control,
@@ -683,7 +689,10 @@ class DesignIP(BaseModel):
 
         return cls(assays=experiments, **kwargs)
 
-def symlink_file(output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str):
+
+def symlink_file(
+    output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
+):
     """
     Create a symlink in the output directory with the new file name.
     """
@@ -694,13 +703,16 @@ def symlink_file(output_dir: pathlib.Path, source_path: pathlib.Path, new_file_n
         except FileExistsError:
             logger.warning(f"Symlink for {new_path} already exists.")
 
-def symlink_fastq_files(design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/") -> None:
+
+def symlink_fastq_files(
+    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
+) -> None:
     """
     Symlink the fastq files to the output directory.
     """
     output_dir = pathlib.Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     if isinstance(design, Design):
         for assay_name, assay in design.assays.items():
             symlink_file(output_dir, assay.r1.path, f"{assay_name}_1.fastq.gz")
@@ -713,19 +725,22 @@ def symlink_fastq_files(design: Union[Design, DesignIP], output_dir: str = "seqn
             ip_assay = experiment.ip_files
             symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}_1.fastq.gz")
             if ip_assay.is_paired:
-                symlink_file(output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz")
+                symlink_file(
+                    output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz"
+                )
 
             if experiment.control_files:
                 control_assay = experiment.control_files
-                control_r1_name = control_assay.r1.path.name 
+                control_r1_name = control_assay.r1.path.name.replace("R1", "1")
                 symlink_file(output_dir, control_assay.r1.path, control_r1_name)
                 if control_assay.is_paired:
-                    control_r2_name = control_assay.r2.path.name 
+                    control_r2_name = control_assay.r2.path.name.replace("R2", "2")
                     symlink_file(output_dir, control_assay.r2.path, control_r2_name)
 
 
 def define_output_files(
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    fastq_screen: bool = False,
     chip_spikein_normalisation: bool = False,
     sample_names: list = None,
     pileup_method: list = None,
@@ -748,6 +763,9 @@ def define_output_files(
         "seqnado_output/design.csv",
     ]
     assay_output = []
+
+    if fastq_screen:
+        assay_output.append("seqnado_output/qc/full_fastqscreen_report.html")
 
     if kwargs["remove_pcr_duplicates_method"] == "picard":
         analysis_output.append("seqnado_output/qc/library_complexity_qc.html")

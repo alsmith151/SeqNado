@@ -47,6 +47,7 @@ ANALYSIS_OUTPUT = utils.define_output_files(sample_names=SAMPLE_NAMES,
 
 include: "rules/fastq_trim.smk"
 include: "rules/qc.smk"
+include: "rules/fastq_screen.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call_other.smk"
