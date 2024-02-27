@@ -740,6 +740,7 @@ def symlink_fastq_files(
 
 def define_output_files(
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"],
+    fastq_screen: bool = False,
     chip_spikein_normalisation: bool = False,
     sample_names: list = None,
     pileup_method: list = None,
@@ -762,6 +763,9 @@ def define_output_files(
         "seqnado_output/design.csv",
     ]
     assay_output = []
+
+    if fastq_screen:
+        assay_output.append("seqnado_output/qc/full_fastqscreen_report.html")
 
     if kwargs["remove_pcr_duplicates_method"] == "picard":
         analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
