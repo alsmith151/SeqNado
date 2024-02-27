@@ -26,7 +26,6 @@ rule fastqc_raw_paired:
         """
 
 
-
 rule fastqc_raw_single:
     input:
         "seqnado_output/fastqs/{sample}.fastq.gz",
@@ -35,7 +34,7 @@ rule fastqc_raw_single:
         zip="seqnado_output/qc/fastqc_raw/{sample}_fastqc.zip",
     params:
         extra="--quiet",
-        output_dir='seqnado_output/qc/fastqc_raw/',
+        output_dir="seqnado_output/qc/fastqc_raw/",
         temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
@@ -56,7 +55,7 @@ use rule fastqc_raw_paired as fastqc_trimmed_paired with:
         zip2="seqnado_output/qc/fastqc_trimmed/{sample}_2_fastqc.zip",
     params:
         extra="--quiet",
-        output_dir='seqnado_output/qc/fastqc_trimmed/',
+        output_dir="seqnado_output/qc/fastqc_trimmed/",
         temp_prefix="seqnado_output/qc/fastqc_trimmed/{sample}",
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}.log",
@@ -67,10 +66,10 @@ use rule fastqc_raw_single as fastqc_trimmed_single with:
         "seqnado_output/trimmed/{sample}.fastq.gz",
     output:
         html="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.html",
-        zip="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.zip", 
+        zip="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.zip",
     params:
         extra="--quiet",
-        output_dir='seqnado_output/qc/fastqc_trimmed/',
+        output_dir="seqnado_output/qc/fastqc_trimmed/",
         temp_prefix="seqnado_output/qc/fastqc_trimmed/{sample}",
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}.log",
@@ -93,8 +92,6 @@ use rule samtools_stats as samtools_stats_filtered with:
         bam="seqnado_output/aligned/{sample}.bam",
     output:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
-
-
 
 
 rule multiqc:
