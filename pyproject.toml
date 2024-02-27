@@ -27,7 +27,7 @@ dependencies = [
     "seaborn",
     "setuptools_scm",
     "snakemake-wrapper-utils",
-    "snakemake=7.32.4",
+    "snakemake<8.0.0",
     "tracknado",
     "wget",
 ]
