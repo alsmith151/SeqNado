@@ -4,49 +4,74 @@ import seqnado.utils
 
 rule fastqc_raw_paired:
     input:
-        "seqnado_output/fastqs/{sample}_{read}.fastq.gz",
+        fq1="seqnado_output/fastqs/{sample}_1.fastq.gz",
+        fq2="seqnado_output/fastqs/{sample}_2.fastq.gz",
     output:
-        html="seqnado_output/qc/fastqc_raw/{sample}_{read}.html",
-        zip="seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
+        html1="seqnado_output/qc/fastqc_raw/{sample}_1_fastqc.html",
+        html2="seqnado_output/qc/fastqc_raw/{sample}_2_fastqc.html",
+        zip1="seqnado_output/qc/fastqc_raw/{sample}_1_fastqc.zip",
+        zip2="seqnado_output/qc/fastqc_raw/{sample}_2_fastqc.zip",
     params:
         extra="--quiet",
+        output_dir="seqnado_output/qc/fastqc_raw/",
+        temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     threads: 1
     resources:
         mem_mb=1500,
     log:
-        "seqnado_output/logs/fastqc_raw/{sample}_{read}.log",
-    wrapper:
-        "v3.0.1/bio/fastqc"
+        "seqnado_output/logs/fastqc_raw/{sample}.log",
+    shell:
+        """
+        fastqc -o {params.output_dir} {input.fq1} {input.fq2}
+        """
+
 
 
 rule fastqc_raw_single:
     input:
         "seqnado_output/fastqs/{sample}.fastq.gz",
     output:
-        html="seqnado_output/qc/fastqc_raw/{sample}.html",
-        zip="seqnado_output/qc/fastqc_raw/{sample}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
+        html="seqnado_output/qc/fastqc_raw/{sample}_fastqc.html",
+        zip="seqnado_output/qc/fastqc_raw/{sample}_fastqc.zip",
+    params:
+        extra="--quiet",
+        output_dir='seqnado_output/qc/fastqc_raw/',
+        temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
-    wrapper:
-        "v3.0.1/bio/fastqc"
+    shell:
+        """
+        fastqc -o {params.output_dir} {input}
+        """
 
 
 use rule fastqc_raw_paired as fastqc_trimmed_paired with:
     input:
-        "seqnado_output/trimmed/{sample}_{read}.fastq.gz",
+        fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
+        fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     output:
-        html="seqnado_output/qc/fastqc_trimmed/{sample}_{read}.html",
-        zip="seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
+        html1="seqnado_output/qc/fastqc_trimmed/{sample}_1_fastqc.html",
+        html2="seqnado_output/qc/fastqc_trimmed/{sample}_2_fastqc.html",
+        zip1="seqnado_output/qc/fastqc_trimmed/{sample}_1_fastqc.zip",
+        zip2="seqnado_output/qc/fastqc_trimmed/{sample}_2_fastqc.zip",
+    params:
+        extra="--quiet",
+        output_dir='seqnado_output/qc/fastqc_trimmed/',
+        temp_prefix="seqnado_output/qc/fastqc_trimmed/{sample}",
     log:
-        "seqnado_output/logs/fastqc_trimmed/{sample}_{read}.log",
+        "seqnado_output/logs/fastqc_trimmed/{sample}.log",
 
 
 use rule fastqc_raw_single as fastqc_trimmed_single with:
     input:
         "seqnado_output/trimmed/{sample}.fastq.gz",
     output:
-        html="seqnado_output/qc/fastqc_trimmed/{sample}.html",
-        zip="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.zip",  # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
+        html="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.html",
+        zip="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.zip", 
+    params:
+        extra="--quiet",
+        output_dir='seqnado_output/qc/fastqc_trimmed/',
+        temp_prefix="seqnado_output/qc/fastqc_trimmed/{sample}",
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}.log",
 
@@ -108,7 +133,7 @@ def get_fastqc_files(*args, **kwargs):
     fastqc_files = []
     fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
     for fq_file in fq_files:
-        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + ".html")
+        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + "_fastqc.html")
         fastqc_files.append(str(fastqc_file))
 
     return fastqc_files
@@ -136,7 +161,7 @@ def get_trimmed_files(wc):
     fastqc_files = []
     fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
     for fq_file in fq_files:
-        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + ".html")
+        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + "_fastqc.html")
         fastqc_files.append(str(fastqc_file))
 
     return fastqc_files
