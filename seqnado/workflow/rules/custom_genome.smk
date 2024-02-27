@@ -1,41 +1,43 @@
+reference_genome = config["spikein_options"]["reference_genome"]
+spikein_genome = config["spikein_options"]["spikein_genome"]
 
-rule rename_chr_cat_fasta: # renames the chromosome names in the custom fasta file to not match the reference genome
-    input: 
-        custom_fasta = "/project/milne_group/cchahrou/reference/genome/dm6/dm6.fa.gz",
-        reference_fasta = "/project/milne_group/cchahrou/reference/genome/hg38/hg38.fa",
-    output: 
-        ref_custom_genome = "data/ref_custom_genome.fasta",
+
+rule rename_chr_cat_fasta:
+    input:
+        reference_fasta="/project/milne_group/cchahrou/reference/genome/{reference_genome}/{reference_genome}.fa.gz",
+        spikein_fasta="/project/milne_group/cchahrou/reference/genome/{spikein_genome}/{spikein_genome}.fa.gz",
+    output:
+        bt2_index="data/index_bt2/{reference_genome}_{spikein_genome}.1.bt2",
     params:
-        chr_prefix = "custom_chr",
-    shell: """
-        gunzip {input.custom_fasta} | sed -e 's/chr/{params.chr_prefix}/' | cat -e {input.reference_fasta} > {output.ref_custom_genome}
+        cat_genome="data/{reference_genome}_{spikein_genome}.fa",
+        prefix="data/index_bt2/{reference_genome}_{spikein_genome}",
+        spikein_genome=spikein_genome,
+    shell:
+        """
+        gunzip {input.spikein_fasta} | sed -e 's/chr/{params.spikein_genome}/' | cat -e {input.reference_fasta} > {params.cat_genome} &&
+        bowtie2-build {params.cat_genome} {params.prefix}
         """
 
-rule bowtie2_index:
-# indexes the custom genome for bowtie2
-    input: 
-        reference_in = rules.rename_chr_cat_fasta.output.ref_custom_genome,
-    output:
-        bt2_index = "data/index_bt2/ref_custom_genome.1.bt2",
-    params:
-        prefix = "data/index_bt2/ref_custom_genome",
-    threads: config["bowtie2"]["threads"],
-    shell: "bowtie2-build {input.reference_in} {params.prefix}"
 
-# rule STAR_index:
-# # indexes the custom genome for STAR
-#     input: 
-#         reference_in = rules.rename_chr_cat_fasta.output.ref_custom_genome,
-#         gtf_in = config["gtf"],
-#     output:
-#         star_index = "data/index_STAR/ref_custom_genome",
-#     params:
-#         prefix = "data/index_STAR/ref_custom_genome",
-#     threads: 6,
-#     shell: """STAR --version && 
-#     STAR --runThreadN 6 \
-#     --runMode genomeGenerate \
-#     --genomeDir {params.prefix} \
-#     --genomeFastaFiles {input.reference_in} \
-#     --sjdbGTFfile {input.gtf_in} \
-#     --sjdbOverhang 99"""
+rule STAR_index:
+    input:
+        reference_fasta="/project/milne_group/cchahrou/reference/genome/{reference_genome}/{reference_genome}.fa.gz",
+        spikein_fasta="/project/milne_group/cchahrou/reference/genome/{spikein_genome}/{spikein_genome}.fa.gz",
+        gtf_in=config["gtf"],
+    output:
+        star_index="data/index_STAR/{reference_genome}_{spikein_genome}",
+    params:
+        prefix="data/index_STAR/{reference_genome}_{spikein_genome}",
+        spikein_genome=spikein_genome,
+    threads: 6
+    shell:
+        """
+    gunzip {input.spikein_fasta} | sed -e 's/chr/{params.spikein_genome}/' | cat -e {input.reference_fasta} > {params.cat_genome} &&
+    STAR --version &&
+    STAR --runThreadN 6 \
+    --runMode genomeGenerate \
+    --genomeDir {params.prefix} \
+    --genomeFastaFiles {input.reference_in} \
+    --sjdbGTFfile {input.gtf_in} \
+    --sjdbOverhang 99
+    """

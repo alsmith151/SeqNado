@@ -6,31 +6,37 @@ rule fastq_screen:
         fq_screen_png=temp("seqnado_output/qc/fastq_screen/{sample}_{read}_screen.png"),
         fq_screen_txt=temp("seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt"),
     params:
-        outdir="seqnado_output/qc/fastq_screen",
+        outdir=temp("seqnado_output/qc/fastq_screen"),
         conf=config["spikein_options"]["fastq_screen_config"],
-        basename="seqnado_output/qc/fastq_screen/{sample}_{read}",
     threads: config["bowtie2"]["threads"]
     resources:
         mem_mb=lambda wildcards, attempt: 16000 * 2**attempt,
     log:
         "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
     shell:
-        """ fastq_screen --conf {params.conf} --threads {threads} --subset 10000 --aligner bowtie2 --threads 8 {input.fq}  --outdir {params.basename} &&
-    mv {params.basename}_screen.html {output.fq_screen} &&
-    mv {params.basename}_screen.png {output.fq_screen_png} &&
-    mv {params.basename}_screen.txt {output.fq_screen_txt} &&
-    rm -r {params.basename}
-    """
+        """ fastq_screen --conf {params.conf} --threads {threads} --subset 10000 --aligner bowtie2 --threads 8 {input.fq}  --outdir {params.outdir} > {log} 2>&1 """
+
+
+def get_fastqscreen_files(*args, **kwargs):
+    """Return a list of fastq_screen files for a given sample name."""
+    from pathlib import Path
+
+    fastq_dir = Path("seqnado_output/fastqs/")
+    fastqscreen_dir = Path("seqnado_output/qc/fastq_screen")
+    fastqscreen_files = []
+    for fq in fastq_dir.glob("*.fastq.gz"):
+        base_name = fq.stem.split(".fastq")[0]
+        for ext in ["html", "png", "txt"]:
+            fastqscreen_file = fastqscreen_dir / f"{base_name}_screen.{ext}".replace(
+                " ", ""
+            )
+            fastqscreen_files.append(str(fastqscreen_file))
+    return fastqscreen_files
 
 
 rule multiqc_fastqscreen:
     input:
-        expand(
-            "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.{ext}",
-            sample=SAMPLE_NAMES,
-            read=[1, 2],
-            ext=["txt", "png", "html"],
-        ),
+        get_fastqscreen_files,
     output:
         "seqnado_output/qc/full_fastqscreen_report.html",
     log:

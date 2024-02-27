@@ -8,14 +8,16 @@ rule align_paired:
     params:
         index=config["genome"]["indices"],
         options=utils.check_options(config["star"]["options"]),
-        prefix="seqnado_output/aligned/star/{sample}_"
+        prefix="seqnado_output/aligned/star/{sample}_",
     output:
         bam=temp("seqnado_output/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),
-        bam2=temp("seqnado_output/aligned/star/{sample}_Aligned.toTranscriptome.out.bam"),
+        bam2=temp(
+            "seqnado_output/aligned/star/{sample}_Aligned.toTranscriptome.out.bam"
+        ),
     threads: config["star"]["threads"]
     resources:
         mem_mb=32000,
-        time='0-06:00:00',
+        time="0-06:00:00",
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
@@ -29,6 +31,7 @@ rule align_paired:
         --outFileNamePrefix {params.prefix} {params.options} > {log} 2>&1
         """
 
+
 rule rename_aligned:
     input:
         bam=rules.align_paired.output.bam,
@@ -37,4 +40,6 @@ rule rename_aligned:
     shell:
         "mv {input.bam} {output.bam}"
 
-localrules: rename_aligned
+
+localrules:
+    rename_aligned,

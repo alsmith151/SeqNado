@@ -22,7 +22,7 @@ rule fastqc_raw_paired:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
         """
-        fastqc -o {params.output_dir} {input.fq1} {input.fq2}
+        fastqc -o {params.output_dir} {input.fq1} {input.fq2} > {log} 2>&1
         """
 
 
@@ -40,7 +40,7 @@ rule fastqc_raw_single:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
         """
-        fastqc -o {params.output_dir} {input}
+        fastqc -o {params.output_dir} {input} > {log} 2>&1
         """
 
 

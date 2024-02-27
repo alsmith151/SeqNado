@@ -1,5 +1,6 @@
 import seqnado.utils as utils
 
+
 rule feature_counts:
     input:
         bam=expand("seqnado_output/aligned/{sample}.bam", sample=SAMPLE_NAMES),
@@ -12,7 +13,7 @@ rule feature_counts:
     threads: config["featurecounts"]["threads"]
     resources:
         mem_mb=lambda wildcards, attempt: 3000 * 2**attempt,
-        time='0-02:00:00',
+        time="0-02:00:00",
     log:
         "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
     shell:
@@ -28,13 +29,3 @@ rule feature_counts:
         {input.bam} \
         > {log} 2>&1
         """
-
-
-
-
-
-
-
-    
-
-
