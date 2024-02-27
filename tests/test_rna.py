@@ -103,7 +103,6 @@ def run_directory(tmpdir_factory):
     return fn
 
 
-
 @pytest.fixture(scope="module")
 def user_inputs(
     data_path,
@@ -117,6 +116,7 @@ def user_inputs(
         "chromsizes": chromsizes,
         "gtf": f"{data_path}/genome/chr21.gtf",
         "blacklist": f"{data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
+        "fastq_screen": "no",
         "remove_blacklist": "yes",
         "remove_pcr_duplicates": "no",
         "make_bigwigs": "yes",
@@ -129,20 +129,15 @@ def user_inputs(
         "color_by": "samplename",
     }
 
+
 @pytest.fixture(scope="module")
-def test_seqnado_config_creation(
-    run_directory,
-    user_inputs
-    ):
+def test_seqnado_config_creation(run_directory, user_inputs):
     temp_dir = pathlib.Path(run_directory)
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = temp_dir / f"{date}_rna_test/config_rna.yml"
     user_inputs = "\n".join(user_inputs.values())
 
-    cmd = [
-        "seqnado-config", 
-        "rna"
-    ]
+    cmd = ["seqnado-config", "rna"]
 
     # Run the script with subprocess
     process = subprocess.Popen(
@@ -151,21 +146,17 @@ def test_seqnado_config_creation(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=temp_dir
+        cwd=temp_dir,
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
 
     # Assert that the config file was created
     assert os.path.exists(config_file_path), "Config file not created."
-    
+
+
 @pytest.fixture(scope="module", autouse=True)
-def set_up(
-    run_directory,
-    fastqs,
-    user_inputs,
-    test_seqnado_config_creation
-):
+def set_up(run_directory, fastqs, user_inputs, test_seqnado_config_creation):
     cwd = os.getcwd()
     os.chdir(run_directory)
 
