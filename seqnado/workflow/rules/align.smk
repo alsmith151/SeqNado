@@ -1,5 +1,6 @@
 import seqnado.utils as utils
 
+
 rule align_paired:
     input:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
@@ -11,7 +12,9 @@ rule align_paired:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     threads: config["bowtie2"]["threads"]
     resources:
-        time=lambda wildcards, attempt: "0-{hours}:00:00".format(hours=4 * 2**(attempt-1)),
+        time=lambda wildcards, attempt: "0-{hours}:00:00".format(
+            hours=4 * 2 ** (attempt - 1)
+        ),
         mem_mb=4000,
     log:
         "seqnado_output/logs/align/{sample}.log",
@@ -22,6 +25,7 @@ rule align_paired:
            mv {output.bam}_sorted {output.bam}
         """
 
+
 rule align_single:
     input:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
@@ -31,7 +35,9 @@ rule align_single:
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     resources:
-        time=lambda wildcards, attempt: "0-{hours}:00:00".format(hours=4 * 2**(attempt-1)),
+        time=lambda wildcards, attempt: "0-{hours}:00:00".format(
+            hours=4 * 2 ** (attempt - 1)
+        ),
         mem_mb=4000,
     threads: config["bowtie2"]["threads"]
     log:

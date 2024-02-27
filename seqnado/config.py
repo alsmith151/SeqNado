@@ -77,6 +77,17 @@ def setup_configuration(assay, genome, template_data):
     }
     template_data.update(genome_config)
 
+    # Fastqscreen
+    template_data["fastq_screen"] = get_user_input(
+        "Perform fastqscreen? (yes/no)", default="no", is_boolean=True
+    )
+    if template_data["fastq_screen"]:
+        template_data["fastq_screen_config"] = get_user_input(
+            "Path to fastqscreen config:",
+            default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf",
+        )
+
+    # Blacklist
     template_data["remove_blacklist"] = get_user_input(
         "Do you want to remove blacklist regions? (yes/no)",
         default="yes",
@@ -85,6 +96,7 @@ def setup_configuration(assay, genome, template_data):
     if template_data["remove_blacklist"]:
         template_data["blacklist"] = genome_dict[genome]["blacklist"]
 
+    # Handle duplicates
     template_data["remove_pcr_duplicates"] = get_user_input(
         "Remove PCR duplicates? (yes/no)",
         default="yes" if assay in ["chip", "atac"] else "no",
@@ -98,6 +110,7 @@ def setup_configuration(assay, genome, template_data):
     else:
         template_data["remove_pcr_duplicates_method"] = "False"
 
+    # Shift reads
     if assay == "atac":
         template_data["shift_atac_reads"] = (
             get_user_input(
@@ -107,6 +120,7 @@ def setup_configuration(assay, genome, template_data):
             else "False"
         )
 
+    # Spike in
     if assay == "chip":
         template_data["spikein"] = get_user_input(
             "Do you have spikein? (yes/no)", default="no", is_boolean=True
@@ -123,11 +137,8 @@ def setup_configuration(assay, genome, template_data):
             template_data["spikein_genome"] = get_user_input(
                 "Spikein genome:", default="dm6"
             )
-            template_data["fastq_screen_config"] = get_user_input(
-                "Path to fastqscreen config:",
-                default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf",
-            )
 
+    # Make bigwigs
     template_data["make_bigwigs"] = get_user_input(
         "Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True
     )
@@ -139,6 +150,7 @@ def setup_configuration(assay, genome, template_data):
             "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
         )
 
+    # Call peaks
     if assay in ["chip", "atac"]:
         template_data["call_peaks"] = get_user_input(
             "Do you want to call peaks? (yes/no)", default="no", is_boolean=True
@@ -150,12 +162,14 @@ def setup_configuration(assay, genome, template_data):
                 choices=["lanceotron", "macs", "homer"],
             )
 
+    # Run DESeq2
     template_data["run_deseq2"] = (
         get_user_input("Run DESeq2? (yes/no)", default="no", is_boolean=True)
         if assay == "rna"
         else "False"
     )
 
+    # Make UCSC hub
     template_data["make_ucsc_hub"] = get_user_input(
         "Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True
     )
@@ -176,10 +190,11 @@ def setup_configuration(assay, genome, template_data):
         else "samplename"
     )
 
-    template_data["options"] = TOOL_OPTIONS_RNA if assay == "rna" else TOOL_OPTIONS
+    template_data["options"] = (
+        TOOL_OPTIONS if assay in ["chip", "atac"] else TOOL_OPTIONS_RNA
+    )
 
 
-# Tool Specific Options
 TOOL_OPTIONS = """
 trim_galore:
     threads: 4

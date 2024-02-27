@@ -1,10 +1,6 @@
-def get_bam_files_for_merge(wildcards):
-    # Find all sample names that belong to the group
-    gb = DESIGN.to_dataframe().groupby("merge")
-    samples = gb.groups[wildcards.group]
 
-    # Get the file names for the samples
-    return expand("seqnado_output/aligned/{sample}.bam", sample=samples)
+def get_bam_files_for_merge(wildcards, groups=None):
+    return DESIGN.groupby("group").get_group(wildcards.group).fn.tolist()
 
 
 rule merge_bams:
@@ -44,30 +40,5 @@ rule lanceotron_no_input_consensus:
     input:
         group="seqnado_output/bigwigs/consensus/{group}.bigWig",
     output:
-        peaks="seqnado_output/peaks/consensus/{group}.bed",
-    log:
-        "seqnado_output/logs/consensus_peaks/peaks/{group}.log",
-    params:
-        options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
-        outdir=lambda wc, output: os.path.dirname(output.peaks),
-    threads: 1
-    container:
-        "library://asmith151/seqnado/seqnado_extra:latest"
-    resources:
-        mem_mb=10_1000,
-        time="0-06:00:00",
-    shell:
-        """
-        lanceotron callPeaks {input.group} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
-        cat {params.outdir}/{wildcards.group}_L-tron.bed | cut -f 1-3 > {output.peaks}
-        """
+        peaks="seqnado_output/consensus_peaks/{treatment}.bed",
 
-
-use rule bed_to_bigbed as bed_to_bigbed_consensus with:
-    input:
-        bed="seqnado_output/peaks/consensus/{group}.bed",
-    output:
-        bigbed="seqnado_output/peaks/consensus/{group}.bigBed",
-    threads: 1
-    log:
-        "seqnado_output/logs/consensus_peaks/peaks/{group}.log",

@@ -48,6 +48,7 @@ del config['project_name']
 
 
 include: "rules/qc.smk"
+include: "rules/fastq_screen.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/align_rna.smk"
 include: "rules/alignment_post_processing.smk"
