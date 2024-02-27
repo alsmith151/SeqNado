@@ -28,7 +28,6 @@ dependencies = [
     "setuptools_scm",
     "snakemake-wrapper-utils",
     "snakemake>7.20.0, <8.0.0",
-
     "tracknado",
     "wget",
 ]
