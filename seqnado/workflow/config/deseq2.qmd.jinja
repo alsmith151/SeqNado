@@ -89,15 +89,38 @@ de_dir <- "seqnado_output/deseq2_results/"
 unlink(de_dir, recursive = T)
 dir.create(de_dir)
 
+has_spikein <- sum(which(rownames(counts) %in% c("AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq"))) > 0
+
+if (has_spikein) {
+  dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = sample_info,
+                              design = ~ deseq2)
+
+
+  spikein_genes <- which(rownames(counts) %in% c("AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq")) 
+  dds <- estimateSizeFactors(dds, controlGenes=spikein_genes)
+  kable(colData(dds), row.names = F)
+  counts(dds) <- counts(dds)[!rownames(counts(dds)) %in% spikein_genes, ]
+  dds <- DESeq(dds, quiet = T)
+
+} else {
+
 dds <- DESeqDataSetFromMatrix(countData = counts,
                               colData = sample_info,
                               design = ~ deseq2)
 
 dds <- DESeq(dds, quiet = T)
+}
+
+
 vst <- suppressMessages(vst(dds))
 
 res_names <- resultsNames(dds)[-1]
 res <- results(dds, name = res_names)
+
+# Output size factors
+sf <- toJSON(size_factors)
+writeLines(sf, "all_spikein_factors.json")
 
 normCounts <- counts(dds, normalized = TRUE) %>% 
   as_tibble(rownames = "gene")

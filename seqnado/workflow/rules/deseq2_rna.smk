@@ -4,6 +4,7 @@ rule deseq2_report_rnaseq:
         qmd=f"deseq2_{PROJECT_NAME}.qmd".replace(" ", ""),
     output:
         deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
+        size_factors="seqnado_output/resources/all_spikein_factors.json"
     log:
         "seqnado_output/logs/deseq2/deseq2.log",
     container:
