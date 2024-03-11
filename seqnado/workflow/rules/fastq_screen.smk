@@ -9,7 +9,7 @@ rule fastq_screen_paired:
     params:
         outdir=temp("seqnado_output/qc/fastq_screen"),
         conf=config["fastq_screen_config"],
-    threads: config["bowtie2"]["threads"]
+    threads: config.get("bowtie2")["threads"] if config.get("bowtie2") else 4,
     resources:
         mem_mb=lambda wildcards, attempt: 16000 * 2**attempt,
     log:
