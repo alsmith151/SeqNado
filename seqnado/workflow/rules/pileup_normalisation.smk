@@ -57,11 +57,11 @@ def format_homer_make_bigwigs_options(wildcards):
 # CSAW Method
 rule tile_regions:
     input:
-        chromsizes=config["chromosome_sizes"],
+        chromsizes=config["genome"]["chromosome_sizes"],
     output:
         genome_tiled="seqnado_output/resources/genome_tiled.gtf"
     params:
-        tile_size=config["tile_size"]
+        tile_size=config["genome"].get("tile_size", 10_000)
     run:
         import pyranges as pr
         chromsizes = (
@@ -110,11 +110,11 @@ rule deeptools_make_bigwigs_scale:
     input:
         bam="seqnado_output/bams/{sample}.bam",
         bai="seqnado_output/bams/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_scaling_factors.tsv",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_scaling_factors.tsv",
     output:
         bigwig="seqnado_output/bigwigs/window-norm/{sample}.bigWig",
     params:
-        scale=lambda wc: get_scaling_factor(wc, f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_scaling_factors.tsv"),
+        scale=lambda wc: get_scaling_factor(wc, f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_scaling_factors.tsv"),
         options=utils.check_options(config["deeptools"]["bamcoverage"]),
     threads: 8
     shell:
@@ -124,7 +124,7 @@ rule deeptools_make_bigwigs_scale:
 
 use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
     input:
-        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_spikein_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}.bigWig",
     params:
@@ -135,7 +135,7 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
     input:
         bam="seqnado_output/bams/{sample}.bam",
         bai="seqnado_output/bams/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_spikein_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}_plus.bigWig",
     params:
@@ -148,7 +148,7 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     input:
         bam="seqnado_output/bams/{sample}.bam",
         bai="seqnado_output/bams/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_spikein_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}_minus.bigWig",
     params:
