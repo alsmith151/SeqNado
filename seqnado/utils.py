@@ -693,14 +693,12 @@ class DesignIP(BaseModel):
 class NormGroup(BaseModel):
     group: Optional[Union[str, int]] = "all"
     samples: List[str]
-    assay: Literal["ChIP", "ATAC", "RNA"]
     reference_sample: Optional[str] = None
 
     @classmethod
     def from_design(
         cls,
         design: Union[Design, DesignIP],
-        assay: Literal["ChIP", "ATAC", "RNA"],
         reference_sample: Optional[str] = None,
         subset_column: Optional[str] = "scale_group",
         subset_value: Optional[List[str]] = None,
@@ -714,7 +712,6 @@ class NormGroup(BaseModel):
         reference_sample = reference_sample or df.index[0]
         return cls(
             samples=samples,
-            assay=assay,
             reference_sample=reference_sample,
             group=subset_value[0] or "all",
         )
@@ -738,7 +735,6 @@ class NormGroups(BaseModel):
             groups=[
                 NormGroup.from_design(
                     design,
-                    assay,
                     reference_sample,
                     subset_column,
                     [
