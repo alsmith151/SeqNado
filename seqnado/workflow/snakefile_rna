@@ -55,6 +55,7 @@ include: "rules/alignment_post_processing.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/pileup.smk"
 include: "rules/deseq2_rna.smk"
+include: "rules/pileup_normalisation.smk"
 include: "rules/hub.smk"
 include: "rules/heatmap.smk"
 

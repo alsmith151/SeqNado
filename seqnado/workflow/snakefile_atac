@@ -54,6 +54,7 @@ include: "rules/alignment_post_processing.smk"
 include: "rules/peak_call_other.smk"
 include: "rules/pileup.smk"
 include: "rules/heatmap.smk"
+include: "rules/pileup_normalisation.smk"
 include: "rules/hub.smk"
 include: "rules/consensus_peaks.smk"
 
