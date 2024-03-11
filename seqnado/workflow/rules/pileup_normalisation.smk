@@ -14,8 +14,8 @@ def get_scaling_factor(wildcards,  scale_path: str) -> float:
     return df.loc[wildcards.sample, "norm.factors"]
 
 
-def get_norm_factor_spikein(wildcards):
-    with open(f"seqnado_output/resources/{wildcards.group}_spikein_factors.json") as f:
+def get_norm_factor_spikein(wildcards, group: str = None):
+    with open(f"seqnado_output/resources/{group}_spikein_factors.json".replace(" ", "")) as f:
         norm_factors = json.load(f)
     return norm_factors[wildcards.sample]
 
@@ -23,7 +23,8 @@ def get_norm_factor_spikein(wildcards):
 def format_deeptools_bamcoverage_options(wildcards, invert_scale: bool = False):
     import re
 
-    norm = get_norm_factor_spikein(wildcards)
+    group = utils.get_group_for_sample(wildcards, DESIGN)
+    norm = get_norm_factor_spikein(wildcards, group=group)
     norm = norm if invert_scale else -norm
 
 
