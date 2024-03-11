@@ -124,7 +124,7 @@ rule deeptools_make_bigwigs_scale:
 
 use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
     input:
-        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json".replace(" ", ""),
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}.bigWig",
     params:
@@ -133,9 +133,9 @@ use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
 
 rule deeptools_make_bigwigs_rna_spikein_plus:
     input:
-        bam="seqnado_output/bams/{sample}.bam",
-        bai="seqnado_output/bams/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json",
+        bam="seqnado_output/aligned/{sample}.bam",
+        bai="seqnado_output/aligned/{sample}.bam.bai",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json".replace(" ", ""),
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}_plus.bigWig",
     params:
@@ -146,9 +146,9 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
 
 rule deeptools_make_bigwigs_rna_spikein_minus:
     input:
-        bam="seqnado_output/bams/{sample}.bam",
-        bai="seqnado_output/bams/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json",
+        bam="seqnado_output/aligned/{sample}.bam",
+        bai="seqnado_output/aligned/{sample}.bam.bai",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc, DESIGN)}_spikein_factors.json".replace(" ", ""),
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}_minus.bigWig",
     params:
