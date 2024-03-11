@@ -15,15 +15,17 @@ def get_scaling_factor(wildcards: Any,  scale_path: str) -> float:
 
 
 def get_norm_factor_spikein(wildcards):
-    with open("seqnado_output/normalisation_factors.json") as f:
+    with open(f"seqnado_output/resources/{wildcards.group}_spikein_factors.json") as f:
         norm_factors = json.load(f)
     return norm_factors[wildcards.sample]
 
 
-def format_deeptools_bamcoverage_options(wildcards):
+def format_deeptools_bamcoverage_options(wildcards, invert_scale: bool = False):
     import re
 
     norm = get_norm_factor_spikein(wildcards)
+    norm = norm if invert_scale else -norm
+
 
     options = utils.check_options(config["deeptools"]["bamcoverage"])
 
@@ -53,6 +55,8 @@ def format_homer_make_bigwigs_options(wildcards):
     return options
 
 
+
+# CSAW Method
 rule tile_regions:
     input:
         chromsizes=config["chromsizes"],
@@ -103,14 +107,15 @@ rule calculate_scaling_factors:
         "../scripts/calculate_scaling_factors.R"
            
 
-rule normalise_bigwigs_csaw:
+rule deeptools_make_bigwigs_scale:
     input:
         bam="seqnado_output/bams/{sample}.bam",
-        scaling_factors="seqnado_output/resources/{group}_scaling_factors.tsv"
+        bai="seqnado_output/bams/{sample}.bam.bai",
+        scaling_factors="seqnado_output/resources/{group}_scaling_factors.tsv",
     output:
-        bigwig="seqnado_output/bigwigs/norm/{sample}.bigWig",
+        bigwig="seqnado_output/bigwigs/window-norm/{sample}.bigWig",
     params:
-        scale=lambda wc: get_scaling_factor(wc, "seqnado_output/resources/scaling_factors.tsv"),
+        scale=lambda wc: get_scaling_factor(wc, f"seqnado_output/resources/{wc.group}_scaling_factors.tsv"),
         options=utils.check_options(config["deeptools"]["bamcoverage"]),
     threads: 8
     shell:
@@ -118,24 +123,38 @@ rule normalise_bigwigs_csaw:
         
 
 
-use rule deeptools_make_bigwigs as deeptools_make_bigwigs_norm with:
+use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
     input:
-        bam="seqnado_output/aligned/{sample}.bam",
-        bai="seqnado_output/aligned/{sample}.bam.bai",
-        normalisation_factors="seqnado_output/normalisation_factors.json",
+        scaling_factors="seqnado_output/resources/{wildcards.group}_spikein_factors.json",
+    output:
+        bigwig="seqnado_output/bigwigs/spikein-norm/{sample}.bigWig",
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
 
 
-use rule homer_make_bigwigs as homer_make_bigwigs_norm with:
+rule deeptools_make_bigwigs_rna_spikein_plus:
     input:
-        homer_tag_directory="seqnado_output/tag_dirs/{sample}",
-        normalisation_factors="seqnado_output/normalisation_factors.json",
+        bam="seqnado_output/bams/{sample}.bam",
+        bai="seqnado_output/bams/{sample}.bam.bai",
+        scaling_factors="seqnado_output/resources/{wildcards.group}_spikein_factors.json",
+    output:
+        bigwig="seqnado_output/bigwigs/spikein-norm/{sample}_plus.bigWig",
     params:
-        genome_name=config["genome"]["name"],
-        genome_chrom_sizes=config["genome"]["chromosome_sizes"],
-        options=lambda wc: format_homer_make_bigwigs_options(wc),
-        outdir="seqnado_output/bigwigs/homer/",
-        temp_bw=lambda wc, output: output.homer_bigwig.replace(
-            ".bigWig", ".ucsc.bigWig"
-        ),
+        options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
+    threads: 8
+    shell:
+        "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} {params.options} --filterRNAstrand forward"
+
+rule deeptools_make_bigwigs_rna_spikein_minus:
+    input:
+        bam="seqnado_output/bams/{sample}.bam",
+        bai="seqnado_output/bams/{sample}.bam.bai",
+        scaling_factors="seqnado_output/resources/{wildcards.group}_spikein_factors.json",
+    output:
+        bigwig="seqnado_output/bigwigs/spikein-norm/{sample}_minus.bigWig",
+    params:
+        options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards, invert_scale=True),
+    threads: 8
+    shell:
+        "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} {params.options} --filterRNAstrand reverse"
+    
