@@ -9,7 +9,7 @@ def format_feature_counts(counts: str) -> pd.DataFrame:
 def create_metadata(counts: pd.DataFrame) -> pd.DataFrame:
     return counts.columns.str.replace(".bam", "")
 
-def get_scaling_factor(wildcards: Any,  scale_path: str) -> float:
+def get_scaling_factor(wildcards,  scale_path: str) -> float:
     df = pd.read_csv(scale_path, sep="\t", header=None, index_col=0)
     return df.loc[wildcards.sample, "norm.factors"]
 
@@ -57,7 +57,7 @@ def format_homer_make_bigwigs_options(wildcards):
 # CSAW Method
 rule tile_regions:
     input:
-        chromsizes=config["chromsizes"],
+        chromsizes=config["chromosome_sizes"],
     output:
         genome_tiled="seqnado_output/resources/genome_tiled.gtf"
     params:
