@@ -759,8 +759,11 @@ class NormGroups(BaseModel):
             sample: group.group for group in self.groups for sample in group.samples
         }
 
-    def get_group(self, sample: str) -> str:
+    def get_sample_group(self, sample: str) -> str:
         return self.group_samples[sample]
+    
+    def get_grouped_samples(self, group: str) -> List[str]:
+        return self.sample_groups[group]
 
 
 def get_group_for_sample(wildcards, design: Union[Design, DesignIP]):
