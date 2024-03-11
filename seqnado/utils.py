@@ -835,6 +835,22 @@ def define_output_files(
                 )
             )
 
+            if kwargs["spikein"]:
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/bigwigs/spikein-norm/{sample}.bigWig",
+                        sample=sample_names,
+                    )
+                )
+            
+            if kwargs["scale"]:
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/bigwigs/scale-norm/{sample}.bigWig",
+                        sample=sample_names,
+                    )
+                )
+
         if call_peaks and peak_calling_method:
             if assay == "ChIP":
                 # Add peak calling output
@@ -884,6 +900,15 @@ def define_output_files(
                     strand=["plus", "minus"],
                 )
             )
+
+            if kwargs["spikein"]:
+                assay_output.extend(
+                    expand(
+                        "seqnado_output/bigwigs/spikein-norm/{sample}_{strand}.bigWig",
+                        sample=sample_names,
+                        strand=["plus", "minus"],
+                    )
+                )
 
         if kwargs["run_deseq2"]:
             if kwargs["can_run_deseq2"]:
