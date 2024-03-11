@@ -690,6 +690,37 @@ class DesignIP(BaseModel):
         return cls(assays=experiments, **kwargs)
 
 
+class NormDesign(BaseModel):
+    samples: List[str]
+    assay: Literal["ChIP", "ATAC", "RNA"]
+    reference_sample: Optional[str] = None
+
+    @validator("reference_samples")
+    def reference_samples_validator(cls, value, values):
+        if value is not None:
+            if value not in values["samples"]:
+                raise ValueError(
+                    f"Reference sample {value} not in list of samples {values['samples']}"
+                )
+        return value
+
+    @validator("assay")
+    def assay_validator(cls, value):
+        if value not in ["ChIP", "ATAC", "RNA"]:
+            raise ValueError(f"Assay {value} not in list of valid assays")
+        return value
+
+    @classmethod
+    def from_design(
+        cls,
+        design: Union[Design, DesignIP],
+        assay: Literal["ChIP", "ATAC", "RNA"],
+        reference_sample: Optional[str] = None,
+    ):
+        samples = design.sample_names
+        return cls(samples=samples, assay=assay, reference_sample=reference_sample)
+
+
 def symlink_file(
     output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
 ):
