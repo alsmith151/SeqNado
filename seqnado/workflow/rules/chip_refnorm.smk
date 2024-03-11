@@ -1,3 +1,10 @@
+from seqnado import utils
+from seqnado.utils import NormGroups
+
+
+NORM_GROUPS = NormGroups.from_design(DESIGN)
+
+
 rule align_paired_spikein:
     input:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
@@ -105,10 +112,10 @@ if config["spikein_options"]["normalisation_method"] == "orlando":
 
     rule calculate_normalisation_factors:
         input:
-            expand(rules.split_bam.output.stats, sample=SAMPLE_NAMES),
+            lambda wc: expand(rules.split_bam.output.stats, sample=[sample for sample in NORM_GROUPS.get_grouped_samples(wc.group)]),
         output:
-            normalisation_table="seqnado_output/normalisation_factors.tsv",
-            normalisation_factors="seqnado_output/normalisation_factors.json",
+            normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
+            normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
         log:
             "seqnado_output/logs/normalisation_factors.log",
         script:
@@ -118,10 +125,10 @@ elif config["spikein_options"]["normalisation_method"] == "with_input":
 
     rule calculate_normalisation_factors:
         input:
-            expand(rules.split_bam.output.stats, sample=SAMPLE_NAMES),
+            lambda wc: expand(rules.split_bam.output.stats, sample=[sample for sample in NORM_GROUPS.get_grouped_samples(wc.group)]),
         output:
-            normalisation_table="seqnado_output/normalisation_factors.tsv",
-            normalisation_factors="seqnado_output/normalisation_factors.json",
+            normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
+            normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
         log:
             "seqnado_output/logs/normalisation_factors.log",
         script:
