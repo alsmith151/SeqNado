@@ -724,7 +724,6 @@ class NormGroups(BaseModel):
     def from_design(
         cls,
         design: Union[Design, DesignIP],
-        assay: Literal["ChIP", "ATAC", "RNA"],
         reference_sample: Optional[str] = None,
         subset_column: Optional[str] = "scale_group",
     ):
