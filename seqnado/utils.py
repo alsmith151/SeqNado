@@ -763,6 +763,14 @@ class NormGroups(BaseModel):
         return self.group_samples[sample]
 
 
+def get_group_for_sample(wildcards, design: Union[Design, DesignIP]):
+    from seqnado.utils import NormGroups
+
+    norm_groups = NormGroups.from_design(design)
+    group = norm_groups.get_group(wildcards.sample)
+    return group
+
+
 def symlink_file(
     output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
 ):
