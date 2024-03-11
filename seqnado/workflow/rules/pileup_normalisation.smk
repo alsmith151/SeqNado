@@ -1,11 +1,5 @@
 from seqnado import utils
 
-def get_group_for_sample(wildcards):
-    from seqnado.utils import NormGroups
-    norm_groups = NormGroups.from_design(DESIGN)
-    group = norm_groups.get_group(wildcards.sample)
-    return group
-
 def format_feature_counts(counts: str) -> pd.DataFrame:
     counts = pd.read_csv(input.counts, sep="\t", comment="#")
     counts = counts.set_index("Geneid")
@@ -116,11 +110,11 @@ rule deeptools_make_bigwigs_scale:
     input:
         bam="seqnado_output/bams/{sample}.bam",
         bai="seqnado_output/bams/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc)}_scaling_factors.tsv",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_scaling_factors.tsv",
     output:
         bigwig="seqnado_output/bigwigs/window-norm/{sample}.bigWig",
     params:
-        scale=lambda wc: get_scaling_factor(wc, f"seqnado_output/resources/{get_group_for_sample(wc)}_scaling_factors.tsv"),
+        scale=lambda wc: get_scaling_factor(wc, f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_scaling_factors.tsv"),
         options=utils.check_options(config["deeptools"]["bamcoverage"]),
     threads: 8
     shell:
@@ -130,7 +124,7 @@ rule deeptools_make_bigwigs_scale:
 
 use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
     input:
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc)}_spikein_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_spikein_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}.bigWig",
     params:
@@ -141,7 +135,7 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
     input:
         bam="seqnado_output/bams/{sample}.bam",
         bai="seqnado_output/bams/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc)}_spikein_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_spikein_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}_plus.bigWig",
     params:
@@ -154,7 +148,7 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     input:
         bam="seqnado_output/bams/{sample}.bam",
         bai="seqnado_output/bams/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc)}_spikein_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{utils.get_group_for_sample(wc)}_spikein_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/spikein-norm/{sample}_minus.bigWig",
     params:
