@@ -891,7 +891,7 @@ def define_output_files(
                     )
                 )
             
-            if kwargs["scale"]:
+            if kwargs.get("scale"):
                 assay_output.extend(
                     expand(
                         "seqnado_output/bigwigs/scale-norm/{sample}.bigWig",
