@@ -749,6 +749,19 @@ class NormGroups(BaseModel):
             ]
         )
 
+    @property
+    def sample_groups(self) -> Dict[str, List[str]]:
+        return {group.group: group.samples for group in self.groups}
+
+    @property
+    def group_samples(self) -> Dict[str, List[str]]:
+        return {
+            sample: group.group for group in self.groups for sample in group.samples
+        }
+
+    def get_group(self, sample: str) -> str:
+        return self.group_samples[sample]
+
 
 def symlink_file(
     output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
