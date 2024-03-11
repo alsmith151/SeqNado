@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import snakemake
 from loguru import logger
-from pydantic import BaseModel, Field, computed_field, validator
+from pydantic import BaseModel, Field, computed_field
 from pydantic.dataclasses import dataclass
 from snakemake.io import expand
 
@@ -690,25 +690,11 @@ class DesignIP(BaseModel):
         return cls(assays=experiments, **kwargs)
 
 
-class NormDesign(BaseModel):
+class NormGroup(BaseModel):
+    group: Optional[Union[str, int]] = "all"
     samples: List[str]
     assay: Literal["ChIP", "ATAC", "RNA"]
     reference_sample: Optional[str] = None
-
-    @validator("reference_samples")
-    def reference_samples_validator(cls, value, values):
-        if value is not None:
-            if value not in values["samples"]:
-                raise ValueError(
-                    f"Reference sample {value} not in list of samples {values['samples']}"
-                )
-        return value
-
-    @validator("assay")
-    def assay_validator(cls, value):
-        if value not in ["ChIP", "ATAC", "RNA"]:
-            raise ValueError(f"Assay {value} not in list of valid assays")
-        return value
 
     @classmethod
     def from_design(
@@ -716,9 +702,45 @@ class NormDesign(BaseModel):
         design: Union[Design, DesignIP],
         assay: Literal["ChIP", "ATAC", "RNA"],
         reference_sample: Optional[str] = None,
+        subset_column: Optional[str] = "scale_group",
+        subset_value: Optional[List[str]] = None,
     ):
-        samples = design.sample_names
-        return cls(samples=samples, assay=assay, reference_sample=reference_sample)
+        df = design.to_dataframe()
+
+        if subset_value:
+            df = df.query(f"{subset_column} in {subset_value}")
+
+        samples = df.index.tolist()
+        reference_sample = reference_sample or df.index[0]
+        return cls(
+            samples=samples,
+            assay=assay,
+            reference_sample=reference_sample,
+            group=subset_value[0] or "all",
+        )
+    
+class NormGroups(BaseModel):
+    groups: List[NormGroup]
+
+    @classmethod
+    def from_design(
+        cls,
+        design: Union[Design, DesignIP],
+        assay: Literal["ChIP", "ATAC", "RNA"],
+        reference_sample: Optional[str] = None,
+        subset_column: Optional[str] = "scale_group",
+    ):
+        df = design.to_dataframe()
+        subset_values = df[subset_column].drop_duplicates()
+
+        return cls(
+            groups=[
+                NormGroup.from_design(
+                    design, assay, reference_sample, subset_column, [subset_value,]
+                )
+                for subset_value in subset_values
+            ]
+        )
 
 
 def symlink_file(
