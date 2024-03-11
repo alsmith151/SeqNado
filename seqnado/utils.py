@@ -718,7 +718,8 @@ class NormGroup(BaseModel):
             reference_sample=reference_sample,
             group=subset_value[0] or "all",
         )
-    
+
+
 class NormGroups(BaseModel):
     groups: List[NormGroup]
 
@@ -736,7 +737,13 @@ class NormGroups(BaseModel):
         return cls(
             groups=[
                 NormGroup.from_design(
-                    design, assay, reference_sample, subset_column, [subset_value,]
+                    design,
+                    assay,
+                    reference_sample,
+                    subset_column,
+                    [
+                        subset_value,
+                    ],
                 )
                 for subset_value in subset_values
             ]
