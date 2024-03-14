@@ -1,6 +1,17 @@
-jobname: smk-{jobid}-{rule}-{wildcards}
-use-singularity: true
-singularity-args: -B /ceph  -B /databank
-keep-going: True
-rerun-incomplete: True
-printshellcmds: True
+executor: local
+jobs: 100
+
+
+use-conda: "False"
+software-deployment-method: "apptainer"
+use-apptainer: "True"
+apptainer-args: "--bind $PWD --bind /databank --bind /ceph"
+
+show-failed-logs: "True"
+printshellcmds: "True"
+
+
+default-resources: 
+    slurm_partition: "short"
+    runtime: "1h"
+    mem: "3G"
