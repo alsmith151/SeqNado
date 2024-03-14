@@ -24,7 +24,7 @@ dependencies:
 - python>=3.8
 - samtools>1.7
 - seaborn
-- snakemake<=7.30
+- snakemake>8,<9
 - star
 - subread
 - trackhub

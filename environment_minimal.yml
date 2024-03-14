@@ -4,6 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
+  - snakemake>8,<9
   - pip:
     - tracknado
     - wget
