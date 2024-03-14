@@ -169,6 +169,11 @@ def setup_configuration(assay, genome, template_data):
         else "False"
     )
 
+    if assay == "rna" and template_data["run_deseq2"] and template_data["make_bigwigs"]:
+        template_data["scale"] = get_user_input(
+            "Scale bigwigs for spike in? (yes/no)", default="no", is_boolean=True
+        )
+
     # Make UCSC hub
     template_data["make_ucsc_hub"] = get_user_input(
         "Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True
