@@ -68,16 +68,6 @@ ANALYSIS_OUTPUT = seqnado.utils.define_output_files(
                                             )
 
 
-if config["spikein"]:
-    include: "rules/chip_refnorm.smk"
-    include: "rules/normalisation.smk"
-    ruleorder: move_ref_bam > align_paired
-    ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
-    ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
-    ANALYSIS_OUTPUT.append("seqnado_output/qc/full_fastqscreen_report.html",)
-
-
-
 # Define wildcard constraints
 wildcard_constraints:
     treatment= "|".join(IP),

@@ -756,7 +756,7 @@ class NormGroups(BaseModel):
 
     def get_sample_group(self, sample: str) -> str:
         return self.group_samples[sample]
-    
+
     def get_grouped_samples(self, group: str) -> List[str]:
         return self.sample_groups[group]
 
@@ -890,8 +890,8 @@ def define_output_files(
                         sample=sample_names,
                     )
                 )
-            
-            if kwargs.get("scale"):
+
+            if kwargs["scale"]:
                 assay_output.extend(
                     expand(
                         "seqnado_output/bigwigs/scale-norm/{sample}.bigWig",
