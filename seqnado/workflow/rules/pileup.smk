@@ -10,8 +10,8 @@ rule homer_make_tag_directory:
     params:
         options=utils.check_options(config["homer"]["maketagdirectory"]),
     resources:
-        mem_mb=4000,
-        time="0-02:00:00",
+        mem="4GB",
+        runtime="2h",
     log:
         "seqnado_output/logs/homer/maketagdirectory_{sample}.log",
     shell:
@@ -26,8 +26,8 @@ rule homer_make_bigwigs:
     log:
         "seqnado_output/logs/homer/makebigwigs_{sample}.log",
     resources:
-        mem_mb=4000,
-        time="0-02:00:00",
+        mem="4GB",
+        runtime="2h",
     params:
         genome_name=config["genome"]["name"],
         genome_chrom_sizes=config["genome"]["chromosome_sizes"],
@@ -51,8 +51,8 @@ rule deeptools_make_bigwigs:
     params:
         options=utils.check_options(config["deeptools"]["bamcoverage"]),
     resources:
-        mem_mb=2000,
-        time="0-02:00:00",
+        mem="2GB",
+        runtime="2h",
     threads: config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}.log",
@@ -72,8 +72,8 @@ rule deeptools_make_bigwigs_rna_plus:
         options=utils.check_options(config["deeptools"]["bamcoverage"]),
     threads: config["deeptools"]["threads"]
     resources:
-        mem_mb=2000,
-        time="0-02:00:00",
+        mem="2GB",
+        runtime="2h",
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}_plus.log",
     shell:
@@ -92,8 +92,8 @@ rule deeptools_make_bigwigs_rna_minus:
         options=utils.check_options(config["deeptools"]["bamcoverage"]),
     threads: config["deeptools"]["threads"]
     resources:
-        mem_mb=2000,
-        time="0-02:00:00",
+        mem="2GB",
+        runtime="2h",
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}_minus.log",
     shell:

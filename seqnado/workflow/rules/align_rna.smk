@@ -16,7 +16,7 @@ rule align_paired:
         ),
     threads: config["star"]["threads"]
     resources:
-        mem="32GB",
+        mem="35GB",
         runtime="6h",
     log:
         "seqnado_output/logs/align/{sample}.log",

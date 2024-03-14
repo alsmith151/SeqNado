@@ -21,8 +21,8 @@ rule macs2_no_input:
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem_mb=2000,
-        time="0-02:00:00",
+        mem="2GB",
+        runtime="2h",
     log:
         "seqnado_output/logs/macs/{sample}.bed",
     shell:
@@ -43,8 +43,8 @@ rule homer_no_input:
         options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem_mb=4000,
-        time="0-02:00:00",
+        mem="4GB",
+        runtime="2h",
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -67,8 +67,8 @@ rule lanceotron_no_input:
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
-        mem_mb=10_1000,
-        time="0-06:00:00",
+        mem=10_1000,
+        runtime="6h",
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&

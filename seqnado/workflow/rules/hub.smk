@@ -174,7 +174,7 @@ rule bed_to_bigbed:
     params:
         chrom_sizes=config["genome"]["chromosome_sizes"],
     resources:
-        mem_mb=500,
+        mem=500,
     log:
         "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
     shell:

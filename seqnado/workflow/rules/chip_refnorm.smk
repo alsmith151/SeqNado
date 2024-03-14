@@ -16,10 +16,8 @@ rule align_paired_spikein:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
     threads: config["bowtie2"]["threads"]
     resources:
-        mem_mb=lambda wildcards, attempt: 4000 * 2**attempt,
-        time=lambda wildcards, attempt: "0-{hours}:00:00".format(
-            hours=4 * 2 ** (attempt - 1)
-        ),
+        mem=lambda wildcards, attempt: f"{4 * 2**attempt}GB",
+        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:

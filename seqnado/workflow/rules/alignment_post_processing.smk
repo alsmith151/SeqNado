@@ -7,7 +7,7 @@ rule sort_bam:
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
-        mem_mb=lambda wildcards, attempt: 4000 * 2**attempt,
+        mem=lambda wildcards, attempt: 4000 * 2**attempt,
     threads: 8
     log:
         "seqnado_output/logs/sorted/{sample}.log",
@@ -26,7 +26,7 @@ rule index_bam:
         bai=temp("seqnado_output/aligned/sorted/{sample}.bam.bai"),
     threads: 1
     resources:
-        mem_mb=1000,
+        mem=1000,
     shell:
         "samtools index -@ {threads} -b {input.bam}"
 
@@ -46,8 +46,8 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
         params:
             blacklist=utils.check_options(config["blacklist"]),
         resources:
-            mem_mb=3000,
-            time="24:00:00",
+            mem="5GB",
+            runtime="4h",
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:
@@ -72,7 +72,7 @@ else:
             ),
         threads: 1
         resources:
-            mem_mb=3000,
+            mem="1GB",
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:
@@ -99,8 +99,8 @@ if config["remove_pcr_duplicates_method"] == "picard":
         params:
             options=utils.check_options(config["picard"]["options"]),
         resources:
-            mem_mb=5000,
-            time="24:00:00",
+            mem="5GB",
+            runtime="4h",
         log:
             "seqnado_output/logs/duplicates/{sample}.log",
         shell:
@@ -122,7 +122,7 @@ else:
             bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
         threads: 8
         resources:
-            mem_mb=500,
+            mem="500MB",
         log:
             "seqnado_output/logs/duplicates/{sample}.log",
         script:
@@ -144,7 +144,7 @@ if config["shift_atac_reads"]:
                 "seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.tmp"
             ),
         resources:
-            mem_mb=2500,
+            mem="2.5GB",
         threads: 1
         log:
             "seqnado_output/logs/atac_shift/{sample}.log",

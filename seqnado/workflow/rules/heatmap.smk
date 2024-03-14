@@ -22,8 +22,8 @@ rule heatmap_matrix:
         options=utils.check_options(config["heatmap"]["options"]),
     threads: config["deeptools"]["threads"]
     resources:
-        time="0-08:00:00",
-        mem_mb=lambda wildcards, attempt: 16000 * 2**attempt,
+        runtime="8h",
+        mem=lambda wildcards, attempt: f"{16 * 2**attempt}h",
     log:
         "seqnado_output/logs/heatmap/matrix.log",
     shell:
@@ -38,7 +38,7 @@ rule heatmap_plot:
     params:
         colormap=utils.check_options(config["heatmap"]["colormap"]),
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{2 * 2**attempt}h",
     log:
         "seqnado_output/logs/heatmap/heatmap.log",
     shell:
@@ -51,7 +51,7 @@ rule heatmap_metaplot:
     output:
         metaplot="seqnado_output/heatmap/metaplot.pdf",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{2 * 2**attempt}h"
     log:
         "seqnado_output/logs/heatmap/metaplot.log",
     shell:
