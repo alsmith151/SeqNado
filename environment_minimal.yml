@@ -1,10 +1,12 @@
-name: ngs
+name: seqnado
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
-- pip:
-  - git+https://github.com/alsmith151/ucsc_hub_maker.git
-  - lanceotron
-  - wget
+  - snakemake>8,<9
+  - python>=3.11
+  - pip:
+    - tracknado
+    - wget
+    - snakemake-executor-plugin-slurm
