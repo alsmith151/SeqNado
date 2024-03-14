@@ -1,4 +1,4 @@
-name: ngs
+name: seqnado
 channels:
   - conda-forge
   - bioconda
@@ -33,6 +33,6 @@ dependencies:
 - ucsc-bigbedtobed
 - ucsc-fetchchromsizes
 - pip:
-  - git+https://github.com/alsmith151/ucsc_hub_maker.git
-  - lanceotron
+  - tracknado
   - wget
+  - snakemake-executor-plugin-slurm
