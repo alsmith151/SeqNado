@@ -115,7 +115,7 @@ if config["spikein_options"]["normalisation_method"] == "orlando":
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
         log:
-            "seqnado_output/logs/normalisation_factors.log",
+            "seqnado_output/logs/normalisation_factors_{group}.log",
         script:
             "../scripts/calculate_spikein_norm_orlando.py"
 
@@ -128,6 +128,6 @@ elif config["spikein_options"]["normalisation_method"] == "with_input":
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
         log:
-            "seqnado_output/logs/normalisation_factors.log",
+            "seqnado_output/logs/normalisation_factors_{group}.log",
         script:
             "../scripts/calculate_spikein_norm_factors.py"

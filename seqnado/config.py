@@ -121,7 +121,7 @@ def setup_configuration(assay, genome, template_data):
         )
 
     # Spike in
-    if assay == "chip":
+    if assay in ["chip", "rna"]:
         template_data["spikein"] = get_user_input(
             "Do you have spikein? (yes/no)", default="no", is_boolean=True
         )
@@ -146,6 +146,9 @@ def setup_configuration(assay, genome, template_data):
         template_data["pileup_method"] = get_user_input(
             "Pileup method:", default="deeptools", choices=["deeptools", "homer"]
         )
+        template_data["scale"] = get_user_input(
+            "Scale bigwigs? (yes/no)", default="no", is_boolean=True
+        )
         template_data["make_heatmaps"] = get_user_input(
             "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
         )
@@ -168,11 +171,6 @@ def setup_configuration(assay, genome, template_data):
         if assay == "rna"
         else "False"
     )
-
-    if assay == "rna" and template_data["run_deseq2"] and template_data["make_bigwigs"]:
-        template_data["scale"] = get_user_input(
-            "Scale bigwigs for spike in? (yes/no)", default="no", is_boolean=True
-        )
 
     # Make UCSC hub
     template_data["make_ucsc_hub"] = get_user_input(
