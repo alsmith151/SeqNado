@@ -47,8 +47,7 @@ def cli_design(method, files, output="design.csv"):
     Generates a SeqNado design file from a list of files.
     """
     import pathlib
-    import sys
-    from seqnado.utils import Design, DesignIP, FastqFile, FastqFileIP
+    from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
 
     if not files:
         files = list(pathlib.Path(".").glob("*.fastq.gz"))
@@ -59,7 +58,6 @@ def cli_design(method, files, output="design.csv"):
     if not method == "chip":
         design = Design.from_fastq_files([FastqFile(path=fq) for fq in files])
     else:
-        from seqnado.utils import DesignIP
 
         design = DesignIP.from_fastq_files([FastqFileIP(path=fq) for fq in files])
 
