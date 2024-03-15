@@ -193,7 +193,7 @@ class ExperimentIP(BaseModel):
     )
     metadata: Optional[dict] = None
 
-    def model_post_init(self, *args) -> None:
+    def model_post_init(self, *args) :
         if self.name is None:
             self.name = (
                 f"{self.ip_files.r1.sample_base_without_ip}_{self.ip_files.r1.ip}"
@@ -572,62 +572,13 @@ class DesignIP(BaseModel):
 
         return cls(assays=experiments, **kwargs)
 
-
-def symlink_file(
-    output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
-):
-    """
-    Create a symlink in the output directory with the new file name.
-    """
-    new_path = output_dir / new_file_name
-    if not new_path.exists():
-        try:
-            new_path.symlink_to(source_path.resolve())
-        except FileExistsError:
-            logger.warning(f"Symlink for {new_path} already exists.")
-
-
-def symlink_fastq_files(
-    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
-) -> None:
-    """
-    Symlink the fastq files to the output directory.
-    """
-    output_dir = pathlib.Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    if isinstance(design, Design):
-        for assay_name, assay in design.assays.items():
-            symlink_file(output_dir, assay.r1.path, f"{assay_name}_1.fastq.gz")
-            if assay.is_paired:
-                symlink_file(output_dir, assay.r2.path, f"{assay_name}_2.fastq.gz")
-
-    elif isinstance(design, DesignIP):
-        for experiment_name, experiment in design.assays.items():
-            # IP files
-            ip_assay = experiment.ip_files
-            symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}_1.fastq.gz")
-            if ip_assay.is_paired:
-                symlink_file(
-                    output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz"
-                )
-
-            if experiment.control_files:
-                control_assay = experiment.control_files
-                control_r1_name = control_assay.r1.path.name.replace("R1", "1")
-                symlink_file(output_dir, control_assay.r1.path, control_r1_name)
-                if control_assay.is_paired:
-                    control_r2_name = control_assay.r2.path.name.replace("R2", "2")
-                    symlink_file(output_dir, control_assay.r2.path, control_r2_name)
-
-
 class QCFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     fastq_screen: bool = False
     library_complexity: bool = False
 
     @property
-    def default_files(self):
+    def default_files(self) -> List[str]:
         return [
             "seqnado_output/qc/fastq_raw_qc.html",
             "seqnado_output/qc/fastq_trimmed_qc.html",
@@ -636,16 +587,16 @@ class QCFiles(BaseModel):
         ]
 
     @property
-    def fastq_screen_files(self):
+    def fastq_screen_files(self) -> List[str]:
         return ["seqnado_output/qc/full_fastqscreen_report.html"]
 
     @property
-    def library_complexity_files(self):
+    def library_complexity_files(self) -> List[str]:
         return ["seqnado_output/qc/library_complexity_qc.html"]
 
     @computed_field
     @property
-    def files(self):
+    def files(self) -> List[str]:
         if not self.files:
             files = self.default_files
         else:
@@ -690,14 +641,14 @@ class BigWigFiles(BaseModel):
 
     @computed_field
     @property
-    def files(self):
+    def files(self) -> List[str]:
         if self.make_bigwigs:
             if self.assay == "RNA":
                 return self.bigwigs_rna
             else:
                 return self.bigwigs_non_rna
         else:
-            return None
+            return []
 
 
 class PeakCallingFiles(BaseModel):
@@ -707,7 +658,7 @@ class PeakCallingFiles(BaseModel):
     call_peaks: bool = False
 
     @property
-    def peak_files(self):
+    def peak_files(self) -> List[str]:
         return expand(
             "seqnado_output/peaks/{method}/{sample}.bed",
             sample=self.names,
@@ -716,16 +667,16 @@ class PeakCallingFiles(BaseModel):
 
     @computed_field
     @property
-    def files(self) -> None:
+    def files(self) -> List[str] :
         if self.call_peaks:
-            self.files = self.peak_files
+            return self.peak_files
 
 
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
 
     @property
-    def heatmap_files(self):
+    def heatmap_files(self) -> List[str]:
         return [
             "seqnado_output/heatmap/heatmap.pdf",
             "seqnado_output/heatmap/metaplot.pdf",
@@ -733,25 +684,28 @@ class HeatmapFiles(BaseModel):
 
     @computed_field
     @property
-    def file(self) -> None:
-        self.files = self.heatmap_files
+    def files(self) -> List[str]:
+        return self.heatmap_files
 
 
 class HubFiles(BaseModel):
-    hub_dir = pathlib.Path
-    hub_name = str
+    hub_dir: pathlib.Path
+    hub_name: str
     make_ucsc_hub: bool = False
 
     @computed_field
     @property
-    def hub_txt(self):
+    def hub_txt(self) -> pathlib.Path:
         return self.hub_dir / f"{self.hub_name}.hub.txt"
 
     @computed_field
     @property
-    def files(self) -> None:
+    def files(self) -> List[str] :
         if self.make_ucsc_hub:
-            self.files = [str(self.hub_txt)]
+            return [str(self.hub_txt)]
+        else:
+            return []
+
 
 
 class SpikeInFiles(BaseModel):
@@ -765,9 +719,13 @@ class SpikeInFiles(BaseModel):
 
     @computed_field
     @property
-    def files(self) -> None:
+    def files(self) -> List[str] :
         if self.chip_spikein_normalisation:
-            self.files = [self.norm_factors]
+           return [self.norm_factors]
+        else:
+            return []
+        
+        
 
 
 class Output(BaseModel):
@@ -785,7 +743,6 @@ class Output(BaseModel):
     ucsc_hub_dir: pathlib.Path
     ucsc_hub_name: str
 
-    @computed_field
     @property
     def merge_bigwigs(self):
         return "merge" in self.design.to_dataframe().columns
@@ -794,13 +751,11 @@ class Output(BaseModel):
     def design_dataframe(self):
         return self.design.to_dataframe()
 
-    @computed_field
     @property
     def design(self):
         return "seqnado_output/design.csv"
         
 
-    @computed_field
     @property
     def bigwigs(self):
         bwf_samples = BigWigFiles(
@@ -824,13 +779,11 @@ class Output(BaseModel):
         else:
             return bwf_samples.files
 
-    @computed_field
     @property
     def heatmaps(self):
         hmf = HeatmapFiles(assay=self.assay, make_heatmaps=self.make_heatmaps)
         return hmf.files
 
-    @computed_field
     @property
     def ucsc_hub(self):
         hbf = HubFiles(
@@ -857,7 +810,7 @@ class RNAOutput(Output):
 
     @computed_field
     @property
-    def files(self):
+    def files(self) -> List[str]:
         files = self.bigwigs + self.heatmaps + self.ucsc_hub + self.counts + self.design
         if self.run_deseq2:
             files.append(self.deseq2)
@@ -903,7 +856,7 @@ class NonRNAOutput(Output):
 
     @computed_field
     @property
-    def files(self):
+    def files(self) -> List[str]:
         files = self.bigwigs + self.heatmaps + self.ucsc_hub + self.peaks + self.design
         return files
 
@@ -949,7 +902,7 @@ class ChIPOutput(NonRNAOutput):
 
     @computed_field
     @property
-    def files(self):
+    def files(self) -> List[str]:
         files = (
             self.bigwigs
             + self.heatmaps
