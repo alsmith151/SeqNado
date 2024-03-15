@@ -19,7 +19,7 @@ rule heatmap_matrix:
         matrix=temp("seqnado_output/heatmap/heatmap_matrix.mat.gz"),
     params:
         gtf=config["genome"]["gtf"],
-        optionscheck_options(config["heatmap"]["options"]),
+        options=check_options(config["heatmap"]["options"]),
     threads: config["deeptools"]["threads"]
     resources:
         time="0-08:00:00",
