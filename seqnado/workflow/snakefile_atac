@@ -43,6 +43,8 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
 ANALYSIS_OUTPUT = ATACOutput(
+    assay=ASSAY,
+    run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     **config
 ).files
