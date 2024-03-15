@@ -65,18 +65,18 @@ include: "rules/normalisation.smk"
 
 # Define output files
 ANALYSIS_OUTPUT = ChIPOutput(
+    assay=ASSAY,
+    run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     ip_names=IP,
     control_names=CONTROL,
     **config    
-)
+).files
 
 
 if config["spikein"]:
     ruleorder: move_ref_bam > align_paired
     ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
-
-
 
 
 # Define wildcard constraints

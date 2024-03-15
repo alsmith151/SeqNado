@@ -193,7 +193,7 @@ class ExperimentIP(BaseModel):
     )
     metadata: Optional[dict] = None
 
-    def model_post_init(self, *args) :
+    def model_post_init(self, *args):
         if self.name is None:
             self.name = (
                 f"{self.ip_files.r1.sample_base_without_ip}_{self.ip_files.r1.ip}"
@@ -491,9 +491,9 @@ class DesignIP(BaseModel):
             if experiment.control_files is not None:
                 data[experiment_name]["control_r1"] = experiment.control_files.r1.path
                 if experiment.control_files.r2 is not None:
-                    data[experiment_name]["control_r2"] = (
-                        experiment.control_files.r2.path
-                    )
+                    data[experiment_name][
+                        "control_r2"
+                    ] = experiment.control_files.r2.path
 
             if experiment.metadata is not None:
                 for k, v in experiment.metadata.items():
@@ -572,6 +572,7 @@ class DesignIP(BaseModel):
 
         return cls(assays=experiments, **kwargs)
 
+
 class QCFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     fastq_screen: bool = False
@@ -631,7 +632,7 @@ class BigWigFiles(BaseModel):
 
     @property
     def bigwigs_rna(self):
-        expand(
+        return expand(
             "seqnado_output/bigwigs/{method}/{scale}/{sample}_{strand}.bigWig",
             sample=self.names,
             scale=self.scale_method,
@@ -654,7 +655,7 @@ class BigWigFiles(BaseModel):
 class PeakCallingFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     names: List[str]
-    peak_calling_method: List[Literal["macs2", "homer", "lanceotron", "seacr"]] = None
+    peak_calling_method: List[Literal["macs", "homer", "lanceotron", "seacr"]] = None
     call_peaks: bool = False
 
     @property
@@ -667,7 +668,7 @@ class PeakCallingFiles(BaseModel):
 
     @computed_field
     @property
-    def files(self) -> List[str] :
+    def files(self) -> List[str]:
         if self.call_peaks:
             return self.peak_files
 
@@ -700,12 +701,19 @@ class HubFiles(BaseModel):
 
     @computed_field
     @property
-    def files(self) -> List[str] :
+    def files(self) -> List[str]:
         if self.make_ucsc_hub:
             return [str(self.hub_txt)]
         else:
             return []
 
+    @classmethod
+    def from_dict(cls, d: dict, create_ucsc_hub: bool = False):
+        return cls(
+            hub_dir=d["directory"],
+            hub_name=d["name"],
+            make_ucsc_hub=create_ucsc_hub,
+        )
 
 
 class SpikeInFiles(BaseModel):
@@ -719,18 +727,16 @@ class SpikeInFiles(BaseModel):
 
     @computed_field
     @property
-    def files(self) -> List[str] :
+    def files(self) -> List[str]:
         if self.chip_spikein_normalisation:
-           return [self.norm_factors]
+            return [self.norm_factors]
         else:
             return []
-        
-        
 
 
 class Output(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
-    design: Union[Design, DesignIP]
+    run_design: Union[Design, DesignIP]
     sample_names: List[str]
 
     make_bigwigs: bool = False
@@ -738,23 +744,21 @@ class Output(BaseModel):
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
     make_heatmaps: bool = False
-
     make_ucsc_hub: bool = False
-    ucsc_hub_dir: pathlib.Path
-    ucsc_hub_name: str
+
+    ucsc_hub_details: Optional[Dict[str, Any]] = None
 
     @property
     def merge_bigwigs(self):
-        return "merge" in self.design.to_dataframe().columns
-    
+        return "merge" in self.run_design.to_dataframe().columns
+
     @property
     def design_dataframe(self):
-        return self.design.to_dataframe()
+        return self.run_design.to_dataframe()
 
     @property
     def design(self):
-        return "seqnado_output/design.csv"
-        
+        return ["seqnado_output/design.csv"]
 
     @property
     def bigwigs(self):
@@ -765,7 +769,6 @@ class Output(BaseModel):
             pileup_method=self.pileup_method,
             scale_method=self.scale_method,
         )
-
         if self.merge_bigwigs:
             bwf_merged = BigWigFiles(
                 assay=self.assay,
@@ -786,10 +789,9 @@ class Output(BaseModel):
 
     @property
     def ucsc_hub(self):
-        hbf = HubFiles(
-            hub_dir=self.ucsc_hub_dir,
-            hub_name=self.ucsc_hub_name,
-            make_ucsc_hub=self.make_ucsc_hub,
+        hbf = HubFiles.from_dict(
+            self.ucsc_hub_details,
+            create_ucsc_hub=self.make_ucsc_hub,
         )
         return hbf.files
 
@@ -821,21 +823,20 @@ class RNAOutput(Output):
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
     call_peaks: bool = False
-    peak_calling_method: List[Literal["macs2", "homer", "lanceotron"]] = None
+    peak_calling_method: List[Literal["macs", "homer", "lanceotron"]] = None
 
     @property
     def merge_peaks(self):
         return "merge" in self.design_dataframe.columns
-    
+
     @property
     def merged_peaks(self):
         return PeakCallingFiles(
-                assay=self.assay,
-                names=self.design_dataframe["merge"].unique().tolist(),
-                call_peaks=self.call_peaks,
-                peak_calling_method=self.peak_calling_method,
-            )
-        
+            assay=self.assay,
+            names=self.design_dataframe["merge"].unique().tolist(),
+            call_peaks=self.call_peaks,
+            peak_calling_method=self.peak_calling_method,
+        )
 
     @property
     def peaks(self):
@@ -852,12 +853,13 @@ class NonRNAOutput(Output):
             return pcf_samples.files + pcf_merged.files
         else:
             return pcf_samples.files
-    
 
     @computed_field
     @property
     def files(self) -> List[str]:
-        files = self.bigwigs + self.heatmaps + self.ucsc_hub + self.peaks + self.design
+        files = (
+            self.bigwigs + self.heatmaps + self.ucsc_hub + self.peaks + self.run_design
+        )
         return files
 
 
@@ -870,10 +872,9 @@ class ChIPOutput(NonRNAOutput):
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
-    peak_calling_method: List[Literal["macs2", "homer", "lanceotron", "seacr"]] = None
+    peak_calling_method: List[Literal["macs", "homer", "lanceotron", "seacr"]] = None
     chip_spikein_normalisation: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
-
 
     @property
     def peaks(self):
@@ -912,6 +913,3 @@ class ChIPOutput(NonRNAOutput):
             + self.design
         )
         return files
-
-
-
