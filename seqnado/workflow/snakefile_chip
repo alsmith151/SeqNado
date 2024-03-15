@@ -1,16 +1,20 @@
-import os
-import sys
-import shutil
 from datetime import datetime
 import glob
-from snakemake.utils import min_version
-from seqnado.utils import DesignIP
-import seqnado.utils as utils
+import os
+import shutil
+import sys
+
 import pandas as pd
+from snakemake.utils import min_version
+
+
+from seqnado.design import DesignIP, ChIPOutput 
+from seqnado.helpers import format_config_dict, symlink_fastq_files
 
 ####################
 # Hardcoded config #
 ####################
+
 ASSAY = "ChIP"
 configfile: "config_chip.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
@@ -20,7 +24,7 @@ container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 ####################
 
 # Load config
-utils.format_config_dict(config)
+format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
@@ -31,7 +35,7 @@ else:
 
 # Attempt to symlink the fastq files
 assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directory or no design file provided."
-utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
+symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
 
@@ -55,17 +59,24 @@ include: "rules/pileup_normalisation.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 include: "rules/consensus_peaks.smk"
+include: "rules/chip_refnorm.smk"
+include: "rules/normalisation.smk"
 
 
 # Define output files
-ANALYSIS_OUTPUT = seqnado.utils.define_output_files(
-                                            snakemake_design=DESIGN,
-                                            sample_names=SAMPLE_NAMES,
-                                            assay=ASSAY,
-                                            ip=SAMPLE_NAMES_IP,
-                                            experiment_design=DESIGN,
-                                            **config
-                                            )
+ANALYSIS_OUTPUT = ChIPOutput(
+    sample_names=SAMPLE_NAMES,
+    ip_names=IP,
+    control_names=CONTROL,
+    **config    
+)
+
+
+if config["spikein"]:
+    ruleorder: move_ref_bam > align_paired
+    ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
+
+
 
 
 # Define wildcard constraints

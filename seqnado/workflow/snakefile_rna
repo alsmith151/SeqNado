@@ -1,12 +1,15 @@
-import os
-import sys
-import shutil
 from datetime import datetime
 import glob
-from snakemake.utils import min_version
-from seqnado.utils import Design
-import seqnado.utils as utils
+import os
+import shutil
+import sys
+
 import pandas as pd
+from snakemake.utils import min_version
+
+
+from seqnado.design import Design, RNAOutput 
+from seqnado.helpers import format_config_dict, symlink_fastq_files
 
 ####################
 # Hardcoded config #
@@ -25,7 +28,7 @@ container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 ####################
 
 # Load config
-utils.format_config_dict(config)
+format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
@@ -38,13 +41,15 @@ else:
 assert (
     len(DESIGN.fastq_paths) > 0
 ), "No fastq files found in the working directory or no design file provided."
-utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
+symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
-
+# Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
+
+# DESeq2 parameters
 CAN_RUN_DESEQ2 = DESIGN.to_dataframe().columns.str.contains("deseq2").any()
 PROJECT_NAME = config['project_name'].replace(" ", "_").strip()
-del config['project_name']
+config["project_name"] = PROJECT_NAME
 
 
 include: "rules/qc.smk"
@@ -60,9 +65,11 @@ include: "rules/hub.smk"
 include: "rules/heatmap.smk"
 
 # Define output files
-ANALYSIS_OUTPUT = utils.define_output_files(
-    snakemake_design=DESIGN, sample_names=SAMPLE_NAMES, assay=ASSAY, can_run_deseq2=CAN_RUN_DESEQ2, project_name=PROJECT_NAME,  **config
-)
+ANALYSIS_OUTPUT = RNAOutput(
+    sample_names=SAMPLE_NAMES,
+    run_deseq2=CAN_RUN_DESEQ2 and config["run_deseq2"],
+    **config
+).files
 
 rule all:
     input:
