@@ -97,7 +97,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
             metrics=temp("seqnado_output/aligned/duplicates_removed/{sample}.metrics"),
         threads: 8
         params:
-            optionscheck_options(config["picard"]["options"]),
+            options=check_options(config["picard"]["options"]),
         resources:
             mem="5GB",
             runtime="4h",
