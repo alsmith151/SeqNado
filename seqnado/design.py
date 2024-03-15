@@ -858,7 +858,7 @@ class NonRNAOutput(Output):
     @property
     def files(self) -> List[str]:
         files = (
-            self.bigwigs + self.heatmaps + self.ucsc_hub + self.peaks + self.run_design
+            self.bigwigs + self.heatmaps + self.ucsc_hub + self.peaks + self.design
         )
         return files
 
