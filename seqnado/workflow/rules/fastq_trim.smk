@@ -1,4 +1,4 @@
-import seqnado.utils
+from seqnado.helpers import check_options
 
 
 rule trimgalore_paired:
@@ -14,7 +14,7 @@ rule trimgalore_paired:
         mem="2GB",
         runtime="2h",
     params:
-        options=seqnado.utils.check_options(config["trim_galore"]["options"]),
+        options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
     log:
         "seqnado_output/logs/trimming/{sample}.log",
@@ -37,7 +37,7 @@ rule trimgalore_single:
         mem="2GB",
         runtime="2h",
     params:
-        options=seqnado.utils.check_options(config["trim_galore"]["options"]),
+        options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
     log:
         "seqnado_output/logs/trimming/{sample}.log",

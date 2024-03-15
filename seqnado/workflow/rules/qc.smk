@@ -1,5 +1,5 @@
 import os
-import seqnado.utils
+from seqnado.helpers import check_options
 
 
 rule fastqc_raw_paired:

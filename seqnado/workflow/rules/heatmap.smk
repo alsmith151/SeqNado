@@ -1,4 +1,4 @@
-import seqnado.utils
+from seqnado.helpers import check_options
 
 if ASSAY == "ChIP":
     prefix = SAMPLE_NAMES_IP
@@ -19,7 +19,7 @@ rule heatmap_matrix:
         matrix=temp("seqnado_output/heatmap/heatmap_matrix.mat.gz"),
     params:
         gtf=config["genome"]["gtf"],
-        options=utils.check_options(config["heatmap"]["options"]),
+        optionscheck_options(config["heatmap"]["options"]),
     threads: config["deeptools"]["threads"]
     resources:
         runtime="8h",
@@ -36,7 +36,7 @@ rule heatmap_plot:
     output:
         heatmap="seqnado_output/heatmap/heatmap.pdf",
     params:
-        colormap=utils.check_options(config["heatmap"]["colormap"]),
+        colormapcheck_options(config["heatmap"]["colormap"]),
     resources:
         mem=lambda wildcards, attempt: f"{2 * 2**attempt}h",
     log:

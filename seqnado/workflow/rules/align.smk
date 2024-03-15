@@ -1,4 +1,4 @@
-import seqnado.utils as utils
+from seqnado.helpers import check_options
 
 
 rule align_paired:
@@ -7,7 +7,7 @@ rule align_paired:
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     params:
         index=config["genome"]["indices"],
-        options=utils.check_options(config["bowtie2"]["options"]),
+        optionscheck_options(config["bowtie2"]["options"]),
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     threads: config["bowtie2"]["threads"]
@@ -29,7 +29,7 @@ rule align_single:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
     params:
         index=config["genome"]["indices"],
-        options=utils.check_options(config["bowtie2"]["options"]),
+        optionscheck_options(config["bowtie2"]["options"]),
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     resources:

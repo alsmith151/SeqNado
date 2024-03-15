@@ -1,5 +1,4 @@
-import seqnado.utils as utils
-
+from seqnado.helpers import check_options
 
 rule align_paired:
     input:
@@ -7,7 +6,7 @@ rule align_paired:
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     params:
         index=config["genome"]["indices"],
-        options=utils.check_options(config["star"]["options"]),
+        options=check_options(config["star"]["options"]),
         prefix="seqnado_output/aligned/star/{sample}_",
     output:
         bam=temp("seqnado_output/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),

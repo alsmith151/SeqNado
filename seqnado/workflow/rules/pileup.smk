@@ -1,5 +1,5 @@
 import re
-import seqnado.utils as utils
+from seqnado.helpers import check_options
 
 
 rule homer_make_tag_directory:
@@ -8,7 +8,7 @@ rule homer_make_tag_directory:
     output:
         homer_tag_directory=directory("seqnado_output/tag_dirs/{sample}"),
     params:
-        options=utils.check_options(config["homer"]["maketagdirectory"]),
+        optionscheck_options(config["homer"]["maketagdirectory"]),
     resources:
         mem="4GB",
         runtime="2h",
@@ -31,7 +31,7 @@ rule homer_make_bigwigs:
     params:
         genome_name=config["genome"]["name"],
         genome_chrom_sizes=config["genome"]["chromosome_sizes"],
-        options=utils.check_options(config["homer"]["makebigwig"]),
+        optionscheck_options(config["homer"]["makebigwig"]),
         outdir="seqnado_output/bigwigs/homer/",
         temp_bw=lambda wc, output: output.homer_bigwig.replace(
             ".bigWig", ".ucsc.bigWig"
@@ -49,7 +49,7 @@ rule deeptools_make_bigwigs:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/{sample}.bigWig",
     params:
-        options=utils.check_options(config["deeptools"]["bamcoverage"]),
+        optionscheck_options(config["deeptools"]["bamcoverage"]),
     resources:
         mem="2GB",
         runtime="2h",
@@ -69,7 +69,7 @@ rule deeptools_make_bigwigs_rna_plus:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/{sample}_plus.bigWig",
     params:
-        options=utils.check_options(config["deeptools"]["bamcoverage"]),
+        optionscheck_options(config["deeptools"]["bamcoverage"]),
     threads: config["deeptools"]["threads"]
     resources:
         mem="2GB",
@@ -89,7 +89,7 @@ rule deeptools_make_bigwigs_rna_minus:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/{sample}_minus.bigWig",
     params:
-        options=utils.check_options(config["deeptools"]["bamcoverage"]),
+        optionscheck_options(config["deeptools"]["bamcoverage"]),
     threads: config["deeptools"]["threads"]
     resources:
         mem="2GB",

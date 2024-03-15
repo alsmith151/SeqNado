@@ -32,7 +32,7 @@ if config["call_snps"]:
         output:
             vcf="seqnado_output/variant/{sample}_filtered.vcf.gz",
         params:
-            options=seqnado.utils.check_options(config["bcftools"]["options"]),
+            options=check_options(config["bcftools"]["options"]),
         shell:
             """bcftools view {params.options} -o {output.vcf} {input.vcf}"""
 

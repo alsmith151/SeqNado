@@ -1,5 +1,5 @@
 from typing import Literal
-import seqnado.utils
+from seqnado.helpers import check_options
 import re
 
 
@@ -41,7 +41,7 @@ rule macs2_with_input:
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
-        options=seqnado.utils.check_options(config["macs"]["callpeak"]),
+        options=check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
@@ -63,7 +63,7 @@ rule macs2_no_input:
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
-        options=seqnado.utils.check_options(config["macs"]["callpeak"]),
+        options=check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
@@ -88,7 +88,7 @@ rule homer_with_input:
     log:
         "seqnado_output/logs/homer/{sample}_{treatment}.log",
     params:
-        options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
+        options=check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
         mem="4GB",
@@ -109,7 +109,7 @@ rule homer_no_input:
     log:
         "seqnado_output/logs/homer/{sample}_{treatment}.log",
     params:
-        options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
+        options=check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
         mem="4GB",
@@ -155,7 +155,7 @@ rule lanceotron_no_input:
     log:
         "seqnado_output/logs/lanceotron/{sample}_{treatment}.bed",
     params:
-        options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
+        options=check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
