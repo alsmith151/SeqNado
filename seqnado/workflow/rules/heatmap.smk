@@ -36,7 +36,7 @@ rule heatmap_plot:
     output:
         heatmap="seqnado_output/heatmap/heatmap.pdf",
     params:
-        colormapcheck_options(config["heatmap"]["colormap"]),
+        colormap=check_options(config["heatmap"]["colormap"]),
     resources:
         mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
     log:
