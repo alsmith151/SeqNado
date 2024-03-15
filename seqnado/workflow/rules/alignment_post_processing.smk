@@ -44,7 +44,7 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
             ),
         threads: 1
         params:
-            blacklistcheck_options(config["blacklist"]),
+            blacklist=check_options(config["blacklist"]),
         resources:
             mem="5GB",
             runtime="4h",
