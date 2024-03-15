@@ -22,7 +22,7 @@ rule homer_make_bigwigs:
     input:
         homer_tag_directory="seqnado_output/tag_dirs/{sample}",
     output:
-        homer_bigwig="seqnado_output/bigwigs/homer/{sample}.bigWig",
+        homer_bigwig="seqnado_output/bigwigs/homer/unscaled/{sample}.bigWig",
     log:
         "seqnado_output/logs/homer/makebigwigs_{sample}.log",
     resources:
@@ -47,7 +47,7 @@ rule deeptools_make_bigwigs:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
     output:
-        bigwig="seqnado_output/bigwigs/deeptools/{sample}.bigWig",
+        bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}.bigWig",
     params:
         options=check_options(config["deeptools"]["bamcoverage"]),
     resources:
@@ -67,7 +67,7 @@ rule deeptools_make_bigwigs_rna_plus:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
     output:
-        bigwig="seqnado_output/bigwigs/deeptools/{sample}_plus.bigWig",
+        bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}_plus.bigWig",
     params:
         options=check_options(config["deeptools"]["bamcoverage"]),
     threads: config["deeptools"]["threads"]
@@ -87,7 +87,7 @@ rule deeptools_make_bigwigs_rna_minus:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
     output:
-        bigwig="seqnado_output/bigwigs/deeptools/{sample}_minus.bigWig",
+        bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}_minus.bigWig",
     params:
         options=check_options(config["deeptools"]["bamcoverage"]),
     threads: config["deeptools"]["threads"]
