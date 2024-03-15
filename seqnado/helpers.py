@@ -1,6 +1,10 @@
-from typing import Dict
+from typing import Dict, Union
 import pathlib
 import numpy as np
+
+from loguru import logger
+
+from seqnado.design import Design, DesignIP
 
 
 FILETYPE_TO_DIR_MAPPING = {
@@ -10,6 +14,54 @@ FILETYPE_TO_DIR_MAPPING = {
 }
 
 FILETYPE_TO_EXTENSION_MAPPING = {"tag": "/", "bigwig": ".bigWig", "bam": ".bam"}
+
+
+def symlink_file(
+    output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
+):
+    """
+    Create a symlink in the output directory with the new file name.
+    """
+    new_path = output_dir / new_file_name
+    if not new_path.exists():
+        try:
+            new_path.symlink_to(source_path.resolve())
+        except FileExistsError:
+            logger.warning(f"Symlink for {new_path} already exists.")
+
+
+def symlink_fastq_files(
+    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
+):
+    """
+    Symlink the fastq files to the output directory.
+    """
+    output_dir = pathlib.Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(design, Design):
+        for assay_name, assay in design.assays.items():
+            symlink_file(output_dir, assay.r1.path, f"{assay_name}_1.fastq.gz")
+            if assay.is_paired:
+                symlink_file(output_dir, assay.r2.path, f"{assay_name}_2.fastq.gz")
+
+    elif isinstance(design, DesignIP):
+        for experiment_name, experiment in design.assays.items():
+            # IP files
+            ip_assay = experiment.ip_files
+            symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}_1.fastq.gz")
+            if ip_assay.is_paired:
+                symlink_file(
+                    output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz"
+                )
+
+            if experiment.control_files:
+                control_assay = experiment.control_files
+                control_r1_name = control_assay.r1.path.name.replace("R1", "1")
+                symlink_file(output_dir, control_assay.r1.path, control_r1_name)
+                if control_assay.is_paired:
+                    control_r2_name = control_assay.r2.path.name.replace("R2", "2")
+                    symlink_file(output_dir, control_assay.r2.path, control_r2_name)
 
 
 def is_on(param: str) -> bool:
