@@ -1,4 +1,4 @@
-import seqnado.utils as utils
+from seqnado.helpers import check_options
 
 
 rule sort_bam:
@@ -44,7 +44,7 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
             ),
         threads: 1
         params:
-            blacklist=utils.check_options(config["blacklist"]),
+            blacklistcheck_options(config["blacklist"]),
         resources:
             mem_mb=3000,
             time="24:00:00",
@@ -97,7 +97,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
             metrics=temp("seqnado_output/aligned/duplicates_removed/{sample}.metrics"),
         threads: 8
         params:
-            options=utils.check_options(config["picard"]["options"]),
+            optionscheck_options(config["picard"]["options"]),
         resources:
             mem_mb=5000,
             time="24:00:00",

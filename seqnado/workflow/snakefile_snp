@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
-import seqnado.utils as utils
+from seqnado.helpers import check_options
 import pandas as pd
 
 ASSAY = "snp"
