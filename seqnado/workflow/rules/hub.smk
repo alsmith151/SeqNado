@@ -103,7 +103,7 @@ rule generate_hub:
     input:
         data=[
             OUTPUT.bigwigs,
-            OUTPUT.peaks if ASSAY != "RNA" else None,
+            OUTPUT.peaks,
         ],
         report="seqnado_output/qc/alignment_filtered_qc.html",
     output:
