@@ -1,6 +1,6 @@
 import pathlib
 import re
-from typing import Any, Dict, List, Optional, Union, Literal
+from typing import Any, Dict, List, Optional, Union, Literal, LiteralString
 import sys
 
 import pandas as pd
@@ -10,6 +10,7 @@ from snakemake.io import expand
 
 
 logger.add(sink=sys.stderr, level="INFO")
+
 
 class FastqFile(BaseModel):
     path: pathlib.Path
@@ -695,10 +696,16 @@ class QCFiles(BaseModel):
 class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     names: List[str]
-    pileup_method: List[Literal["deeptools", "homer"]] = None
+    pileup_method: Union[
+        Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]
+    ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "grouped"]] = None
     prefix: Optional[str] = "seqnado_output/bigwigs/"
+
+    def model_post_init(self, __context: Any) -> None:
+        if isinstance(self.pileup_method, str):
+            self.pileup_method = [self.pileup_method]
 
     @property
     def bigwigs_non_rna(self):
@@ -715,10 +722,15 @@ class BigWigFiles(BaseModel):
 
     @property
     def bigwigs_rna(self):
+
+        scale_methods = (
+            ["unscaled", self.scale_method] if self.scale_method else ["unscaled"]
+        )
+
         return expand(
             self.prefix + "{method}/{scale}/{sample}_{strand}.bigWig",
             sample=self.names,
-            scale=self.scale_method,
+            scale=scale_methods,
             method=self.pileup_method,
             strand=["plus", "minus"],
         )
@@ -825,7 +837,9 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: List[Literal["deeptools", "homer"]] = None
+    pileup_method: Union[
+        Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]
+    ] = None
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
     make_heatmaps: bool = False
@@ -863,10 +877,10 @@ class Output(BaseModel):
                 scale_method="rpkm",
             )
 
-            files =  bwf_samples.files + bwf_merged.files
+            files = bwf_samples.files + bwf_merged.files
         else:
-            files =  bwf_samples.files
-        
+            files = bwf_samples.files
+
         return files or []
 
     @property
@@ -890,17 +904,26 @@ class RNAOutput(Output):
 
     @property
     def counts(self):
-        return "seqnado_output/feature_counts/read_counts.tsv"
+        return ["seqnado_output/feature_counts/read_counts.tsv"]
 
     @property
     def deseq2(self):
         if self.run_deseq2:
             return [f"deseq2_{self.project_name}.html"]
+    
+    @property
+    def peaks(self):
+        return []
 
     @computed_field
     @property
     def files(self) -> List[str]:
-        files = self.bigwigs + self.heatmaps + self.ucsc_hub + self.counts + self.design
+
+        files = []
+        for file_list in (self.bigwigs , self.heatmaps , self.ucsc_hub , self.counts , self.design):
+            if file_list:
+                files.extend(file_list)
+        
         if self.run_deseq2:
             files.append(self.deseq2)
 
@@ -938,9 +961,9 @@ class NonRNAOutput(Output):
         if self.merge_peaks:
             pcf_merged = self.merged_peaks
 
-            files  =  pcf_samples.files + pcf_merged.files
+            files = pcf_samples.files + pcf_merged.files
         else:
-            files =  pcf_samples.files
+            files = pcf_samples.files
 
         return files or []
 
