@@ -119,6 +119,7 @@ def user_inputs(
         "fastq_screen": "no",
         "remove_blacklist": "yes",
         "remove_pcr_duplicates": "no",
+        "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
         "make_heatmaps": "yes",
