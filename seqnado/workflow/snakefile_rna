@@ -71,11 +71,11 @@ ANALYSIS_OUTPUT = RNAOutput(
     sample_names=SAMPLE_NAMES,
     run_deseq2=CAN_RUN_DESEQ2 and config["run_deseq2"],
     **config
-).files
+)
 
 rule all:
     input:
-        ANALYSIS_OUTPUT,
+        ANALYSIS_OUTPUT.files
 
 
 onsuccess:
