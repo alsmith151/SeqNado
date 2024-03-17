@@ -48,7 +48,7 @@ IP = DESIGN.ip_names
 CONTROL = DESIGN.control_names
 
 # Define output files
-ANALYSIS_OUTPUT = ChIPOutput(
+OUTPUT = ChIPOutput(
     assay=ASSAY,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
@@ -87,7 +87,7 @@ wildcard_constraints:
 
 rule all:
     input:
-        ANALYSIS_OUTPUT.files
+        OUTPUT.files
 
 
 onsuccess:

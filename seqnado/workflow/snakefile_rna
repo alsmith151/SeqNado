@@ -47,11 +47,23 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 SAMPLE_NAMES = DESIGN.sample_names
 
 # DESeq2 parameters
-CAN_RUN_DESEQ2 = DESIGN.to_dataframe().columns.str.contains("deseq2").any()
+RUN_DESEQ2 = True if (DESIGN.to_dataframe().columns.str.contains("deseq2").any() and config["run_deseq2"]) else False
+del config["run_deseq2"]
+
 PROJECT_NAME = config['project_name'].replace(" ", "_").strip()
 config["project_name"] = PROJECT_NAME
 
 
+# Define output files
+OUTPUT = RNAOutput(
+    assay=ASSAY,
+    run_design=DESIGN,
+    sample_names=SAMPLE_NAMES,
+    run_deseq2=RUN_DESEQ2,
+    **config
+)
+
+# Rules to include
 include: "rules/align_rna.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/alignment_post_processing.smk"
@@ -64,18 +76,10 @@ include: "rules/pileup_norm.smk"
 include: "rules/pileup_default.smk"
 include: "rules/qc.smk"
 
-# Define output files
-ANALYSIS_OUTPUT = RNAOutput(
-    assay=ASSAY,
-    run_design=DESIGN,
-    sample_names=SAMPLE_NAMES,
-    run_deseq2=CAN_RUN_DESEQ2 and config["run_deseq2"],
-    **config
-)
 
 rule all:
     input:
-        ANALYSIS_OUTPUT.files
+        OUTPUT.files
 
 
 onsuccess:
