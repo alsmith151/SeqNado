@@ -681,11 +681,7 @@ class QCFiles(BaseModel):
     @computed_field
     @property
     def files(self) -> List[str]:
-        if not self.files:
-            files = self.default_files
-        else:
-            files = self.files
-
+        files = self.default_files
         if self.fastq_screen:
             files.extend(self.fastq_screen_files)
         if self.library_complexity:
@@ -920,6 +916,9 @@ class RNAOutput(Output):
     def files(self) -> List[str]:
 
         files = []
+        files.append(QCFiles(assay=self.assay).files)
+
+
         for file_list in (self.bigwigs , self.heatmaps , self.ucsc_hub , self.counts , self.design):
             if file_list:
                 files.extend(file_list)
@@ -971,6 +970,8 @@ class NonRNAOutput(Output):
     @property
     def files(self) -> List[str]:
         files = []
+        files.append(QCFiles(assay=self.assay).files)
+
         for file_list in (
             self.bigwigs,
             self.heatmaps,
@@ -1026,6 +1027,8 @@ class ChIPOutput(NonRNAOutput):
     @property
     def files(self) -> List[str]:
         files = []
+        files.append(QCFiles(assay=self.assay).files)
+        
         for file_list in (
             self.bigwigs,
             self.heatmaps,
