@@ -573,6 +573,83 @@ class DesignIP(BaseModel):
         return cls(assays=experiments, **kwargs)
 
 
+class NormGroup(BaseModel):
+    """
+    Class to handle normalisation groups.
+    """
+    group: Optional[Union[str, int]] = "all"
+    samples: List[str]
+    reference_sample: Optional[str] = None
+
+    @classmethod
+    def from_design(
+        cls,
+        design: Union[Design, DesignIP],
+        reference_sample: Optional[str] = None,
+        subset_column: Optional[str] = "scale_group",
+        subset_value: Optional[List[str]] = None,
+    ):
+        df = design.to_dataframe()
+
+        if subset_value:
+            df = df.query(f"{subset_column} in {subset_value}")
+
+        samples = df.index.tolist()
+        reference_sample = reference_sample or df.index[0]
+        return cls(
+            samples=samples,
+            reference_sample=reference_sample,
+            group=subset_value[0] or "all",
+        )
+
+
+class NormGroups(BaseModel):
+    """
+    Class to handle normalisation groups.
+    """
+    groups: List[NormGroup]
+
+    @classmethod
+    def from_design(
+        cls,
+        design: Union[Design, DesignIP],
+        reference_sample: Optional[str] = None,
+        subset_column: Optional[str] = "scale_group",
+    ):
+        df = design.to_dataframe()
+        subset_values = df[subset_column].drop_duplicates()
+
+        return cls(
+            groups=[
+                NormGroup.from_design(
+                    design,
+                    reference_sample,
+                    subset_column,
+                    [
+                        subset_value,
+                    ],
+                )
+                for subset_value in subset_values
+            ]
+        )
+
+    @property
+    def sample_groups(self) -> Dict[str, List[str]]:
+        return {group.group: group.samples for group in self.groups}
+
+    @property
+    def group_samples(self) -> Dict[str, List[str]]:
+        return {
+            sample: group.group for group in self.groups for sample in group.samples
+        }
+
+    def get_sample_group(self, sample: str) -> str:
+        return self.group_samples[sample]
+
+    def get_grouped_samples(self, group: str) -> List[str]:
+        return self.sample_groups[group]
+
+
 class QCFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     fastq_screen: bool = False
@@ -615,7 +692,8 @@ class BigWigFiles(BaseModel):
     names: List[str]
     pileup_method: List[Literal["deeptools", "homer"]] = None
     make_bigwigs: bool = False
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
+    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "grouped"]] = None
+    prefix: Optional[str] = "seqnado_output/bigwigs/"
 
     @property
     def bigwigs_non_rna(self):
@@ -624,7 +702,7 @@ class BigWigFiles(BaseModel):
         )
 
         return expand(
-            "seqnado_output/bigwigs/{method}/{scale}/{sample}.bigWig",
+            self.prefix + "{method}/{scale}/{sample}.bigWig",
             sample=self.names,
             scale=scale_methods,
             method=self.pileup_method,
@@ -633,7 +711,7 @@ class BigWigFiles(BaseModel):
     @property
     def bigwigs_rna(self):
         return expand(
-            "seqnado_output/bigwigs/{method}/{scale}/{sample}_{strand}.bigWig",
+            self.prefix + "{method}/{scale}/{sample}_{strand}.bigWig",
             sample=self.names,
             scale=self.scale_method,
             method=self.pileup_method,

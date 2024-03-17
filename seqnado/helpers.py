@@ -155,3 +155,11 @@ def check_options(value: object):
         return ""
     else:
         return value
+
+
+def get_group_for_sample(wildcards, design: Union[Design, DesignIP]):
+    from seqnado.helpers import NormGroups
+
+    norm_groups = NormGroups.from_design(design)
+    group = norm_groups.get_sample_group(wildcards.sample)
+    return group
