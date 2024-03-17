@@ -1,12 +1,15 @@
 import pathlib
 import re
 from typing import Any, Dict, List, Optional, Union, Literal
+import sys
 
 import pandas as pd
 from loguru import logger
 from pydantic import BaseModel, Field, computed_field
 from snakemake.io import expand
 
+
+logger.add(sink=sys.stderr, level="INFO")
 
 class FastqFile(BaseModel):
     path: pathlib.Path
@@ -751,6 +754,8 @@ class PeakCallingFiles(BaseModel):
     def files(self) -> List[str]:
         if self.call_peaks:
             return self.peak_files
+        else:
+            return []
 
 
 class HeatmapFiles(BaseModel):
@@ -920,8 +925,9 @@ class NonRNAOutput(Output):
             peak_calling_method=self.peak_calling_method,
         )
 
+    @computed_field
     @property
-    def peaks(self):
+    def peaks(self) -> List[str]:
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
             names=self.sample_names,
