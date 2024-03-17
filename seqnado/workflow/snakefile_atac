@@ -47,7 +47,7 @@ ANALYSIS_OUTPUT = ATACOutput(
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     **config
-).files
+)
 
 ###################
 # Pipeline config #
@@ -57,14 +57,14 @@ include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/fastq_screen.smk"
 include: "rules/fastq_trim.smk"
-include: "rules/grouped_pileups_and_peaks.smk"
-include: "rules/heatmap.smk"
-include: "rules/hub.smk"
-include: "rules/peak_call_other.smk"
+include: "rules/pileup_default.smk"
 include: "rules/pileup_norm.smk"
 include: "rules/pileup_grouping.smk"
-include: "rules/pileup_default.smk"
+include: "rules/peak_call_other.smk"
+include: "rules/peak_call_grouped.smk"
 include: "rules/qc.smk"
+include: "rules/heatmap.smk"
+include: "rules/hub.smk"
 
 
 
@@ -72,7 +72,7 @@ include: "rules/qc.smk"
 
 rule all:
     input:
-        ANALYSIS_OUTPUT
+        ANALYSIS_OUTPUT.files
 
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")
