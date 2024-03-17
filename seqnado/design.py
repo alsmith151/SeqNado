@@ -577,6 +577,7 @@ class NormGroup(BaseModel):
     """
     Class to handle normalisation groups.
     """
+
     group: Optional[Union[str, int]] = "all"
     samples: List[str]
     reference_sample: Optional[str] = None
@@ -607,6 +608,7 @@ class NormGroups(BaseModel):
     """
     Class to handle normalisation groups.
     """
+
     groups: List[NormGroup]
 
     @classmethod
@@ -856,9 +858,11 @@ class Output(BaseModel):
                 scale_method="rpkm",
             )
 
-            return bwf_samples.files + bwf_merged.files
+            files =  bwf_samples.files + bwf_merged.files
         else:
-            return bwf_samples.files
+            files =  bwf_samples.files
+        
+        return files or []
 
     @property
     def heatmaps(self):
@@ -928,16 +932,26 @@ class NonRNAOutput(Output):
         if self.merge_peaks:
             pcf_merged = self.merged_peaks
 
-            return pcf_samples.files + pcf_merged.files
+            files  =  pcf_samples.files + pcf_merged.files
         else:
-            return pcf_samples.files
+            files =  pcf_samples.files
+
+        return files or []
 
     @computed_field
     @property
     def files(self) -> List[str]:
-        files = (
-            self.bigwigs + self.heatmaps + self.ucsc_hub + self.peaks + self.design
-        )
+        files = []
+        for file_list in (
+            self.bigwigs,
+            self.heatmaps,
+            self.ucsc_hub,
+            self.peaks,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
         return files
 
 
@@ -982,12 +996,16 @@ class ChIPOutput(NonRNAOutput):
     @computed_field
     @property
     def files(self) -> List[str]:
-        files = (
-            self.bigwigs
-            + self.heatmaps
-            + self.ucsc_hub
-            + self.peaks
-            + self.spikeins
-            + self.design
-        )
+        files = []
+        for file_list in (
+            self.bigwigs,
+            self.heatmaps,
+            self.ucsc_hub,
+            self.peaks,
+            self.spikeins,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
         return files
