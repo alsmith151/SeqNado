@@ -3,6 +3,7 @@ import re
 import numpy as np
 
 
+
 def get_hub_params(config):
     hub_params = {
         "hub_name": config["ucsc_hub_details"]["name"],
@@ -37,102 +38,6 @@ def get_hub_params(config):
     return hub_params
 
 
-def get_hub_input(wildcards):
-    input_files = []
-
-    match ASSAY:
-        case "RNA":
-            input_files.extend(
-                expand(
-                    "seqnado_output/bigwigs/{method}/{sample}_{strand}.bigWig",
-                    method=config["pileup_method"],
-                    sample=SAMPLE_NAMES,
-                    strand=["plus", "minus"],
-                )
-            )
-
-        case "ChIP":
-            input_files.extend(
-                expand(
-                    "seqnado_output/bigwigs/{method}/{sample}.bigWig",
-                    method=config["pileup_method"],
-                    sample=SAMPLE_NAMES,
-                )
-            )
-
-            if config["call_peaks"]:
-                input_files.extend(
-                    expand(
-                        "seqnado_output/peaks/{method}/{sample}.bigBed",
-                        method=config["peak_calling_method"],
-                        sample=SAMPLE_NAMES_IP,
-                    )
-                )
-
-        case "ATAC":
-            input_files.extend(
-                expand(
-                    "seqnado_output/bigwigs/{method}/{sample}.bigWig",
-                    method=config["pileup_method"],
-                    sample=SAMPLE_NAMES,
-                )
-            )
-
-            if config["call_peaks"]:
-                input_files.extend(
-                    expand(
-                        "seqnado_output/peaks/{method}/{sample}.bigBed",
-                        method=config["peak_calling_method"],
-                        sample=SAMPLE_NAMES,
-                    )
-                )
-
-        case _:
-            input_files = []
-
-    if "merge" in DESIGN.to_dataframe().columns:
-        input_files.extend(
-            expand(
-                "seqnado_output/bigwigs/consensus/{group}.bigWig",
-                group=DESIGN.to_dataframe()["merge"].unique(),
-            )
-        )
-
-    return input_files
-
-
-def get_peak_files(wildcards):
-    peak_files = []
-
-    if config["call_peaks"]:
-        if ASSAY == "ChIP":
-            peak_files.extend(
-                expand(
-                    "seqnado_output/peaks/{method}/{sample}.bed",
-                    method=config["peak_calling_method"],
-                    sample=SAMPLE_NAMES_IP,
-                )
-            )
-        elif ASSAY == "ATAC":
-            peak_files.extend(
-                expand(
-                    "seqnado_output/peaks/{method}/{sample}.bed",
-                    method=config["peak_calling_method"],
-                    sample=SAMPLE_NAMES,
-                )
-            )
-
-    if "merge" in DESIGN.to_dataframe().columns:
-        peak_files.extend(
-            expand(
-                "seqnado_output/consensus_peaks/peaks/{group}.bigBed",
-                group=DESIGN.to_dataframe().merge.unique(),
-            )
-        )
-
-    return peak_files
-
-
 rule save_design:
     output:
         "seqnado_output/design.csv",
@@ -144,7 +49,7 @@ rule save_design:
 
 rule validate_peaks:
     input:
-        peaks=get_peak_files,
+        peaks=ANALYSIS_OUTPUT.peaks,
     output:
         sentinel="seqnado_output/peaks/.validated",
     container:
@@ -196,7 +101,10 @@ def get_hub_txt_path():
 
 rule generate_hub:
     input:
-        data=get_hub_input,
+        data=[
+            ANALYSIS_OUTPUT.bigwigs,
+            ANALYSIS_OUTPUT.peaks if ASSAY != "RNA" else None,
+        ],
         report="seqnado_output/qc/alignment_filtered_qc.html",
     output:
         hub=get_hub_txt_path(),

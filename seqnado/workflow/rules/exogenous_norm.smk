@@ -1,9 +1,6 @@
 from seqnado.design import NormGroups
 
 
-NORM_GROUPS = NormGroups.from_design(DESIGN)
-
-
 rule align_paired_spikein:
     input:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",

@@ -6,7 +6,7 @@ rule lanceotron_no_input_consensus:
         peaks="seqnado_output/peaks/lanceotron/grouped/{group}.bed",
     threads: 8
     log:
-        "seqnado_output/logs/lanceotron/{treatment}.log",
+        "seqnado_output/logs/lanceotron/{group}.log",
     shell:
         """
         lanceotron callPeaks {input.bigwig} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
