@@ -200,5 +200,36 @@ rule move_bam_to_final_location:
         """
 
 
+def get_bam_files_for_merge(wildcards):
+    from seqnado.design import NormGroups
+    norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
+    return norm_groups.get_sample_group(wildcards.group)
+
+
+rule merge_bams:
+    input:
+        bams=get_bam_files_for_merge,
+    output:
+        temp("seqnado_output/aligned/grouped/{group}.bam"),
+    threads: 8
+    log:
+        "seqnado_output/logs/merge_bam/{group}.log",
+    shell:
+        """
+        samtools merge {output} {input} -@ {threads}
+        """
+
+
+use rule index_bam as index_consensus_bam with:
+    input:
+        bam="seqnado_output/aligned/grouped/{group}.bam",
+    output:
+        bai="seqnado_output/aligned/grouped/{group}.bam.bai",
+    threads: 8
+
+
+
+
+
 localrules:
     move_bam_to_final_location,

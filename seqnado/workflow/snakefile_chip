@@ -48,19 +48,18 @@ IP = DESIGN.ip_names
 CONTROL = DESIGN.control_names
 
 # Load required rules
-include: "rules/qc.smk"
-include: "rules/fastq_screen.smk"
-include: "rules/fastq_trim.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call_chip.smk"
-include: "rules/pileup.smk"
-include: "rules/pileup_normalisation.smk"
+include: "rules/fastq_screen.smk"
+include: "rules/fastq_trim.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
-include: "rules/consensus_peaks.smk"
-include: "rules/chip_refnorm.smk"
-include: "rules/normalisation.smk"
+include: "rules/exogenous_norm.smk"
+include: "rules/peak_call_chip.smk"
+include: "rules/pileup_norm.smk"
+include: "rules/pileup_default.smk"
+include: "rules/pileup_grouping.smk"
+include: "rules/qc.smk"
 
 
 # Define output files

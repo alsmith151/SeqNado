@@ -1,5 +1,4 @@
-from seqnado import utils
-from seqnado.utils import NormGroups
+from seqnado.design import NormGroups
 
 
 NORM_GROUPS = NormGroups.from_design(DESIGN)

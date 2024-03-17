@@ -53,17 +53,18 @@ ANALYSIS_OUTPUT = ATACOutput(
 # Pipeline config #
 ###################
 
-include: "rules/fastq_trim.smk"
-include: "rules/qc.smk"
-include: "rules/fastq_screen.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call_other.smk"
-include: "rules/pileup.smk"
+include: "rules/fastq_screen.smk"
+include: "rules/fastq_trim.smk"
+include: "rules/grouped_pileups_and_peaks.smk"
 include: "rules/heatmap.smk"
-include: "rules/pileup_normalisation.smk"
 include: "rules/hub.smk"
-include: "rules/consensus_peaks.smk"
+include: "rules/peak_call_other.smk"
+include: "rules/pileup_norm.smk"
+include: "rules/pileup_grouping.smk"
+include: "rules/pileup_default.smk"
+include: "rules/qc.smk"
 
 
 
