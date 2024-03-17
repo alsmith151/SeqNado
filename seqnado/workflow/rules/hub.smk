@@ -49,7 +49,7 @@ rule save_design:
 
 rule validate_peaks:
     input:
-        peaks=ANALYSIS_OUTPUT.peaks,
+        peaks=OUTPUT.peaks,
     output:
         sentinel="seqnado_output/peaks/.validated",
     container:
@@ -102,8 +102,8 @@ def get_hub_txt_path():
 rule generate_hub:
     input:
         data=[
-            ANALYSIS_OUTPUT.bigwigs,
-            ANALYSIS_OUTPUT.peaks if ASSAY != "RNA" else None,
+            OUTPUT.bigwigs,
+            OUTPUT.peaks if ASSAY != "RNA" else None,
         ],
         report="seqnado_output/qc/alignment_filtered_qc.html",
     output:
