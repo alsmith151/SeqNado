@@ -37,7 +37,7 @@
 # ) -> list:
 #     """Define output files for the pipeline"""
 
-#     analysis_output = [
+#     OUTPUT = [
 #         "seqnado_output/qc/fastq_raw_qc.html",
 #         "seqnado_output/qc/fastq_trimmed_qc.html",
 #         "seqnado_output/qc/alignment_raw_qc.html",
@@ -50,7 +50,7 @@
 #         assay_output.append("seqnado_output/qc/full_fastqscreen_report.html")
 
 #     if kwargs["remove_pcr_duplicates_method"] == "picard":
-#         analysis_output.append("seqnado_output/qc/library_complexity_qc.html")
+#         OUTPUT.append("seqnado_output/qc/library_complexity_qc.html")
 
 #     if make_heatmaps:
 #         assay_output.extend(
@@ -64,7 +64,7 @@
 #         hub_dir = pathlib.Path(kwargs["ucsc_hub_details"]["directory"])
 #         hub_name = kwargs["ucsc_hub_details"]["name"]
 #         hub_txt = hub_dir / f"{hub_name}.hub.txt"
-#         analysis_output.append(str(hub_txt))
+#         OUTPUT.append(str(hub_txt))
 
 #     if assay in ["ChIP", "ATAC"]:
 #         if assay == "ChIP" and chip_spikein_normalisation:
@@ -158,6 +158,6 @@
 #                 ),
 #             )
 
-#     analysis_output.extend(assay_output)
+#     OUTPUT.extend(assay_output)
 
-#     return analysis_output
+#     return OUTPUT
