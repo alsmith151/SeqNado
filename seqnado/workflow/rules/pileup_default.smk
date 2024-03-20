@@ -1,6 +1,17 @@
 import re
 from seqnado.helpers import check_options
 
+def format_deeptools_options(wildcards, options):
+    is_paired = DESIGN.query(wildcards.sample).is_paired
+
+    if not is_paired:
+        options = re.sub(r"--extendReads", "", options)
+        options = re.sub(r"-e", "", options)
+    if not options:
+        return ""
+    else:
+        return options
+
 
 rule homer_make_tag_directory:
     input:
@@ -49,7 +60,7 @@ rule deeptools_make_bigwigs:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}.bigWig",
     params:
-        options=check_options(config["deeptools"]["bamcoverage"]),
+        options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
     resources:
         mem="2GB",
         runtime="2h",
