@@ -1,4 +1,7 @@
 from seqnado.helpers import check_options, get_group_for_sample
+from seqnado.design import NormGroups
+
+NORM_GROUPS = NormGroups.from_design(DESIGN)
 
 def format_feature_counts(counts: str) -> pd.DataFrame:
     counts = pd.read_csv(input.counts, sep="\t", comment="#")
@@ -14,19 +17,19 @@ def get_scaling_factor(wildcards,  scale_path: str) -> float:
     return df.loc[wildcards.sample, "norm.factors"]
 
 
-def get_norm_factor_spikein(wildcards, group: str = None):
-    with open(f"seqnado_output/resources/{group}_spikein_factors.json".replace(" ", "")) as f:
+def get_norm_factor_spikein(wildcards):
+
+    import json
+
+    group = NORM_GROUPS.get_sample_group(wildcards.sample)
+    with open(f"seqnado_output/resources/{group}_normalisation_factors.json") as f:
         norm_factors = json.load(f)
     return norm_factors[wildcards.sample]
 
 
-def format_deeptools_bamcoverage_options(wildcards, invert_scale: bool = False):
+
+def format_deeptools_bamcoverage_options(wildcards):
     import re
-
-    group = get_group_for_sample(wildcards, DESIGN)
-    norm = get_norm_factor_spikein(wildcards, group=group)
-    norm = norm if invert_scale else -norm
-
 
     options = check_options(config["deeptools"]["bamcoverage"])
 
@@ -35,8 +38,6 @@ def format_deeptools_bamcoverage_options(wildcards, invert_scale: bool = False):
 
     if "--scaleFactor" in options:
         options = re.sub("--scaleFactor [0-9.]+", "", options)
-
-    options += f" --scaleFactor {norm}"
 
     return options
 
@@ -118,25 +119,30 @@ rule deeptools_make_bigwigs_scale:
         scale=lambda wc: get_scaling_factor(wc, f"seqnado_output/resources/{get_group_for_sample(wc, DESIGN)}_scaling_factors.tsv"),
         options=check_options(config["deeptools"]["bamcoverage"]),
     threads: 8
+    log:
+        "seqnado_output/logs/deeptools/scaled/{sample}.log"
     shell:
-        "bamCoverage -b {input.bam} -o {output.bigwig} --scaleFactor {params.scale} -p {threads} {params.options}"
+        "bamCoverage -b {input.bam} -o {output.bigwig} --scaleFactor {params.scale} -p {threads} {params.options} > {log} 2>&1"
         
 
 
 use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
     input:
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc, DESIGN)}_spikein_factors.json".replace(" ", ""),
+        bam="seqnado_output/aligned/{sample}.bam",
+        bai="seqnado_output/aligned/{sample}.bam.bai",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc, DESIGN)}_normalisation_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}.bigWig",
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
+        scale=get_norm_factor_spikein,
 
 
 rule deeptools_make_bigwigs_rna_spikein_plus:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc, DESIGN)}_spikein_factors.json".replace(" ", ""),
+        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc, DESIGN)}_normalisation_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}_plus.bigWig",
     params:
@@ -149,7 +155,7 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc, DESIGN)}_spikein_factors.json".replace(" ", ""),
+        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc, DESIGN)}_normalisation_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}_minus.bigWig",
     params:
