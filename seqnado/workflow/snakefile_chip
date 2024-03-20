@@ -59,8 +59,6 @@ OUTPUT = ChIPOutput(
     **config    
 )
 
-print(OUTPUT)
-
 # Load required rules
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
