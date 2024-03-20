@@ -267,7 +267,7 @@ heatmap:
 """
 
 
-def create_config(assay, genome, rerun):
+def create_config(assay, genome, rerun, debug=False):
     env = Environment(loader=FileSystemLoader(template_dir), auto_reload=False)
 
     template = env.get_template("config.yaml.jinja")
@@ -304,5 +304,6 @@ def create_config(assay, genome, rerun):
         f"Directory '{dir_name}' has been created with the 'config_{assay}.yml' file."
     )
 
-    with open(os.path.join(dir_name, "data.json"), "w") as file:
-        json.dump(template_data, file)
+    if debug:
+        with open(os.path.join(dir_name, "data.json"), "w") as file:
+            json.dump(template_data, file)
