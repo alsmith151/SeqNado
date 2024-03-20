@@ -649,21 +649,35 @@ class NormGroups(BaseModel):
         subset_column: Optional[str] = "scale_group",
     ):
         df = design.to_dataframe()
-        subset_values = df[subset_column].drop_duplicates()
 
-        return cls(
-            groups=[
-                NormGroup.from_design(
-                    design,
-                    reference_sample,
-                    subset_column,
-                    [
-                        subset_value,
-                    ],
-                )
-                for subset_value in subset_values
-            ]
-        )
+        # If the subset column is in the design
+        # make the groups based on the subset column
+        if subset_column in df.columns:
+            subset_values = df[subset_column].drop_duplicates()
+
+            return cls(
+                groups=[
+                    NormGroup.from_design(
+                        design,
+                        reference_sample,
+                        subset_column,
+                        [
+                            subset_value,
+                        ],
+                    )
+                    for subset_value in subset_values
+                ]
+            )
+        
+        else: # If not then just make one group with all the samples
+            return cls(
+                groups=[
+                    NormGroup(
+                        group="all",
+                        samples=design.sample_names,
+                    )
+                ]
+            )
 
     @property
     def sample_groups(self) -> Dict[str, List[str]]:
