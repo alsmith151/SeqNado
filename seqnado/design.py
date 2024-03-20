@@ -908,7 +908,17 @@ class Output(BaseModel):
             self.ucsc_hub_details,
             create_ucsc_hub=self.make_ucsc_hub,
         )
-        return hbf.files
+        return hbf
+    
+    @property
+    def bigbed(self) -> List[str]:
+        bb = []
+        for peak_file in self.peaks:
+            bed = pathlib.Path(peak_file)
+            bigbed = bed.with_suffix(".bigBed")
+            bb.append(bigbed)
+        return bb
+    
 
 
 class RNAOutput(Output):
@@ -939,7 +949,7 @@ class RNAOutput(Output):
         for file_list in (
             self.bigwigs,
             self.heatmaps,
-            self.ucsc_hub,
+            self.ucsc_hub.files,
             self.counts,
             self.design,
         ):
@@ -988,7 +998,7 @@ class NonRNAOutput(Output):
             files = pcf_samples.files
 
         return files or []
-
+    
     @computed_field
     @property
     def files(self) -> List[str]:
@@ -998,7 +1008,7 @@ class NonRNAOutput(Output):
         for file_list in (
             self.bigwigs,
             self.heatmaps,
-            self.ucsc_hub,
+            self.ucsc_hub.files,
             self.peaks,
             self.design,
         ):
@@ -1058,7 +1068,7 @@ class ChIPOutput(NonRNAOutput):
         for file_list in (
             self.bigwigs,
             self.heatmaps,
-            self.ucsc_hub,
+            self.ucsc_hub.files,
             self.peaks,
             self.spikeins,
             self.design,
