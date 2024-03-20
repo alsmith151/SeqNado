@@ -55,7 +55,7 @@ rule homer_no_input:
 
 rule lanceotron_no_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/{sample}.bigWig",
+        treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}.bigWig",
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}.bed",
     log:
