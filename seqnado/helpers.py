@@ -172,10 +172,27 @@ def check_options(value: object):
     else:
         return value
 
+def pepe_silvia():
+    print("PEPE SILVIA")
+    _pepe_silvia = (
+        "https://relix.com/wp-content/uploads/2017/03/tumblr_o16n2kBlpX1ta3qyvo1_1280.jpg"
+    )
+    return _pepe_silvia
+
 
 def get_group_for_sample(wildcards, design: Union[Design, DesignIP]):
-    from seqnado.helpers import NormGroups
+    from seqnado.design import NormGroups
 
     norm_groups = NormGroups.from_design(design)
     group = norm_groups.get_sample_group(wildcards.sample)
     return group
+
+def get_scale_method(config: Dict) -> Optional[str]:
+    """
+    Returns the scale method based on the config.
+    """
+    if config["spikein"]:
+       method =  "spikein"
+    
+    return method
+    
