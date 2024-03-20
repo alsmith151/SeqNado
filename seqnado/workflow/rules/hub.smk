@@ -90,24 +90,24 @@ rule bed_to_bigbed:
         """
 
 
-def get_hub_txt_path():
-    import pathlib
+# def get_hub_txt_path():
+#     import pathlib
 
-    hub_dir = pathlib.Path(config["ucsc_hub_details"]["directory"])
-    hub_name = config["ucsc_hub_details"]["name"]
-    hub_txt = hub_dir / (f"{hub_name}.hub.txt").replace(" ", "")
-    return str(hub_txt)
+#     hub_dir = pathlib.Path(config["ucsc_hub_details"]["directory"])
+#     hub_name = config["ucsc_hub_details"]["name"]
+#     hub_txt = hub_dir / (f"{hub_name}.hub.txt").replace(" ", "")
+#     return str(hub_txt)
 
 
 rule generate_hub:
     input:
         data=[
             OUTPUT.bigwigs,
-            OUTPUT.peaks,
+            OUTPUT.bigbed,
         ],
         report="seqnado_output/qc/alignment_filtered_qc.html",
     output:
-        hub=get_hub_txt_path(),
+        hub=OUTPUT.ucsc_hub.hub_txt,
     log:
         log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log".strip(),
     container:
