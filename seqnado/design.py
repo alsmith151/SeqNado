@@ -12,6 +12,21 @@ from snakemake.io import expand
 logger.add(sink=sys.stderr, level="INFO")
 
 
+def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
+    if isinstance(path, str):
+        p = pathlib.Path(path)
+    elif isinstance(path, pathlib.Path):
+        p = path
+    else:
+        p = None
+
+    if p is not None:
+        return True
+    else:
+        return False
+    
+
+
 class FastqFile(BaseModel):
     path: pathlib.Path
 
@@ -532,14 +547,14 @@ class DesignIP(BaseModel):
                 ip = row["ip"]
                 control = row["control"]
 
-                if "control_r1" not in row:
+                if "control_r1" not in row or not is_path(row["control_r1"]):
                     experiments[experiment_name] = ExperimentIP(
                         ip_files=AssayIP(
                             name=experiment_name,
                             r1=FastqFileIP(path=row["ip_r1"]),
                             r2=(
                                 FastqFileIP(path=row["ip_r2"])
-                                if "ip_r2" in row
+                                if "ip_r2" in row and is_path(row["ip_r2"])
                                 else None
                             ),
                         ),
@@ -554,7 +569,7 @@ class DesignIP(BaseModel):
                             r1=FastqFileIP(path=row["ip_r1"]),
                             r2=(
                                 FastqFileIP(path=row["ip_r2"])
-                                if "ip_r2" in row
+                                if "ip_r2" in row and is_path(row["ip_r2"])
                                 else None
                             ),
                         ),
@@ -563,7 +578,7 @@ class DesignIP(BaseModel):
                             r1=FastqFileIP(path=row["control_r1"]),
                             r2=(
                                 FastqFileIP(path=row["control_r2"])
-                                if "control_r2" in row
+                                if "control_r2" in row and is_path(row["control_r2"])
                                 else None
                             ),
                         ),
@@ -746,7 +761,10 @@ class BigWigFiles(BaseModel):
 class PeakCallingFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     names: List[str]
-    peak_calling_method: List[Literal["macs", "homer", "lanceotron", "seacr"]] = None
+    peak_calling_method: Union[
+        Literal["macs", "homer", "lanceotron", "seacr"],
+        List[Literal["macs", "homer", "lanceotron", "seacr"]],
+    ] = None
     call_peaks: bool = False
 
     @property
@@ -906,7 +924,7 @@ class RNAOutput(Output):
     def deseq2(self):
         if self.run_deseq2:
             return [f"deseq2_{self.project_name}.html"]
-    
+
     @property
     def peaks(self):
         return []
@@ -916,13 +934,18 @@ class RNAOutput(Output):
     def files(self) -> List[str]:
 
         files = []
-        files.append(QCFiles(assay=self.assay).files)
+        files.extend(QCFiles(assay=self.assay).files)
 
-
-        for file_list in (self.bigwigs , self.heatmaps , self.ucsc_hub , self.counts , self.design):
+        for file_list in (
+            self.bigwigs,
+            self.heatmaps,
+            self.ucsc_hub,
+            self.counts,
+            self.design,
+        ):
             if file_list:
                 files.extend(file_list)
-        
+
         if self.run_deseq2:
             files.append(self.deseq2)
 
@@ -932,7 +955,7 @@ class RNAOutput(Output):
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
     call_peaks: bool = False
-    peak_calling_method: List[Literal["macs", "homer", "lanceotron"]] = None
+    peak_calling_method: Union[Literal["macs", "homer", "lanceotron"], List[Literal["macs", "homer", "lanceotron"]]] = None
 
     @property
     def merge_peaks(self):
@@ -970,7 +993,7 @@ class NonRNAOutput(Output):
     @property
     def files(self) -> List[str]:
         files = []
-        files.append(QCFiles(assay=self.assay).files)
+        files.extend(QCFiles(assay=self.assay).files)
 
         for file_list in (
             self.bigwigs,
@@ -994,7 +1017,10 @@ class ChIPOutput(NonRNAOutput):
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
-    peak_calling_method: List[Literal["macs", "homer", "lanceotron", "seacr"]] = None
+    peak_calling_method: Union[
+        Literal["macs", "homer", "lanceotron", "seacr"],
+        List[Literal["macs", "homer", "lanceotron", "seacr"]],
+    ] = None
     chip_spikein_normalisation: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
@@ -1027,8 +1053,8 @@ class ChIPOutput(NonRNAOutput):
     @property
     def files(self) -> List[str]:
         files = []
-        files.append(QCFiles(assay=self.assay).files)
-        
+        files.extend(QCFiles(assay=self.assay).files)
+
         for file_list in (
             self.bigwigs,
             self.heatmaps,
