@@ -62,6 +62,7 @@ def cli_design(method, files, output="design.csv"):
         design = DesignIP.from_fastq_files([FastqFileIP(path=fq) for fq in files])
 
     (design.to_dataframe()
+           .assign(scale_group="all")
            .reset_index()
            .rename(columns={"index": "sample"})
            .sort_values("sample")
