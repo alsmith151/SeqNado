@@ -200,6 +200,10 @@ class AssayIP(AssayNonIP):
     @property
     def is_control(self) -> bool:
         return self.r1.is_control
+    
+    @property
+    def is_paired(self):
+        return self.r2 is not None
 
 
 class ExperimentIP(BaseModel):
@@ -223,6 +227,11 @@ class ExperimentIP(BaseModel):
 
         if self.control is None and self.control_files is not None:
             self.control = self.control_files.r1.ip
+    
+    @computed_field
+    @property
+    def is_paired(self) -> bool:
+        return self.ip_files.is_paired
 
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
@@ -389,7 +398,7 @@ class DesignIP(BaseModel):
         if all([s is None for s in names]):
             return []
         else:
-            return names
+            return [n for n in names if n is not None]
 
     @computed_field
     @property
@@ -403,13 +412,15 @@ class DesignIP(BaseModel):
 
         return paths
 
-    def query(self, sample_name: str, ip: str, control: str = None) -> ExperimentIP:
+    def query(self, sample_name: str, ip: str = None, control: str = None) -> ExperimentIP:
         """
         Extract an experiment from the design.
         """
 
+        name_to_query = sample_name + (f"_{ip}" if ip is not None else "")
+
         for experiment in self.assays.values():
-            if experiment.name == f"{sample_name}_{ip}":
+            if experiment.name == name_to_query or experiment.control_files.name == name_to_query:
                 if control is not None:
                     if experiment.control == control:
                         return experiment
@@ -1036,9 +1047,10 @@ class ChIPOutput(NonRNAOutput):
 
     @property
     def peaks(self):
+        ip_sample_names = [s for s in self.sample_names if any([c not in s for c in self.control_names])]
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
-            names=self.ip_names,
+            names=ip_sample_names,
             call_peaks=self.call_peaks,
             peak_calling_method=self.peak_calling_method,
         )
