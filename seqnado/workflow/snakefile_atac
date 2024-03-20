@@ -66,10 +66,6 @@ include: "rules/qc.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 
-
-
-
-
 rule all:
     input:
         OUTPUT.files

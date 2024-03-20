@@ -47,6 +47,7 @@ SAMPLE_NAMES_CONTROL = DESIGN.sample_names_control
 IP = DESIGN.ip_names
 CONTROL = DESIGN.control_names
 
+
 # Define output files
 OUTPUT = ChIPOutput(
     assay=ASSAY,
