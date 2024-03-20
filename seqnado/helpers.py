@@ -47,21 +47,37 @@ def symlink_fastq_files(
 
     elif isinstance(design, DesignIP):
         for experiment_name, experiment in design.assays.items():
+            
             # IP files
             ip_assay = experiment.ip_files
-            symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}_1.fastq.gz")
-            if ip_assay.is_paired:
+            is_paired = ip_assay.is_paired
+            has_control = experiment.control_files
+
+            if is_paired:
+                symlink_file(
+                    output_dir, ip_assay.r1.path, f"{ip_assay.name}_1.fastq.gz"
+                )
                 symlink_file(
                     output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz"
                 )
-
-            if experiment.control_files:
+            else:
+                symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}.fastq.gz")
+            
+            # Control files
+            if has_control:
                 control_assay = experiment.control_files
-                control_r1_name = control_assay.r1.path.name.replace("R1", "1")
-                symlink_file(output_dir, control_assay.r1.path, control_r1_name)
+
                 if control_assay.is_paired:
-                    control_r2_name = control_assay.r2.path.name.replace("R2", "2")
-                    symlink_file(output_dir, control_assay.r2.path, control_r2_name)
+                    symlink_file(
+                        output_dir, control_assay.r1.path, f"{control_assay.name}_1.fastq.gz"
+                    )
+                    symlink_file(
+                        output_dir, control_assay.r2.path, f"{control_assay.name}_2.fastq.gz"
+                    )
+                else:
+                    symlink_file(
+                        output_dir, control_assay.r1.path, f"{control_assay.name}.fastq.gz"
+                    )
 
 
 def is_on(param: str) -> bool:
