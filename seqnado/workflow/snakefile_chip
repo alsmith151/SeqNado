@@ -9,7 +9,7 @@ from snakemake.utils import min_version
 
 
 from seqnado.design import DesignIP, ChIPOutput 
-from seqnado.helpers import format_config_dict, symlink_fastq_files
+from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_method
 
 ####################
 # Hardcoded config #
@@ -55,9 +55,11 @@ OUTPUT = ChIPOutput(
     sample_names=SAMPLE_NAMES,
     ip_names=IP,
     control_names=CONTROL,
+    scale_method=get_scale_method(config),
     **config    
 )
 
+print(OUTPUT)
 
 # Load required rules
 include: "rules/align.smk"
@@ -77,12 +79,14 @@ include: "rules/hub.smk"
 
 if config["spikein"]:
     ruleorder: move_ref_bam > align_paired
+    ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
 else:
     ruleorder: align_paired > move_ref_bam
 
 # Define wildcard constraints
 wildcard_constraints:
     treatment= "|".join(IP),
+    group="|".join(DESIGN.to_dataframe()["scale_group"].unique()),
 
 
 
