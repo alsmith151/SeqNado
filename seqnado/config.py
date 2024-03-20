@@ -125,7 +125,7 @@ def setup_configuration(assay, genome, template_data):
         template_data["spikein"] = get_user_input(
             "Do you have spikein? (yes/no)", default="no", is_boolean=True
         )
-        if template_data["spikein"]:
+        if template_data["spikein"] and not assay == "rna":
             template_data["normalisation_method"] = get_user_input(
                 "Normalisation method:",
                 default="orlando",
@@ -303,3 +303,6 @@ def create_config(assay, genome, rerun):
     print(
         f"Directory '{dir_name}' has been created with the 'config_{assay}.yml' file."
     )
+
+    with open(os.path.join(dir_name, "data.json"), "w") as file:
+        json.dump(template_data, file)
