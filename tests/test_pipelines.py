@@ -1,11 +1,15 @@
 import glob
 import os
 import pathlib
-import pytest
+import re
 import shutil
 import subprocess
+import tarfile
 from datetime import datetime
-import re
+
+import pytest
+import requests
+
 
 @pytest.fixture(scope="function", params=["atac", "chip", "chip-rx", "rna", "rna-rx"], autouse=True)
 def assay(request):
@@ -43,7 +47,9 @@ def config_path(workflow_path):
 
 @pytest.fixture(scope="function")
 def genome_path(test_data_path):
-    return test_data_path / "genome"
+    p =  test_data_path / "genome"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
 
 
 @pytest.fixture(scope="function")
@@ -55,14 +61,20 @@ def genome_indices_path(genome_path, assay) -> pathlib.Path:
         return genome_path / "STAR_chr21_rna_spikein"
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="function", autouse=True)
 def indicies(genome_indices_path, genome_path):
-    if not genome_indices_path.exists():
-        import requests
-        import tarfile
 
-        suffix = genome_indices_path.with_suffix(".tar.gz").name
-        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
+    download_indices = True if not genome_indices_path.exists() else False
+    suffix = genome_indices_path.with_suffix(".tar.gz").name
+    url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
+
+    if "bt2" in str(genome_indices_path):
+        indicies_path = genome_indices_path / "bt2_chr21_dm6_chr2L"
+    else:
+        indicies_path = genome_indices_path
+    
+    if download_indices:
+
         r = requests.get(url, stream=True)
 
         tar_index = genome_indices_path.with_suffix(".tar.gz")
@@ -71,15 +83,60 @@ def indicies(genome_indices_path, genome_path):
             f.write(r.content)
 
         tar = tarfile.open(tar_index)
-        tar.extractall(path=genome_path)
+
+        if "bt2" in str(genome_indices_path): # These are individual files so need to extract to the indicies folder
+            genome_indices_path.mkdir(parents=True, exist_ok=True)
+            tar.extractall(path=genome_indices_path, filter="data")
+        else:
+            tar.extractall(path=genome_path, filter="data")
         tar.close()
 
-    return genome_indices_path
+        os.remove(tar_index)
+
+    return indicies_path
 
 
 @pytest.fixture(scope="function")
 def chromsizes(genome_path):
-    return genome_path / "chr21_rename.fa.fai"
+
+    suffix = "chr21.fa.fai"
+
+    if not (genome_path / "chr21_rename.fa.fai").exists():
+        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/{suffix}"
+        r = requests.get(url, stream=True)
+        with open(genome_path / suffix, "wb") as f:
+            f.write(r.content)    
+
+    return genome_path / suffix
+
+
+@pytest.fixture(scope="function")
+def gtf(genome_path, assay, indicies):
+
+    if "rna" in assay:
+        gtf_path = indicies / "chr21.gtf"
+    else:
+        gtf_path = genome_path / "chr21.gtf"
+    
+    if not gtf_path.exists() and "rna" not in assay:
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21.gtf"
+        r = requests.get(url, stream=True)
+        with open(gtf_path, "wb") as f:
+            f.write(r.content)
+        
+    return gtf_path
+
+@pytest.fixture(scope="function")
+def blacklist(genome_path):
+
+    blacklist_path = genome_path / "hg38-blacklist.v2.bed.gz"
+    if not blacklist_path.exists():
+        url = "https://github.com/Boyle-Lab/Blacklist/raw/master/lists/hg38-blacklist.v2.bed.gz"
+        r = requests.get(url, stream=True)
+        with open(blacklist_path, "wb") as f:
+            f.write(r.content)
+
+    return blacklist_path
 
 
 @pytest.fixture(scope="function")
@@ -119,15 +176,15 @@ def run_directory(tmpdir_factory, assay):
 
 
 @pytest.fixture(scope="function")
-def user_inputs(test_data_path, genome_indices_path, chromsizes, assay, assay_type):
+def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, blacklist):
 
     defaults = {
         "project_name": "test",
-        "genome_name": "hg19",
-        "indices": genome_indices_path,
-        "chromsizes": chromsizes,
-        "gtf": f"{test_data_path}/genome/chr21.gtf",
-        "blacklist": f"{test_data_path}/genome/hg19-blacklist.v2.chr21.bed.gz",
+        "genome_name": "hg38",
+        "indices": indicies,
+        "chromsizes": str(chromsizes),
+        "gtf": str(gtf),
+        "blacklist": str(blacklist),
         "fastq_screen": "no",
         "remove_blacklist": "yes",
     }
@@ -262,7 +319,11 @@ def test_config_generation(config_yaml, assay_type):
     assert os.path.exists(config_yaml), f"{assay_type} config file not created."
 
 
-def test_pipeline(assay, assay_type, config_yaml, indicies, design, cores):
+def test_pipeline(assay, assay_type, config_yaml, indicies, test_data_path, cores):
+
+    indicies_mount = indicies.parent if not indicies.is_dir() else indicies
+    tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp"))
+
     cmd = [
         "seqnado",
         f"{assay_type}",
@@ -272,7 +333,7 @@ def test_pipeline(assay, assay_type, config_yaml, indicies, design, cores):
         str(config_yaml),
         "--use-singularity",
         "--singularity-args",
-        f'" -B {indicies.resolve()} "',
+        f'" -B {indicies_mount.resolve()} -B {test_data_path} -B {os.getcwd()} -B {tmpdir}"',
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0
