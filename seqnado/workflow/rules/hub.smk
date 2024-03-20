@@ -90,15 +90,6 @@ rule bed_to_bigbed:
         """
 
 
-# def get_hub_txt_path():
-#     import pathlib
-
-#     hub_dir = pathlib.Path(config["ucsc_hub_details"]["directory"])
-#     hub_name = config["ucsc_hub_details"]["name"]
-#     hub_txt = hub_dir / (f"{hub_name}.hub.txt").replace(" ", "")
-#     return str(hub_txt)
-
-
 rule generate_hub:
     input:
         data=[
