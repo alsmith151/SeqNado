@@ -42,6 +42,7 @@ suppressPackageStartupMessages(library(clusterProfiler))
 suppressPackageStartupMessages(library(org.Hs.eg.db))
 suppressPackageStartupMessages(library(msigdbr))
 suppressPackageStartupMessages(library(fgsea))
+suppressPackageStartupMessages(library(rjson))
 ```
 
 # Background {.tabset}
@@ -116,13 +117,16 @@ dds <- DESeq(dds, quiet = T)
 if (nrow(counts) > 1000){
   vst <- suppressMessages(vst(dds))
 } else {
-  vst <- VarianceStabilizingTransformation(dds)
+  vst <- varianceStabilizingTransformation(dds)
 }
 
 res_names <- resultsNames(dds)[-1]
 res <- results(dds, name = res_names)
 
 # Output size factors
+
+size_factors <- colData(dds)[, "sizeFactor"]
+names(size_factors) <- colData(dds)[, "sample"]
 sf <- toJSON(size_factors)
 writeLines(sf, "all_spikein_factors.json")
 
