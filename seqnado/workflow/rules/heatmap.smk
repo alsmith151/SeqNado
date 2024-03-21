@@ -12,7 +12,7 @@ rule heatmap_matrix:
     input:
         bigwigs=expand(
             "seqnado_output/bigwigs/deeptools/{method}/{sample}.bigWig",
-            method=get_scale_method(cofig),
+            method=get_scale_method(config),
             sample=prefix,
         ),
     output:
