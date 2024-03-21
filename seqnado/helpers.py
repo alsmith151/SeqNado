@@ -2,8 +2,6 @@ from typing import Dict, Union, Optional
 import pathlib
 import numpy as np
 
-from loguru import logger
-
 from seqnado.design import Design, DesignIP
 
 
@@ -27,7 +25,7 @@ def symlink_file(
         try:
             new_path.symlink_to(source_path.resolve())
         except FileExistsError:
-            logger.warning(f"Symlink for {new_path} already exists.")
+            print(f"Symlink for {new_path} already exists.")
 
 
 def symlink_fastq_files(
