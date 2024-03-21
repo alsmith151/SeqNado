@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options
+from seqnado.helpers import check_options, get_scale_method
 
 if ASSAY == "ChIP":
     prefix = SAMPLE_NAMES_IP
@@ -11,7 +11,8 @@ else:
 rule heatmap_matrix:
     input:
         bigwigs=expand(
-            "seqnado_output/bigwigs/deeptools/unscaled/{sample}.bigWig",
+            "seqnado_output/bigwigs/deeptools/{method}/{sample}.bigWig",
+            method=get_scale_method(cofig),
             sample=prefix,
         ),
     output:
