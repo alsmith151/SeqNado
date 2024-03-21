@@ -242,7 +242,7 @@ trim_galore:
 
 star:
     threads: 4
-    options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
+    options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard --outBAMsortingBinsN  200
 
 picard:
     threads: 4
