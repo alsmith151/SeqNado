@@ -195,8 +195,8 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "shift_atac_reads": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
         "scale": "no",
+        "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
     }
@@ -207,8 +207,8 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
+        "scale": "no",
         "make_heatmaps": "yes",
-        "scale": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
     }
@@ -229,6 +229,8 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
     }
 
     defaults_rna = {
+        "remove_pcr_duplicates": "no",
+        "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
         "make_heatmaps": "yes",
@@ -236,7 +238,11 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
     }
 
     defaults_rna_rx = {
+        "remove_pcr_duplicates": "no",
         "spikein": "yes",
+        "make_bigwigs": "yes",
+        "pileup_method": "deeptools",
+        "make_heatmaps": "yes",
         "run_deseq2": "yes",
     }
 
@@ -285,10 +291,24 @@ def config_yaml(run_directory, user_inputs, assay_type):
     )
     return config_file_path
 
+@pytest.fixture(scope="function")
+def config_yaml_for_testing(config_yaml, assay):
+    import yaml
+    with open(config_yaml, "r") as f:
+        config = yaml.safe_load(f)
+    
+    if assay == "chip":
+        config["pileup_method"] = ["deeptools", "homer"]
+        config['peak_calling_method'] = ["lanceotron", "macs", "homer"]
+
+    with open(config_yaml, "w") as f:
+        yaml.dump(config, f)
+    
+    return pathlib.Path(config_yaml)
 
 @pytest.fixture(scope="function")
-def seqnado_run_dir(config_yaml):
-    return pathlib.Path(config_yaml).parent
+def seqnado_run_dir(config_yaml_for_testing):
+    return pathlib.Path(config_yaml_for_testing).parent
 
 
 @pytest.fixture(scope="function")
@@ -319,7 +339,9 @@ def test_config_generation(config_yaml, assay_type):
     assert os.path.exists(config_yaml), f"{assay_type} config file not created."
 
 
-def test_pipeline(assay, assay_type, config_yaml, indicies, test_data_path, cores):
+def test_pipeline(
+    assay_type, config_yaml_for_testing, indicies, test_data_path, cores
+):
 
     indicies_mount = indicies.parent if not indicies.is_dir() else indicies
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp"))
@@ -330,7 +352,7 @@ def test_pipeline(assay, assay_type, config_yaml, indicies, test_data_path, core
         "--cores",
         str(cores),
         "--configfile",
-        str(config_yaml),
+        str(config_yaml_for_testing),
         "--use-singularity",
         "--singularity-args",
         f'" -B {indicies_mount.resolve()} -B {test_data_path} -B {os.getcwd()} -B {tmpdir}"',
