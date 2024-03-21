@@ -96,8 +96,9 @@ use rule samtools_stats as samtools_stats_filtered with:
 def get_fastqc_files(wildcards):
     
     
-    single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == True]
-    paired_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]   
+    single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]
+    paired_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == True]
+   
     
     fastqc_raw_paired = expand(
             "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
@@ -123,7 +124,7 @@ def get_fastqc_files(wildcards):
     all_qc_files = []
     for files in [fastqc_raw_paired, fastqc_trimmed_paired, fastqc_raw_single, fastqc_trimmed_single]:
         if files:
-            all_qc_files.extend(files)
+            all_qc_files.extend(*files)
     
     return all_qc_files
 
