@@ -84,7 +84,6 @@ else:
 # Define wildcard constraints
 wildcard_constraints:
     treatment= "|".join(IP),
-    group="|".join(DESIGN.to_dataframe()["scale_group"].unique()),
 
 
 
