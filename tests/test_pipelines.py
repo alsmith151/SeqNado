@@ -243,6 +243,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
+        "scale": "no",
         "make_heatmaps": "yes",
         "run_deseq2": "no",
     }
@@ -252,6 +253,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "spikein": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
+        "scale": "no",
         "make_heatmaps": "no",
         "run_deseq2": "yes",
     }
