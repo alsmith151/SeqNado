@@ -191,6 +191,7 @@ def get_scale_method(config: Dict) -> Optional[str]:
     """
     Returns the scale method based on the config.
     """
+
     if config["spikein"]:
        method = "spikein"
     elif config["scale"]:
