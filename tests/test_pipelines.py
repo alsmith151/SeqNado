@@ -309,14 +309,18 @@ def config_yaml_for_testing(config_yaml, assay):
     import yaml
     with open(config_yaml, "r") as f:
         config = yaml.safe_load(f)
-    
+
     if assay == "chip":
         config["pileup_method"] = ["deeptools", "homer"]
         config['peak_calling_method'] = ["lanceotron", "macs", "homer"]
+    if assay == "rna":
+        config["star"]["options"] = (
+            config["star"]["options"] + "--limitBAMsortRAM 1489138457"
+        )
 
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)
-    
+
     return pathlib.Path(config_yaml)
 
 @pytest.fixture(scope="function")
@@ -325,10 +329,19 @@ def seqnado_run_dir(config_yaml_for_testing):
 
 
 @pytest.fixture(scope="function")
-def design(seqnado_run_dir, assay_type):
+def design(seqnado_run_dir, assay_type, assay):
     cmd = ["seqnado-design", assay_type]
     completed = subprocess.run(" ".join(cmd), shell=True, cwd=seqnado_run_dir)
     assert completed.returncode == 0
+
+    if assay == "rna-rx":
+        # Add deseq2 column to design file
+        import pandas as pd
+        df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
+        df["deseq2"] = df.index.str.extract(r"rna-spikein-(.*?)-rep\d")
+        df.to_csv(seqnado_run_dir / "design.csv")
+
+
     return seqnado_run_dir / "design.csv"
 
 
@@ -353,7 +366,7 @@ def test_config_generation(config_yaml, assay_type):
 
 
 def test_pipeline(
-    assay_type, config_yaml_for_testing, indicies, test_data_path, cores
+    assay_type, config_yaml_for_testing, indicies, test_data_path, cores, design
 ):
 
     indicies_mount = indicies.parent if not indicies.is_dir() else indicies
