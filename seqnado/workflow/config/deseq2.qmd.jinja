@@ -113,7 +113,11 @@ dds <- DESeq(dds, quiet = T)
 }
 
 
-vst <- suppressMessages(vst(dds))
+if (nrow(counts) > 1000){
+  vst <- suppressMessages(vst(dds))
+} else {
+  vst <- VarianceStabilizingTransformation(dds)
+}
 
 res_names <- resultsNames(dds)[-1]
 res <- results(dds, name = res_names)
