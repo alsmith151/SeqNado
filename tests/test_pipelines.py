@@ -387,3 +387,4 @@ def test_pipeline(
     assert completed.returncode == 0
     assert not os.path.exists("seqnado_error.log")
     assert os.path.exists("seqnado_output/")
+    assert os.path.exists("seqnado_output/qc/full_qc_report.html")
