@@ -114,16 +114,16 @@ def chromsizes(genome_path):
 def gtf(genome_path, assay, indicies):
 
     if "rna" in assay:
-        gtf_path = indicies / "chr21.gtf"
+        gtf_path = genome_path / "chr21_rna_spikein.gtf"
     else:
         gtf_path = genome_path / "chr21.gtf"
-    
-    if not gtf_path.exists() and "rna" not in assay:
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21.gtf"
+
+    if not gtf_path.exists():
+        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/{gtf_path.name}"
         r = requests.get(url, stream=True)
         with open(gtf_path, "wb") as f:
             f.write(r.content)
-        
+
     return gtf_path
 
 @pytest.fixture(scope="function")
@@ -152,6 +152,19 @@ def snakefile_path(package_path, assay_type):
 @pytest.fixture(scope="function")
 def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     path = test_data_path / "fastq"
+
+    if not path.exists():
+        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/fastq.tar.gz"
+        r = requests.get(url, stream=True)
+        
+        tar_path = path.with_suffix(".tar.gz")
+        
+        with open(tar_path, "wb") as f:
+            f.write(r.content)
+        
+        with tarfile.open(tar_path) as tar:
+            tar.extractall(path=path.parent, filter="data")
+
 
     match assay:
         case "atac":
