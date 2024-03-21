@@ -787,7 +787,7 @@ class PeakCallingFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     names: List[str]
     peak_calling_method: Union[
-        Literal["macs", "homer", "lanceotron", "seacr"],
+        Literal["macs", "homer", "lanceotron", "seacr", False],
         List[Literal["macs", "homer", "lanceotron", "seacr"]],
     ] = None
     call_peaks: bool = False
