@@ -989,7 +989,7 @@ class RNAOutput(Output):
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
     call_peaks: bool = False
-    peak_calling_method: Union[Literal["macs", "homer", "lanceotron"], List[Literal["macs", "homer", "lanceotron"]]] = None
+    peak_calling_method: Union[Literal["macs", "homer", "lanceotron", False], List[Literal["macs", "homer", "lanceotron"]]] = None
 
     @property
     def merge_peaks(self):
@@ -1052,7 +1052,7 @@ class ChIPOutput(NonRNAOutput):
     control_names: List[str]
     call_peaks: bool = False
     peak_calling_method: Union[
-        Literal["macs", "homer", "lanceotron", "seacr"],
+        Literal["macs", "homer", "lanceotron", "seacr", False],
         List[Literal["macs", "homer", "lanceotron", "seacr"]],
     ] = None
     chip_spikein_normalisation: bool = False
