@@ -24,7 +24,6 @@ def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
         return True
     else:
         return False
-    
 
 
 class FastqFile(BaseModel):
@@ -708,6 +707,7 @@ class QCFiles(BaseModel):
             "seqnado_output/qc/fastq_trimmed_qc.html",
             "seqnado_output/qc/alignment_raw_qc.html",
             "seqnado_output/qc/alignment_filtered_qc.html",
+            "seqnado_output/qc/full_qc_report.html",
         ]
 
     @property
@@ -943,7 +943,6 @@ class Output(BaseModel):
             bigbed = bed.with_suffix(".bigBed")
             bb.append(bigbed)
         return bb
-    
 
 
 class RNAOutput(Output):
