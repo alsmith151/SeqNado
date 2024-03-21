@@ -379,9 +379,11 @@ def test_pipeline(
         str(cores),
         "--configfile",
         str(config_yaml_for_testing),
-        "--use-singularity",
-        "--singularity-args",
-        f'" -B {indicies_mount.resolve()} -B {test_data_path} -B {os.getcwd()} -B {tmpdir}"',
+        "--use-apptainer",
+        "--apptainer-args",
+        f'" -B {indicies_mount.resolve()} -B {test_data_path} -B {os.getcwd()} -B {tmpdir}"'
+        "--apptainer-prefix",
+        os.environ.get("TMPDIR", "/tmp"),
     ]
     completed = subprocess.run(" ".join(cmd), shell=True)
     assert completed.returncode == 0
