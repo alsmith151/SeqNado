@@ -128,7 +128,7 @@ res <- results(dds, name = res_names)
 size_factors <- colData(dds)[, "sizeFactor"]
 names(size_factors) <- colData(dds)[, "sample"]
 sf <- toJSON(size_factors)
-writeLines(sf, "all_spikein_factors.json")
+writeLines(sf, "seqnado_output/resources/all_normalisation_factors.json")
 
 normCounts <- counts(dds, normalized = TRUE) %>% 
   as_tibble(rownames = "gene")
