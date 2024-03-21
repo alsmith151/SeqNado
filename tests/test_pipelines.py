@@ -378,7 +378,7 @@ def test_pipeline(
         str(config_yaml_for_testing),
         "--use-apptainer",
         "--apptainer-args",
-        f'" -B {indicies_mount.resolve()} -B {test_data_path} -B {os.getcwd()} -B {tmpdir}"'
+        f'" -B {indicies_mount.resolve()} -B {test_data_path} -B {os.getcwd()} -B {tmpdir}"',
         "--apptainer-prefix",
         os.environ.get("TMPDIR", "/tmp"),
     ]
