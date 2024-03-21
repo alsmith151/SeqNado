@@ -86,7 +86,7 @@ rule count_bam:
 
 rule setup_for_scaling_factors:
     input:
-        counts="seqnado_output/counts/{group}_counts.tsv"
+        counts="seqnado_output/counts/counts.tsv"
     output:
         formatted_counts="seqnado_output/counts/{group}_formatted_counts.tsv",
         metadata="seqnado_output/counts/{group}_metadata.tsv",
@@ -110,8 +110,8 @@ rule calculate_scaling_factors:
 
 rule deeptools_make_bigwigs_scale:
     input:
-        bam="seqnado_output/bams/{sample}.bam",
-        bai="seqnado_output/bams/{sample}.bam.bai",
+        bam="seqnado_output/aligned/{sample}.bam",
+        bai="seqnado_output/aligned/{sample}.bam.bai",
         scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc, DESIGN)}_scaling_factors.tsv",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/csaw/{sample}.bigWig",
