@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, computed_field
 from snakemake.io import expand
 
 
-logger.add(sink=sys.stderr, level="INFO")
+logger.add(sink=sys.stderr, level="WARNING")
 
 
 def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
