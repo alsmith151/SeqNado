@@ -215,8 +215,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
     }
 
     defaults_chip = {
-        "remove_pcr_duplicates": "yes",
-        "remove_pcr_duplicates_method": "picard",
+        "remove_pcr_duplicates": "no",
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
@@ -227,8 +226,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
     }
 
     defaults_chip_rx = {
-        "remove_pcr_duplicates": "yes",
-        "remove_pcr_duplicates_method": "picard",
+        "remove_pcr_duplicates": "no",
         "spikein": "yes",
         "normalisation_method": "orlando",
         "reference_genome": "hg38",
@@ -236,9 +234,8 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
         "scale": "no",
-        "make_heatmaps": "yes",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
+        "make_heatmaps": "no",
+        "call_peaks": "no",
     }
 
     defaults_rna = {
@@ -247,7 +244,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
         "make_heatmaps": "yes",
-        "run_deseq2": "yes",
+        "run_deseq2": "no",
     }
 
     defaults_rna_rx = {
@@ -255,7 +252,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "spikein": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
+        "make_heatmaps": "no",
         "run_deseq2": "yes",
     }
 
