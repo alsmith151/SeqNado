@@ -204,11 +204,11 @@ trim_galore:
     options: --2colour 20 
 
 bowtie2:
-    threads: 4
+    threads: 8
     options:
 
 picard:
-    threads: 4
+    threads: 8
     options:
 
 homer:
@@ -218,7 +218,7 @@ homer:
     findpeaks:
 
 deeptools:
-    threads: 8
+    threads: 16
     alignmentsieve: --minMappingQuality 30 
     bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
 
@@ -241,15 +241,15 @@ trim_galore:
     options: --2colour 20 
 
 star:
-    threads: 4
+    threads: 16
     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
 
 picard:
-    threads: 4
+    threads: 8
     options:
 
 featurecounts:
-    threads: 4
+    threads: 16
     options: -s 0 -p --countReadPairs -t exon -g gene_id
 
 homer:
@@ -257,7 +257,7 @@ homer:
     makebigwig:
 
 deeptools:
-    threads: 8
+    threads: 16
     alignmentsieve: --minMappingQuality 30 
     bamcoverage: -bs 1 --normalizeUsing CPM
 
