@@ -17,14 +17,19 @@ def get_scaling_factor(wildcards,  scale_path: str) -> float:
     return df.loc[wildcards.sample, "norm.factors"]
 
 
-def get_norm_factor_spikein(wildcards):
+def get_norm_factor_spikein(wildcards, negative=False):
 
     import json
 
     group = NORM_GROUPS.get_sample_group(wildcards.sample)
     with open(f"seqnado_output/resources/{group}_normalisation_factors.json") as f:
         norm_factors = json.load(f)
-    return norm_factors[wildcards.sample]
+    
+    if not negative:
+        return norm_factors[wildcards.sample]
+    else:
+        return -norm_factors[wildcards.sample]
+
 
 
 
@@ -147,9 +152,10 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}_plus.bigWig",
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
+        scale=get_norm_factor_spikein,
     threads: 8
     shell:
-        "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} {params.options} --filterRNAstrand forward"
+        "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} --scaleFactor {params.scale} {params.options} --filterRNAstrand forward"
 
 rule deeptools_make_bigwigs_rna_spikein_minus:
     input:
@@ -159,8 +165,9 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}_minus.bigWig",
     params:
-        options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards, invert_scale=True),
+        options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
+        scale=lambda wc: get_norm_factor_spikein(wc, negative=True),
     threads: 8
     shell:
-        "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} {params.options} --filterRNAstrand reverse"
+        "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} --scaleFactor {params.scale} {params.options} --filterRNAstrand reverse"
     
