@@ -338,7 +338,7 @@ def design(seqnado_run_dir, assay_type, assay):
         # Add deseq2 column to design file
         import pandas as pd
         df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
-        df["deseq2"] = df.index.str.extract(r"rna-spikein-(.*?)-rep\d")
+        df["deseq2"] = df.index.str.split("-").str[-2]
         df.to_csv(seqnado_run_dir / "design.csv")
 
 
