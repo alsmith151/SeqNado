@@ -312,10 +312,10 @@ def config_yaml_for_testing(config_yaml, assay):
     if assay == "chip":
         config["pileup_method"] = ["deeptools", "homer"]
         config['peak_calling_method'] = ["lanceotron", "macs", "homer"]
-    if assay == "rna":
-        config["star"]["options"] = (
-            config["star"]["options"] + "--limitBAMsortRAM 1489138457"
-        )
+    # if assay == "rna":
+    #     config["star"]["options"] = (
+    #         config["star"]["options"] + "--limitBAMsortRAM 1489138457"
+    #     )
 
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)
