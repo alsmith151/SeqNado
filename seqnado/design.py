@@ -322,7 +322,7 @@ class Design(BaseModel):
                 assays[assay_name] = AssayNonIP(
                     name=assay_name,
                     r1=FastqFile(path=row["r1"]),
-                    r2=FastqFile(path=row["r2"]),
+                    r2=FastqFile(path=row["r2"]) if row["r2"] else None,
                     metadata=metadata,
                 )
             else:
