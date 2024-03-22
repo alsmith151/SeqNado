@@ -32,7 +32,7 @@ format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
-    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0)
+    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0).fillna("")
     DESIGN = Design.from_dataframe(df)
 else:
     DESIGN = Design.from_directory(".")
