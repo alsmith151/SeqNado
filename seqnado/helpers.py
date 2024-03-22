@@ -39,9 +39,12 @@ def symlink_fastq_files(
 
     if isinstance(design, Design):
         for assay_name, assay in design.assays.items():
-            symlink_file(output_dir, assay.r1.path, f"{assay_name}_1.fastq.gz")
             if assay.is_paired:
+                symlink_file(output_dir, assay.r1.path, f"{assay_name}_1.fastq.gz")
                 symlink_file(output_dir, assay.r2.path, f"{assay_name}_2.fastq.gz")
+            else:
+                symlink_file(output_dir, assay.r1.path, f"{assay_name}.fastq.gz")
+
 
     elif isinstance(design, DesignIP):
         for experiment_name, experiment in design.assays.items():
