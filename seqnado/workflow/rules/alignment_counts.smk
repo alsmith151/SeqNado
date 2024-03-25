@@ -1,6 +1,7 @@
 from seqnado.helpers import check_options
 
 
+
 rule feature_counts:
     input:
         bam=expand("seqnado_output/aligned/{sample}.bam", sample=SAMPLE_NAMES),

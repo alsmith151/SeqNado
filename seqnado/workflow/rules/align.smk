@@ -1,6 +1,7 @@
 from seqnado.helpers import check_options
 
 
+
 rule align_paired:
     input:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
