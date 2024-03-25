@@ -1,4 +1,5 @@
-import seqnado.utils as utils
+from seqnado.helpers import check_options
+
 
 
 rule feature_counts:
@@ -9,11 +10,11 @@ rule feature_counts:
     output:
         counts="seqnado_output/feature_counts/read_counts.tsv",
     params:
-        options=utils.check_options(config["featurecounts"]["options"]),
+        options=check_options(config["featurecounts"]["options"]),
     threads: config["featurecounts"]["threads"]
     resources:
-        mem_mb=lambda wildcards, attempt: 3000 * 2**attempt,
-        time="0-02:00:00",
+        mem=lambda wildcards, attempt: 3000 * 2**attempt,
+        runtime="2h",
     log:
         "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
     shell:

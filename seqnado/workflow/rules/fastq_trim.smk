@@ -1,4 +1,4 @@
-import seqnado.utils
+from seqnado.helpers import check_options
 
 
 rule trimgalore_paired:
@@ -11,10 +11,10 @@ rule trimgalore_paired:
         trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
     threads: 4
     resources:
-        mem_mb=2000,
-        time="02:00:00",
+        mem="2GB",
+        runtime="2h",
     params:
-        options=seqnado.utils.check_options(config["trim_galore"]["options"]),
+        options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
     log:
         "seqnado_output/logs/trimming/{sample}.log",
@@ -34,10 +34,10 @@ rule trimgalore_single:
         trimmed=temp("seqnado_output/trimmed/{sample}.fastq.gz"),
     threads: 4
     resources:
-        mem_mb=2000,
-        time="02:00:00",
+        mem="2GB",
+        runtime="2h",
     params:
-        options=seqnado.utils.check_options(config["trim_galore"]["options"]),
+        options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
     log:
         "seqnado_output/logs/trimming/{sample}.log",

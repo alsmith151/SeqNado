@@ -23,11 +23,13 @@ dependencies = [
     "pandas",
     "pulp<=2.7.0",
     "pydantic",
+    "pyranges",
     "pyyaml",
     "seaborn",
     "setuptools_scm",
     "snakemake-wrapper-utils",
-    "snakemake>7.20.0, <8.0.0",
+    "snakemake>8,<9",
+    "snakemake-executor-plugin-slurm",
     "tracknado",
     "wget",
 ]
@@ -40,9 +42,6 @@ seqnado-config = "seqnado.cli:cli_config"
 
 [project.optional-dependencies]
 #atac = ["rsbamtk @ git+https://github.com/alsmith151/rsbamtk.git"]
-
-[python-entrypoint-group.console-scripts]
-preset-slurm-sidecar = "seqnado.workflow.envs.profiles.profile_slurm_singularity.slurm_sidecar:main"
 
 [tool.setuptools_scm]
 write_to = "seqnado/_version.py"

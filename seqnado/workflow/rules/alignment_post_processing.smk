@@ -1,4 +1,4 @@
-import seqnado.utils as utils
+from seqnado.helpers import check_options
 
 
 rule sort_bam:
@@ -7,7 +7,7 @@ rule sort_bam:
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
-        mem_mb=lambda wildcards, attempt: 4000 * 2**attempt,
+        mem=lambda wildcards, attempt: 4000 * 2**attempt,
     threads: 8
     log:
         "seqnado_output/logs/sorted/{sample}.log",
@@ -26,7 +26,7 @@ rule index_bam:
         bai=temp("seqnado_output/aligned/sorted/{sample}.bam.bai"),
     threads: 1
     resources:
-        mem_mb=1000,
+        mem=1000,
     shell:
         "samtools index -@ {threads} -b {input.bam}"
 
@@ -44,10 +44,10 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
             ),
         threads: 1
         params:
-            blacklist=utils.check_options(config["blacklist"]),
+            blacklist=check_options(config["blacklist"]),
         resources:
-            mem_mb=3000,
-            time="24:00:00",
+            mem="5GB",
+            runtime="4h",
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:
@@ -72,7 +72,7 @@ else:
             ),
         threads: 1
         resources:
-            mem_mb=3000,
+            mem="1GB",
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:
@@ -97,10 +97,10 @@ if config["remove_pcr_duplicates_method"] == "picard":
             metrics=temp("seqnado_output/aligned/duplicates_removed/{sample}.metrics"),
         threads: 8
         params:
-            options=utils.check_options(config["picard"]["options"]),
+            options=check_options(config["picard"]["options"]),
         resources:
-            mem_mb=5000,
-            time="24:00:00",
+            mem="5GB",
+            runtime="4h",
         log:
             "seqnado_output/logs/duplicates/{sample}.log",
         shell:
@@ -122,7 +122,7 @@ else:
             bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
         threads: 8
         resources:
-            mem_mb=500,
+            mem="500MB",
         log:
             "seqnado_output/logs/duplicates/{sample}.log",
         script:
@@ -144,7 +144,7 @@ if config["shift_atac_reads"]:
                 "seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.tmp"
             ),
         resources:
-            mem_mb=2500,
+            mem="2.5GB",
         threads: 1
         log:
             "seqnado_output/logs/atac_shift/{sample}.log",
@@ -198,6 +198,37 @@ rule move_bam_to_final_location:
         echo 'Number of reads' > {log} 2>&1 &&
         samtools view -f 2 -c {output.bam} >> {log} 2>&1
         """
+
+
+def get_bam_files_for_merge(wildcards):
+    from seqnado.design import NormGroups
+    norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
+    return norm_groups.get_sample_group(wildcards.group)
+
+
+rule merge_bams:
+    input:
+        bams=get_bam_files_for_merge,
+    output:
+        temp("seqnado_output/aligned/grouped/{group}.bam"),
+    threads: 8
+    log:
+        "seqnado_output/logs/merge_bam/{group}.log",
+    shell:
+        """
+        samtools merge {output} {input} -@ {threads}
+        """
+
+
+use rule index_bam as index_consensus_bam with:
+    input:
+        bam="seqnado_output/aligned/grouped/{group}.bam",
+    output:
+        bai="seqnado_output/aligned/grouped/{group}.bam.bai",
+    threads: 8
+
+
+
 
 
 localrules:

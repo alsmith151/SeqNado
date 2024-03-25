@@ -1,5 +1,5 @@
 import os
-import seqnado.utils
+from seqnado.helpers import check_options
 
 
 rule fastqc_raw_paired:
@@ -17,7 +17,7 @@ rule fastqc_raw_paired:
         temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     threads: 1
     resources:
-        mem_mb=1500,
+        mem="1.5GB",
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
@@ -82,7 +82,7 @@ rule samtools_stats:
         stats="seqnado_output/qc/alignment_raw/{sample}.txt",
     threads: 1
     resources:
-        mem_mb=1000,
+        mem=1000,
     shell:
         """samtools stats {input.bam} > {output.stats}"""
 
@@ -93,19 +93,45 @@ use rule samtools_stats as samtools_stats_filtered with:
     output:
         stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
 
+def get_fastqc_files(wildcards):
+    
+    
+    single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]
+    paired_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == True]
+   
+    
+    fastqc_raw_paired = expand(
+            "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
+            sample=paired_end_assays,
+            read=[1, 2],
+        ),
+    fastqc_trimmed_paired = expand(
+            "seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
+            sample=paired_end_assays,
+            read=[1, 2],
+        ),
+    
+    fastqc_raw_single = expand(
+            "seqnado_output/qc/fastqc_raw/{sample}_fastqc.html",
+            sample=single_end_assays,
+        ),
+    
+    fastqc_trimmed_single = expand(
+            "seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.html",
+            sample=single_end_assays,
+        ),
+    
+    all_qc_files = []
+    for files in [fastqc_raw_paired, fastqc_trimmed_paired, fastqc_raw_single, fastqc_trimmed_single]:
+        if files:
+            all_qc_files.extend(*files)
+    
+    return all_qc_files
+
 
 rule multiqc:
     input:
-        expand(
-            "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
-            sample=SAMPLE_NAMES,
-            read=[1, 2],
-        ),
-        expand(
-            "seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
-            sample=SAMPLE_NAMES,
-            read=[1, 2],
-        ),
+        get_fastqc_files,
         expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
         expand(
             "seqnado_output/qc/alignment_filtered/{sample}.txt",
@@ -116,7 +142,7 @@ rule multiqc:
     log:
         "seqnado_output/logs/multiqc.log",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: 2000 * 2**attempt,
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
 
@@ -144,7 +170,7 @@ rule multiqc_raw:
     log:
         "seqnado_output/logs/multiqc_raw.log",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: 2000 * 2**attempt,
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/fastqc_raw -n fastq_raw_qc.html --force > {log} 2>&1"
 
@@ -172,7 +198,7 @@ rule multiqc_trimmed:
     log:
         "seqnado_output/logs/multiqc_trimmed.log",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: 2000 * 2**attempt,
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/fastqc_trimmed -n fastq_trimmed_qc.html --force > {log} 2>&1"
 
@@ -188,7 +214,7 @@ rule multiqc_alignment_raw:
     log:
         "seqnado_output/logs/multiqc_alignment_raw.log",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: 2000 * 2**attempt,
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_raw -n alignment_raw_qc.html --force > {log} 2>&1"
 
@@ -204,7 +230,7 @@ rule multiqc_alignment_filtered:
     log:
         "seqnado_output/logs/multiqc_alignment_filtered.log",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: 2000 * 2**attempt,
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_filtered -n alignment_filtered_qc.html --force > {log} 2>&1"
 
@@ -220,7 +246,7 @@ rule multiqc_library_complexity:
     log:
         "seqnado_output/logs/multiqc_library_complexity.log",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: 2000 * 2**attempt,
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/aligned/duplicates_removed -n library_complexity_qc.html --force > {log} 2>&1"
 

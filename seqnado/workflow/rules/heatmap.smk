@@ -1,4 +1,4 @@
-import seqnado.utils
+from seqnado.helpers import check_options, get_scale_method
 
 if ASSAY == "ChIP":
     prefix = SAMPLE_NAMES_IP
@@ -11,19 +11,19 @@ else:
 rule heatmap_matrix:
     input:
         bigwigs=expand(
-            "seqnado_output/bigwigs/{method}/{sample}.bigWig",
+            "seqnado_output/bigwigs/deeptools/{method}/{sample}.bigWig",
+            method=get_scale_method(config) or "unscaled",
             sample=prefix,
-            method=config["pileup_method"],
         ),
     output:
         matrix=temp("seqnado_output/heatmap/heatmap_matrix.mat.gz"),
     params:
         gtf=config["genome"]["gtf"],
-        options=utils.check_options(config["heatmap"]["options"]),
+        options=check_options(config["heatmap"]["options"]),
     threads: config["deeptools"]["threads"]
     resources:
-        time="0-08:00:00",
-        mem_mb=lambda wildcards, attempt: 16000 * 2**attempt,
+        runtime=lambda wildcards, attempt: f"{1 * 2**attempt}h",
+        mem=lambda wildcards, attempt: f"{4 * 2**attempt}GB",
     log:
         "seqnado_output/logs/heatmap/matrix.log",
     shell:
@@ -36,9 +36,9 @@ rule heatmap_plot:
     output:
         heatmap="seqnado_output/heatmap/heatmap.pdf",
     params:
-        colormap=utils.check_options(config["heatmap"]["colormap"]),
+        colormap=check_options(config["heatmap"]["colormap"]),
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{2 * 2**attempt}GB",
     log:
         "seqnado_output/logs/heatmap/heatmap.log",
     shell:
@@ -51,7 +51,7 @@ rule heatmap_metaplot:
     output:
         metaplot="seqnado_output/heatmap/metaplot.pdf",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{2 * 2**attempt}GB"
     log:
         "seqnado_output/logs/heatmap/metaplot.log",
     shell:

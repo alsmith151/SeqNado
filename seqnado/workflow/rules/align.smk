@@ -1,4 +1,5 @@
-import seqnado.utils as utils
+from seqnado.helpers import check_options
+
 
 
 rule align_paired:
@@ -7,15 +8,13 @@ rule align_paired:
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     params:
         index=config["genome"]["indices"],
-        options=utils.check_options(config["bowtie2"]["options"]),
+        options=check_options(config["bowtie2"]["options"]),
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     threads: config["bowtie2"]["threads"]
     resources:
-        time=lambda wildcards, attempt: "0-{hours}:00:00".format(
-            hours=4 * 2 ** (attempt - 1)
-        ),
-        mem_mb=4000,
+        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
+        mem="4GB",
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
@@ -31,14 +30,12 @@ rule align_single:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
     params:
         index=config["genome"]["indices"],
-        options=utils.check_options(config["bowtie2"]["options"]),
+        options=check_options(config["bowtie2"]["options"]),
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     resources:
-        time=lambda wildcards, attempt: "0-{hours}:00:00".format(
-            hours=4 * 2 ** (attempt - 1)
-        ),
-        mem_mb=4000,
+        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
+        mem="4GB",
     threads: config["bowtie2"]["threads"]
     log:
         "seqnado_output/logs/align/{sample}.log",
