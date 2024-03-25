@@ -56,8 +56,6 @@ def extract_apptainer_args(options: List[str]) -> Tuple[List[str], str]:
     return options, apptainer_args
 
 
-
-
 def symlink_file(
     output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
 ):
@@ -89,10 +87,9 @@ def symlink_fastq_files(
             else:
                 symlink_file(output_dir, assay.r1.path, f"{assay_name}.fastq.gz")
 
-
     elif isinstance(design, DesignIP):
         for experiment_name, experiment in design.assays.items():
-            
+
             # IP files
             ip_assay = experiment.ip_files
             is_paired = ip_assay.is_paired
@@ -107,21 +104,27 @@ def symlink_fastq_files(
                 )
             else:
                 symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}.fastq.gz")
-            
+
             # Control files
             if has_control:
                 control_assay = experiment.control_files
 
                 if control_assay.is_paired:
                     symlink_file(
-                        output_dir, control_assay.r1.path, f"{control_assay.name}_1.fastq.gz"
+                        output_dir,
+                        control_assay.r1.path,
+                        f"{control_assay.r1.sample_base_without_ip}_{control_assay.r1.ip}_1.fastq.gz",
                     )
                     symlink_file(
-                        output_dir, control_assay.r2.path, f"{control_assay.name}_2.fastq.gz"
+                        output_dir,
+                        control_assay.r2.path,
+                        f"{control_assay.r1.sample_base_without_ip}_{control_assay.r1.ip}_2.fastq.gz",
                     )
                 else:
                     symlink_file(
-                        output_dir, control_assay.r1.path, f"{control_assay.name}.fastq.gz"
+                        output_dir,
+                        control_assay.r1.path,
+                        f"{control_assay.r1.sample_base_without_ip}_{control_assay.r1.ip}.fastq.gz",
                     )
 
 
@@ -245,4 +248,3 @@ def get_scale_method(config: Dict) -> Optional[str]:
         method = None
     
     return method
-    
