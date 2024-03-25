@@ -1,6 +1,7 @@
-from typing import Dict, Union, Optional
+from typing import Dict, Union, Optional, List, Tuple
 import pathlib
 import numpy as np
+import shlex
 
 from seqnado.design import Design, DesignIP
 
@@ -14,6 +15,49 @@ FILETYPE_TO_DIR_MAPPING = {
 FILETYPE_TO_EXTENSION_MAPPING = {"tag": "/", "bigwig": ".bigWig", "bam": ".bam"}
 
 
+def extract_cores_from_options(options: List[str]) -> Tuple[List[str], int]:
+    """
+    Extract the number of cores from the snakemake options.
+    """
+    from loguru import logger
+
+    try:
+        cores_flag = options.index("-c")
+        cores = int(options[cores_flag + 1])
+        options = [o for i, o in enumerate(options) if i not in [cores_flag, cores_flag + 1]]
+    except ValueError:
+        try:
+            cores_flag = options.index("--cores")
+            cores = int(options[cores_flag + 1])
+            options = [o for i, o in enumerate(options) if i not in [cores_flag, cores_flag + 1]]
+        except ValueError:
+            cores = 1
+            logger.warning("No core flag provided. Defaulting to 1 core.")
+    except IndexError:
+        cores = 1
+        options = [o for i, o in enumerate(options) if i not in [cores_flag]]
+        logger.warning("Core flag provided but no value given. Defaulting to 1 core.")
+    
+    return options, cores
+
+def extract_apptainer_args(options: List[str]) -> Tuple[List[str], str]:
+    """
+    Extract the apptainer arguments from the snakemake options.
+    """
+    from loguru import logger
+
+    try:
+        apptainer_flag = options.index("--apptainer-args")
+        apptainer_args = options[apptainer_flag + 1]
+        options = [o for i, o in enumerate(options) if i not in [apptainer_flag, apptainer_flag + 1]]
+    except ValueError:
+        apptainer_args = ""
+
+    return options, apptainer_args
+
+
+
+
 def symlink_file(
     output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
 ):
@@ -21,7 +65,7 @@ def symlink_file(
     Create a symlink in the output directory with the new file name.
     """
     new_path = output_dir / new_file_name
-    if not new_path.exists():
+    if not new_path.exists() and source_path.is_file():
         try:
             new_path.symlink_to(source_path.resolve())
         except FileExistsError:
