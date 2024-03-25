@@ -171,7 +171,7 @@ class AssayNonIP(BaseModel):
 
     @property
     def is_paired(self):
-        return self.r2 is not None
+        return self.r2.path.is_file()
 
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
@@ -199,10 +199,10 @@ class AssayIP(AssayNonIP):
     @property
     def is_control(self) -> bool:
         return self.r1.is_control
-    
+
     @property
     def is_paired(self):
-        return self.r2 is not None
+        return self.r2.path.is_file()
 
 
 class ExperimentIP(BaseModel):
