@@ -10,8 +10,8 @@ if config["call_snps"]:
             fasta=config["genome"]["fasta"],
             faidx=config["genome"]["fasta_index"],
         resources:
-            mem_mb=1024 * 10,
-            time="0-04:00:00",
+            mem=1024 * 10,
+            runtime="0-"4h"",
         threads: config["bcftools"]["threads"]
         log:
             "seqnado_output/logs/variant/bcftools/{sample}.log",
@@ -32,7 +32,7 @@ if config["call_snps"]:
         output:
             vcf="seqnado_output/variant/{sample}_filtered.vcf.gz",
         params:
-            options=seqnado.utils.check_options(config["bcftools"]["options"]),
+            options=check_options(config["bcftools"]["options"]),
         shell:
             """bcftools view {params.options} -o {output.vcf} {input.vcf}"""
 

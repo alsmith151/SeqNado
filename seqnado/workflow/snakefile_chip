@@ -1,16 +1,20 @@
-import os
-import sys
-import shutil
 from datetime import datetime
 import glob
-from snakemake.utils import min_version
-from seqnado.utils import DesignIP
-import seqnado.utils as utils
+import os
+import shutil
+import sys
+
 import pandas as pd
+from snakemake.utils import min_version
+
+
+from seqnado.design import DesignIP, ChIPOutput 
+from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_method
 
 ####################
 # Hardcoded config #
 ####################
+
 ASSAY = "ChIP"
 configfile: "config_chip.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
@@ -20,18 +24,18 @@ container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 ####################
 
 # Load config
-utils.format_config_dict(config)
+format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
-    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0)
+    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0).fillna("")
     DESIGN = DesignIP.from_dataframe(df)
 else:
     DESIGN = DesignIP.from_directory(".")
 
 # Attempt to symlink the fastq files
 assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directory or no design file provided."
-utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
+symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
 
@@ -43,39 +47,39 @@ SAMPLE_NAMES_CONTROL = DESIGN.sample_names_control
 IP = DESIGN.ip_names
 CONTROL = DESIGN.control_names
 
-# Load required rules
-include: "rules/qc.smk"
-include: "rules/fastq_screen.smk"
-include: "rules/fastq_trim.smk"
-include: "rules/align.smk"
-include: "rules/alignment_post_processing.smk"
-include: "rules/peak_call_chip.smk"
-include: "rules/pileup.smk"
-include: "rules/heatmap.smk"
-include: "rules/hub.smk"
-include: "rules/consensus_peaks.smk"
-
 
 # Define output files
-ANALYSIS_OUTPUT = seqnado.utils.define_output_files(
-                                            snakemake_design=DESIGN,
-                                            sample_names=SAMPLE_NAMES,
-                                            assay=ASSAY,
-                                            ip=SAMPLE_NAMES_IP,
-                                            experiment_design=DESIGN,
-                                            **config
-                                            )
+OUTPUT = ChIPOutput(
+    assay=ASSAY,
+    run_design=DESIGN,
+    sample_names=SAMPLE_NAMES,
+    ip_names=IP,
+    control_names=CONTROL,
+    scale_method=get_scale_method(config),
+    **config    
+)
+
+# Load required rules
+include: "rules/align.smk"
+include: "rules/alignment_post_processing.smk"
+include: "rules/fastq_screen.smk"
+include: "rules/fastq_trim.smk"
+include: "rules/exogenous_norm.smk"
+include: "rules/peak_call_chip.smk"
+include: "rules/peak_call_grouped.smk"
+include: "rules/pileup_default.smk"
+include: "rules/pileup_norm.smk"
+include: "rules/pileup_grouped.smk"
+include: "rules/qc.smk"
+include: "rules/heatmap.smk"
+include: "rules/hub.smk"
 
 
 if config["spikein"]:
-    include: "rules/chip_refnorm.smk"
-    include: "rules/normalisation.smk"
     ruleorder: move_ref_bam > align_paired
-    ruleorder: deeptools_make_bigwigs_norm > deeptools_make_bigwigs > homer_make_bigwigs_norm > homer_make_bigwigs
-    ANALYSIS_OUTPUT.append("seqnado_output/normalisation_factors.json")
-    ANALYSIS_OUTPUT.append("seqnado_output/qc/full_fastqscreen_report.html",)
-
-
+    ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
+else:
+    ruleorder: align_paired > move_ref_bam
 
 # Define wildcard constraints
 wildcard_constraints:
@@ -85,7 +89,7 @@ wildcard_constraints:
 
 rule all:
     input:
-        ANALYSIS_OUTPUT
+        OUTPUT.files
 
 
 onsuccess:

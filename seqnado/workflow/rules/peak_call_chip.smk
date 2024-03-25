@@ -1,5 +1,5 @@
 from typing import Literal
-import seqnado.utils
+from seqnado.helpers import check_options
 import re
 
 
@@ -12,25 +12,28 @@ def get_lanceotron_threshold(wildcards):
 
 def get_control_bam(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    control = f"seqnado_output/aligned/{wildcards.sample}_{exp.control}.bam".replace(
-        " ", ""
-    )
+    if exp.control:
+        control = f"seqnado_output/aligned/{wildcards.sample}_{exp.control}.bam"
+    else:
+        control = "UNDEFINED"
     return control
 
 
 def get_control_tag(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.control}".replace(
-        " ", ""
-    )
+    if not exp.control:
+        control = "UNDEFINED"
+    else:
+        control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.control}"
     return control
 
 
 def get_control_bigwig(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    control = f"seqnado_output/bigwigs/deeptools/{wildcards.sample}_{exp.control}.bigWig".replace(
-        " ", ""
-    )
+    if not exp.control:
+        control = "UNDEFINED"
+    else:
+        control = f"seqnado_output/bigwigs/deeptools/unscaled/{wildcards.sample}_{exp.control}.bigWig"
     return control
 
 
@@ -41,13 +44,13 @@ rule macs2_with_input:
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
-        options=seqnado.utils.check_options(config["macs"]["callpeak"]),
+        options=check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem_mb=2000,
-        time="0-02:00:00",
+        mem="2GB",
+        runtime="2h",
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
@@ -60,16 +63,17 @@ rule macs2_with_input:
 rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
+        control=lambda wc: [] if get_control_bam(wc) == "UNDEFINED" else get_control_bam(wc), 
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
-        options=seqnado.utils.check_options(config["macs"]["callpeak"]),
+        options=check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem_mb=2000,
-        time="0-02:00:00",
+        mem="2GB",
+        runtime="2h",
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
@@ -88,11 +92,11 @@ rule homer_with_input:
     log:
         "seqnado_output/logs/homer/{sample}_{treatment}.log",
     params:
-        options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
+        options=check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem_mb=4000,
-        time="0-02:00:00",
+        mem="4GB",
+        runtime="2h",
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.control} > {log} 2>&1 &&
@@ -104,16 +108,17 @@ rule homer_with_input:
 rule homer_no_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
+        control=lambda wc: [] if get_control_tag(wc) == "UNDEFINED" else get_control_tag(wc),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
         "seqnado_output/logs/homer/{sample}_{treatment}.log",
     params:
-        options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
+        options=check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem_mb=4000,
-        time="0-02:00:00",
+        mem="4GB",
+        runtime="2h",
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -124,7 +129,7 @@ rule homer_no_input:
 
 rule lanceotron_with_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/{sample}_{treatment}.bigWig",
+        treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
         control=get_control_bigwig,
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
@@ -138,8 +143,8 @@ rule lanceotron_with_input:
         "library://asmith151/seqnado/seqnado_extra:latest"
     threads: 1
     resources:
-        mem_mb=10_000,
-        time="0-06:00:00",
+        mem="10GB",
+        runtime="6h",
     shell:
         """
         lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
@@ -149,21 +154,22 @@ rule lanceotron_with_input:
 
 rule lanceotron_no_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/{sample}_{treatment}.bigWig",
+        treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
+        control=lambda wc: [] if get_control_bigwig(wc) == "UNDEFINED" else get_control_bigwig(wc),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
         "seqnado_output/logs/lanceotron/{sample}_{treatment}.bed",
     params:
-        options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
+        options=check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
-        mem_mb=10_1000,
-        time="0-06:00:00",
+        mem=10_1000,
+        runtime="6h",
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&

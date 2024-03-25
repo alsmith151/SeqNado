@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime
 import glob
 from snakemake.utils import min_version
-import seqnado.utils as utils
+from seqnado.helpers import check_options
 import pandas as pd
 
 ASSAY = "snp"
@@ -42,14 +42,14 @@ include: "rules/hub.smk"
 include: "rules/qc.smk"
 include: "rules/variant.smk"
 
-ANALYSIS_OUTPUT = utils.define_output_files(snakemake_design=DESIGN,
+OUTPUT = utils.define_output_files(snakemake_design=DESIGN,
                                             sample_names=SAMPLE_NAMES,
                                             assay=ASSAY,
                                             **config)
 
 rule all:
     input:
-        ANALYSIS_OUTPUT
+        OUTPUT
 
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")

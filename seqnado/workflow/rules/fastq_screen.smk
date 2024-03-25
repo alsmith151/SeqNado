@@ -9,9 +9,9 @@ rule fastq_screen_paired:
     params:
         outdir=temp("seqnado_output/qc/fastq_screen"),
         conf=config["fastq_screen_config"],
-    threads: config["bowtie2"]["threads"]
+    threads: config.get("bowtie2")["threads"] if config.get("bowtie2") else 4,
     resources:
-        mem_mb=lambda wildcards, attempt: 16000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{16 * 2**attempt}GB",
     log:
         "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
     shell:
@@ -54,7 +54,7 @@ rule multiqc_fastqscreen:
     log:
         "seqnado_output/logs/multiqc_fastqscreen.log",
     resources:
-        mem_mb=lambda wildcards, attempt: 2000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{2 * 2**attempt}GB",
     shell:
         "multiqc -o seqnado_output/qc -n full_fastqscreen_report.html --force seqnado_output/qc/fastq_screen > {log} 2>&1"
 

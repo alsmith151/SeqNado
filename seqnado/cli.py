@@ -1,6 +1,11 @@
 import click
 import os
 import subprocess
+import re
+from loguru import logger
+import sys
+import pathlib
+import shlex
 
 
 FILE = os.path.abspath(__file__)
@@ -47,8 +52,7 @@ def cli_design(method, files, output="design.csv"):
     Generates a SeqNado design file from a list of files.
     """
     import pathlib
-    import sys
-    from seqnado.utils import Design, DesignIP, FastqFile, FastqFileIP
+    from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
 
     if not files:
         files = list(pathlib.Path(".").glob("*.fastq.gz"))
@@ -59,22 +63,24 @@ def cli_design(method, files, output="design.csv"):
     if not method == "chip":
         design = Design.from_fastq_files([FastqFile(path=fq) for fq in files])
     else:
-        from seqnado.utils import DesignIP
 
         design = DesignIP.from_fastq_files([FastqFileIP(path=fq) for fq in files])
 
-    design.to_dataframe().reset_index().rename(columns={"index": "sample"}).to_csv(
-        output, index=False
+    (design.to_dataframe()
+           .assign(scale_group="all")
+           .reset_index()
+           .rename(columns={"index": "sample"})
+           .sort_values("sample")
+           .to_csv(output, index=False)
     )
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument(
     "method",
-    type=click.Choice(["atac", "chip", "rna", "snp", "consensus-peaks"]),
+    type=click.Choice(["atac", "chip", "rna", "snp"]),
 )
 @click.option("--version", help="Print version and exit", is_flag=True)
-@click.option("-c", "--cores", default=1, help="Number of cores to use", required=True)
 @click.option(
     "--preset",
     default="lc",
@@ -87,9 +93,11 @@ def cli_design(method, files, output="design.csv"):
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(
-    method, pipeline_options, help=False, cores=1, preset="local", version=False
+    method, pipeline_options, help=False, preset="local", version=False, apptainer_args=""
 ):
     """Runs the data processing pipeline"""
+
+    from seqnado.helpers import extract_cores_from_options
 
     if version:
         from importlib.metadata import version
@@ -98,7 +106,9 @@ def cli_pipeline(
 
         _version = version("seqnado")
         print(f"SeqNado version {_version}")
-        return
+        sys.exit(0)
+
+    pipeline_options, cores = extract_cores_from_options(pipeline_options)
 
     cmd = [
         "snakemake",
@@ -136,9 +146,11 @@ def cli_pipeline(
 
     cmd.extend(["--show-failed-logs"])
 
+    # Print the logo
     with open(f"{PACKAGE_DIR}/data/logo.txt", "r") as f:
         logo = f.read()
 
     print(logo)
 
-    completed = subprocess.run(cmd)
+
+    subprocess.run(cmd)

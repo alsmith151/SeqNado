@@ -1,16 +1,21 @@
-import os
-import sys
-import shutil
 from datetime import datetime
 import glob
-from snakemake.utils import min_version
-from seqnado.utils import Design
-import seqnado.utils as utils
+import os
+import shutil
+import sys
+
 import pandas as pd
+from snakemake.utils import min_version
+
+
+from seqnado.design import Design, ATACOutput
+from seqnado.helpers import format_config_dict, symlink_fastq_files
+
 
 ####################
 # Hardcoded config #
 ####################
+
 ASSAY = "ATAC"
 configfile: "config_atac.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
@@ -21,49 +26,49 @@ container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 ####################
 
 # Load config
-utils.format_config_dict(config)
+format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
-    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0)
+    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0).fillna("")
     DESIGN = Design.from_dataframe(df)
 else:
     DESIGN = Design.from_directory(".")
 
 # Attempt to symlink the fastq files
 assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directory or no design file provided."
-utils.symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
+symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
-ANALYSIS_OUTPUT = utils.define_output_files(snakemake_design=DESIGN,
-                                            sample_names=SAMPLE_NAMES,
-                                            assay=ASSAY,
-                                            **config)
+OUTPUT = ATACOutput(
+    assay=ASSAY,
+    run_design=DESIGN,
+    sample_names=SAMPLE_NAMES,
+    **config
+)
 
 ###################
 # Pipeline config #
 ###################
 
-include: "rules/fastq_trim.smk"
-include: "rules/qc.smk"
-include: "rules/fastq_screen.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
+include: "rules/fastq_screen.smk"
+include: "rules/fastq_trim.smk"
+include: "rules/pileup_default.smk"
+include: "rules/pileup_norm.smk"
+include: "rules/pileup_grouped.smk"
 include: "rules/peak_call_other.smk"
-include: "rules/pileup.smk"
+include: "rules/peak_call_grouped.smk"
+include: "rules/qc.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
-include: "rules/consensus_peaks.smk"
-
-
-
-
 
 rule all:
     input:
-        ANALYSIS_OUTPUT
+        OUTPUT.files
 
 onsuccess:
     slurm_files = glob.glob("slurm-*.out")

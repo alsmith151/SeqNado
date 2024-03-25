@@ -23,6 +23,7 @@ dependencies = [
     "pandas",
     "pulp<=2.7.0",
     "pydantic",
+    "pyranges",
     "pyyaml",
     "seaborn",
     "setuptools_scm",

@@ -121,11 +121,11 @@ def setup_configuration(assay, genome, template_data):
         )
 
     # Spike in
-    if assay == "chip":
+    if assay in ["chip", "rna"]:
         template_data["spikein"] = get_user_input(
             "Do you have spikein? (yes/no)", default="no", is_boolean=True
         )
-        if template_data["spikein"]:
+        if template_data["spikein"] and not assay == "rna":
             template_data["normalisation_method"] = get_user_input(
                 "Normalisation method:",
                 default="orlando",
@@ -145,6 +145,9 @@ def setup_configuration(assay, genome, template_data):
     if template_data["make_bigwigs"]:
         template_data["pileup_method"] = get_user_input(
             "Pileup method:", default="deeptools", choices=["deeptools", "homer"]
+        )
+        template_data["scale"] = get_user_input(
+            "Scale bigwigs? (yes/no)", default="no", is_boolean=True
         )
         template_data["make_heatmaps"] = get_user_input(
             "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
@@ -201,11 +204,11 @@ trim_galore:
     options: --2colour 20 
 
 bowtie2:
-    threads: 4
+    threads: 8
     options:
 
 picard:
-    threads: 4
+    threads: 8
     options:
 
 homer:
@@ -215,7 +218,7 @@ homer:
     findpeaks:
 
 deeptools:
-    threads: 8
+    threads: 16
     alignmentsieve: --minMappingQuality 30 
     bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
 
@@ -238,15 +241,15 @@ trim_galore:
     options: --2colour 20 
 
 star:
-    threads: 4
+    threads: 16
     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
 
 picard:
-    threads: 4
+    threads: 8
     options:
 
 featurecounts:
-    threads: 4
+    threads: 16
     options: -s 0 -p --countReadPairs -t exon -g gene_id
 
 homer:
@@ -254,7 +257,7 @@ homer:
     makebigwig:
 
 deeptools:
-    threads: 8
+    threads: 16
     alignmentsieve: --minMappingQuality 30 
     bamcoverage: -bs 1 --normalizeUsing CPM
 
@@ -264,7 +267,7 @@ heatmap:
 """
 
 
-def create_config(assay, genome, rerun):
+def create_config(assay, genome, rerun, debug=False):
     env = Environment(loader=FileSystemLoader(template_dir), auto_reload=False)
 
     template = env.get_template("config.yaml.jinja")
@@ -300,3 +303,7 @@ def create_config(assay, genome, rerun):
     print(
         f"Directory '{dir_name}' has been created with the 'config_{assay}.yml' file."
     )
+
+    if debug:
+        with open(os.path.join(dir_name, "data.json"), "w") as file:
+            json.dump(template_data, file)

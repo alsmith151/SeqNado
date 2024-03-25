@@ -1,5 +1,5 @@
 from typing import Literal
-import seqnado.utils
+from seqnado.helpers import check_options
 import re
 
 
@@ -16,13 +16,13 @@ rule macs2_no_input:
     output:
         peaks="seqnado_output/peaks/macs/{sample}.bed",
     params:
-        options=seqnado.utils.check_options(config["macs"]["callpeak"]),
+        options=check_options(config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem_mb=2000,
-        time="0-02:00:00",
+        mem="2GB",
+        runtime="2h",
     log:
         "seqnado_output/logs/macs/{sample}.bed",
     shell:
@@ -40,11 +40,11 @@ rule homer_no_input:
     log:
         "seqnado_output/logs/homer/{sample}.bed",
     params:
-        options=seqnado.utils.check_options(config["homer"]["findpeaks"]),
+        options=check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem_mb=4000,
-        time="0-02:00:00",
+        mem="4GB",
+        runtime="2h",
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -55,20 +55,20 @@ rule homer_no_input:
 
 rule lanceotron_no_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/{sample}.bigWig",
+        treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}.bigWig",
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}.bed",
     log:
         "seqnado_output/logs/lanceotron/{sample}.bed",
     params:
-        options=seqnado.utils.check_options(config["lanceotron"]["callpeak"]),
+        options=check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
     threads: 1
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
-        mem_mb=10_1000,
-        time="0-06:00:00",
+        mem=10_1000,
+        runtime="6h",
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
