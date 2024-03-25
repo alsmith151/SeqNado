@@ -5,7 +5,7 @@ jobs: 100
 use-conda: "False"
 software-deployment-method: "apptainer"
 use-apptainer: "True"
-apptainer-args: "--bind $PWD --bind /databank --bind /ceph"
+# apptainer-args: "--bind $PWD --bind /databank --bind /ceph"
 
 show-failed-logs: "True"
 printshellcmds: "True"
