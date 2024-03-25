@@ -15,14 +15,14 @@ def get_control_bam(wildcards):
     if exp.control:
         control = f"seqnado_output/aligned/{wildcards.sample}_{exp.control}.bam"
     else:
-        control = []
+        control = "UNDEFINED"
     return control
 
 
 def get_control_tag(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
     if not exp.control:
-        control = []
+        control = "UNDEFINED"
     else:
         control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.control}"
     return control
@@ -31,7 +31,7 @@ def get_control_tag(wildcards):
 def get_control_bigwig(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
     if not exp.control:
-        control = []
+        control = "UNDEFINED"
     else:
         control = f"seqnado_output/bigwigs/deeptools/unscaled/{wildcards.sample}_{exp.control}.bigWig"
     return control
@@ -63,7 +63,7 @@ rule macs2_with_input:
 rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
-        control=lambda wc: "UNDEFINED" if get_control_bam else [], 
+        control=get_control_bam, 
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
@@ -108,7 +108,7 @@ rule homer_with_input:
 rule homer_no_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
-        control=lambda wc: "UNDEFINED" if get_control_tag else [],
+        control=lambda wc: [] if get_control_tag(wc) == "UNDEFINED" else get_control_tag(wc),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -155,7 +155,7 @@ rule lanceotron_with_input:
 rule lanceotron_no_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
-        control=lambda wc: "UNDEFINED" if get_control_bigwig else [],
+        control=lambda wc: [] if get_control_bigwig(wc) == "UNDEFINED" else get_control_bigwig(wc),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
