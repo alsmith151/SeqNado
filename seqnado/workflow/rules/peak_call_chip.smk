@@ -15,14 +15,14 @@ def get_control_bam(wildcards):
     if exp.control:
         control = f"seqnado_output/aligned/{wildcards.sample}_{exp.control}.bam"
     else:
-        control = []
+        control = ""
     return control
 
 
 def get_control_tag(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
     if not exp.control:
-        control = []
+        control = ""
     else:
         control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.control}"
     return control
@@ -31,7 +31,7 @@ def get_control_tag(wildcards):
 def get_control_bigwig(wildcards):
     exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
     if not exp.control:
-        control = []
+        control = ""
     else:
         control = f"seqnado_output/bigwigs/deeptools/unscaled/{wildcards.sample}_{exp.control}.bigWig"
     return control
