@@ -143,6 +143,10 @@ def cli_pipeline(
                 ),
             ]
         )
+    
+    if preset.endswith("s"):
+        os.environ["SINGULARITY_BIND"] = ",".join([os.environ.get("SINGULARITY_BIND", ""), os.getcwd(), os.environ.get("TMPDIR", "/tmp")])
+        
 
     cmd.extend(["--show-failed-logs"])
 
