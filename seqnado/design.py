@@ -419,7 +419,11 @@ class DesignIP(BaseModel):
         name_to_query = sample_name + (f"_{ip}" if ip is not None else "")
 
         for experiment in self.assays.values():
-            if experiment.name == name_to_query or experiment.control_files.name == name_to_query:
+
+            name_ip = experiment.name
+            name_control = f"{experiment.control_files.r1.sample_base_without_ip}_{experiment.control_files.r1.ip}"
+
+            if name_to_query == name_ip or name_to_query == name_control:
                 if control is not None:
                     if experiment.control == control:
                         return experiment
