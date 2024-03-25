@@ -63,7 +63,7 @@ rule macs2_with_input:
 rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
-        control=get_control_bam, 
+        control=lambda wc: [] if get_control_bam(wc) == "UNDEFINED" else get_control_bam(wc), 
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
@@ -177,4 +177,6 @@ rule lanceotron_no_input:
         """
 
 
-ruleorder: lanceotron_with_input > lanceotron_no_input > homer_with_input > homer_no_input > macs2_with_input > macs2_no_input
+ruleorder: lanceotron_with_input > lanceotron_no_input
+ruleorder: homer_with_input > homer_no_input
+ruleorder: macs2_with_input > macs2_no_input
