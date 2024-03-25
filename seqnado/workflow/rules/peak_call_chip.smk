@@ -63,6 +63,7 @@ rule macs2_with_input:
 rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
+        control=lambda wc: "UNDEFINED" if get_control_bam else [], 
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
@@ -107,6 +108,7 @@ rule homer_with_input:
 rule homer_no_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
+        control=lambda wc: "UNDEFINED" if get_control_tag else [],
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -153,6 +155,7 @@ rule lanceotron_with_input:
 rule lanceotron_no_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
+        control=lambda wc: "UNDEFINED" if get_control_bigwig else [],
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
@@ -174,6 +177,4 @@ rule lanceotron_no_input:
         """
 
 
-ruleorder: lanceotron_with_input > lanceotron_no_input
-ruleorder: homer_with_input > homer_no_input
-ruleorder: macs2_with_input > macs2_no_input
+ruleorder: lanceotron_with_input > lanceotron_no_input > homer_with_input > homer_no_input > macs2_with_input > macs2_no_input
