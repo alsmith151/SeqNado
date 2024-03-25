@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tarfile
 from datetime import datetime
+import shlex
 
 import pytest
 import requests
@@ -296,11 +297,13 @@ def config_yaml(run_directory, user_inputs, assay_type):
 
     stdout, stderr = process.communicate(input=user_inputs)
 
+
     project_name = "test"
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = (
         run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
     )
+    assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
 
 @pytest.fixture(scope="function")
@@ -312,10 +315,6 @@ def config_yaml_for_testing(config_yaml, assay):
     if assay == "chip":
         config["pileup_method"] = ["deeptools", "homer"]
         config['peak_calling_method'] = ["lanceotron", "macs", "homer"]
-    # if assay == "rna":
-    #     config["star"]["options"] = (
-    #         config["star"]["options"] + "--limitBAMsortRAM 1489138457"
-    #     )
 
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)
@@ -364,28 +363,38 @@ def test_config_generation(config_yaml, assay_type):
     assert os.path.exists(config_yaml), f"{assay_type} config file not created."
 
 
-def test_pipeline(
-    assay_type, config_yaml_for_testing, indicies, test_data_path, cores, design
-):
+@pytest.fixture(scope="function", autouse=True)
+def apptainer_args(indicies, test_data_path):
 
     indicies_mount = indicies.parent if not indicies.is_dir() else indicies
-    tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp"))
+    tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
+    wd = pathlib.Path(os.getcwd()).resolve()
+    os.environ["APPTAINER_BINDPATH"]= f"{wd}:{wd}, {test_data_path}:{test_data_path}, {indicies_mount}:{indicies_mount}"
 
-    cmd = [
-        "seqnado",
-        f"{assay_type}",
-        "--cores",
-        str(cores),
-        "--configfile",
-        str(config_yaml_for_testing),
-        "--use-apptainer",
-        "--apptainer-args",
-        f'" -B {indicies_mount.resolve()} -B {test_data_path} -B {os.getcwd()} -B {tmpdir}"',
-        "--apptainer-prefix",
-        os.environ.get("TMPDIR", "/tmp"),
-    ]
-    completed = subprocess.run(" ".join(cmd), shell=True)
-    assert completed.returncode == 0
+@pytest.fixture(scope="function")
+def test_profile_path(workflow_path):
+    return workflow_path / "envs" / "profiles" / "profile_test"
+
+
+def test_pipeline(
+    assay_type, config_yaml_for_testing, apptainer_args, cores, design, indicies, test_data_path, test_profile_path
+):
+
+    subprocess.run(
+        [
+            "seqnado",
+            assay_type,
+            "-c",
+            str(cores),
+            "--configfile",
+            str(config_yaml_for_testing),
+            "--workflow-profile",
+            test_profile_path,
+            "--apptainer-prefix",
+            "/tmp",
+        ],
+    )
+
     assert not os.path.exists("seqnado_error.log")
     assert os.path.exists("seqnado_output/")
     assert os.path.exists("seqnado_output/qc/full_qc_report.html")
