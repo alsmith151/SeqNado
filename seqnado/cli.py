@@ -143,10 +143,16 @@ def cli_pipeline(
                 ),
             ]
         )
-    
+
+    # Set the APPTAINER_BIND environment variable
     if preset.endswith("s"):
-        os.environ["SINGULARITY_BIND"] = ",".join([os.environ.get("SINGULARITY_BIND", ""), os.getcwd(), os.environ.get("TMPDIR", "/tmp")])
-        
+        os.environ["APPTAINER_BIND"] = ",".join(
+            [
+                os.environ.get("APPTAINER_BIND", ""),
+                os.getcwd(),
+                os.environ.get("TMPDIR", "/tmp"),
+            ]
+        )
 
     cmd.extend(["--show-failed-logs"])
 
@@ -155,6 +161,5 @@ def cli_pipeline(
         logo = f.read()
 
     print(logo)
-
 
     subprocess.run(cmd)
