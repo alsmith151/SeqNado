@@ -892,6 +892,8 @@ class Output(BaseModel):
 
     ucsc_hub_details: Optional[Dict[str, Any]] = None
 
+    fastq_screen: bool = False
+
     @property
     def merge_bigwigs(self):
         return "merge" in self.run_design.to_dataframe().columns
