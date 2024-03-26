@@ -4,6 +4,7 @@ NORM_GROUPS = NormGroups.from_design(DESIGN)
 
 use rule align_paired as align_paired_spikein with:
     params:
+        index=config["genome"]["indices"],
         options="--no-mixed --no-discordant",
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
@@ -14,7 +15,7 @@ use rule align_single as align_single_spikein with:
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
     resources:
-        mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt - 1)}GB",
 
 
 use rule sort_bam as sort_bam_spikein with:
