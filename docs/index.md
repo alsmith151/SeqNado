@@ -48,4 +48,8 @@ mv /path/to/design.csv /path/to/working-directory/made-by-seqnado-config/
 ```bash
 cd /path/to/working-directory/made-by-seqnado-config/
 seqnado [atac|chip|rna|snp] -c <number of cores> --preset [ss|ls] # ss = use cluster, ls = use local (not recommended)
+
+# An actual example would be:
+seqnado rna -c 8 --preset ss
+
 ```
