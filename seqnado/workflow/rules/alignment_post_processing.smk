@@ -26,7 +26,7 @@ rule index_bam:
         bai=temp("seqnado_output/aligned/sorted/{sample}.bam.bai"),
     threads: 1
     resources:
-        mem="1GB",
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt - 1)}GB",
     shell:
         "samtools index -@ {threads} -b {input.bam}"
 
