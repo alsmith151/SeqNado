@@ -25,10 +25,32 @@ rule align_paired_spikein:
         mv {output.bam}_sorted {output.bam}
         """
 
+rule align_single_spikein:
+    input:
+        fq="seqnado_output/trimmed/{sample}.fastq.gz",
+    params:
+        index=config["genome"]["indices"],
+        options="--no-mixed --no-discordant",
+    output:
+        bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
+    threads: config["bowtie2"]["threads"]
+    resources:
+        mem=lambda wildcards, attempt: f"{4 * 2**attempt}GB",
+        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
+    log:
+        "seqnado_output/logs/align/{sample}.log",
+    shell:
+        """
+        bowtie2 -p {threads} {params.options} -x {params.index} -U {input.fq} 2> {log} |
+        samtools view -bS - > {output.bam} &&
+        samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} >> {log} 2>&1 &&
+        mv {output.bam}_sorted {output.bam}
+        """
+
 
 use rule sort_bam as sort_bam_spikein with:
     input:
-        bam=rules.align_paired_spikein.output.bam,
+        bam="seqnado_output/aligned/spikein/raw/{sample}.bam",
     output:
         bam=temp("seqnado_output/aligned/spikein/sorted/{sample}.bam"),
     log:
@@ -128,3 +150,6 @@ elif config["spikein_options"]["normalisation_method"] == "with_input":
             "seqnado_output/logs/normalisation_factors_{group}.log",
         script:
             "../scripts/calculate_spikein_norm_factors.py"
+
+
+ruleorder: align_paired_spikein > align_single_spikein
