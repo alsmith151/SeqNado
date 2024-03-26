@@ -1035,7 +1035,7 @@ class NonRNAOutput(Output):
     @property
     def files(self) -> List[str]:
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(QCFiles(assay=self.assay, fastq_screen=self.fastq_screen).files)
 
         for file_list in (
             self.bigwigs,
@@ -1096,7 +1096,7 @@ class ChIPOutput(NonRNAOutput):
     @property
     def files(self) -> List[str]:
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(QCFiles(assay=self.assay, fastq_screen=self.fastq_screen).files)
 
         for file_list in (
             self.bigwigs,
