@@ -169,9 +169,15 @@ class AssayNonIP(BaseModel):
     def fastq_paths(self):
         return [self.r1.path, self.r2.path] if self.is_paired else [self.r1.path]
 
+    
     @property
     def is_paired(self):
-        return self.r2.path.is_file()
+        if self.r2 is None:
+            return False
+        elif self.r2.path.is_file():
+            return True
+        else:
+            return False
 
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
@@ -199,10 +205,6 @@ class AssayIP(AssayNonIP):
     @property
     def is_control(self) -> bool:
         return self.r1.is_control
-
-    @property
-    def is_paired(self):
-        return self.r2.path.is_file()
 
 
 class ExperimentIP(BaseModel):
