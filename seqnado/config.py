@@ -234,6 +234,11 @@ lanceotron:
     use_input: True
     callpeak: -c 0.5
 
+seacr:
+    threshold: 0.01
+    norm: non
+    stringency: stringent
+
 heatmap:
     options:
     colormap: RdYlBu_r
