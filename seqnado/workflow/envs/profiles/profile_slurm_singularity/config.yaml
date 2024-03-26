@@ -9,6 +9,7 @@ use-apptainer: true
 
 show-failed-logs: true
 printshellcmds: true
+retries: 3
 
 
 default-resources: 
