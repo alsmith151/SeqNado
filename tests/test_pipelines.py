@@ -200,6 +200,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "gtf": str(gtf),
         "blacklist": str(blacklist),
         "fastq_screen": "no",
+        "library_complexity": "yes",
         "remove_blacklist": "yes",
     }
 
