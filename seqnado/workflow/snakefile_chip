@@ -78,7 +78,7 @@ if config["spikein"]:
     ruleorder: move_ref_bam > align_paired > align_single
     ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
 else:
-    ruleorder: align_paired > move_ref_bam
+    ruleorder: align_paired > align_single > move_ref_bam
 
 # Define wildcard constraints
 wildcard_constraints:
