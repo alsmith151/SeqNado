@@ -64,7 +64,8 @@ rule deeptools_make_bigwigs:
     resources:
         mem="2GB",
         runtime="4h",
-    threads: config["deeptools"]["threads"]
+    threads: 
+        config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}.log",
     shell:
