@@ -62,8 +62,8 @@ def genome_indices_path(genome_path, assay) -> pathlib.Path:
         return genome_path / "STAR_chr21_rna_spikein"
 
 
-@pytest.fixture(scope="function", autouse=True)
-def indicies(genome_indices_path, genome_path):
+@pytest.fixture(scope="function")
+def indicies(genome_indices_path, genome_path) -> pathlib.Path:
 
     download_indices = True if not genome_indices_path.exists() else False
     suffix = genome_indices_path.with_suffix(".tar.gz").name
@@ -195,11 +195,12 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
     defaults = {
         "project_name": "test",
         "genome_name": "hg38",
-        "indices": indicies,
+        "indices": str(indicies),
         "chromsizes": str(chromsizes),
         "gtf": str(gtf),
         "blacklist": str(blacklist),
         "fastq_screen": "no",
+        "library_complexity": "yes",
         "remove_blacklist": "yes",
     }
 
