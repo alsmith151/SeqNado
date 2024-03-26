@@ -38,8 +38,6 @@ assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directo
 symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
-
-
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
 SAMPLE_NAMES_IP = DESIGN.sample_names_ip
@@ -59,6 +57,7 @@ OUTPUT = ChIPOutput(
     **config    
 )
 
+
 # Load required rules
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
@@ -76,10 +75,10 @@ include: "rules/hub.smk"
 
 
 if config["spikein"]:
-    ruleorder: move_ref_bam > align_paired
+    ruleorder: move_ref_bam > align_paired > align_single
     ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
 else:
-    ruleorder: align_paired > move_ref_bam
+    ruleorder: align_paired > align_single > move_ref_bam
 
 # Define wildcard constraints
 wildcard_constraints:

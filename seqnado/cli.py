@@ -144,6 +144,17 @@ def cli_pipeline(
             ]
         )
 
+    # Set the APPTAINER_BIND environment variable
+    if preset.endswith("s"):
+        # output_dir = pathlib.Path("seqnado_output").absolute()
+        # output_dir.mkdir(exist_ok=True)
+        # os.environ["APPTAINER_BINDPATH"] = ", ".join([os.environ.get("APPTAINER_BINDPATH", "")])
+        # # os.environ["APPTAINER_NO_HOME"] = "1"
+        # # os.environ["APPTAINER_CLEANENV"] = "1"
+        # os.environ["APPTAINER_CWD"] = os.getcwd()
+
+        print(f"APPTAINER_BINDPATH: {os.environ['APPTAINER_BINDPATH']}")
+
     cmd.extend(["--show-failed-logs"])
 
     # Print the logo
@@ -152,5 +163,5 @@ def cli_pipeline(
 
     print(logo)
 
+    completed = subprocess.run(cmd)
 
-    subprocess.run(cmd)

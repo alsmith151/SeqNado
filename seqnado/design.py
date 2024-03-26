@@ -169,9 +169,15 @@ class AssayNonIP(BaseModel):
     def fastq_paths(self):
         return [self.r1.path, self.r2.path] if self.is_paired else [self.r1.path]
 
+    
     @property
     def is_paired(self):
-        return self.r2.path.is_file()
+        if self.r2 is None:
+            return False
+        elif self.r2.path.is_file():
+            return True
+        else:
+            return False
 
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
@@ -199,10 +205,6 @@ class AssayIP(AssayNonIP):
     @property
     def is_control(self) -> bool:
         return self.r1.is_control
-
-    @property
-    def is_paired(self):
-        return self.r2.path.is_file()
 
 
 class ExperimentIP(BaseModel):
@@ -890,6 +892,9 @@ class Output(BaseModel):
 
     ucsc_hub_details: Optional[Dict[str, Any]] = None
 
+    fastq_screen: bool = False
+    library_complexity: bool = False
+
     @property
     def merge_bigwigs(self):
         return "merge" in self.run_design.to_dataframe().columns
@@ -972,7 +977,13 @@ class RNAOutput(Output):
     def files(self) -> List[str]:
 
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,
@@ -1026,12 +1037,18 @@ class NonRNAOutput(Output):
             files = pcf_samples.files
 
         return files or []
-    
+
     @computed_field
     @property
     def files(self) -> List[str]:
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,
@@ -1092,7 +1109,13 @@ class ChIPOutput(NonRNAOutput):
     @property
     def files(self) -> List[str]:
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,
