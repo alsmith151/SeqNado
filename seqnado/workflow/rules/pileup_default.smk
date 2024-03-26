@@ -123,12 +123,14 @@ rule fragment_bedgraph:
     params:
         genome=config['genome']['chromosome_sizes'],
         outdir="seqnado_output/bedgraphs/",
+    log:
+        "seqnado_output/logs/bedgraphs/{sample}.log",
     shell:
         """
-        bedtools bamtobed -bedpe -i {input.bam} > {params.outdir}/{wildcards.sample}.bed
-        awk '$1==$4 && $6-$2 < 1000 {{print $0}}' {params.outdir}/{wildcards.sample}.bed > {params.outdir}/{wildcards.sample}_clean.bed
-        cut -f 1,2,6 {params.outdir}/{wildcards.sample}_clean.bed | sort -k1,1 -k2,2n -k3,3n > {params.outdir}/{wildcards.sample}_fragments.bed
-        bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_fragments.bed -g {params.genome} > {output.bedgraph}
+        bedtools bamtobed -bedpe -i {input.bam} > {params.outdir}/{wildcards.sample}.bed 2> {log}
+        awk '$1==$4 && $6-$2 < 1000 {{print $0}}' {params.outdir}/{wildcards.sample}.bed > {params.outdir}/{wildcards.sample}_clean.bed 2>> {log}
+        cut -f 1,2,6 {params.outdir}/{wildcards.sample}_clean.bed | sort -k1,1 -k2,2n -k3,3n > {params.outdir}/{wildcards.sample}_fragments.bed 2>> {log}
+        bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_fragments.bed -g {params.genome} > {output.bedgraph} 2>> {log}
         
         rm {params.outdir}/{wildcards.sample}.bed
         rm {params.outdir}/{wildcards.sample}_clean.bed
