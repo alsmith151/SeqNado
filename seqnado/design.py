@@ -893,6 +893,7 @@ class Output(BaseModel):
     ucsc_hub_details: Optional[Dict[str, Any]] = None
 
     fastq_screen: bool = False
+    library_complexity: bool = False
 
     @property
     def merge_bigwigs(self):
@@ -976,7 +977,13 @@ class RNAOutput(Output):
     def files(self) -> List[str]:
 
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,
@@ -1030,12 +1037,18 @@ class NonRNAOutput(Output):
             files = pcf_samples.files
 
         return files or []
-    
+
     @computed_field
     @property
     def files(self) -> List[str]:
         files = []
-        files.extend(QCFiles(assay=self.assay, fastq_screen=self.fastq_screen).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,
@@ -1096,7 +1109,13 @@ class ChIPOutput(NonRNAOutput):
     @property
     def files(self) -> List[str]:
         files = []
-        files.extend(QCFiles(assay=self.assay, fastq_screen=self.fastq_screen).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,
