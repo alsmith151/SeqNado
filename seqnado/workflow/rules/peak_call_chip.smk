@@ -168,7 +168,7 @@ rule lanceotron_no_input:
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
-        mem=10_1000,
+        mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt)}GB",
         runtime="6h",
     shell:
         """
