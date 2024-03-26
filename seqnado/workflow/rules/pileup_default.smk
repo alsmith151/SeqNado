@@ -64,7 +64,7 @@ rule deeptools_make_bigwigs:
     resources:
         mem="2GB",
         runtime="4h",
-    threads: 
+    threads:
         config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}.log",
@@ -133,6 +133,6 @@ rule fragment_bedgraph:
         rm {params.outdir}/{wildcards.sample}.bed
         rm {params.outdir}/{wildcards.sample}_clean.bed
         rm {params.outdir}/{wildcards.sample}_fragments.bed
-        """"
+        """
 
 ruleorder: deeptools_make_bigwigs_rna_plus > deeptools_make_bigwigs_rna_minus > deeptools_make_bigwigs
