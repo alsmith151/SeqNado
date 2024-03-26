@@ -5,6 +5,7 @@ NORM_GROUPS = NormGroups.from_design(DESIGN)
 use rule align_paired as align_paired_spikein with:
     params:
         options="--no-mixed --no-discordant",
+        index=config["genome"]["indices"],
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
     resources:
