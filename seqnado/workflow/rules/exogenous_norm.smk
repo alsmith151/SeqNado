@@ -23,9 +23,10 @@ use rule sort_bam as sort_bam_spikein with:
         bam="seqnado_output/aligned/spikein/raw/{sample}.bam",
     output:
         bam=temp("seqnado_output/aligned/spikein/sorted/{sample}.bam"),
+    resources:
+        mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
     log:
         "seqnado_output/logs/aligned_spikein/{sample}_sort.log",
-
 
 use rule index_bam as index_bam_spikein with:
     input:
