@@ -87,10 +87,6 @@ def setup_configuration(assay, genome, template_data):
             default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf",
         )
     
-    # Library Complexity
-    template_data["library_complexity"] = get_user_input(
-        "Calculate library complexity? (yes/no)", default="no", is_boolean=True
-    )
     # Blacklist
     template_data["remove_blacklist"] = get_user_input(
         "Do you want to remove blacklist regions? (yes/no)",
@@ -110,9 +106,13 @@ def setup_configuration(assay, genome, template_data):
         template_data["remove_pcr_duplicates_method"] = get_user_input(
             "Remove PCR duplicates method:", default="picard", choices=["picard"]
         )
-
+        # Library Complexity
+        template_data["library_complexity"] = get_user_input(
+        "Calculate library complexity? (yes/no)", default="no", is_boolean=True
+    )
     else:
         template_data["remove_pcr_duplicates_method"] = "False"
+        template_data["library_complexity"] = "False"
 
     # Shift reads
     if assay == "atac":

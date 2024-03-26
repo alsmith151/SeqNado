@@ -207,6 +207,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
     defaults_atac = {
         "remove_pcr_duplicates": "yes",
         "remove_pcr_duplicates_method": "picard",
+        "library_complexity": "yes",
         "shift_atac_reads": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",

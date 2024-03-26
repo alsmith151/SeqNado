@@ -10,8 +10,8 @@ if config["call_snps"]:
             fasta=config["genome"]["fasta"],
             faidx=config["genome"]["fasta_index"],
         resources:
-            mem=1024 * 10,
-            runtime="0-"4h"",
+            mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
+            runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
         threads: config["bcftools"]["threads"]
         log:
             "seqnado_output/logs/variant/bcftools/{sample}.log",
