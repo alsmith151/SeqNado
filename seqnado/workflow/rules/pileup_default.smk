@@ -121,7 +121,7 @@ rule fragment_bedgraph:
     output:
         bedgraph="seqnado_output/bedgraphs/{sample}.bedGraph",
     params:
-        genome=config['genome']['chromosome_sizes']
+        genome=config['genome']['chromosome_sizes'],
         outdir="seqnado_output/bedgraphs/",
     shell:
         """
