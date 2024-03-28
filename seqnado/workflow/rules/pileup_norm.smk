@@ -135,7 +135,7 @@ rule deeptools_make_bigwigs_scale:
         options=check_options(config["deeptools"]["bamcoverage"]),
     threads: 8
     log:
-        "seqnado_output/logs/deeptools/scaled/{sample}.log",
+        "seqnado_output/logs/pileups/deeptools/scaled/{sample}.log",
     shell:
         "bamCoverage -b {input.bam} -o {output.bigwig} --scaleFactor {params.scale} -p {threads} {params.options} > {log} 2>&1"
 
@@ -167,7 +167,7 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
         mem="2GB",
         runtime="4h",
     log:
-        "seqnado_output/logs/deeptools/spikein/{sample}_plus.log",
+        "seqnado_output/logs/pileups/deeptools/spikein/{sample}_plus.log",
     shell:
         "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} --scaleFactor {params.scale} {params.options} --filterRNAstrand forward > {log} 2>&1"
 
@@ -187,6 +187,6 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
         mem="2GB",
         runtime="4h",
     log:
-        "seqnado_output/logs/deeptools/spikein/{sample}_minus.log",
+        "seqnado_output/logs/pileups/deeptools/spikein/{sample}_minus.log",
     shell:
         "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} --scaleFactor {params.scale} {params.options} --filterRNAstrand reverse > {log} 2>&1"
