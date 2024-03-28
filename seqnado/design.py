@@ -958,10 +958,14 @@ class RNAOutput(Output):
     assay: Literal["RNA"]
     project_name: str
     run_deseq2: bool = False
+    rna_quantification: Optional[Literal["feature_counts", "salmon"]] = None
 
     @property
     def counts(self):
-        return ["seqnado_output/feature_counts/read_counts.tsv"]
+        if self.rna_quantification == "feature_counts":
+            return ["seqnado_output/quantification/feature_counts/read_counts.tsv"]
+        elif self.rna_quantification == "salmon":
+            return ["seqnado_output/quantification/salmon/quant.sf"]
 
     @property
     def deseq2(self):
