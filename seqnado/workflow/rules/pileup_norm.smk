@@ -133,7 +133,7 @@ rule deeptools_make_bigwigs_scale:
             f"seqnado_output/resources/{get_group_for_sample(wc , DESIGN)}_scaling_factors.tsv",
         ),
         options=check_options(config["deeptools"]["bamcoverage"]),
-    threads: 8
+    threads: config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/scaled/{sample}.log",
     shell:
@@ -162,7 +162,7 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
         scale=get_norm_factor_spikein,
-    threads: 8
+    threads: config["deeptools"]["threads"]
     resources:
         mem="2GB",
         runtime="4h",
@@ -182,7 +182,7 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
         scale=lambda wc: get_norm_factor_spikein(wc, negative=True),
-    threads: 8
+    threads: config["deeptools"]["threads"]
     resources:
         mem="2GB",
         runtime="4h",
