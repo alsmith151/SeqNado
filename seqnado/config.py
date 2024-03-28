@@ -183,7 +183,7 @@ def setup_configuration(assay, genome, template_data):
     template_data["salmon_index"] = (
         get_user_input(
             "Path to salmon index:",
-            default="/ceph/project/milne_group/shared/salmon_ref/hg38/cDNA/Homo_sapiens.GRCh38.cdna.all.fa.gz",
+            default="path/to/salmon_index",
         )
         if template_data["rna_quantification"] == "salmon"
         else "False"
