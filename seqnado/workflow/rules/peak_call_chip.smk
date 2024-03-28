@@ -55,7 +55,7 @@ rule macs2_with_input:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} -f BAMPE {params.options} > {log} 2>&1 &&
+        macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
         cat {params.narrow} | cut -f 1-3 > {output.peaks}
         """
 
@@ -78,7 +78,7 @@ rule macs2_no_input:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
         """
-        macs2 callpeak -t {input.treatment} -n {params.basename} -f BAMPE {params.options} > {log} 2>&1 &&
+        macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
         cat {params.narrow} | cut -f 1-3 > {output.peaks}
         """
 

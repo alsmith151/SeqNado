@@ -248,7 +248,7 @@ deeptools:
 
 macs:
     version: 2
-    callpeak:
+    callpeak: -f BAMPE
 
 lanceotron:
     use_input: True
