@@ -1,6 +1,6 @@
 rule deseq2_report_rnaseq:
     input:
-        counts="seqnado_output/feature_counts/read_counts.tsv",
+        counts="seqnado_output/readcounts/feature_counts/read_counts.tsv",
         qmd=f"deseq2_{PROJECT_NAME}.qmd".replace(" ", ""),
     output:
         deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
