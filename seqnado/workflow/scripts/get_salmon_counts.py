@@ -8,7 +8,7 @@ logger.add(snakemake.log[0], level="INFO")
 with logger.catch():
     logger.info("Collating read counts from Salmon quantification")
 
-    files = snakemake.input
+    files = snakemake.input.counts
     all_readcounts = []
 
     for file in files:
