@@ -265,6 +265,7 @@ def user_inputs(
         "pileup_method": "deeptools",
         "scale": "no",
         "make_heatmaps": "no",
+        "rna_quantification": "feature_counts",
         "run_deseq2": "yes",
     }
 

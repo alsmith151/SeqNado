@@ -31,12 +31,12 @@ rule feature_counts:
 
 rule salmon_counts_paired:
     input:
-        fq1="seqnado_output/fastq/{sample}_1.fastq.gz", sample=SAMPLE_NAMES,
-        fq2="seqnado_output/fastq/{sample}_2.fastq.gz", sample=SAMPLE_NAMES,
+        fq1="seqnado_output/fastqs/{sample}_1.fastq.gz",
+        fq2="seqnado_output/fastqs/{sample}_2.fastq.gz",
     output:
         counts="seqnado_output/quantification/salmon/quant.sf",
     params:
-        index=config["salmon"]["index"],
+        index=config["salmon_index"],
         options=check_options(config["salmon"]["options"]),
     threads: config["salmon"]["threads"]
     resources:
@@ -46,16 +46,16 @@ rule salmon_counts_paired:
         "seqnado_output/logs/readcounts/salmon/salmon.log",
     shell:
         """
-        salmon quant -p -t {params.index} {params.options} -1 {input.fq1} -2 {input.fq2} -p {threads} -o seqnado_output/quantification/salmon
+        salmon quant -t {params.index} {params.options} -1 {input.fq1} -2 {input.fq2} -p {threads} -o seqnado_output/quantification/salmon
         """
 
 rule salmon_counts_single:
     input:
-        fq="seqnado_output/fastq/{sample}.fastq.gz", sample=SAMPLE_NAMES,
+        fq="seqnado_output/fastqs/{sample}.fastq.gz",
     output:
         counts="seqnado_output/quantification/salmon/quant.sf",
     params:
-        index=config["salmon"]["index"],
+        index=config["salmon_index"],
         options=check_options(config["salmon"]["options"]),
     threads: config["salmon"]["threads"]
     resources:
