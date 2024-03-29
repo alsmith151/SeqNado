@@ -171,7 +171,12 @@ class AssayNonIP(BaseModel):
 
     @property
     def is_paired(self):
-        return self.r2.path.is_file()
+        if self.r2 is None:
+            return False
+        elif self.r2.path.is_file():
+            return True
+        else:
+            return False
 
     @classmethod
     def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
@@ -200,10 +205,6 @@ class AssayIP(AssayNonIP):
     def is_control(self) -> bool:
         return self.r1.is_control
 
-    @property
-    def is_paired(self):
-        return self.r2.path.is_file()
-
 
 class ExperimentIP(BaseModel):
     ip_files: AssayIP
@@ -226,7 +227,7 @@ class ExperimentIP(BaseModel):
 
         if self.control is None and self.control_files is not None:
             self.control = self.control_files.r1.ip
-    
+
     @computed_field
     @property
     def is_paired(self) -> bool:
@@ -411,7 +412,9 @@ class DesignIP(BaseModel):
 
         return paths
 
-    def query(self, sample_name: str, ip: str = None, control: str = None) -> ExperimentIP:
+    def query(
+        self, sample_name: str, ip: str = None, control: str = None
+    ) -> ExperimentIP:
         """
         Extract an experiment from the design.
         """
@@ -671,8 +674,8 @@ class NormGroups(BaseModel):
                     for subset_value in subset_values
                 ]
             )
-        
-        else: # If not then just make one group with all the samples
+
+        else:  # If not then just make one group with all the samples
             return cls(
                 groups=[
                     NormGroup(
@@ -890,6 +893,9 @@ class Output(BaseModel):
 
     ucsc_hub_details: Optional[Dict[str, Any]] = None
 
+    fastq_screen: bool = False
+    library_complexity: bool = False
+
     @property
     def merge_bigwigs(self):
         return "merge" in self.run_design.to_dataframe().columns
@@ -938,7 +944,7 @@ class Output(BaseModel):
             create_ucsc_hub=self.make_ucsc_hub,
         )
         return hbf
-    
+
     @property
     def bigbed(self) -> List[str]:
         bb = []
@@ -953,10 +959,14 @@ class RNAOutput(Output):
     assay: Literal["RNA"]
     project_name: str
     run_deseq2: bool = False
+    rna_quantification: Optional[Literal["feature_counts", "salmon"]] = None
 
     @property
     def counts(self):
-        return ["seqnado_output/feature_counts/read_counts.tsv"]
+        if self.rna_quantification == "feature_counts":
+            return ["seqnado_output/readcounts/feature_counts/read_counts.tsv"]
+        elif self.rna_quantification == "salmon":
+            return ["seqnado_output/readcounts/salmon/salmon_counts.csv"]
 
     @property
     def deseq2(self):
@@ -972,7 +982,13 @@ class RNAOutput(Output):
     def files(self) -> List[str]:
 
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,
@@ -993,7 +1009,10 @@ class RNAOutput(Output):
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
     call_peaks: bool = False
-    peak_calling_method: Union[Literal["macs", "homer", "lanceotron", False], List[Literal["macs", "homer", "lanceotron"]]] = None
+    peak_calling_method: Union[
+        Literal["macs", "homer", "lanceotron", False],
+        List[Literal["macs", "homer", "lanceotron"]],
+    ] = None
 
     @property
     def merge_peaks(self):
@@ -1026,12 +1045,18 @@ class NonRNAOutput(Output):
             files = pcf_samples.files
 
         return files or []
-    
+
     @computed_field
     @property
     def files(self) -> List[str]:
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,
@@ -1064,7 +1089,11 @@ class ChIPOutput(NonRNAOutput):
 
     @property
     def peaks(self):
-        ip_sample_names = [s for s in self.sample_names if any([c not in s for c in self.control_names])]
+        ip_sample_names = [
+            s
+            for s in self.sample_names
+            if any([c not in s for c in self.control_names])
+        ]
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
             names=ip_sample_names,
@@ -1092,7 +1121,13 @@ class ChIPOutput(NonRNAOutput):
     @property
     def files(self) -> List[str]:
         files = []
-        files.extend(QCFiles(assay=self.assay).files)
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
 
         for file_list in (
             self.bigwigs,

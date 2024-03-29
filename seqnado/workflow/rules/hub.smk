@@ -25,15 +25,16 @@ def get_hub_params(config):
         "subgroup_by": config["ucsc_hub_details"].get(
             "subgroup_by",
             [
-                "method",
+                "pileup_method",
+                "norm"
             ],
         ),
         "supergroup_by": config["ucsc_hub_details"].get("supergroup_by", None),
     }
 
     if ASSAY == "RNA":
-        hub_params["overlay_by"] = ["samplename", "method"]
-        hub_params["subgroup_by"] = ["samplename", "method", "strand"]
+        hub_params["overlay_by"] = ["samplename", "pileup_method", "norm"]
+        hub_params["subgroup_by"] = ["samplename", "pileup_method", "norm", "strand"]
 
     return hub_params
 
@@ -79,7 +80,7 @@ rule bed_to_bigbed:
     params:
         chrom_sizes=config["genome"]["chromosome_sizes"],
     resources:
-        mem=500,
+        mem="1GB",
     log:
         "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
     shell:
