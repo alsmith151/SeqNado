@@ -86,7 +86,7 @@ def setup_configuration(assay, genome, template_data):
             "Path to fastqscreen config:",
             default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf",
         )
-    
+
     # Blacklist
     template_data["remove_blacklist"] = get_user_input(
         "Do you want to remove blacklist regions? (yes/no)",
@@ -108,8 +108,8 @@ def setup_configuration(assay, genome, template_data):
         )
         # Library Complexity
         template_data["library_complexity"] = get_user_input(
-        "Calculate library complexity? (yes/no)", default="no", is_boolean=True
-    )
+            "Calculate library complexity? (yes/no)", default="no", is_boolean=True
+        )
     else:
         template_data["remove_pcr_duplicates_method"] = "False"
         template_data["library_complexity"] = "False"
@@ -168,6 +168,26 @@ def setup_configuration(assay, genome, template_data):
                 default="lanceotron",
                 choices=["lanceotron", "macs", "homer"],
             )
+
+    # RNA options
+    template_data["rna_quantification"] = (
+        get_user_input(
+            "RNA quantification method:",
+            default="feature_counts",
+            choices=["feature_counts", "salmon"],
+        )
+        if assay == "rna"
+        else "False"
+    )
+
+    template_data["salmon_index"] = (
+        get_user_input(
+            "Path to salmon index:",
+            default="path/to/salmon_index",
+        )
+        if template_data["rna_quantification"] == "salmon"
+        else "False"
+    )
 
     # Run DESeq2
     template_data["run_deseq2"] = (
@@ -228,7 +248,7 @@ deeptools:
 
 macs:
     version: 2
-    callpeak:
+    callpeak: -f BAMPE
 
 lanceotron:
     use_input: True
@@ -256,6 +276,10 @@ featurecounts:
     threads: 16
     options: -s 0 -p --countReadPairs -t exon -g gene_id
 
+salmon:
+    threads: 16
+    options: --libType A
+    
 homer:
     maketagdirectory:
     makebigwig:

@@ -66,12 +66,13 @@ def cli_design(method, files, output="design.csv"):
 
         design = DesignIP.from_fastq_files([FastqFileIP(path=fq) for fq in files])
 
-    (design.to_dataframe()
-           .assign(scale_group="all")
-           .reset_index()
-           .rename(columns={"index": "sample"})
-           .sort_values("sample")
-           .to_csv(output, index=False)
+    (
+        design.to_dataframe()
+        .assign(scale_group="all")
+        .reset_index()
+        .rename(columns={"index": "sample"})
+        .sort_values("sample")
+        .to_csv(output, index=False)
     )
 
 
@@ -93,7 +94,12 @@ def cli_design(method, files, output="design.csv"):
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(
-    method, pipeline_options, help=False, preset="local", version=False, apptainer_args=""
+    method,
+    pipeline_options,
+    help=False,
+    preset="local",
+    version=False,
+    apptainer_args="",
 ):
     """Runs the data processing pipeline"""
 
@@ -132,6 +138,13 @@ def cli_pipeline(
                 ),
             ]
         )
+
+        # Home directory symlinks cause issues with singularity bind mounts
+        # to avoid this will change directory to the full resolved path of the current directory
+        cwd = pathlib.Path.cwd().resolve().absolute()
+        os.chdir(cwd)
+
+
     elif preset == "ls":
         cmd.extend(
             [
@@ -144,17 +157,6 @@ def cli_pipeline(
             ]
         )
 
-    # Set the APPTAINER_BIND environment variable
-    if preset.endswith("s"):
-        # output_dir = pathlib.Path("seqnado_output").absolute()
-        # output_dir.mkdir(exist_ok=True)
-        # os.environ["APPTAINER_BINDPATH"] = ", ".join([os.environ.get("APPTAINER_BINDPATH", "")])
-        # # os.environ["APPTAINER_NO_HOME"] = "1"
-        # # os.environ["APPTAINER_CLEANENV"] = "1"
-        # os.environ["APPTAINER_CWD"] = os.getcwd()
-
-        print(f"APPTAINER_BINDPATH: {os.environ['APPTAINER_BINDPATH']}")
-
     cmd.extend(["--show-failed-logs"])
 
     # Print the logo
@@ -164,4 +166,3 @@ def cli_pipeline(
     print(logo)
 
     completed = subprocess.run(cmd)
-

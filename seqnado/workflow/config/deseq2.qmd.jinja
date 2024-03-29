@@ -64,7 +64,7 @@ print(kable(sample_info, align = "l", format = "simple", row.names = FALSE))
 ## Counts
 
 ```{r counts}
-counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#") %>%
+counts <- read.delim("seqnado_output/readcounts/feature_counts/read_counts.tsv", comment.char = "#") %>%
   rename_with(~ gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", .), everything()) %>%
   column_to_rownames(var = "Geneid") %>%
   dplyr::select(one_of(make.names(sample_info$sample))) %>%
@@ -103,6 +103,12 @@ if (has_spikein) {
   kable(colData(dds), row.names = F)
   counts(dds) <- counts(dds)[!rownames(counts(dds)) %in% spikein_genes, ]
   dds <- DESeq(dds, quiet = T)
+  # Output size factors
+
+  size_factors <- colData(dds)[, "sizeFactor"]
+  names(size_factors) <- colData(dds)[, "sample"]
+  sf <- toJSON(size_factors)
+  writeLines(sf, "seqnado_output/resources/all_normalisation_factors.json")
 
 } else {
 
@@ -123,12 +129,7 @@ if (nrow(counts) > 1000){
 res_names <- resultsNames(dds)[-1]
 res <- results(dds, name = res_names)
 
-# Output size factors
 
-size_factors <- colData(dds)[, "sizeFactor"]
-names(size_factors) <- colData(dds)[, "sample"]
-sf <- toJSON(size_factors)
-writeLines(sf, "seqnado_output/resources/all_normalisation_factors.json")
 
 normCounts <- counts(dds, normalized = TRUE) %>% 
   as_tibble(rownames = "gene")
