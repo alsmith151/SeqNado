@@ -12,6 +12,6 @@ size_factors <- colSums(spikein_counts) / median(colSums(spikein_counts))
 normalized_counts <- sweep(counts, 2, size_factors, FUN="/")
 
 size_factors <- colData(dds)[, "sizeFactor"]
-  names(size_factors) <- colData(dds)[, "sample"]
-  sf <- toJSON(size_factors)
-  writeLines(sf, "seqnado_output/resources/all_normalisation_factors.json")
+names(size_factors) <- colData(dds)[, "sample"]
+sf <- toJSON(size_factors)
+writeLines(sf, snakemake@output[[1]])
