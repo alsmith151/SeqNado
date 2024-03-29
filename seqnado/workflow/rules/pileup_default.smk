@@ -63,7 +63,7 @@ rule deeptools_make_bigwigs:
         options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
     resources:
         mem="2GB",
-        runtime="2h",
+        runtime="4h",
     threads: config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}.log",
@@ -84,7 +84,7 @@ rule deeptools_make_bigwigs_rna_plus:
     threads: config["deeptools"]["threads"]
     resources:
         mem="2GB",
-        runtime="2h",
+        runtime="4h",
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}_plus.log",
     shell:
@@ -104,7 +104,7 @@ rule deeptools_make_bigwigs_rna_minus:
     threads: config["deeptools"]["threads"]
     resources:
         mem="2GB",
-        runtime="2h",
+        runtime="4h",
     log:
         "seqnado_output/logs/pileups/deeptools/{sample}_minus.log",
     shell:

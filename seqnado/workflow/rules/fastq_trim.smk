@@ -12,7 +12,7 @@ rule trimgalore_paired:
     threads: 4
     resources:
         mem="2GB",
-        runtime="2h",
+        runtime="4h",
     params:
         options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",

@@ -2,38 +2,31 @@ from seqnado.design import NormGroups
 
 NORM_GROUPS = NormGroups.from_design(DESIGN)
 
-rule align_paired_spikein:
-    input:
-        fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
-        fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
+use rule align_paired as align_paired_spikein with:
     params:
-        index=config["genome"]["indices"],
         options="--no-mixed --no-discordant",
+        index=config["genome"]["indices"],
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
-    threads: config["bowtie2"]["threads"]
     resources:
-        mem=lambda wildcards, attempt: f"{4 * 2**attempt}GB",
-        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
-    log:
-        "seqnado_output/logs/align/{sample}.log",
-    shell:
-        """
-        bowtie2 -p {threads} {params.options} -x {params.index} -1 {input.fq1} -2 {input.fq2} 2> {log} |
-        samtools view -bS - > {output.bam} &&
-        samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} >> {log} 2>&1 &&
-        mv {output.bam}_sorted {output.bam}
-        """
+        mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
+
+use rule align_single as align_single_spikein with:
+    output:
+        bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
+    resources:
+        mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
 
 
 use rule sort_bam as sort_bam_spikein with:
     input:
-        bam=rules.align_paired_spikein.output.bam,
+        bam="seqnado_output/aligned/spikein/raw/{sample}.bam",
     output:
         bam=temp("seqnado_output/aligned/spikein/sorted/{sample}.bam"),
+    resources:
+        mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
     log:
         "seqnado_output/logs/aligned_spikein/{sample}_sort.log",
-
 
 use rule index_bam as index_bam_spikein with:
     input:
@@ -128,3 +121,6 @@ elif config["spikein_options"]["normalisation_method"] == "with_input":
             "seqnado_output/logs/normalisation_factors_{group}.log",
         script:
             "../scripts/calculate_spikein_norm_factors.py"
+
+
+ruleorder: align_paired_spikein > align_single_spikein

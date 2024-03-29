@@ -14,7 +14,7 @@ rule align_paired:
     threads: config["bowtie2"]["threads"]
     resources:
         runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
-        mem="4GB",
+        mem=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}GB",
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
@@ -35,7 +35,7 @@ rule align_single:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     resources:
         runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
-        mem="4GB",
+        mem=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}GB",
     threads: config["bowtie2"]["threads"]
     log:
         "seqnado_output/logs/align/{sample}.log",

@@ -28,16 +28,19 @@ if snakemake.params.assay == "ChIP":
     df[["samplename", "antibody"]] = df["fn"].str.extract(
         r".*/(.*)_(.*)\.(?:bigBed|bigWig)"
     )
-    df["method"] = df["fn"].apply(lambda x: x.split("/")[-2])
+    df["pileup_method"] = df["fn"].apply(lambda x: x.split("/")[-3])
+    df['norm'] = df['fn'].apply(lambda x: x.split("/")[-2])
 
 elif snakemake.params.assay == "ATAC":
     df["samplename"] = df["fn"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
-    df["method"] = df["fn"].apply(lambda x: x.split("/")[-2])
+    df["pileup_method"] = df["fn"].apply(lambda x: x.split("/")[-3])
+    df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
 
 elif snakemake.params.assay == "RNA":
     df["samplename"] = df["fn"].apply(get_rna_samplename)
-    df["method"] = df["fn"].apply(lambda x: x.split("/")[-2])
+    df["pileup_method"] = df["fn"].apply(lambda x: x.split("/")[-3])
     df["strand"] = np.where(df["fn"].str.contains("_plus.bigWig"), "plus", "minus")
+    df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
 
 # Create hub design
 design = tracknado.TrackDesign.from_design(
