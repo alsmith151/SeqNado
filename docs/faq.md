@@ -4,7 +4,9 @@
 
 ### Workflow defines configfile config_chip.yml but it is not present or accessible.
 
-This error occurs when the pipeline is run without a config file present in the working directory. Follow the [Pipeline Setup](pipeline.md#create-a-design-file) instructions to create a config file.
+This error occurs when the pipeline is run without a config file present in the working directory. Ensure that seqnado-config has been run before starting the pipeline and that you are in the new directory created by seqnado-config.
+
+Follow the [Pipeline Setup](pipeline.md#create-a-design-file) instructions to create a config file.
 
 
 ## Singularity configuration

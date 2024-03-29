@@ -66,9 +66,9 @@ The configuration file can be edited manually if required e.g. using `nano` or t
 !!! Warning
     If you edit the configuration file manually, you must ensure that it is valid YAML syntax (ensure that you do not delete any colons, commas, or change the indentation). You can check that the file is valid using the following command:
 
-```bash
-nano config_chip.yml # Note to exit nano press ctrl+x and then "y" followed by "enter" to save
-```
+  ```bash
+  nano config_chip.yml # Note to exit nano press ctrl+x and then "y" followed by "enter" to save
+  ```
 
 ### Create a design file (optional)
 
@@ -102,6 +102,7 @@ If the fastq files are named in a way that seqnado can infer the sample names, t
 
 If the fastq files are not named in a way that seqnado can infer the sample names, then a design file can be generated using the `seqnado-design` command. You'll need to enter the working directory and generate a design file:
 
+
 ```bash
 cd 2024-01-13_test/
 seqnado-design chip /path/to/fastq/files/* # Note that you can use tab completion to complete the path to the fastq files
@@ -109,19 +110,26 @@ seqnado-design chip /path/to/fastq/files/* # Note that you can use tab completio
 
 This will generate a design file called `design.csv` in the working directory.
 
+!!! Warning
+  You need to specify the fastq files in the command line to use for the design generation e.g. in the current working directory:
+  
+    ```bash 
+    seqnado-design chip *.fastq.gz
+    ```
+
 
 #### ATAC|RNA-seq design file
 
 An ATAC-seq or RNA-seq design file should look something like this:
 
 ```bash
-,r1,r2
+sample,r1,r2
 rna,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_1.fastq.gz
 ```
 
 !!! Note
     The design file is a CSV file with the following columns:
-      * The first column is the sample name
+      * `sample` - The sample name. Altering this will change the name of the output files so can be useful for renaming samples.
       * `r1` - The path to the read 1 fastq file
       * `r2` - The path to the read 2 fastq file
 
@@ -131,13 +139,13 @@ rna,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_2.fastq.gz,/tmp
 A ChIP assay design file should look something like this:
 
 ```bash
-,ip_r1,ip_r2,control_r1,control_r2,ip,control
+sample,ip_r1,ip_r2,control_r1,control_r2,ip,control
 CTCF,CTCF_CTCF_2.fastq.gz,CTCF_CTCF_1.fastq.gz,CTCF_input_2.fastq.gz,CTCF_input_1.fastq.gz,CTCF,input
 ```
 
 !!! Note
     The design file is a CSV file with the following columns:
-      * The first column is the sample name
+      * `sample` - The sample name. Altering this will change the name of the output files so can be useful for renaming samples.
       * `ip_r1` - The path to the IP read 1 fastq file
       * `ip_r2` - The path to the IP read 2 fastq file
       * `control_r1` - The path to the control read 1 fastq file
@@ -151,14 +159,14 @@ CTCF,CTCF_CTCF_2.fastq.gz,CTCF_CTCF_1.fastq.gz,CTCF_input_2.fastq.gz,CTCF_input_
 An RNA-seq design file should look something like this:
 
 ```bash
-,r1,r2
+sample,r1,r2
 rna,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_1.fastq.gz
 ```
 
 If you want to run DeSeq2, then you will need to add an additional column to the design file to indicate which samples are in the control group:
 
 ```bash
-,r1,r2,deseq2
+sample,r1,r2,deseq2
 rna1,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna1_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna1_1.fastq.gz,control
 rna2,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna2_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna2_1.fastq.gz,control
 rna3,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna3_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna3_1.fastq.gz,control
@@ -203,10 +211,12 @@ tmux new -s NAME_OF_SESSION
 
 screen -S NAME_OF_SESSION
 
+# to detach from tmux session
+  ctrl+b d
+
 # to exit screen session
   ctrl+a d 
 ```
-
 
 ### Check you have activated the conda environment
 
