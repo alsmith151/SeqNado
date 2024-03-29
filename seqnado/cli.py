@@ -138,6 +138,13 @@ def cli_pipeline(
                 ),
             ]
         )
+
+        # Home directory symlinks cause issues with singularity bind mounts
+        # to avoid this will change directory to the full resolved path of the current directory
+        cwd = pathlib.Path.cwd().resolve().absolute()
+        os.chdir(cwd)
+
+
     elif preset == "ls":
         cmd.extend(
             [
