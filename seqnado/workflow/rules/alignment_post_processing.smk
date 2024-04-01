@@ -7,7 +7,7 @@ rule sort_bam:
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
-        mem=lambda wildcards, attempt: 4000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}GB",
     threads: 8
     log:
         "seqnado_output/logs/sorted/{sample}.log",
@@ -26,7 +26,7 @@ rule index_bam:
         bai=temp("seqnado_output/aligned/sorted/{sample}.bam.bai"),
     threads: 1
     resources:
-        mem=1000,
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt - 1)}GB",
     shell:
         "samtools index -@ {threads} -b {input.bam}"
 

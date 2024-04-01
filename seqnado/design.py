@@ -169,7 +169,6 @@ class AssayNonIP(BaseModel):
     def fastq_paths(self):
         return [self.r1.path, self.r2.path] if self.is_paired else [self.r1.path]
 
-    
     @property
     def is_paired(self):
         if self.r2 is None:
@@ -228,7 +227,7 @@ class ExperimentIP(BaseModel):
 
         if self.control is None and self.control_files is not None:
             self.control = self.control_files.r1.ip
-    
+
     @computed_field
     @property
     def is_paired(self) -> bool:
@@ -413,7 +412,9 @@ class DesignIP(BaseModel):
 
         return paths
 
-    def query(self, sample_name: str, ip: str = None, control: str = None) -> ExperimentIP:
+    def query(
+        self, sample_name: str, ip: str = None, control: str = None
+    ) -> ExperimentIP:
         """
         Extract an experiment from the design.
         """
@@ -673,8 +674,8 @@ class NormGroups(BaseModel):
                     for subset_value in subset_values
                 ]
             )
-        
-        else: # If not then just make one group with all the samples
+
+        else:  # If not then just make one group with all the samples
             return cls(
                 groups=[
                     NormGroup(
@@ -943,7 +944,7 @@ class Output(BaseModel):
             create_ucsc_hub=self.make_ucsc_hub,
         )
         return hbf
-    
+
     @property
     def bigbed(self) -> List[str]:
         bb = []
@@ -958,10 +959,14 @@ class RNAOutput(Output):
     assay: Literal["RNA"]
     project_name: str
     run_deseq2: bool = False
+    rna_quantification: Optional[Literal["feature_counts", "salmon"]] = None
 
     @property
     def counts(self):
-        return ["seqnado_output/feature_counts/read_counts.tsv"]
+        if self.rna_quantification == "feature_counts":
+            return ["seqnado_output/readcounts/feature_counts/read_counts.tsv"]
+        elif self.rna_quantification == "salmon":
+            return ["seqnado_output/readcounts/salmon/salmon_counts.csv"]
 
     @property
     def deseq2(self):
@@ -1004,7 +1009,10 @@ class RNAOutput(Output):
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
     call_peaks: bool = False
-    peak_calling_method: Union[Literal["macs", "homer", "lanceotron", False], List[Literal["macs", "homer", "lanceotron"]]] = None
+    peak_calling_method: Union[
+        Literal["macs", "homer", "lanceotron", False],
+        List[Literal["macs", "homer", "lanceotron"]],
+    ] = None
 
     @property
     def merge_peaks(self):
@@ -1081,7 +1089,11 @@ class ChIPOutput(NonRNAOutput):
 
     @property
     def peaks(self):
-        ip_sample_names = [s for s in self.sample_names if any([c not in s for c in self.control_names])]
+        ip_sample_names = [
+            s
+            for s in self.sample_names
+            if any([c not in s for c in self.control_names])
+        ]
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
             names=ip_sample_names,

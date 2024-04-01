@@ -51,7 +51,7 @@ bash <(curl -s https://raw.githubusercontent.com/alsmith151/SeqNado/master/insta
 Create a basic conda environment (with pip to install python packages) and activate it.
 
 ```bash
-mamba create -n seqnado pip
+mamba create -n seqnado pip "python>=3.12"
 conda activate seqnado
 ```
 
@@ -62,6 +62,23 @@ conda activate seqnado
 ```bash
 pip install seqnado
 ```
+
+#### Ensure that Environment variables are set
+
+Ensure that the environment variables are set correctly. This can be done by adding the following to your `.bashrc` or `.bash_profile`. Run this command to add the environment variables to your `.bashrc`:
+
+```bash
+echo export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank" >> ~/.bashrc
+```
+
+Reload the `.bashrc` file:
+
+```bash
+source ~/.bashrc
+```
+
+Alternatively, start a new terminal session.
+
 
 #### Install from GitHub directly
 

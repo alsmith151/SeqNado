@@ -8,7 +8,7 @@ rule get_fasta:
     params:
         genome=config["genome"]["fasta"],
     resources:
-        mem=lambda wildcards, attempt: 1000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{1 * 2 ** (attempt)}GB",
     log:
         "seqnado_output/logs/motifs/fasta/{sample}.log",
     shell:
@@ -28,7 +28,7 @@ rule motif_meme_chip:
         meme_chip_params=config["meme"]["meme_chip_params"],
         meme_chip_db=config["meme"]["meme_chip_db"],
     resources:
-        mem=lambda wildcards, attempt: 1000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{1 * 2 ** (attempt)}GB",
     log:
         "seqnado_output/logs/motifs/meme/{sample}.log",
     shell:
@@ -47,7 +47,7 @@ rule motif_homer:
         homer_params=config["homer"]["homer_params"],
         homer_bg=config["homer"]["homer_bg"],
     resources:
-        mem=lambda wildcards, attempt: 1000 * 2**attempt,
+        mem=lambda wildcards, attempt: f"{1 * 2 ** (attempt)}GB",
     log:
         "seqnado_output/logs/motifs/homer/{sample}.log",
     shell:

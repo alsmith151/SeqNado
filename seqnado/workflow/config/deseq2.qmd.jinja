@@ -14,6 +14,16 @@ format:
     number-sections: true
 editor_options: 
   chunk_output_type: console
+
+params:
+  counts: "seqnado_output/readcounts/feature_counts/read_counts.tsv"
+  de_dir: "seqnado_output/deseq2_results/"
+  spikein_genes: 
+    - "AmpR_seq"
+    - "Cas9_5p_seq"
+    - "Cas9_3p_seq"
+  size_factors_out: "seqnado_output/resources/all_normalisation_factors.json"
+
 ---
 
 ```{r setup, include=F}
@@ -64,7 +74,7 @@ print(kable(sample_info, align = "l", format = "simple", row.names = FALSE))
 ## Counts
 
 ```{r counts}
-counts <- read.delim("seqnado_output/feature_counts/read_counts.tsv", comment.char = "#") %>%
+counts <- read.delim(params$counts, comment.char = "#") %>%
   rename_with(~ gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", .), everything()) %>%
   column_to_rownames(var = "Geneid") %>%
   dplyr::select(one_of(make.names(sample_info$sample))) %>%
@@ -86,11 +96,11 @@ print(kable(total_counts, align = "l", format = "simple", row.names = FALSE))
 ::: panel-tabset
 
 ```{r DEseq2}
-de_dir <- "seqnado_output/deseq2_results/"
+de_dir <- params$de_dir
 unlink(de_dir, recursive = T)
 dir.create(de_dir)
 
-has_spikein <- sum(which(rownames(counts) %in% c("AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq"))) > 0
+has_spikein <- sum(which(rownames(counts) %in% params$spikein_genes)) > 0
 
 if (has_spikein) {
   dds <- DESeqDataSetFromMatrix(countData = counts,
@@ -98,11 +108,17 @@ if (has_spikein) {
                               design = ~ deseq2)
 
 
-  spikein_genes <- which(rownames(counts) %in% c("AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq")) 
+  spikein_genes <- which(rownames(counts) %in% params$spikein_genes) 
   dds <- estimateSizeFactors(dds, controlGenes=spikein_genes)
   kable(colData(dds), row.names = F)
   counts(dds) <- counts(dds)[!rownames(counts(dds)) %in% spikein_genes, ]
   dds <- DESeq(dds, quiet = T)
+  
+  # Output size factors
+  size_factors <- colData(dds)[, "sizeFactor"]
+  names(size_factors) <- colData(dds)[, "sample"]
+  sf <- toJSON(size_factors)
+  writeLines(sf, params$size_factors_out)
 
 } else {
 
@@ -123,12 +139,7 @@ if (nrow(counts) > 1000){
 res_names <- resultsNames(dds)[-1]
 res <- results(dds, name = res_names)
 
-# Output size factors
 
-size_factors <- colData(dds)[, "sizeFactor"]
-names(size_factors) <- colData(dds)[, "sample"]
-sf <- toJSON(size_factors)
-writeLines(sf, "seqnado_output/resources/all_normalisation_factors.json")
 
 normCounts <- counts(dds, normalized = TRUE) %>% 
   as_tibble(rownames = "gene")

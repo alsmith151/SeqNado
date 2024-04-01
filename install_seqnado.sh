@@ -10,13 +10,14 @@ if ! command -v mamba &> /dev/null; then
   export PATH="$HOME/mambaforge/bin:$PATH"
 fi
 
+
 # Create a new conda environment
 echo "Creating a new conda environment..."
-mamba create -n seqnado "python>3.10" pip -y
+mamba create -n seqnado_dev "python>=3.12" pip -y
 
 # Activate the conda environment
 echo "Activating the conda environment..."
-conda activate seqnado
+conda activate seqnado_dev
 
 # Install the seqnado package using pip
 echo "Installing seqnado..."
@@ -24,6 +25,13 @@ pip install seqnado
 
 # Deactivate the conda environment
 echo "Deactivating the conda environment..."
-conda deactivate
+conda activate base
+
+# Set the environment variables for CCB
+if [[ $(hostname) =~ "imm-" ]]; then
+  echo export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank" >> ~/.bashrc
+  export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank"
+fi
+
 
 echo "Done!"

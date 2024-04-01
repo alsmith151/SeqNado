@@ -12,9 +12,12 @@ import pytest
 import requests
 
 
-@pytest.fixture(scope="function", params=["atac", "chip", "chip-rx", "rna", "rna-rx"], autouse=True)
+@pytest.fixture(
+    scope="function", params=["atac", "chip", "chip-rx", "rna", "rna-rx"], autouse=True
+)
 def assay(request):
     return request.param
+
 
 @pytest.fixture(scope="function")
 def repo_path() -> pathlib.Path:
@@ -48,7 +51,7 @@ def config_path(workflow_path):
 
 @pytest.fixture(scope="function")
 def genome_path(test_data_path):
-    p =  test_data_path / "genome"
+    p = test_data_path / "genome"
     p.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -73,7 +76,7 @@ def indicies(genome_indices_path, genome_path) -> pathlib.Path:
         indicies_path = genome_indices_path / "bt2_chr21_dm6_chr2L"
     else:
         indicies_path = genome_indices_path
-    
+
     if download_indices:
 
         r = requests.get(url, stream=True)
@@ -85,7 +88,9 @@ def indicies(genome_indices_path, genome_path) -> pathlib.Path:
 
         tar = tarfile.open(tar_index)
 
-        if "bt2" in str(genome_indices_path): # These are individual files so need to extract to the indicies folder
+        if "bt2" in str(
+            genome_indices_path
+        ):  # These are individual files so need to extract to the indicies folder
             genome_indices_path.mkdir(parents=True, exist_ok=True)
             tar.extractall(path=genome_indices_path, filter="data")
         else:
@@ -106,7 +111,7 @@ def chromsizes(genome_path):
         url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/{suffix}"
         r = requests.get(url, stream=True)
         with open(genome_path / suffix, "wb") as f:
-            f.write(r.content)    
+            f.write(r.content)
 
     return genome_path / suffix
 
@@ -126,6 +131,7 @@ def gtf(genome_path, assay, indicies):
             f.write(r.content)
 
     return gtf_path
+
 
 @pytest.fixture(scope="function")
 def blacklist(genome_path):
@@ -157,15 +163,14 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     if not path.exists():
         url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/fastq.tar.gz"
         r = requests.get(url, stream=True)
-        
+
         tar_path = path.with_suffix(".tar.gz")
-        
+
         with open(tar_path, "wb") as f:
             f.write(r.content)
-        
+
         with tarfile.open(tar_path) as tar:
             tar.extractall(path=path.parent, filter="data")
-
 
     match assay:
         case "atac":
@@ -190,7 +195,9 @@ def run_directory(tmpdir_factory, assay):
 
 
 @pytest.fixture(scope="function")
-def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, blacklist):
+def user_inputs(
+    test_data_path, indicies, chromsizes, assay, assay_type, gtf, blacklist
+):
 
     defaults = {
         "project_name": "test",
@@ -200,13 +207,13 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "gtf": str(gtf),
         "blacklist": str(blacklist),
         "fastq_screen": "no",
-        "library_complexity": "yes",
         "remove_blacklist": "yes",
     }
 
     defaults_atac = {
         "remove_pcr_duplicates": "yes",
         "remove_pcr_duplicates_method": "picard",
+        "library_complexity": "yes",
         "shift_atac_reads": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
@@ -247,6 +254,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "pileup_method": "deeptools",
         "scale": "no",
         "make_heatmaps": "yes",
+        "rna_quantification": "feature_counts",
         "run_deseq2": "no",
     }
 
@@ -257,6 +265,7 @@ def user_inputs(test_data_path, indicies, chromsizes, assay, assay_type, gtf, bl
         "pileup_method": "deeptools",
         "scale": "no",
         "make_heatmaps": "no",
+        "rna_quantification": "feature_counts",
         "run_deseq2": "yes",
     }
 
@@ -298,7 +307,6 @@ def config_yaml(run_directory, user_inputs, assay_type):
 
     stdout, stderr = process.communicate(input=user_inputs)
 
-
     project_name = "test"
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = (
@@ -307,9 +315,11 @@ def config_yaml(run_directory, user_inputs, assay_type):
     assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
 
+
 @pytest.fixture(scope="function")
 def config_yaml_for_testing(config_yaml, assay):
     import yaml
+
     with open(config_yaml, "r") as f:
         config = yaml.safe_load(f)
 
@@ -322,6 +332,7 @@ def config_yaml_for_testing(config_yaml, assay):
         yaml.dump(config, f)
 
     return pathlib.Path(config_yaml)
+
 
 @pytest.fixture(scope="function")
 def seqnado_run_dir(config_yaml_for_testing):
@@ -337,17 +348,16 @@ def design(seqnado_run_dir, assay_type, assay):
     if assay == "rna-rx":
         # Add deseq2 column to design file
         import pandas as pd
+
         df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
         df["deseq2"] = df.index.str.split("-").str[-2]
         df.to_csv(seqnado_run_dir / "design.csv")
-
 
     return seqnado_run_dir / "design.csv"
 
 
 @pytest.fixture(scope="function", autouse=True)
 def set_up(seqnado_run_dir, fastqs):
-
 
     cwd = pathlib.Path(os.getcwd())
     os.chdir(seqnado_run_dir)
@@ -371,7 +381,10 @@ def apptainer_args(indicies, test_data_path):
     indicies_mount = indicies.parent if not indicies.is_dir() else indicies
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
-    os.environ["APPTAINER_BINDPATH"]= f"{wd}:{wd}, {test_data_path}:{test_data_path}, {indicies_mount}:{indicies_mount}"
+    os.environ["APPTAINER_BINDPATH"] = (
+        f"{wd}:{wd}, {test_data_path}:{test_data_path}, {indicies_mount}:{indicies_mount}"
+    )
+
 
 @pytest.fixture(scope="function")
 def test_profile_path(workflow_path):
@@ -379,7 +392,14 @@ def test_profile_path(workflow_path):
 
 
 def test_pipeline(
-    assay_type, config_yaml_for_testing, apptainer_args, cores, design, indicies, test_data_path, test_profile_path
+    assay_type,
+    config_yaml_for_testing,
+    apptainer_args,
+    cores,
+    design,
+    indicies,
+    test_data_path,
+    test_profile_path,
 ):
 
     subprocess.run(
