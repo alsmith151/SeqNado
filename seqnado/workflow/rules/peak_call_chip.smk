@@ -196,7 +196,8 @@ rule seacr:
     shell:
         """
         SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1
-        mv {params.prefix}.{params.stringency}.bed {output.peaks}
+        mv {params.prefix}.{params.stringency}.bed {params.prefix}_seacr.txt
+        cut -f 1-3 {params.prefix}_seacr.txt > {output.peaks}
         """
     
 
