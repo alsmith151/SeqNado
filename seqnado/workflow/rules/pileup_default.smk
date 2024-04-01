@@ -64,7 +64,8 @@ rule deeptools_make_bigwigs:
     resources:
         mem="2GB",
         runtime="4h",
-    threads: config["deeptools"]["threads"]
+    threads:
+        config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/unscaled/{sample}.log",
     shell:
@@ -112,5 +113,28 @@ rule deeptools_make_bigwigs_rna_minus:
         bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse --scaleFactor -1 > {log} 2>&1
         """
 
+
+rule fragment_bedgraph:
+    input:
+        bam="seqnado_output/aligned/{sample}.bam",
+        bai="seqnado_output/aligned/{sample}.bam.bai",
+    output:
+        bedgraph="seqnado_output/bedgraphs/{sample}.bedGraph",
+    params:
+        genome=config['genome']['chromosome_sizes'],
+        outdir="seqnado_output/bedgraphs/",
+    log:
+        "seqnado_output/logs/bedgraphs/{sample}.log",
+    shell:
+        """
+        bedtools bamtobed -bedpe -i {input.bam} > {params.outdir}/{wildcards.sample}.bed 2> {log}
+        awk '$1==$4 && $6-$2 < 1000 {{print $0}}' {params.outdir}/{wildcards.sample}.bed > {params.outdir}/{wildcards.sample}_clean.bed 2>> {log}
+        cut -f 1,2,6 {params.outdir}/{wildcards.sample}_clean.bed | sort -k1,1 -k2,2n -k3,3n > {params.outdir}/{wildcards.sample}_fragments.bed 2>> {log}
+        bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_fragments.bed -g {params.genome} > {output.bedgraph} 2>> {log}
+        
+        rm {params.outdir}/{wildcards.sample}.bed
+        rm {params.outdir}/{wildcards.sample}_clean.bed
+        rm {params.outdir}/{wildcards.sample}_fragments.bed
+        """
 
 ruleorder: deeptools_make_bigwigs_rna_plus > deeptools_make_bigwigs_rna_minus > deeptools_make_bigwigs

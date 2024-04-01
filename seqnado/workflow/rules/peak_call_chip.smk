@@ -1,6 +1,7 @@
 from typing import Literal
 from seqnado.helpers import check_options
 import re
+import pathlib
 
 
 def get_lanceotron_threshold(wildcards):
@@ -176,7 +177,33 @@ rule lanceotron_no_input:
         cat {params.basename}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
 
+rule seacr:
+    input:
+        treatment="seqnado_output/bedgraphs/{sample}_{treatment}.bedGraph",
+    output:
+        peaks="seqnado_output/peaks/seacr/{sample}_{treatment}.bed",
+    log:
+        "seqnado_output/logs/seacr/{sample}_{treatment}.log",
+    params:
+        threshold=config["seacr"].get("threshold", 0.01),
+        norm=config["seacr"].get("norm", "non"),
+        stringency=config["seacr"].get("stringency", "stringent"),
+        prefix=lambda wc, output: pathlib.Path(output.peaks).parent / pathlib.Path(output.peaks).name,
+    threads: 1
+    resources:
+        mem="5GB",
+        runtime="2h",
+    shell:
+        """
+        SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1
+        mv {params.prefix}.{params.stringency}.bed {params.prefix}_seacr.txt
+        cut -f 1-3 {params.prefix}_seacr.txt > {output.peaks}
+        """
+    
 
 ruleorder: lanceotron_with_input > lanceotron_no_input
 ruleorder: homer_with_input > homer_no_input
 ruleorder: macs2_with_input > macs2_no_input
+
+
+# ucsc-bigwigtobedgraph
