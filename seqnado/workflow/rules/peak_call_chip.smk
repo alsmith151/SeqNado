@@ -1,6 +1,7 @@
 from typing import Literal
 from seqnado.helpers import check_options
 import re
+import pathlib
 
 
 def get_lanceotron_threshold(wildcards):
@@ -187,6 +188,7 @@ rule seacr:
         threshold=config["seacr"].get("threshold", 0.01),
         norm=config["seacr"].get("norm", "non"),
         stringency=config["seacr"].get("stringency", "stringent"),
+        prefix=lambda wc, output: pathlib.Path(output.peaks).parent / pathlib.Path(output.peaks).name,
     threads: 1
     resources:
         mem="5GB",
@@ -194,6 +196,7 @@ rule seacr:
     shell:
         """
         SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1
+        mv {params.prefix}.{params.stringency}.bed {output.peaks}
         """
     
 
