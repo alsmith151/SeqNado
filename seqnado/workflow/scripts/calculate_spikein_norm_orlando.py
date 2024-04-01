@@ -11,7 +11,7 @@ with logger.catch():
 
     # Read in stats
     stats_files = snakemake.input
-    all_readcounts = []  
+    all_readcounts = []
 
     for stats in stats_files:
         file_path = pathlib.Path(stats)
@@ -21,16 +21,16 @@ with logger.catch():
     df_counts = pd.concat(all_readcounts, ignore_index=True)
 
     # Calculate the ChIP spike-in normalization factor
-    df_counts["norm_factor"] = 1 / (df_counts["spikein_reads"] / 1e6)
+    df_counts["scale_factor"] = 1 / (df_counts["spikein_reads"] / 1e6)
     # if df_counts["norm_factor"] == inf change to 1
-    df_counts["norm_factor"] = df_counts["norm_factor"].replace([np.inf, -np.inf], 1)
+    df_counts["scale_factor"] = df_counts["scale_factor"].replace([np.inf, -np.inf], 1)
 
-    df_counts["scale_factor"] = 1 / df_counts["norm_factor"]
     # if df_counts["scale_factor"] == 0 change to 1
     df_counts["scale_factor"] = df_counts["scale_factor"].replace([0], 1)
-    
-    df_counts["spikein_percent"] = (df_counts["spikein_reads"] / df_counts["reference_reads"] * 100)
-    
+
+    df_counts["spikein_percent"] = (
+        df_counts["spikein_reads"] / df_counts["reference_reads"] * 100
+    )
 
     # Save the DataFrame with the calculated normalization factors
     df_counts.to_csv(snakemake.output.normalisation_table, sep="\t", index=False)

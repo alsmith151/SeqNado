@@ -66,7 +66,7 @@ rule deeptools_make_bigwigs:
         runtime="4h",
     threads: config["deeptools"]["threads"]
     log:
-        "seqnado_output/logs/pileups/deeptools/{sample}.log",
+        "seqnado_output/logs/pileups/deeptools/unscaled/{sample}.log",
     shell:
         """
         bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} > {log} 2>&1
@@ -86,7 +86,7 @@ rule deeptools_make_bigwigs_rna_plus:
         mem="2GB",
         runtime="4h",
     log:
-        "seqnado_output/logs/pileups/deeptools/{sample}_plus.log",
+        "seqnado_output/logs/pileups/deeptools/unscaled/{sample}_plus.log",
     shell:
         """
         bamCoverage {params.options} -p {threads} --filterRNAstrand forward -b {input.bam} -o {output.bigwig} > {log} 2>&1
@@ -106,7 +106,7 @@ rule deeptools_make_bigwigs_rna_minus:
         mem="2GB",
         runtime="4h",
     log:
-        "seqnado_output/logs/pileups/deeptools/{sample}_minus.log",
+        "seqnado_output/logs/pileups/deeptools/unscaled/{sample}_minus.log",
     shell:
         """
         bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse --scaleFactor -1 > {log} 2>&1
