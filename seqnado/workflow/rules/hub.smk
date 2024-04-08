@@ -25,16 +25,16 @@ def get_hub_params(config):
         "subgroup_by": config["ucsc_hub_details"].get(
             "subgroup_by",
             [
-                "pileup_method",
+                "method",
                 "norm"
             ],
         ),
-        "supergroup_by": config["ucsc_hub_details"].get("supergroup_by", None),
+        "supergroup_by": config["ucsc_hub_details"].get("supergroup_by", "ext"),
     }
 
     if ASSAY == "RNA":
-        hub_params["overlay_by"] = ["samplename", "pileup_method", "norm"]
-        hub_params["subgroup_by"] = ["samplename", "pileup_method", "norm", "strand"]
+        hub_params["overlay_by"] = ["samplename", "method", "norm"]
+        hub_params["subgroup_by"] = ["method", "norm", "strand"]
 
     return hub_params
 
