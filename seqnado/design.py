@@ -424,7 +424,13 @@ class DesignIP(BaseModel):
         for experiment in self.assays.values():
 
             name_ip = experiment.name
-            name_control = f"{experiment.control_files.r1.sample_base_without_ip}_{experiment.control_files.r1.ip}"
+
+            try:
+                control_base = experiment.control_files.r1.sample_base_without_ip
+                control_ip = experiment.control_files.r1.ip
+                name_control = f"{control_base}_{control_ip}"
+            except AttributeError:
+                name_control = None
 
             if name_to_query == name_ip or name_to_query == name_control:
                 if control is not None:
