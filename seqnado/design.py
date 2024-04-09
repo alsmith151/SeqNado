@@ -884,8 +884,8 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: Union[
-        Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]
+    pileup_method: Optional[
+        Union[Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]]
     ] = None
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
@@ -1010,10 +1010,10 @@ class RNAOutput(Output):
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
     call_peaks: bool = False
-    peak_calling_method: Union[
+    peak_calling_method: Optional[Union[
         Literal["macs", "homer", "lanceotron", False],
         List[Literal["macs", "homer", "lanceotron"]],
-    ] = None
+    ]] = None
 
     @property
     def merge_peaks(self):
@@ -1082,10 +1082,10 @@ class ChIPOutput(NonRNAOutput):
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
-    peak_calling_method: Union[
+    peak_calling_method: Optional[Union[
         Literal["macs", "homer", "lanceotron", "seacr", False],
         List[Literal["macs", "homer", "lanceotron", "seacr"]],
-    ] = None
+    ]] = None
     chip_spikein_normalisation: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
