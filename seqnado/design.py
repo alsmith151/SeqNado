@@ -946,7 +946,7 @@ class Output(BaseModel):
                 names=self.design_dataframe["merge"].unique().tolist(),
                 make_bigwigs=self.make_bigwigs,
                 pileup_method=self.pileup_method,
-                scale_method="rpkm",
+                scale_method="grouped",
             )
 
             files = bwf_samples.files + bwf_merged.files
