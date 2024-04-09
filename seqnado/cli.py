@@ -53,7 +53,6 @@ def cli_design(method, files, output="design.csv"):
     """
     import pathlib
     from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
-    from loguru import logger    
     
     if not files:
         potential_file_locations = [
@@ -116,6 +115,12 @@ def cli_design(method, files, output="design.csv"):
     is_flag=True,
     help="Remove symlinks created by previous runs. Useful for re-running pipeline after misconfiguration.",
 )
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Increase logging verbosity",
+)
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(
     method,
@@ -123,6 +128,7 @@ def cli_pipeline(
     help=False,
     preset="local",
     version=False,
+    verbose=False,
     clean_symlinks=False,
 ):
     """Runs the data processing pipeline"""
@@ -137,6 +143,13 @@ def cli_pipeline(
         _version = version("seqnado")
         print(f"SeqNado version {_version}")
         sys.exit(0)
+    
+    if verbose:
+        logger.remove()
+        logger.add(sys.stderr, level="DEBUG")
+    else:
+        logger.remove()
+        logger.add(sys.stderr, level="INFO")
 
     pipeline_options, cores = extract_cores_from_options(pipeline_options)
 
