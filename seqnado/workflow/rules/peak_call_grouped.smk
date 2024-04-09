@@ -1,3 +1,4 @@
+from seqnado.helpers import check_options
 
 rule lanceotron_no_input_consensus:
     input:
@@ -5,6 +6,9 @@ rule lanceotron_no_input_consensus:
     output:
         peaks="seqnado_output/peaks/merged/lanceotron/{group}.bed",
     threads: 8
+    params:
+        outdir="seqnado_output/peaks/merged/lanceotron",
+        options=check_options(config["lanceotron"]["callpeak"])
     log:
         "seqnado_output/logs/lanceotron/{group}.log",
     shell:
