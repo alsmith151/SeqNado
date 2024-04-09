@@ -798,11 +798,12 @@ class PeakCallingFiles(BaseModel):
         List[Literal["macs", "homer", "lanceotron", "seacr"]],
     ] = None
     call_peaks: bool = False
+    prefix: Optional[str] = "seqnado_output/peaks/"
 
     @property
     def peak_files(self) -> List[str]:
         return expand(
-            "seqnado_output/peaks/{method}/{sample}.bed",
+            self.prefix + "{method}/{sample}.bed",
             sample=self.names,
             method=self.peak_calling_method,
         )
@@ -1025,6 +1026,7 @@ class NonRNAOutput(Output):
             names=self.design_dataframe["merge"].unique().tolist(),
             call_peaks=self.call_peaks,
             peak_calling_method=self.peak_calling_method,
+            prefix="seqnado_output/peaks/merged/",
         )
 
     @computed_field
