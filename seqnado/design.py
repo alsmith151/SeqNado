@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Literal, LiteralString, Optional, Union
 import numpy as np
 import pandas as pd
 from loguru import logger
-from pydantic import BaseModel, Field, computed_field, validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 from snakemake.io import expand
 
 logger.add(sink=sys.stderr, level="WARNING")
@@ -263,11 +263,13 @@ class Metadata(BaseModel):
     merge: Optional[str] = None
     scale_group: Union[str, int] = "all"
     
-    @validator("deseq2", "merge")
+    @field_validator("deseq2", "merge")
+    @classmethod
     def prevent_none(cls, v):
         none_vals = [None, "None", "none", "null", "Null", "NULL", ".", "", "NA", np.nan]
         if any([v == n for n in none_vals]):
             assert v is not None, "None is not allowed when setting metadata"
+        return v
 
 class Design(BaseModel):
     assays: Dict[str, AssayNonIP] = Field(
@@ -333,10 +335,10 @@ class Design(BaseModel):
                 for k, v in row.items():
                     if k not in ["r1", "r2"]:
                         metadata[k] = v
-                    
+                
                 # Validate the metadata
                 metadata = Metadata(**metadata)
-                
+
                 assays[assay_name] = AssayNonIP(
                     name=assay_name,
                     r1=FastqFile(path=row["r1"]),
