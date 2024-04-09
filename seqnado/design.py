@@ -32,7 +32,7 @@ class FastqFile(BaseModel):
     def model_post_init(self, *args):
         self.path = pathlib.Path(self.path).resolve()
 
-        if not self.path.exists():
+        if not self.path.exists() or str(self.path) in ["-", ".", "", None]:
             raise FileNotFoundError(f"{self.path} does not exist.")
 
     @computed_field
