@@ -203,7 +203,12 @@ rule move_bam_to_final_location:
 def get_bam_files_for_merge(wildcards):
     from seqnado.design import NormGroups
     norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
-    return norm_groups.get_sample_group(wildcards.group)
+
+    sample_names = norm_groups.get_sample_names(wildcards.group)
+
+    return [
+        f"seqnado_output/aligned/{sample}.bam" for sample in sample_names
+    ]
 
 
 rule merge_bams:
