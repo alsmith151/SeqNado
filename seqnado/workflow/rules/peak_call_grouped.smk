@@ -1,9 +1,9 @@
 
 rule lanceotron_no_input_consensus:
     input:
-        bigwig="seqnado_output/bigwigs/deeptools/grouped/{group}.bigWig",
+        bigwig="seqnado_output/bigwigs/deeptools/merged/{group}.bigWig",
     output:
-        peaks="seqnado_output/peaks/grouped/lanceotron/{group}.bed",
+        peaks="seqnado_output/peaks/merged/lanceotron/{group}.bed",
     threads: 8
     log:
         "seqnado_output/logs/lanceotron/{group}.log",

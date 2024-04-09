@@ -215,7 +215,7 @@ rule merge_bams:
     input:
         bams=get_bam_files_for_merge,
     output:
-        temp("seqnado_output/aligned/grouped/{group}.bam"),
+        temp("seqnado_output/aligned/merged/{group}.bam"),
     threads: 8
     log:
         "seqnado_output/logs/merge_bam/{group}.log",
@@ -227,9 +227,9 @@ rule merge_bams:
 
 use rule index_bam as index_consensus_bam with:
     input:
-        bam="seqnado_output/aligned/grouped/{group}.bam",
+        bam="seqnado_output/aligned/merged/{group}.bam",
     output:
-        bai="seqnado_output/aligned/grouped/{group}.bam.bai",
+        bai="seqnado_output/aligned/merged/{group}.bam.bai",
     threads: 8
 
 

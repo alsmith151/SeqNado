@@ -765,7 +765,7 @@ class BigWigFiles(BaseModel):
         Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]
     ] = None
     make_bigwigs: bool = False
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "grouped"]] = None
+    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
     prefix: Optional[str] = "seqnado_output/bigwigs/"
 
     def model_post_init(self, __context: Any) -> None:
@@ -945,8 +945,8 @@ class Output(BaseModel):
                 assay=self.assay,
                 names=self.design_dataframe["merge"].unique().tolist(),
                 make_bigwigs=self.make_bigwigs,
-                pileup_method=self.pileup_method,
-                scale_method="grouped",
+                pileup_method="deeptools",
+                scale_method="merged",
             )
 
             files = bwf_samples.files + bwf_merged.files
