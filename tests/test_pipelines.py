@@ -348,7 +348,14 @@ def design(seqnado_run_dir, assay_type, assay):
     completed = subprocess.run(" ".join(cmd), shell=True, cwd=seqnado_run_dir)
     assert completed.returncode == 0
 
-    if assay == "rna-rx":
+    if assay == "chip":
+        # Add merge column to design file
+        import pandas as pd
+        df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
+        df["merge"] = df.index.str.split("-").str[-1]
+        df.to_csv(seqnado_run_dir / "design.csv")
+
+    elif assay == "rna-rx":
         # Add deseq2 column to design file
         import pandas as pd
 
