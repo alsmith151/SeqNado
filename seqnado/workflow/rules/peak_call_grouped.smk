@@ -9,6 +9,8 @@ rule lanceotron_no_input_consensus:
     params:
         outdir="seqnado_output/peaks/merged/lanceotron",
         options=check_options(config["lanceotron"]["callpeak"])
+    container:
+        "library://asmith151/seqnado/seqnado_extra:latest"
     log:
         "seqnado_output/logs/lanceotron/{group}.log",
     shell:
