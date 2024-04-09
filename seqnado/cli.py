@@ -53,12 +53,30 @@ def cli_design(method, files, output="design.csv"):
     """
     import pathlib
     from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
-
+    
     if not files:
-        files = list(pathlib.Path(".").glob("*.fastq.gz"))
+        potential_file_locations = [
+            ".",
+            "fastqs",
+            "fastq",
+            "data",
+            "data/fastqs",
+        ]
+
+        for location in potential_file_locations:
+            files = list(pathlib.Path(location).glob("*.fastq.gz"))
+            if files:
+                break
 
         if not files:
-            raise ValueError("No fastq files provided or found in current directory.")
+            logger.error("No fastq files provided or found in current directory")
+            logger.error(f"""
+                         Fastq files can be provided as arguments or found in the following directories:
+                         {potential_file_locations}
+                         """)
+            raise ValueError("No fastq files provided or found in current directory" )
+
+
 
     if not method == "chip":
         design = Design.from_fastq_files([FastqFile(path=fq) for fq in files])
@@ -92,6 +110,17 @@ def cli_design(method, files, output="design.csv"):
             """,
     type=click.Choice(choices=["lc", "ls", "ss"]),
 )
+@click.option(
+    "--clean-symlinks",
+    is_flag=True,
+    help="Remove symlinks created by previous runs. Useful for re-running pipeline after misconfiguration.",
+)
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Increase logging verbosity",
+)
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(
     method,
@@ -99,7 +128,8 @@ def cli_pipeline(
     help=False,
     preset="local",
     version=False,
-    apptainer_args="",
+    verbose=False,
+    clean_symlinks=False,
 ):
     """Runs the data processing pipeline"""
 
@@ -113,9 +143,24 @@ def cli_pipeline(
         _version = version("seqnado")
         print(f"SeqNado version {_version}")
         sys.exit(0)
+    
+    if verbose:
+        logger.remove()
+        logger.add(sys.stderr, level="DEBUG")
+    else:
+        logger.remove()
+        logger.add(sys.stderr, level="INFO")
 
     pipeline_options, cores = extract_cores_from_options(pipeline_options)
 
+    # Removes old symlinks if requested
+    if clean_symlinks:
+        logger.info("Cleaning symlinks")
+        links = pathlib.Path("seqnado_output/fastqs").glob("*")
+        for link in links:
+            if link.is_symlink():
+                link.unlink()
+    
     cmd = [
         "snakemake",
         "-c",

@@ -3,6 +3,9 @@ import pathlib
 import numpy as np
 import shlex
 
+from loguru import logger
+
+
 from seqnado.design import Design, DesignIP
 
 
@@ -19,7 +22,6 @@ def extract_cores_from_options(options: List[str]) -> Tuple[List[str], int]:
     """
     Extract the number of cores from the snakemake options.
     """
-    from loguru import logger
 
     try:
         cores_flag = options.index("-c")
@@ -62,12 +64,16 @@ def symlink_file(
     """
     Create a symlink in the output directory with the new file name.
     """
+
     new_path = output_dir / new_file_name
     if not new_path.exists() and source_path.is_file():
-        try:
+        logger.debug(f"Symlinking {source_path} to {output_dir / new_file_name}")
+        if str(source_path) in [".", "..", "", None, "None"]:
+            logger.warning(f"Source path is empty for {new_file_name}. Will not symlink.")
+
+        else:
             new_path.symlink_to(source_path.resolve())
-        except FileExistsError:
-            print(f"Symlink for {new_path} already exists.")
+            logger.debug(f"Symlinked {source_path} to {output_dir / new_file_name} successfully.")
 
 
 def symlink_fastq_files(

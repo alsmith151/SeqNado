@@ -1,16 +1,14 @@
+import os
 import pathlib
 import re
-from typing import Any, Dict, List, Optional, Union, Literal, LiteralString
 import sys
+from typing import Any, Dict, List, Literal, LiteralString, Optional, Union
 
+import numpy as np
 import pandas as pd
 from loguru import logger
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 from snakemake.io import expand
-
-
-logger.add(sink=sys.stderr, level="WARNING")
-
 
 def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
     if isinstance(path, str):
@@ -32,7 +30,7 @@ class FastqFile(BaseModel):
     def model_post_init(self, *args):
         self.path = pathlib.Path(self.path).resolve()
 
-        if not self.path.exists():
+        if not self.path.exists() or str(self.path) in ["-", ".", "", None]:
             raise FileNotFoundError(f"{self.path} does not exist.")
 
     @computed_field
@@ -257,6 +255,19 @@ class ExperimentIP(BaseModel):
             )
 
 
+class Metadata(BaseModel):
+    deseq2: Optional[str] = None
+    merge: Optional[str] = None
+    scale_group: Union[str, int] = "all"
+    
+    @field_validator("deseq2", "merge")
+    @classmethod
+    def prevent_none(cls, v):
+        none_vals = [None, "None", "none", "null", "Null", "NULL", ".", "", "NA", np.nan]
+        if any([v == n for n in none_vals]):
+            assert v is not None, "None is not allowed when setting metadata"
+        return v
+
 class Design(BaseModel):
     assays: Dict[str, AssayNonIP] = Field(
         default_factory=dict,
@@ -317,14 +328,19 @@ class Design(BaseModel):
         for assay_name, row in df.iterrows():
             if simplified:
                 metadata = {}
+                
                 for k, v in row.items():
                     if k not in ["r1", "r2"]:
                         metadata[k] = v
+                
+                # Validate the metadata
+                metadata = Metadata(**metadata)
+
                 assays[assay_name] = AssayNonIP(
                     name=assay_name,
                     r1=FastqFile(path=row["r1"]),
                     r2=FastqFile(path=row["r2"]) if row["r2"] else None,
-                    metadata=metadata,
+                    metadata=metadata.model_dump(exclude_none=True),
                 )
             else:
                 raise NotImplementedError("Not implemented")
@@ -424,7 +440,13 @@ class DesignIP(BaseModel):
         for experiment in self.assays.values():
 
             name_ip = experiment.name
-            name_control = f"{experiment.control_files.r1.sample_base_without_ip}_{experiment.control_files.r1.ip}"
+
+            try:
+                control_base = experiment.control_files.r1.sample_base_without_ip
+                control_ip = experiment.control_files.r1.ip
+                name_control = f"{control_base}_{control_ip}"
+            except AttributeError:
+                name_control = None
 
             if name_to_query == name_ip or name_to_query == name_control:
                 if control is not None:
@@ -559,6 +581,9 @@ class DesignIP(BaseModel):
                         "control",
                     ]:
                         metadata[k] = v
+                
+                # Validate the metadata
+                metadata = Metadata(**metadata)
 
                 # Add the experiment
                 ip = row["ip"]
@@ -577,7 +602,7 @@ class DesignIP(BaseModel):
                         ),
                         ip=ip,
                         control=None,
-                        metadata=metadata,
+                        metadata=metadata.model_dump(exclude_none=True),
                     )
                 else:
                     experiments[experiment_name] = ExperimentIP(
@@ -601,7 +626,7 @@ class DesignIP(BaseModel):
                         ),
                         ip=ip,
                         control=control,
-                        metadata=metadata,
+                        metadata=metadata.model_dump(exclude_none=True),
                     )
             else:
                 raise NotImplementedError("Not implemented")
@@ -743,7 +768,7 @@ class BigWigFiles(BaseModel):
         Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]
     ] = None
     make_bigwigs: bool = False
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "grouped"]] = None
+    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
     prefix: Optional[str] = "seqnado_output/bigwigs/"
 
     def model_post_init(self, __context: Any) -> None:
@@ -798,11 +823,12 @@ class PeakCallingFiles(BaseModel):
         List[Literal["macs", "homer", "lanceotron", "seacr"]],
     ] = None
     call_peaks: bool = False
+    prefix: Optional[str] = "seqnado_output/peaks/"
 
     @property
     def peak_files(self) -> List[str]:
         return expand(
-            "seqnado_output/peaks/{method}/{sample}.bed",
+            self.prefix + "{method}/{sample}.bed",
             sample=self.names,
             method=self.peak_calling_method,
         )
@@ -922,8 +948,8 @@ class Output(BaseModel):
                 assay=self.assay,
                 names=self.design_dataframe["merge"].unique().tolist(),
                 make_bigwigs=self.make_bigwigs,
-                pileup_method=self.pileup_method,
-                scale_method="rpkm",
+                pileup_method="deeptools",
+                scale_method="merged",
             )
 
             files = bwf_samples.files + bwf_merged.files
@@ -1024,7 +1050,8 @@ class NonRNAOutput(Output):
             assay=self.assay,
             names=self.design_dataframe["merge"].unique().tolist(),
             call_peaks=self.call_peaks,
-            peak_calling_method=self.peak_calling_method,
+            peak_calling_method="lanceotron",
+            prefix="seqnado_output/peaks/merged/",
         )
 
     @computed_field
