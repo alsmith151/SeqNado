@@ -1,13 +1,14 @@
+import os
 import pathlib
 import re
-from typing import Any, Dict, List, Optional, Union, Literal, LiteralString
 import sys
+from typing import Any, Dict, List, Literal, LiteralString, Optional, Union
 
+import numpy as np
 import pandas as pd
 from loguru import logger
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, validator
 from snakemake.io import expand
-
 
 logger.add(sink=sys.stderr, level="WARNING")
 
@@ -257,6 +258,18 @@ class ExperimentIP(BaseModel):
             )
 
 
+class Metadata(BaseModel):
+    deseq2: Optional[str] = None
+    merge: Optional[str] = None
+    scale_group: Union[str, int] = "all"
+
+    
+    @validator("deseq2", "merge")
+    def prevent_none(cls, v):
+        none_vals = [None, "None", "none", "null", "Null", "NULL", ".", "", "NA", np.nan]
+        if any([v == n for n in none_vals]):
+            assert v is not None, "None is not allowed when setting metadata"
+
 class Design(BaseModel):
     assays: Dict[str, AssayNonIP] = Field(
         default_factory=dict,
@@ -317,14 +330,19 @@ class Design(BaseModel):
         for assay_name, row in df.iterrows():
             if simplified:
                 metadata = {}
+                
                 for k, v in row.items():
                     if k not in ["r1", "r2"]:
                         metadata[k] = v
+                    
+                # Validate the metadata
+                metadata = Metadata(**metadata)
+                
                 assays[assay_name] = AssayNonIP(
                     name=assay_name,
                     r1=FastqFile(path=row["r1"]),
                     r2=FastqFile(path=row["r2"]) if row["r2"] else None,
-                    metadata=metadata,
+                    metadata=metadata.model_dump(),
                 )
             else:
                 raise NotImplementedError("Not implemented")
@@ -559,6 +577,9 @@ class DesignIP(BaseModel):
                         "control",
                     ]:
                         metadata[k] = v
+                
+                # Validate the metadata
+                metadata = Metadata(**metadata)
 
                 # Add the experiment
                 ip = row["ip"]
@@ -577,7 +598,7 @@ class DesignIP(BaseModel):
                         ),
                         ip=ip,
                         control=None,
-                        metadata=metadata,
+                        metadata=metadata.model_dump(),
                     )
                 else:
                     experiments[experiment_name] = ExperimentIP(
@@ -601,7 +622,7 @@ class DesignIP(BaseModel):
                         ),
                         ip=ip,
                         control=control,
-                        metadata=metadata,
+                        metadata=metadata.model_dump(),
                     )
             else:
                 raise NotImplementedError("Not implemented")
