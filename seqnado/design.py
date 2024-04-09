@@ -262,7 +262,6 @@ class Metadata(BaseModel):
     deseq2: Optional[str] = None
     merge: Optional[str] = None
     scale_group: Union[str, int] = "all"
-
     
     @validator("deseq2", "merge")
     def prevent_none(cls, v):
@@ -342,7 +341,7 @@ class Design(BaseModel):
                     name=assay_name,
                     r1=FastqFile(path=row["r1"]),
                     r2=FastqFile(path=row["r2"]) if row["r2"] else None,
-                    metadata=metadata.model_dump(),
+                    metadata=metadata.model_dump(exclude_none=True),
                 )
             else:
                 raise NotImplementedError("Not implemented")
@@ -598,7 +597,7 @@ class DesignIP(BaseModel):
                         ),
                         ip=ip,
                         control=None,
-                        metadata=metadata.model_dump(),
+                        metadata=metadata.model_dump(exclude_none=True),
                     )
                 else:
                     experiments[experiment_name] = ExperimentIP(
@@ -622,7 +621,7 @@ class DesignIP(BaseModel):
                         ),
                         ip=ip,
                         control=control,
-                        metadata=metadata.model_dump(),
+                        metadata=metadata.model_dump(exclude_none=True),
                     )
             else:
                 raise NotImplementedError("Not implemented")
