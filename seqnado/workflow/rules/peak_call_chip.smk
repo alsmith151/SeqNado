@@ -12,29 +12,29 @@ def get_lanceotron_threshold(wildcards):
 
 
 def get_control_bam(wildcards):
-    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    if exp.control:
-        control = f"seqnado_output/aligned/{wildcards.sample}_{exp.control}.bam"
+    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
+    if exp:
+        control = f"seqnado_output/aligned/{wildcards.sample}_{exp.ip_or_control_name}.bam"
     else:
         control = "UNDEFINED"
     return control
 
 
 def get_control_tag(wildcards):
-    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    if not exp.control:
+    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
+    if not exp:
         control = "UNDEFINED"
     else:
-        control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.control}"
+        control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.ip_or_control_name}"
     return control
 
 
 def get_control_bigwig(wildcards):
-    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    if not exp.control:
+    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
+    if not exp:
         control = "UNDEFINED"
     else:
-        control = f"seqnado_output/bigwigs/deeptools/unscaled/{wildcards.sample}_{exp.control}.bigWig"
+        control = f"seqnado_output/bigwigs/deeptools/unscaled/{wildcards.sample}_{exp.ip_or_control_name}.bigWig"
     return control
 
 
