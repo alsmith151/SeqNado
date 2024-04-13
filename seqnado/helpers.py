@@ -86,51 +86,44 @@ def symlink_fastq_files(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if isinstance(design, Design):
-        for assay_name, assay in design.assays.items():
-            if assay.is_paired:
-                symlink_file(output_dir, assay.r1.path, f"{assay_name}_1.fastq.gz")
-                symlink_file(output_dir, assay.r2.path, f"{assay_name}_2.fastq.gz")
+        for fastq_set in design.fastq_sets:
+            if fastq_set.is_paired:
+                symlink_file(output_dir, fastq_set.r1.path, f"{fastq_set.name}_1.fastq.gz")
+                symlink_file(output_dir, fastq_set.r2.path, f"{fastq_set.name}_2.fastq.gz")
             else:
-                symlink_file(output_dir, assay.r1.path, f"{assay_name}.fastq.gz")
+                symlink_file(output_dir, fastq_set.r1.path, f"{fastq_set.name}.fastq.gz")
 
     elif isinstance(design, DesignIP):
-        for experiment_name, experiment in design.assays.items():
+        for experiment in design.experiments:
 
-            # IP files
-            ip_assay = experiment.ip_files
-            is_paired = ip_assay.is_paired
-            has_control = experiment.control_files
-
-            if is_paired:
+            if experiment.fastqs_are_paired:
                 symlink_file(
-                    output_dir, ip_assay.r1.path, f"{ip_assay.name}_1.fastq.gz"
+                    output_dir, experiment.ip.r1.path, f"{experiment.ip.name}_{experiment.ip_performed}_1.fastq.gz"
                 )
                 symlink_file(
-                    output_dir, ip_assay.r2.path, f"{ip_assay.name}_2.fastq.gz"
+                    output_dir, experiment.ip.r2.path, f"{experiment.ip.name}_{experiment.ip_performed}_2.fastq.gz"
                 )
             else:
-                symlink_file(output_dir, ip_assay.r1.path, f"{ip_assay.name}.fastq.gz")
+                symlink_file(output_dir, experiment.ip.r1.path, f"{experiment.ip.name}_{experiment.ip_performed}.fastq.gz")
 
             # Control files
-            if has_control:
-                control_assay = experiment.control_files
-
-                if control_assay.is_paired:
+            if experiment.has_control:
+                if experiment.control.is_paired:
                     symlink_file(
                         output_dir,
-                        control_assay.r1.path,
-                        f"{control_assay.r1.sample_base_without_ip}_{control_assay.r1.ip}_1.fastq.gz",
+                        experiment.control.r1.path,
+                        f"{experiment.control.r1.sample_base_without_ip}_{experiment.control_performed}_1.fastq.gz",
                     )
                     symlink_file(
                         output_dir,
-                        control_assay.r2.path,
-                        f"{control_assay.r1.sample_base_without_ip}_{control_assay.r1.ip}_2.fastq.gz",
+                        experiment.control.r2.path,
+                        f"{experiment.control.r1.sample_base_without_ip}_{experiment.control_performed}_2.fastq.gz",
                     )
                 else:
                     symlink_file(
                         output_dir,
-                        control_assay.r1.path,
-                        f"{control_assay.r1.sample_base_without_ip}_{control_assay.r1.ip}.fastq.gz",
+                        experiment.control.r1.path,
+                        f"{experiment.control.r1.sample_base_without_ip}_{experiment.control_performed}.fastq.gz",
                     )
 
 

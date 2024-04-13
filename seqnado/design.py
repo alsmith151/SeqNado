@@ -236,6 +236,10 @@ class FastqSetIP(FastqSet):
     @property
     def sample_name(self) -> str:
         return f"{self.name}_{self.ip_or_control_name}"
+    
+    @property
+    def sample_name_base(self) -> str:
+        return self.r1.sample_base_without_ip
 
     @property
     def is_control(self) -> bool:
@@ -255,18 +259,17 @@ class IPExperiment(BaseModel):
         return self.ip.sample_name
 
     @property
-    def control_set_fullname(self) -> str:
+    def control_fullname(self) -> str:
         return self.control.sample_name
 
     @property
-    def ip_set_ip_performed(self) -> str:
+    def ip_performed(self) -> str:
         return self.ip.ip_or_control_name
 
     @property
-    def control_set_ip_performed(self) -> str:
+    def control_performed(self) -> str:
         return self.control.ip_or_control_name
 
-    @computed_field
     @property
     def fastqs_are_paired(self) -> bool:
 
@@ -302,7 +305,7 @@ class Design(BaseModel):
     @property
     def sample_names(self) -> List[str]:
         return [f.name for f in self.fastq_sets]
-
+    
     @property
     def fastq_paths(self) -> List[pathlib.Path]:
         paths = []
@@ -344,6 +347,7 @@ class Design(BaseModel):
         # Create the fastq sets
         fastq_sets = []
         for sample_name, group in df.groupby("sample_base"):
+
             if group.shape[0] == 1:
                 fq_set = FastqSet(
                     name=sample_name, r1=group["fastq_files"].iloc[0], **kwargs
@@ -440,7 +444,6 @@ class Design(BaseModel):
 
         return cls.from_fastq_files(fastq_files, **kwargs)
 
-
 class DesignIP(BaseModel):
     experiments: List[IPExperiment]
     metadata: List[Metadata]
@@ -454,7 +457,7 @@ class DesignIP(BaseModel):
         names = set()
         for f in self.experiments:
             if f.has_control:
-                names.add(f.control_set_fullname)
+                names.add(f.control_fullname)
         return list(names)
 
     @property
@@ -465,7 +468,7 @@ class DesignIP(BaseModel):
     def ips_performed(self) -> List[str]:
         ip = set()
         for f in self.experiments:
-            ip.add(f.ip_set_ip_performed)
+            ip.add(f.ip_performed)
         return list(ip)
 
     @property
@@ -473,26 +476,26 @@ class DesignIP(BaseModel):
         control = set()
         for f in self.experiments:
             if f.has_control:
-                control.add(f.control_set_ip_performed)
+                control.add(f.control_performed)
         return list(control)
 
-    def query(self, name: str) -> FastqSetIP:
+    def query(self, sample_name: str) -> FastqSetIP:
         """
         Extracts a pair of fastq files from the design.
         """
         ip_names = set(f.ip_set_fullname for f in self.experiments)
         control_names = set(
-            f.control_set_fullname for f in self.experiments if f.has_control
+            f.control_fullname for f in self.experiments if f.has_control
         )
 
-        if name in ip_names or name in control_names:
+        if sample_name in ip_names or sample_name in control_names:
             for experiment in self.experiments:
-                if experiment.ip_set_fullname == name:
+                if experiment.ip_set_fullname == sample_name:
                     return experiment.ip
-                elif experiment.has_control and experiment.control_set_fullname == name:
+                elif experiment.has_control and experiment.control_fullname == sample_name:
                     return experiment.control
         else:
-            raise ValueError(f"Could not find sample with name {name}")
+            raise ValueError(f"Could not find sample with name {sample_name}")
 
     @classmethod
     def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
@@ -533,12 +536,15 @@ class DesignIP(BaseModel):
         # Group the files by the sample base
         experiments = []
         for base, group in df.groupby("sample_base"):
+
+            name_without_ip = group["sample_base_without_ip"].iloc[0]
+
             if group.shape[0] == 1:
                 # Single end experiment
-                ip = FastqSetIP(name=base, r1=FastqFileIP(path=group["path_ip"].iloc[0]))
+                ip = FastqSetIP(name=name_without_ip, r1=FastqFileIP(path=group["path_ip"].iloc[0]))
 
                 if group["path_control"].iloc[0]:
-                    control = FastqSetIP(name=base, r1=FastqFileIP(path=group["path_control"].iloc[0]))
+                    control = FastqSetIP(name=name_without_ip, r1=FastqFileIP(path=group["path_control"].iloc[0]))
                 else:
                     control = None
 
@@ -547,13 +553,13 @@ class DesignIP(BaseModel):
             elif group.shape[0] == 2:
                 # Paired end experiment
                 ip = FastqSetIP(
-                    name=base,
+                    name=name_without_ip,
                     r1=FastqFileIP(path=group["path_ip"].iloc[0]),
                     r2=FastqFileIP(path=group["path_ip"].iloc[1]),
                 )
 
                 if group["has_control"].iloc[0]:
-                    control = FastqSetIP(name=base, r1=FastqFileIP(path=group["path_control"].iloc[0]), r2=FastqFileIP(path=group["path_control"].iloc[1]))
+                    control = FastqSetIP(name=name_without_ip, r1=FastqFileIP(path=group["path_control"].iloc[0]), r2=FastqFileIP(path=group["path_control"].iloc[1]))
                 else:
                     control = None
 
@@ -561,9 +567,8 @@ class DesignIP(BaseModel):
 
             else:
                 raise ValueError(
-                    f"Invalid number of fastq files ({group.shape[0]}) for {base}"
+                    f"Invalid number of fastq files ({group.shape[0]}) for {name_without_ip}"
                 )
-    
 
         return cls(
             experiments=experiments,
@@ -638,7 +643,7 @@ class DesignIP(BaseModel):
             )
 
         return cls(experiments=experiments, metadata=metadata, **kwargs)
-    
+
     @classmethod
     def from_directory(cls, directory: Union[pathlib.Path, str], **kwargs):
         """
@@ -654,6 +659,15 @@ class DesignIP(BaseModel):
             raise FileNotFoundError(f"No fastq files found in {directory}")
 
         return cls.from_fastq_files(fastq_files, **kwargs)
+
+    @property
+    def fastq_paths(self) -> List[pathlib.Path]:
+        paths = []
+        for experiment in self.experiments:
+            paths.extend(experiment.ip.fastq_paths)
+            if experiment.control:
+                paths.extend(experiment.control.fastq_paths)
+        return paths
 
 
 class NormGroup(BaseModel):
@@ -673,7 +687,7 @@ class NormGroup(BaseModel):
         subset_column: Optional[str] = "scale_group",
         subset_value: Optional[List[str]] = None,
     ):
-        df = design.to_dataframe()
+        df = design.to_dataframe().set_index("sample_name")
 
         if subset_value:
             df = df.query(f"{subset_column} in {subset_value}")
