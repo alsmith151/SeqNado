@@ -9,6 +9,9 @@ import pandas as pd
 from loguru import logger
 from pydantic import BaseModel, Field, computed_field, field_validator
 from snakemake.io import expand
+import pandera
+from pandera.typing import Index, DataFrame, Series
+
 
 def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
     if isinstance(path, str):
@@ -32,6 +35,10 @@ class FastqFile(BaseModel):
 
         if not self.path.exists() or str(self.path) in ["-", ".", "", None]:
             raise FileNotFoundError(f"{self.path} does not exist.")
+
+    @property
+    def stem(self):
+        return pathlib.Path(str(self.path).removesuffix(".gz")).stem
 
     @computed_field
     @property
@@ -157,11 +164,35 @@ class FastqFileIP(FastqFile):
         return base
 
 
-class AssayNonIP(BaseModel):
+class Metadata(BaseModel):
+    deseq2: Optional[str] = None
+    merge: Optional[str] = None
+    scale_group: Union[str, int] = "all"
+
+    @field_validator("deseq2", "merge")
+    @classmethod
+    def prevent_none(cls, v):
+        none_vals = [
+            None,
+            "None",
+            "none",
+            "null",
+            "Null",
+            "NULL",
+            ".",
+            "",
+            "NA",
+            np.nan,
+        ]
+        if any([v == n for n in none_vals]):
+            assert v is not None, "None is not allowed when setting metadata"
+        return v
+
+
+class FastqSet(BaseModel):
     name: str = Field(default=None, description="Name of the assay")
     r1: FastqFile
     r2: Optional[FastqFile] = None
-    metadata: Optional[dict] = None
 
     @property
     def fastq_paths(self):
@@ -193,445 +224,401 @@ class AssayNonIP(BaseModel):
             raise ValueError(f"Invalid number of fastq files for {sample_name}.")
 
 
-class AssayIP(AssayNonIP):
-    name: str = Field(default=None, description="Name of the assay")
+class FastqSetIP(FastqSet):
+    name: str = Field(default=None, description="Name of the sample set")
     r1: FastqFileIP
     r2: Optional[FastqFileIP] = None
-    metadata: Optional[dict] = None
+
+    @property
+    def ip_or_control_name(self) -> str:
+        return self.r1.ip
+
+    @property
+    def sample_name(self) -> str:
+        return f"{self.name}_{self.ip_or_control_name}"
 
     @property
     def is_control(self) -> bool:
         return self.r1.is_control
 
 
-class ExperimentIP(BaseModel):
-    ip_files: AssayIP
-    control_files: AssayIP = None
-    name: str = Field(default=None, description="Name of the assay")
-    ip: str = Field(default=None, description="IP performed on the sample")
-    control: Optional[str] = Field(
-        default=None, description="IP performed on the control"
-    )
-    metadata: Optional[dict] = None
+class IPExperiment(BaseModel):
+    ip: FastqSetIP
+    control: Optional[FastqSetIP] = None
 
-    def model_post_init(self, *args):
-        if self.name is None:
-            self.name = (
-                f"{self.ip_files.r1.sample_base_without_ip}_{self.ip_files.r1.ip}"
-            )
+    @property
+    def has_control(self) -> bool:
+        return self.control is not None
 
-        if self.ip is None:
-            self.ip = self.ip_files.r1.ip
+    @property
+    def ip_set_fullname(self) -> str:
+        return self.ip.sample_name
 
-        if self.control is None and self.control_files is not None:
-            self.control = self.control_files.r1.ip
+    @property
+    def control_set_fullname(self) -> str:
+        return self.control.sample_name
+
+    @property
+    def ip_set_ip_performed(self) -> str:
+        return self.ip.ip_or_control_name
+
+    @property
+    def control_set_ip_performed(self) -> str:
+        return self.control.ip_or_control_name
 
     @computed_field
     @property
-    def is_paired(self) -> bool:
-        return self.ip_files.is_paired
+    def fastqs_are_paired(self) -> bool:
 
-    @classmethod
-    def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
-        """
-        Create a Experiment object from a list of FastqFiles.
-
-        """
-
-        fq_ip = [f for f in fq if not f.is_control]
-        fq_control = [f for f in fq if f.is_control]
-
-        assert len(fq_ip) > 0, "No IP files found"
-        assert len(fq_ip) < 3, "Too many IP files found"
-        assert len(fq_control) < 3, "Too many control files found"
-
-        if len(fq_control) == 0:
-            return cls(ip_files=AssayIP.from_fastq_files(fq_ip, **kwargs), **kwargs)
-        else:
-            return cls(
-                ip_files=AssayIP.from_fastq_files(fq_ip, **kwargs),
-                control_files=AssayIP.from_fastq_files(fq_control, **kwargs),
-                **kwargs,
-            )
+        ip = self.ip.is_paired
+        control = self.control.is_paired if self.control else True
+        return ip and control
 
 
-class Metadata(BaseModel):
-    deseq2: Optional[str] = None
-    merge: Optional[str] = None
-    scale_group: Union[str, int] = "all"
-    
-    @field_validator("deseq2", "merge")
-    @classmethod
-    def prevent_none(cls, v):
-        none_vals = [None, "None", "none", "null", "Null", "NULL", ".", "", "NA", np.nan]
-        if any([v == n for n in none_vals]):
-            assert v is not None, "None is not allowed when setting metadata"
-        return v
+class DataFrameDesign(pandera.DataFrameModel):
+    sample_name: Series[str]
+    r1: Series[str] = pandera.Field(coerce=True)
+    r2: Series[str] = pandera.Field(coerce=True)
+    scale_group: Series[str]
+    deseq2: Optional[Series[str]] = pandera.Field()
+    merge: Optional[Series[str]] = pandera.Field()
+
+
+class DataFrameDesignIP(pandera.DataFrameModel):
+    sample_name: Series[str]
+    ip: Series[str] = pandera.Field(coerce=True)
+    control: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
+    ip_r1: Series[str] = pandera.Field(coerce=True)
+    ip_r2: Series[str] = pandera.Field(coerce=True)
+    control_r1: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
+    control_r2: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
+    scale_group: Series[str]
+
 
 class Design(BaseModel):
-    assays: Dict[str, AssayNonIP] = Field(
-        default_factory=dict,
-        description="Dictionary of assay classes keyed by sample name",
-    )
+    fastq_sets: List[FastqSet]
+    metadata: List[Metadata]
 
-    @computed_field
     @property
     def sample_names(self) -> List[str]:
-        return list(self.assays.keys())
+        return [f.name for f in self.fastq_sets]
 
-    @computed_field
     @property
     def fastq_paths(self) -> List[pathlib.Path]:
         paths = []
-        for assay in self.assays.values():
-            paths.append(assay.r1.path)
-            if assay.r2 is not None:
-                paths.append(assay.r2.path)
-
+        for fastq_set in self.fastq_sets:
+            paths.append(fastq_set.r1.path)
+            if fastq_set.r2 is not None:
+                paths.append(fastq_set.r2.path)
         return paths
 
-    def query(self, sample_name: str) -> AssayNonIP:
-        return self.assays[sample_name]
+    def query(self, sample_name: str) -> FastqSet:
+        """
+        Extract a sample pair of fastq files from the design.
+        """
+
+        for fastq_set in self.fastq_sets:
+            if fastq_set.name == sample_name:
+                return fastq_set
+
+        raise ValueError(f"Could not find sample with name {sample_name}")
 
     @classmethod
-    def from_fastq_files(cls, fq: List[FastqFile], **kwargs):
+    def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
         """
-        Create a SampleInfo object from a list of FastqFiles.
-
+        Generate a Design object from a list of FastqFiles.
         """
+        import pandas as pd
 
-        sample_names = set([f.sample_base for f in fq])
-        assays = {}
-        for sample_name in sample_names:
-            assays[sample_name] = AssayNonIP.from_fastq_files(
-                [f for f in fq if f.sample_base == sample_name], **kwargs
-            )
+        fq = sorted([pathlib.Path(f) for f in fq])
 
-        return cls(assays=assays, **kwargs)
+        # Collate the fastq files by sample name
+        df = pd.DataFrame(fq, columns=["path"])
+        df = df.assign(
+            fastq_files=lambda x: x["path"].apply(lambda y: FastqFile(path=y)),
+            read_number=lambda x: x["fastq_files"].apply(lambda y: y.read_number),
+            sample_stem=lambda x: x["fastq_files"].apply(lambda y: y.stem),
+            sample_base=lambda x: x["fastq_files"].apply(lambda y: y.sample_base),
+        )
 
-    @classmethod
-    def from_directory(
-        cls, path: pathlib.Path, metadata: Dict[str, Any] = None, **kwargs
-    ):
-        """
-        Create a SampleInfo object from a directory of fastq files.
-
-        """
-
-        fq = list(pathlib.Path(path).glob("*.fastq.gz"))
-        fq = sorted([FastqFile(path=f) for f in fq])
-        return cls.from_fastq_files(fq, metadata=metadata, **kwargs)
-
-    @classmethod
-    def from_dataframe(cls, df: pd.DataFrame, simplified: bool = True, **kwargs):
-        assays = {}
-        for assay_name, row in df.iterrows():
-            if simplified:
-                metadata = {}
-                
-                for k, v in row.items():
-                    if k not in ["r1", "r2"]:
-                        metadata[k] = v
-                
-                # Validate the metadata
-                metadata = Metadata(**metadata)
-
-                assays[assay_name] = AssayNonIP(
-                    name=assay_name,
-                    r1=FastqFile(path=row["r1"]),
-                    r2=FastqFile(path=row["r2"]) if row["r2"] else None,
-                    metadata=metadata.model_dump(exclude_none=True),
+        # Create the fastq sets
+        fastq_sets = []
+        for sample_name, group in df.groupby("sample_base"):
+            if group.shape[0] == 1:
+                fq_set = FastqSet(
+                    name=sample_name, r1=group["fastq_files"].iloc[0], **kwargs
+                )
+            elif group.shape[0] == 2:
+                fq_set = FastqSet(
+                    name=sample_name,
+                    r1=group["fastq_files"].iloc[0],
+                    r2=group["fastq_files"].iloc[1],
+                    **kwargs,
                 )
             else:
-                raise NotImplementedError("Not implemented")
-        return cls(assays=assays, **kwargs)
+                raise ValueError(
+                    f"Invalid number of fastq files ({group.shape[0]}) for {sample_name}"
+                )
 
-    def to_dataframe(self, simplify: bool = True) -> pd.DataFrame:
+            fastq_sets.append(fq_set)
+
+        return cls(
+            fastq_sets=fastq_sets,
+            metadata=[Metadata(scale_group="all") for _ in fastq_sets],
+        )
+
+    def to_dataframe(self) -> pd.DataFrame:
         """
-        Return the SampleInfo object as a pandas DataFrame.
-
+        Return the Design object as a pandas DataFrame.
         """
 
-        if not simplify:
-            df = pd.DataFrame.from_dict(
-                {k: v.model_dump() for k, v in self.assays.items()}, orient="index"
+        data = []
+        for fastq_set, metadata in zip(self.fastq_sets, self.metadata):
+            row = {
+                "sample_name": fastq_set.name,
+                "r1": fastq_set.r1.path,
+                "r2": fastq_set.r2.path if fastq_set.r2 is not None else None,
+            }
+
+            for k, v in metadata.model_dump(exclude_none=True).items():
+                row[k] = v
+
+            data.append(row)
+
+        df = pd.DataFrame(data).sort_values("sample_name")
+
+        return DataFrameDesign.validate(df)
+
+    @classmethod
+    def from_dataframe(cls, df: pd.DataFrame, **kwargs):
+        """
+        Create a Design object from a pandas DataFrame.
+        """
+        df = DataFrameDesign.validate(df)
+
+        fastq_sets = []
+        metadata = []
+
+        non_metadata_keys = ["sample_name", "r1", "r2"]
+
+        for _, row in df.iterrows():
+            if row["r2"] is not None:
+                fastq_sets.append(
+                    FastqSet(
+                        name=row["sample_name"],
+                        r1=FastqFile(path=row["r1"]),
+                        r2=FastqFile(path=row["r2"]),
+                        **kwargs,
+                    )
+                )
+            else:
+                fastq_sets.append(
+                    FastqSet(
+                        name=row["sample_name"], r1=FastqFile(path=row["r1"]), **kwargs
+                    )
+                )
+
+            metadata.append(
+                Metadata(**{k: v for k, v in row.items() if k not in non_metadata_keys})
             )
-        else:
-            data = {}
-            for assay_name, assay in self.assays.items():
-                data[assay_name] = {}
-                data[assay_name]["r1"] = assay.r1.path
-                if assay.r2 is not None:
-                    data[assay_name]["r2"] = assay.r2.path
 
-                if assay.metadata is not None:
-                    for k, v in assay.metadata.items():
-                        data[assay_name][k] = v
-
-            df = pd.DataFrame.from_dict(data, orient="index")
-
-        return df
+        return cls(fastq_sets=fastq_sets, metadata=metadata, **kwargs)
 
 
 class DesignIP(BaseModel):
-    assays: Dict[str, ExperimentIP] = Field(
-        default_factory=dict,
-        description="Dictionary of experiment classes keyed by sample name",
-    )
+    experiments: List[IPExperiment]
+    metadata: List[Metadata]
 
-    @computed_field
     @property
     def sample_names_ip(self) -> List[str]:
-        sample_names = set()
-        for experiment in self.assays.values():
-            sample_names.add(experiment.ip_files.name)
-
-        return list(sample_names)
+        return [f.ip_set_fullname for f in self.experiments]
 
     @property
     def sample_names_control(self) -> List[str]:
-        sample_names = set()
-        for experiment in self.assays.values():
-            if experiment.control is not None:
-                sample_names.add(experiment.control_files.name)
-
-        if all([s is None for s in sample_names]):
-            return []
-        else:
-            return list(sample_names)
+        names = set()
+        for f in self.experiments:
+            if f.has_control:
+                names.add(f.control_set_fullname)
+        return list(names)
 
     @property
     def sample_names(self) -> List[str]:
-        return self.sample_names_ip + self.sample_names_control
+        return sorted([*self.sample_names_ip, *self.sample_names_control])
 
     @property
-    def ip_names(self) -> List[str]:
-        return list(set([experiment.ip for experiment in self.assays.values()]))
+    def ips_performed(self) -> List[str]:
+        ip = set()
+        for f in self.experiments:
+            ip.add(f.ip_set_ip_performed)
+        return list(ip)
 
     @property
-    def control_names(self) -> List[str]:
-        names = list(set([experiment.control for experiment in self.assays.values()]))
-        if all([s is None for s in names]):
-            return []
-        else:
-            return [n for n in names if n is not None]
+    def controls_performed(self) -> List[str]:
+        control = set()
+        for f in self.experiments:
+            if f.has_control:
+                control.add(f.control_set_ip_performed)
+        return list(control)
 
-    @computed_field
-    @property
-    def fastq_paths(self) -> List[pathlib.Path]:
-        paths = []
-        for experiment in self.assays.values():
-            paths.extend(experiment.ip_files.fastq_paths)
-
-            if experiment.control_files is not None:
-                paths.extend(experiment.control_files.fastq_paths)
-
-        return paths
-
-    def query(
-        self, sample_name: str, ip: str = None, control: str = None
-    ) -> ExperimentIP:
+    def query(self, name: str) -> FastqSetIP:
         """
-        Extract an experiment from the design.
+        Extracts a pair of fastq files from the design.
         """
-
-        name_to_query = sample_name + (f"_{ip}" if ip is not None else "")
-
-        for experiment in self.assays.values():
-
-            name_ip = experiment.name
-
-            try:
-                control_base = experiment.control_files.r1.sample_base_without_ip
-                control_ip = experiment.control_files.r1.ip
-                name_control = f"{control_base}_{control_ip}"
-            except AttributeError:
-                name_control = None
-
-            if name_to_query == name_ip or name_to_query == name_control:
-                if control is not None:
-                    if experiment.control == control:
-                        return experiment
-                else:
-                    return experiment
-
-        raise ValueError(
-            f"Could not find experiment with sample name {sample_name} and ip {ip} and control {control}"
+        ip_names = set(f.ip_set_fullname for f in self.experiments)
+        control_names = set(
+            f.control_set_fullname for f in self.experiments if f.has_control
         )
 
+        if name in ip_names or name in control_names:
+            for experiment in self.experiments:
+                if experiment.ip_set_fullname == name:
+                    return experiment.ip
+                elif experiment.has_control and experiment.control_set_fullname == name:
+                    return experiment.control
+        else:
+            raise ValueError(f"Could not find sample with name {name}")
+
     @classmethod
-    def from_fastq_files(cls, fq: List[FastqFileIP], **kwargs):
+    def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
         """
-        Create a SampleInfo object from a list of FastqFiles.
-
+        Generate a Design object from a list of FastqFiles.
         """
+        import pandas as pd
 
-        ## Run through the list and pair upt the read1 and read2 files
-        ## If there is only one file, then it is the read1 file
-        import itertools
+        fq = sorted([pathlib.Path(f) for f in fq])
 
         # Collate the fastq files by sample name
-        fq = sorted(fq)
-        fastq_collated = dict()
-        for f in fq:
-            if f.sample_base not in fastq_collated:
-                fastq_collated[f.sample_base] = dict()
-                fastq_collated[f.sample_base][f.read_number or 1] = f
-            else:
-                fastq_collated[f.sample_base][f.read_number] = f
+        df = pd.DataFrame(fq, columns=["path"])
+        df = df.assign(
+            fastq_files=lambda x: x["path"].apply(lambda y: FastqFileIP(path=y)),
+            read_number=lambda x: x["fastq_files"].apply(lambda y: y.read_number),
+            sample_stem=lambda x: x["fastq_files"].apply(lambda y: y.stem),
+            sample_base=lambda x: x["fastq_files"].apply(lambda y: y.sample_base),
+            sample_base_without_ip=lambda x: x["fastq_files"].apply(
+                lambda y: y.sample_base_without_ip
+            ),
+            is_control=lambda x: x["fastq_files"].apply(lambda y: y.is_control),
+        )
 
-        # Create the assays
-        assays = {}
-        for sample_name, fastq_files in fastq_collated.items():
-            assays[sample_name] = AssayIP(
-                name=sample_name, r1=fastq_files[1], r2=fastq_files.get(2), **kwargs
+        # Break the dataframe into IP and control files
+        ip_files = df.query("is_control == False")
+        control_files = df.query("is_control == True")[["path", "sample_base_without_ip"]]
+
+        # Merge the IP and control files using the sample base without the IP
+        df = ip_files.merge(
+            control_files,
+            on=["sample_base_without_ip"],
+            suffixes=("_ip", "_control"),
+            how="left",
+        ).assign(
+            has_control=lambda x: x["path_control"].notnull(),
+        ).drop_duplicates("read_number")
+
+        # Group the files by the sample base
+        experiments = []
+        for base, group in df.groupby("sample_base"):
+            if group.shape[0] == 1:
+                # Single end experiment
+                ip = FastqSetIP(name=base, r1=FastqFileIP(path=group["path_ip"].iloc[0]))
+
+                if group["path_control"].iloc[0]:
+                    control = FastqSetIP(name=base, r1=FastqFileIP(path=group["path_control"].iloc[0]))
+                else:
+                    control = None
+
+                experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
+
+            elif group.shape[0] == 2:
+                # Paired end experiment
+                ip = FastqSetIP(
+                    name=base,
+                    r1=FastqFileIP(path=group["path_ip"].iloc[0]),
+                    r2=FastqFileIP(path=group["path_ip"].iloc[1]),
+                )
+
+                if group["has_control"].iloc[0]:
+                    control = FastqSetIP(name=base, r1=FastqFileIP(path=group["path_control"].iloc[0]), r2=FastqFileIP(path=group["path_control"].iloc[1]))
+                else:
+                    control = None
+
+                experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
+
+            else:
+                raise ValueError(
+                    f"Invalid number of fastq files ({group.shape[0]}) for {base}"
+                )
+
+        return cls(
+            experiments=experiments,
+            metadata=[Metadata(scale_group="all") for _ in experiments],
+        )
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """
+        Return the Design object as a pandas DataFrame.
+        """
+
+        data = []
+        for experiment, metadata in zip(self.experiments, self.metadata):
+            row = {
+                "sample_name": experiment.ip.sample_name,
+                "ip": experiment.ip.ip_or_control_name,
+                "control": experiment.control.ip_or_control_name if experiment.control else None,
+                "ip_r1": experiment.ip.r1.path,
+                "ip_r2": experiment.ip.r2.path if experiment.ip.r2 else None,
+                "control_r1": experiment.control.r1.path if experiment.control else None,
+                "control_r2": experiment.control.r2.path if experiment.control else None,
+            }
+
+            for k, v in metadata.model_dump(exclude_none=True).items():
+                row[k] = v
+
+            data.append(row)
+
+        df = pd.DataFrame(data).sort_values("sample_name")
+
+        return DataFrameDesignIP.validate(df)
+
+    @classmethod
+    def from_dataframe(cls, df: pd.DataFrame, **kwargs):
+        """
+        Create a Design object from a pandas DataFrame.
+        """
+        df = DataFrameDesignIP.validate(df)
+
+        experiments = []
+        metadata = []
+
+        non_metadata_keys = [
+            "sample_name",
+            "ip",
+            "control",
+            "ip_r1",
+            "ip_r2",
+            "control_r1",
+            "control_r2",
+        ]
+
+        for _, row in df.iterrows():
+            ip = FastqSetIP(
+                r1=FastqFileIP(path=row["ip_r1"]),
+                r2=FastqFileIP(path=row["ip_r2"]) if row["ip_r2"] else None,
+            )
+            control = (
+                FastqSetIP(
+                    r1=FastqFileIP(path=row["control_r1"]),
+                    r2=FastqFileIP(path=row["control_r2"]) if row["control_r2"] else None,
+                )
+                if row["control_r1"]
+                else None
             )
 
-        # Create the experiments
-        experiments = {}
+            experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
+            metadata.append(
+                Metadata(**{k: v for k, v in row.items() if k not in non_metadata_keys})
+            )
 
-        for base, assay in itertools.groupby(
-            assays.values(), lambda x: x.r1.sample_base_without_ip
-        ):
-            assay = list(assay)
-
-            if len(assay) == 1:
-                experiments[assay[0].name] = ExperimentIP(ip_files=assay[0], **kwargs)
-            elif len(assay) == 2 and any([a.is_control for a in assay]):
-                ip = [a for a in assay if not a.is_control][0]
-                control = [a for a in assay if a.is_control][0]
-                experiments[ip.name] = ExperimentIP(
-                    ip_files=ip, control_files=control, **kwargs
-                )
-            elif len(assay) >= 2 and not any([a.is_control for a in assay]):
-                for a in assay:
-                    experiments[a.name] = ExperimentIP(ip_files=a, **kwargs)
-
-            elif len(assay) >= 2 and any([a.is_control for a in assay]):
-                logger.warning(f"Multiple controls for {assay[0].name}")
-                logger.warning("Will generate all possible combinations")
-                ip = [a for a in assay if not a.is_control]
-                control = [a for a in assay if a.is_control]
-
-                for combination in itertools.product(ip, control):
-                    experiments[combination[0].name] = ExperimentIP(
-                        ip_files=combination[0], control_files=combination[1], **kwargs
-                    )
-
-        return cls(assays=experiments, **kwargs)
-
-    @classmethod
-    def from_directory(
-        cls, path: pathlib.Path, metadata: Dict[str, Any] = None, **kwargs
-    ):
-        """
-        Create a SampleInfo object from a directory of fastq files.
-
-        """
-
-        fq = list(pathlib.Path(path).glob("*.fastq.gz"))
-        fq = sorted([FastqFileIP(path=f) for f in fq])
-        return cls.from_fastq_files(fq, metadata=metadata, **kwargs)
-
-    def to_dataframe(self, simplify: bool = True):
-        """
-        Return the SampleInfo object as a pandas DataFrame.
-
-        """
-
-        data = {}
-        for experiment_name, experiment in self.assays.items():
-            data[experiment_name] = {}
-            data[experiment_name]["ip_r1"] = experiment.ip_files.r1.path
-            if experiment.ip_files.r2 is not None:
-                data[experiment_name]["ip_r2"] = experiment.ip_files.r2.path
-
-            if experiment.control_files is not None:
-                data[experiment_name]["control_r1"] = experiment.control_files.r1.path
-                if experiment.control_files.r2 is not None:
-                    data[experiment_name][
-                        "control_r2"
-                    ] = experiment.control_files.r2.path
-
-            if experiment.metadata is not None:
-                for k, v in experiment.metadata.items():
-                    data[experiment_name][k] = v
-
-            data[experiment_name]["ip"] = experiment.ip
-            data[experiment_name]["control"] = experiment.control
-
-        df = pd.DataFrame.from_dict(data, orient="index")
-
-        return df
-
-    @classmethod
-    def from_dataframe(cls, df: pd.DataFrame, simplified: bool = True, **kwargs):
-        experiments = {}
-        for experiment_name, row in df.iterrows():
-            if simplified:
-                # Add the metadata
-                metadata = {}
-                for k, v in row.items():
-                    if k not in [
-                        "ip_r1",
-                        "ip_r2",
-                        "control_r1",
-                        "control_r2",
-                        "ip",
-                        "control",
-                    ]:
-                        metadata[k] = v
-                
-                # Validate the metadata
-                metadata = Metadata(**metadata)
-
-                # Add the experiment
-                ip = row["ip"]
-                control = row["control"]
-
-                if "control_r1" not in row or not is_path(row["control_r1"]):
-                    experiments[experiment_name] = ExperimentIP(
-                        ip_files=AssayIP(
-                            name=experiment_name,
-                            r1=FastqFileIP(path=row["ip_r1"]),
-                            r2=(
-                                FastqFileIP(path=row["ip_r2"])
-                                if "ip_r2" in row and is_path(row["ip_r2"])
-                                else None
-                            ),
-                        ),
-                        ip=ip,
-                        control=None,
-                        metadata=metadata.model_dump(exclude_none=True),
-                    )
-                else:
-                    experiments[experiment_name] = ExperimentIP(
-                        ip_files=AssayIP(
-                            name=experiment_name,
-                            r1=FastqFileIP(path=row["ip_r1"]),
-                            r2=(
-                                FastqFileIP(path=row["ip_r2"])
-                                if "ip_r2" in row and is_path(row["ip_r2"])
-                                else None
-                            ),
-                        ),
-                        control_files=AssayIP(
-                            name=experiment_name,
-                            r1=FastqFileIP(path=row["control_r1"]),
-                            r2=(
-                                FastqFileIP(path=row["control_r2"])
-                                if "control_r2" in row and is_path(row["control_r2"])
-                                else None
-                            ),
-                        ),
-                        ip=ip,
-                        control=control,
-                        metadata=metadata.model_dump(exclude_none=True),
-                    )
-            else:
-                raise NotImplementedError("Not implemented")
-
-        return cls(assays=experiments, **kwargs)
+        return cls(experiments=experiments, metadata=metadata, **kwargs)
 
 
 class NormGroup(BaseModel):
@@ -1035,10 +1022,12 @@ class RNAOutput(Output):
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
     call_peaks: bool = False
-    peak_calling_method: Optional[Union[
-        Literal["macs", "homer", "lanceotron", False],
-        List[Literal["macs", "homer", "lanceotron"]],
-    ]] = None
+    peak_calling_method: Optional[
+        Union[
+            Literal["macs", "homer", "lanceotron", False],
+            List[Literal["macs", "homer", "lanceotron"]],
+        ]
+    ] = None
 
     @property
     def merge_peaks(self):
@@ -1107,10 +1096,12 @@ class ChIPOutput(NonRNAOutput):
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
-    peak_calling_method: Optional[Union[
-        Literal["macs", "homer", "lanceotron", "seacr", False],
-        List[Literal["macs", "homer", "lanceotron", "seacr"]],
-    ]] = None
+    peak_calling_method: Optional[
+        Union[
+            Literal["macs", "homer", "lanceotron", "seacr", False],
+            List[Literal["macs", "homer", "lanceotron", "seacr"]],
+        ]
+    ] = None
     chip_spikein_normalisation: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
