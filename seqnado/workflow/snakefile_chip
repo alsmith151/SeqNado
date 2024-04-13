@@ -28,7 +28,7 @@ format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
-    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0).fillna("")
+    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python").fillna("")
     DESIGN = DesignIP.from_dataframe(df)
 else:
     DESIGN = DesignIP.from_directory(".")
@@ -42,8 +42,8 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 SAMPLE_NAMES = DESIGN.sample_names
 SAMPLE_NAMES_IP = DESIGN.sample_names_ip
 SAMPLE_NAMES_CONTROL = DESIGN.sample_names_control
-IP = DESIGN.ip_names
-CONTROL = DESIGN.control_names
+IP = DESIGN.ips_performed
+CONTROL = DESIGN.controls_performed
 
 
 # Define output files
