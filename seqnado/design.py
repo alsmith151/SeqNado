@@ -562,7 +562,7 @@ class DesignIP(BaseModel):
         data = []
         for experiment, metadata in zip(self.experiments, self.metadata):
             row = {
-                "sample_name": experiment.ip.sample_name,
+                "sample_name": experiment.ip.name,
                 "ip": experiment.ip.ip_or_control_name,
                 "control": experiment.control.ip_or_control_name if experiment.control else None,
                 "ip_r1": experiment.ip.r1.path,
@@ -602,11 +602,13 @@ class DesignIP(BaseModel):
 
         for _, row in df.iterrows():
             ip = FastqSetIP(
+                name=row["sample_name"],
                 r1=FastqFileIP(path=row["ip_r1"]),
                 r2=FastqFileIP(path=row["ip_r2"]) if row["ip_r2"] else None,
             )
             control = (
                 FastqSetIP(
+                    name=row["sample_name"],
                     r1=FastqFileIP(path=row["control_r1"]),
                     r2=FastqFileIP(path=row["control_r2"]) if row["control_r2"] else None,
                 )
