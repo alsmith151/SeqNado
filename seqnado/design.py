@@ -423,6 +423,22 @@ class Design(BaseModel):
             )
 
         return cls(fastq_sets=fastq_sets, metadata=metadata, **kwargs)
+    
+    @classmethod
+    def from_directory(cls, directory: Union[pathlib.Path, str], **kwargs):
+        """
+        Create a Design object from a directory of fastq files.
+        """
+        directory = pathlib.Path(directory)
+        file_patterns = ["*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"]
+        fastq_files = sorted(
+            [f for pattern in file_patterns for f in directory.glob(pattern)]
+        )
+
+        if len(fastq_files) == 0:
+            raise FileNotFoundError(f"No fastq files found in {directory}")
+
+        return cls.from_fastq_files(fastq_files, **kwargs)
 
 
 class DesignIP(BaseModel):
@@ -622,6 +638,22 @@ class DesignIP(BaseModel):
             )
 
         return cls(experiments=experiments, metadata=metadata, **kwargs)
+    
+    @classmethod
+    def from_directory(cls, directory: Union[pathlib.Path, str], **kwargs):
+        """
+        Create a Design object from a directory of fastq files.
+        """
+        directory = pathlib.Path(directory)
+        file_patterns = ["*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"]
+        fastq_files = sorted(
+            [f for pattern in file_patterns for f in directory.glob(pattern)]
+        )
+
+        if len(fastq_files) == 0:
+            raise FileNotFoundError(f"No fastq files found in {directory}")
+
+        return cls.from_fastq_files(fastq_files, **kwargs)
 
 
 class NormGroup(BaseModel):
