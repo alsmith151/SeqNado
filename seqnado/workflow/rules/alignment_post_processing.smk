@@ -205,10 +205,10 @@ def get_bam_files_for_merge(wildcards):
     norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
 
     sample_names = norm_groups.get_grouped_samples(wildcards.group)
-
-    return [
+    bam_files = [
         f"seqnado_output/aligned/{sample}.bam" for sample in sample_names
     ]
+    return bam_files
 
 
 rule merge_bams:

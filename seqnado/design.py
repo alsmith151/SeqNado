@@ -236,7 +236,7 @@ class FastqSetIP(FastqSet):
     @property
     def sample_name(self) -> str:
         return f"{self.name}_{self.ip_or_control_name}"
-    
+
     @property
     def sample_name_base(self) -> str:
         return self.r1.sample_base_without_ip
@@ -281,7 +281,7 @@ class IPExperiment(BaseModel):
 class DataFrameDesign(pandera.DataFrameModel):
     sample_name: Series[str]
     r1: Series[str] = pandera.Field(coerce=True)
-    r2: Series[str] = pandera.Field(coerce=True)
+    r2: Series[str] = pandera.Field(coerce=True, nullable=True)
     scale_group: Series[str]
     deseq2: Optional[Series[str]] = pandera.Field()
     merge: Optional[Series[str]] = pandera.Field()
@@ -292,7 +292,7 @@ class DataFrameDesignIP(pandera.DataFrameModel):
     ip: Series[str] = pandera.Field(coerce=True)
     control: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
     ip_r1: Series[str] = pandera.Field(coerce=True)
-    ip_r2: Series[str] = pandera.Field(coerce=True)
+    ip_r2: Series[str] = pandera.Field(coerce=True, nullable=True)
     control_r1: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
     control_r2: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
     scale_group: Series[str]
@@ -305,7 +305,7 @@ class Design(BaseModel):
     @property
     def sample_names(self) -> List[str]:
         return [f.name for f in self.fastq_sets]
-    
+
     @property
     def fastq_paths(self) -> List[pathlib.Path]:
         paths = []
@@ -427,7 +427,7 @@ class Design(BaseModel):
             )
 
         return cls(fastq_sets=fastq_sets, metadata=metadata, **kwargs)
-    
+
     @classmethod
     def from_directory(cls, directory: Union[pathlib.Path, str], **kwargs):
         """
@@ -443,6 +443,7 @@ class Design(BaseModel):
             raise FileNotFoundError(f"No fastq files found in {directory}")
 
         return cls.from_fastq_files(fastq_files, **kwargs)
+
 
 class DesignIP(BaseModel):
     experiments: List[IPExperiment]
@@ -492,7 +493,10 @@ class DesignIP(BaseModel):
             for experiment in self.experiments:
                 if experiment.ip_set_fullname == sample_name:
                     return experiment.ip
-                elif experiment.has_control and experiment.control_fullname == sample_name:
+                elif (
+                    experiment.has_control
+                    and experiment.control_fullname == sample_name
+                ):
                     return experiment.control
         else:
             raise ValueError(f"Could not find sample with name {sample_name}")
@@ -521,30 +525,40 @@ class DesignIP(BaseModel):
 
         # Break the dataframe into IP and control files
         ip_files = df.query("is_control == False")
-        control_files = df.query("is_control == True")[["path", "sample_base_without_ip"]]
+        control_files = df.query("is_control == True")[
+            ["path", "sample_base_without_ip"]
+        ]
 
         # Merge the IP and control files using the sample base without the IP
-        df = ip_files.merge(
-            control_files,
-            on=["sample_base_without_ip"],
-            suffixes=("_ip", "_control"),
-            how="left",
-        ).assign(
-            has_control=lambda x: x["path_control"].notnull(),
-        ).drop_duplicates(["sample_base", "read_number"])
+        df = (
+            ip_files.merge(
+                control_files,
+                on=["sample_base_without_ip"],
+                suffixes=("_ip", "_control"),
+                how="left",
+            )
+            .assign(
+                has_control=lambda x: x["path_control"].notnull(),
+            )
+            .drop_duplicates(["sample_base", "read_number"])
+        )
 
         # Group the files by the sample base
         experiments = []
         for base, group in df.groupby("sample_base"):
 
             name_without_ip = group["sample_base_without_ip"].iloc[0]
-
             if group.shape[0] == 1:
                 # Single end experiment
-                ip = FastqSetIP(name=name_without_ip, r1=FastqFileIP(path=group["path_ip"].iloc[0]))
+                ip = FastqSetIP(
+                    name=name_without_ip, r1=FastqFileIP(path=group["path_ip"].iloc[0])
+                )
 
-                if group["path_control"].iloc[0]:
-                    control = FastqSetIP(name=name_without_ip, r1=FastqFileIP(path=group["path_control"].iloc[0]))
+                if pathlib.Path(str(group["path_control"].iloc[0])).exists():
+                    control = FastqSetIP(
+                        name=name_without_ip,
+                        r1=FastqFileIP(path=group["path_control"].iloc[0]),
+                    )
                 else:
                     control = None
 
@@ -559,7 +573,11 @@ class DesignIP(BaseModel):
                 )
 
                 if group["has_control"].iloc[0]:
-                    control = FastqSetIP(name=name_without_ip, r1=FastqFileIP(path=group["path_control"].iloc[0]), r2=FastqFileIP(path=group["path_control"].iloc[1]))
+                    control = FastqSetIP(
+                        name=name_without_ip,
+                        r1=FastqFileIP(path=group["path_control"].iloc[0]),
+                        r2=FastqFileIP(path=group["path_control"].iloc[1]),
+                    )
                 else:
                     control = None
 
@@ -585,11 +603,19 @@ class DesignIP(BaseModel):
             row = {
                 "sample_name": experiment.ip.name,
                 "ip": experiment.ip.ip_or_control_name,
-                "control": experiment.control.ip_or_control_name if experiment.control else None,
+                "control": (
+                    experiment.control.ip_or_control_name
+                    if experiment.control
+                    else None
+                ),
                 "ip_r1": experiment.ip.r1.path,
                 "ip_r2": experiment.ip.r2.path if experiment.ip.r2 else None,
-                "control_r1": experiment.control.r1.path if experiment.control else None,
-                "control_r2": experiment.control.r2.path if experiment.control else None,
+                "control_r1": (
+                    experiment.control.r1.path if experiment.control else None
+                ),
+                "control_r2": (
+                    experiment.control.r2.path if experiment.control else None
+                ),
             }
 
             for k, v in metadata.model_dump(exclude_none=True).items():
@@ -631,7 +657,11 @@ class DesignIP(BaseModel):
                 FastqSetIP(
                     name=row["sample_name"],
                     r1=FastqFileIP(path=row["control_r1"]),
-                    r2=FastqFileIP(path=row["control_r2"]) if row["control_r2"] else None,
+                    r2=(
+                        FastqFileIP(path=row["control_r2"])
+                        if row["control_r2"]
+                        else None
+                    ),
                 )
                 if row["control_r1"]
                 else None
@@ -687,7 +717,11 @@ class NormGroup(BaseModel):
         subset_column: Optional[str] = "scale_group",
         subset_value: Optional[List[str]] = None,
     ):
-        df = design.to_dataframe().set_index("sample_name")
+        df = (
+            design.to_dataframe()
+            .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
+            .set_index("sample_fullname")
+        )
 
         if subset_value:
             df = df.query(f"{subset_column} in {subset_value}")
