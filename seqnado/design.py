@@ -717,11 +717,19 @@ class NormGroup(BaseModel):
         subset_column: Optional[str] = "scale_group",
         subset_value: Optional[List[str]] = None,
     ):
-        df = (
-            design.to_dataframe()
-            .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
-            .set_index("sample_fullname")
-        )
+        
+        if isinstance(design, Design):
+            df = (
+                design.to_dataframe()
+                .assign(sample_fullname=lambda df: df.sample_name)
+                .set_index("sample_fullname")
+            )
+        else:
+            df = (
+                design.to_dataframe()
+                .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
+                .set_index("sample_fullname")
+            )
 
         if subset_value:
             df = df.query(f"{subset_column} in {subset_value}")
