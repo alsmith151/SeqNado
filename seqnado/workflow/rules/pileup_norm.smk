@@ -1,8 +1,4 @@
 from seqnado.helpers import check_options, get_group_for_sample
-from seqnado.design import NormGroups
-
-NORM_GROUPS = NormGroups.from_design(DESIGN)
-
 
 def format_feature_counts(counts: str) -> pd.DataFrame:
     counts = pd.read_csv(input.counts, sep="\t", comment="#")
