@@ -64,7 +64,8 @@ rule validate_peaks:
             for peak_file in input.peaks:
                 with open(peak_file, "r+") as p:
                     peak_entries = p.readlines()
-                    if len(peak_entries) < 1:
+                    n_peak_lines = sum(1 for line in peak_entries if not line.startswith("#"))
+                    if len(n_peak_lines) < 1:
                         p.write("chr21\t1\t2\n")
 
         with open(output.sentinel, "w") as s:
