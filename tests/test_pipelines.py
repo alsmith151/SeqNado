@@ -352,7 +352,7 @@ def design(seqnado_run_dir, assay_type, assay):
         # Add merge column to design file
         import pandas as pd
         df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
-        df["merge"] = df.index.str.split("-").str[-1]
+        df["merge"] = df.index.str.split("-").str[-1].str.replace("CTCF", "IM-GROUPED-TOGETHER")
         df.to_csv(seqnado_run_dir / "design.csv")
 
     elif assay == "rna-rx":
