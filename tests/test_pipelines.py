@@ -327,6 +327,7 @@ def config_yaml_for_testing(config_yaml, assay):
         config["pileup_method"] = ["deeptools", "homer"]
         config['peak_calling_method'] = ["lanceotron", "macs", "homer"]
         config["library_complexity"] = False
+        config["bowtie2"]["options"] = "--no-mixed --no-discordant"
     elif assay == "chip-rx":
         config["call_peaks"] = True
         config["peak_calling_method"] = ["seacr"]
