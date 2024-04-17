@@ -10,6 +10,20 @@ def get_lanceotron_threshold(wildcards):
     threshold = threshold_pattern.search(options).group(1)
     return threshold
 
+def format_macs_options(wildcards, options):
+
+    query_name = f"{wildcards.sample}_{wildcards.treatment}"
+    
+    is_paired = DESIGN.query(query_name).is_paired
+    options = check_options(options)
+
+    if not is_paired:
+        options = re.sub(r"-f BAMPE", "", options)
+    if not options:
+        return ""
+    else:
+        return options
+
 
 def get_control_bam(wildcards):
     exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
@@ -45,7 +59,7 @@ rule macs2_with_input:
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
-        options=check_options(config["macs"]["callpeak"]),
+        options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
@@ -68,7 +82,7 @@ rule macs2_no_input:
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
-        options=check_options(config["macs"]["callpeak"]),
+        options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
