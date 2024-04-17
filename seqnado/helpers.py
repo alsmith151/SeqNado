@@ -230,9 +230,14 @@ def pepe_silvia():
 def get_group_for_sample(wildcards, design: Union[Design, DesignIP]):
     from seqnado.design import NormGroups
 
-    norm_groups = NormGroups.from_design(design)
-    group = norm_groups.get_sample_group(wildcards.sample)
-    return group
+    norm_groups = NormGroups.from_design(design, include_controls=True)
+
+    try:
+        group = norm_groups.get_sample_group(wildcards.sample)
+        return group
+    except KeyError:
+        logger.error(f"Sample {wildcards.sample} not found in normalisation groups.")
+        raise KeyError(f"Sample {wildcards.sample} not found in normalisation groups.")
 
 def get_scale_method(config: Dict) -> Optional[str]:
     """
