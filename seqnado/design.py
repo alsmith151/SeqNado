@@ -716,6 +716,7 @@ class NormGroup(BaseModel):
         reference_sample: Optional[str] = None,
         subset_column: Optional[str] = "scale_group",
         subset_value: Optional[List[str]] = None,
+        include_controls: bool = False,
     ):
         
         if isinstance(design, Design):
@@ -724,17 +725,31 @@ class NormGroup(BaseModel):
                 .assign(sample_fullname=lambda df: df.sample_name)
                 .set_index("sample_fullname")
             )
-        else:
+        elif isinstance(design, DesignIP):
             df = (
                 design.to_dataframe()
                 .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
                 .set_index("sample_fullname")
             )
+        elif isinstance(design, DesignIP) and include_controls:
+            df_ip = (
+                design.to_dataframe()
+                .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
+                .set_index("sample_fullname")
+            )
+            df_control = (
+                design.to_dataframe()
+                .assign(sample_fullname=lambda df: df.sample_name + "_" + df.control)
+                .set_index("sample_fullname")
+            )
+            df = pd.concat([df_ip, df_control])
 
         if subset_value:
             df = df.query(f"{subset_column} in {subset_value}")
 
         samples = df.index.tolist()
+
+
         reference_sample = reference_sample or df.index[0]
         return cls(
             samples=samples,
@@ -756,6 +771,7 @@ class NormGroups(BaseModel):
         design: Union[Design, DesignIP],
         reference_sample: Optional[str] = None,
         subset_column: Optional[str] = "scale_group",
+        include_controls: bool = False,
     ):
         df = design.to_dataframe()
 
@@ -847,22 +863,26 @@ class BigWigFiles(BaseModel):
     ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
+    include_unscaled: bool = True
     prefix: Optional[str] = "seqnado_output/bigwigs/"
 
     def model_post_init(self, __context: Any) -> None:
         if isinstance(self.pileup_method, str):
             self.pileup_method = [self.pileup_method]
+        
+        if self.include_unscaled and not self.scale_method:
+            self.scale_method = ["unscaled"]
+        elif self.include_unscaled and self.scale_method:
+            self.scale_method = ["unscaled", self.scale_method]
+        else:
+            self.scale_method = [self.scale_method]
 
     @property
     def bigwigs_non_rna(self):
-        scale_methods = (
-            ["unscaled", self.scale_method] if self.scale_method else ["unscaled"]
-        )
-
         return expand(
             self.prefix + "{method}/{scale}/{sample}.bigWig",
             sample=self.names,
-            scale=scale_methods,
+            scale=self.scale_method,
             method=self.pileup_method,
         )
 
@@ -1028,6 +1048,7 @@ class Output(BaseModel):
                 make_bigwigs=self.make_bigwigs,
                 pileup_method="deeptools",
                 scale_method="merged",
+                include_unscaled=False,
             )
 
             files = bwf_samples.files + bwf_merged.files
