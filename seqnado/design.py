@@ -873,9 +873,9 @@ class BigWigFiles(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         if isinstance(self.pileup_method, str):
             self.pileup_method = [self.pileup_method]
-        
+
         if self.include_unscaled and not self.scale_method:
-            self.scale_method = ["unscaled"]
+            self.scale_method = ["unscaled",]
         elif self.include_unscaled and self.scale_method:
             self.scale_method = ["unscaled", self.scale_method]
         else:
@@ -892,15 +892,10 @@ class BigWigFiles(BaseModel):
 
     @property
     def bigwigs_rna(self):
-
-        scale_methods = (
-            ["unscaled", self.scale_method] if self.scale_method else ["unscaled"]
-        )
-
         return expand(
             self.prefix + "{method}/{scale}/{sample}_{strand}.bigWig",
             sample=self.names,
-            scale=scale_methods,
+            scale=self.scale_method,
             method=self.pileup_method,
             strand=["plus", "minus"],
         )
