@@ -127,7 +127,7 @@ rule calculate_scaling_factors_spikein:
     output:
         size_factors="seqnado_output/resources/all_normalisation_factors.json"
     script:
-        "calculate_spikein_norm_factors.r"
+        "../scripts/calculate_spikein_norm_factors.r"
 
 
 
