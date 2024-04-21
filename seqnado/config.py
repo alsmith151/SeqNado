@@ -242,7 +242,7 @@ homer:
     findpeaks:
 
 deeptools:
-    threads: 16
+    threads: 8
     alignmentsieve: --minMappingQuality 30 
     bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
 
