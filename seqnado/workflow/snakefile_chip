@@ -94,19 +94,7 @@ rule all:
 
 
 onsuccess:
-    slurm_files = glob.glob("slurm-*.out")
-    sps_files = glob.glob("sps-*")
-    simg_files = glob.glob("*.simg")
-
-    for fn in [*slurm_files, *sps_files, *simg_files]:
-        try:
-            if not os.path.isdir(fn):
-                os.remove(fn)
-            else:
-                shutil.rmtree(fn)
-
-        except Exception as e:
-            print(e)
+   remove_unwanted_run_files()
 
 onerror:
     log_out = "seqnado_error.log"
@@ -114,3 +102,4 @@ onerror:
     print(
         f"An error occurred. Please check the log file {log_out} for more information."
     )
+    remove_unwanted_run_files()
