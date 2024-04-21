@@ -65,7 +65,7 @@ rule validate_peaks:
                 with open(peak_file, "r+") as p:
                     peak_entries = p.readlines()
                     n_peak_lines = sum(1 for line in peak_entries if not line.startswith("#"))
-                    if len(n_peak_lines) < 1:
+                    if n_peak_lines == 0: # empty peak file, write a dummy peak
                         p.write("chr21\t1\t2\n")
 
         with open(output.sentinel, "w") as s:
@@ -87,7 +87,7 @@ rule bed_to_bigbed:
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v > {input.bed}.tmp &&
-        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} &&
+        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} 2> {log} &&
         rm {input.bed}.tmp
         """
 
