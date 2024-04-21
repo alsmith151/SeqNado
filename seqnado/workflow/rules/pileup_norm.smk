@@ -21,7 +21,7 @@ def get_scaling_factor(wildcards, scale_path: str) -> float:
 def get_norm_factor_spikein(wildcards, negative=False):
     import json
 
-    group = NORM_GROUPS.get_sample_group(wildcards.sample)
+    group = NORMALISATION_SCALING.get_sample_group(wildcards.sample)
     with open(f"seqnado_output/resources/{group}_normalisation_factors.json") as f:
         norm_factors = json.load(f)
 
