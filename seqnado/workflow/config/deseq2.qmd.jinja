@@ -485,7 +485,7 @@ top_DE_genes <- normCounts %>%
     values_to = "count", 
     names_to = "sample"
   ) %>%
-  left_join(sample_info, by = "sample") %>%
+  left_join(sample_info, by = "sample_name") %>%
   mutate(gene = factor(gene, levels = unique(gene)))
 
 p <- ggplot(data = top_DE_genes, aes(x = deseq2, y = count, color = deseq2)) +
