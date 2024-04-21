@@ -8,7 +8,7 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, RNAOutput 
+from seqnado.design import Design, RNAOutput, NormGroups
 from seqnado.helpers import format_config_dict, symlink_fastq_files
 
 ####################
@@ -67,6 +67,9 @@ OUTPUT = RNAOutput(
     scale_method="spikein" if config["spikein"] else None,
     **config
 )
+
+NORMALISATION_SCALING = NormGroups.from_design(DESIGN, subset_column="scale_group", include_controls=True)
+NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", include_controls=True)
 
 # Rules to include
 include: "rules/align_rna.smk"
