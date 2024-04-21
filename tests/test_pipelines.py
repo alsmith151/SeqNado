@@ -176,8 +176,8 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
         case "atac":
             files = list(path.glob("atac*.fastq.gz"))
         case "chip":
-            files = list(path.glob("CTCF*.fastq.gz"))
-            files.append(path / "SINGLE-CTCF_CTCF.fastq.gz")
+            files = list(path.glob("chip-rx*.fastq.gz"))
+            files.append(path / "chip-rx-single_MLL.fastq.gz")
         case "chip-rx":
             files = list(path.glob("chip-rx*.fastq.gz"))
         case "rna":
@@ -353,7 +353,7 @@ def design(seqnado_run_dir, assay_type, assay):
         # Add merge column to design file
         import pandas as pd
         df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
-        df["merge"] = df.index.str.split("-").str[-1].str.replace("CTCF", "IM-GROUPED-TOGETHER")
+        df["merge"] = "MLL-MERGED-TOGETHER"
         df.to_csv(seqnado_run_dir / "design.csv")
 
     elif assay == "rna-rx":
