@@ -725,7 +725,7 @@ class NormGroup(BaseModel):
                 .assign(sample_fullname=lambda df: df.sample_name)
                 .set_index("sample_fullname")
             )
-        elif isinstance(design, DesignIP):
+        elif isinstance(design, DesignIP) and not include_controls:
             df = (
                 design.to_dataframe()
                 .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
@@ -739,10 +739,12 @@ class NormGroup(BaseModel):
             )
             df_control = (
                 design.to_dataframe()
+                .query("control.notnull()")
                 .assign(sample_fullname=lambda df: df.sample_name + "_" + df.control)
                 .set_index("sample_fullname")
             )
             df = pd.concat([df_ip, df_control])
+
 
         if subset_value:
             df = df.query(f"{subset_column} in {subset_value}")
@@ -751,6 +753,7 @@ class NormGroup(BaseModel):
 
 
         reference_sample = reference_sample or df.index[0]
+
         return cls(
             samples=samples,
             reference_sample=reference_sample,
@@ -789,6 +792,7 @@ class NormGroups(BaseModel):
                         [
                             subset_value,
                         ],
+                        include_controls,
                     )
                     for subset_value in subset_values
                 ]
