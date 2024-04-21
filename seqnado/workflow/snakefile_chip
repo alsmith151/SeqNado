@@ -9,7 +9,7 @@ from snakemake.utils import min_version
 
 
 from seqnado.design import DesignIP, ChIPOutput, NormGroups
-from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_method
+from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_method, remove_unwanted_run_files
 
 ####################
 # Hardcoded config #
