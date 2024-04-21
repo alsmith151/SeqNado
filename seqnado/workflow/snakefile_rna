@@ -50,10 +50,6 @@ SAMPLE_NAMES = DESIGN.sample_names
 RUN_DESEQ2 = True if (DESIGN.to_dataframe().columns.str.contains("deseq2").any() and config["run_deseq2"]) else False
 del config["run_deseq2"]
 
-if config["spikein"] and not RUN_DESEQ2:
-    sys.exit("Spike-in normalization requires DESeq2 to be run and is not enabled.")
-
-
 PROJECT_NAME = config['project_name'].replace(" ", "_").strip()
 config["project_name"] = PROJECT_NAME
 
