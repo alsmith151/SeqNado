@@ -227,16 +227,16 @@ def pepe_silvia():
     return _pepe_silvia
 
 
-def get_group_for_sample(wildcards, design: Union[Design, DesignIP]):
+def get_group_for_sample(wildcards, design: Union[Design, DesignIP], strip: str = ""):
     from seqnado.design import NormGroups
 
     norm_groups = NormGroups.from_design(design, include_controls=True)
 
     try:
-        group = norm_groups.get_sample_group(wildcards.sample)
+        group = norm_groups.get_sample_group(wildcards.sample.strip(strip))
         return group
     except KeyError:
-        logger.error(f"Sample {wildcards.sample} not found in normalisation groups.")
+        # logger.error(f"Sample {wildcards.sample} not found in normalisation groups.")
         raise KeyError(f"Sample {wildcards.sample} not found in normalisation groups.")
 
 def get_scale_method(config: Dict) -> Optional[str]:
@@ -252,3 +252,23 @@ def get_scale_method(config: Dict) -> Optional[str]:
         method = None
     
     return method
+
+
+def remove_unwanted_run_files():
+    import glob
+    import os
+    import shutil
+
+    slurm_files = glob.glob("slurm-*.out")
+    sps_files = glob.glob("sps-*")
+    simg_files = glob.glob("*.simg")
+
+    for fn in [*slurm_files, *sps_files, *simg_files]:
+        try:
+            if not os.path.isdir(fn):
+                os.remove(fn)
+            else:
+                shutil.rmtree(fn)
+
+        except Exception as e:
+            print(e)
