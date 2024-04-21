@@ -1,5 +1,6 @@
 
-library(tidyverse)
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(rjson))
 
 # Load the data
 counts <- read_table(snakemake@input[[1]])
@@ -12,6 +13,6 @@ size_factors <- colSums(spikein_counts) / median(colSums(spikein_counts))
 normalized_counts <- sweep(counts, 2, size_factors, FUN="/")
 
 size_factors <- colData(dds)[, "sizeFactor"]
-names(size_factors) <- colData(dds)[, "sample"]
+names(size_factors) <- colData(dds)[, "sample_name"]
 sf <- toJSON(size_factors)
 writeLines(sf, snakemake@output[[1]])
