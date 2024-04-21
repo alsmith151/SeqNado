@@ -76,14 +76,13 @@ rule tile_regions:
         import pyranges as pr
 
         chromsizes = (
-            pd.read_csv(chromsizes, sep="\t", header=None).set_index(0)[1].to_dict()
+            pd.read_csv(input.chromsizes, sep="\t", header=None).set_index(0)[1].to_dict()
         )
-        genome_tiled = pr.gf.tile_genome(chromsizes, tile_size=tile_size)
+        genome_tiled = pr.gf.tile_genome(chromsizes, tile_size=params.tile_size)
         genome_tiled = genome_tiled.df.assign(
             feature="tile", gene_id=lambda df: df.index.astype(str)
         ).pipe(pr.PyRanges)
         genome_tiled.to_gtf(output.genome_tiled)
-
 
 rule count_bam:
     input:
@@ -116,6 +115,8 @@ rule calculate_scaling_factors:
         metadata="seqnado_output/counts/{group}_metadata.tsv",
     output:
         scaling_factors="seqnado_output/resources/{group}_scaling_factors.tsv",
+    container:
+        "library://asmith151/seqnado/seqnado_report:latest"
     script:
         "../scripts/calculate_scaling_factors.R"
 
@@ -126,8 +127,14 @@ rule calculate_scaling_factors_spikein:
         metadata="seqnado_output/design.csv",
     output:
         size_factors="seqnado_output/resources/all_normalisation_factors.json"
+    container:
+        "library://asmith151/seqnado/seqnado_report:latest"
+    params:
+        spikein_genes=["AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq"],
+    log:
+        "seqnado_output/logs/normalisation_factors.log"
     script:
-        "../scripts/calculate_spikein_norm_factors.r"
+        "../scripts/calculate_spikein_norm_factors_rna.R"
 
 
 
