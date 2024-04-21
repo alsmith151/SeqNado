@@ -41,6 +41,10 @@ def format_deeptools_bamcoverage_options(wildcards):
 
     if "--scaleFactor" in options:
         options = re.sub("--scaleFactor [0-9.]+", "", options)
+         
+    if not DESIGN.query(wildcards.sample).is_paired:
+        options = re.sub(r"--extendReads", "", options)
+        options = re.sub(r"-e", "", options)
 
     return options
 
