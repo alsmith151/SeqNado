@@ -120,6 +120,17 @@ rule calculate_scaling_factors:
         "../scripts/calculate_scaling_factors.R"
 
 
+rule calculate_scaling_factors_spikein:
+    input:
+        counts="seqnado_output/readcounts/feature_counts/read_counts.tsv",
+        metadata="seqnado_output/design.csv",
+    output:
+        size_factors="seqnado_output/resources/all_normalisation_factors.json"
+    script:
+        "calculate_spikein_norm_factors.r"
+
+
+
 rule deeptools_make_bigwigs_scale:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
