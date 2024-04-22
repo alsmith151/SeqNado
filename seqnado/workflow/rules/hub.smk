@@ -29,7 +29,7 @@ def get_hub_params(config):
                 "norm"
             ],
         ),
-        "supergroup_by": config["ucsc_hub_details"].get("supergroup_by", "ext"),
+        "supergroup_by": config["ucsc_hub_details"].get("supergroup_by", None),
     }
 
     if ASSAY == "RNA":
