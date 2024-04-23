@@ -67,13 +67,13 @@ def symlink_file(
 
     new_path = output_dir / new_file_name
     if not new_path.exists() and source_path.is_file():
-        logger.debug(f"Symlinking {source_path} to {output_dir / new_file_name}")
+        # logger.debug(f"Symlinking {source_path} to {output_dir / new_file_name}")
         if str(source_path) in [".", "..", "", None, "None"]:
             logger.warning(f"Source path is empty for {new_file_name}. Will not symlink.")
 
         else:
             new_path.symlink_to(source_path.resolve())
-            logger.debug(f"Symlinked {source_path} to {output_dir / new_file_name} successfully.")
+            # logger.debug(f"Symlinked {source_path} to {output_dir / new_file_name} successfully.")
 
 
 def symlink_fastq_files(
