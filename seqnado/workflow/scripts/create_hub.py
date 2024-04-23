@@ -23,12 +23,11 @@ df = pd.DataFrame(
 # Use the TrackFiles class to deduplicate files and add metadata
 df = tracknado.TrackFiles(files=df, deduplicate=True).files
 
-
 if snakemake.params.assay == "ChIP":
     df[["samplename", "antibody"]] = df["fn"].str.extract(
         r".*/(.*)_(.*)\.(?:bigBed|bigWig)"
     )
-    df["pileup_method"] = df["fn"].apply(lambda x: x.split("/")[-3])
+    df["method"] = df["fn"].apply(lambda x: x.split("/")[-3])
     df['norm'] = df['fn'].apply(lambda x: x.split("/")[-2])
 
 elif snakemake.params.assay == "ATAC":
