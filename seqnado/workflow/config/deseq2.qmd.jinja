@@ -77,8 +77,8 @@ print(kable(sample_info, align = "l", format = "simple", row.names = FALSE))
 counts <- read.delim(params$counts, comment.char = "#") %>%
   rename_with(~ gsub("(seqnado_output.aligned.)(.+)(.bam)", "\\2", .), everything()) %>%
   column_to_rownames(var = "Geneid") %>%
-  dplyr::select(one_of(make.names(sample_info$sample))) %>%
-  setNames(sample_info$sample) %>%
+  dplyr::select(one_of(make.names(sample_info$sample_name))) %>%
+  setNames(sample_info$sample_name) %>%
   filter(rowSums(.) > 0)
 
 total_counts <- data.frame(
@@ -116,7 +116,7 @@ if (has_spikein) {
   
   # Output size factors
   size_factors <- colData(dds)[, "sizeFactor"]
-  names(size_factors) <- colData(dds)[, "sample"]
+  names(size_factors) <- colData(dds)[, "sample_name"]
   sf <- toJSON(size_factors)
   writeLines(sf, params$size_factors_out)
 
@@ -481,11 +481,11 @@ top_DE_genes <- normCounts %>%
   as.data.frame() %>%
   filter(gene %in% DE_results$gene[1:12]) %>%
   pivot_longer(
-    cols = sample_info$sample, 
+    cols = sample_info$sample_name, 
     values_to = "count", 
     names_to = "sample"
   ) %>%
-  left_join(sample_info, by = "sample") %>%
+  left_join(sample_info, by = c("sample" = "sample_name")) %>%
   mutate(gene = factor(gene, levels = unique(gene)))
 
 p <- ggplot(data = top_DE_genes, aes(x = deseq2, y = count, color = deseq2)) +

@@ -21,6 +21,7 @@ dependencies = [
     "cookiecutter",
     "drmaa",
     "pandas",
+    "pandera",
     "pulp<=2.7.0",
     "pydantic",
     "pyranges",

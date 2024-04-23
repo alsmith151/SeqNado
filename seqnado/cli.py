@@ -79,17 +79,15 @@ def cli_design(method, files, output="design.csv"):
 
 
     if not method == "chip":
-        design = Design.from_fastq_files([FastqFile(path=fq) for fq in files])
+        design = Design.from_fastq_files(files)
     else:
 
-        design = DesignIP.from_fastq_files([FastqFileIP(path=fq) for fq in files])
+        design = DesignIP.from_fastq_files(files)
 
     (
         design.to_dataframe()
         .assign(scale_group="all")
-        .reset_index()
-        .rename(columns={"index": "sample"})
-        .sort_values("sample")
+        .sort_values("sample_name")
         .to_csv(output, index=False)
     )
 

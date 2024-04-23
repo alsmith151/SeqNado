@@ -8,8 +8,8 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import DesignIP, ChIPOutput 
-from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_method
+from seqnado.design import DesignIP, ChIPOutput, NormGroups
+from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_method, remove_unwanted_run_files
 
 ####################
 # Hardcoded config #
@@ -28,7 +28,7 @@ format_config_dict(config)
 
 # Generate design
 if os.path.exists(config["design"]):
-    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python", index_col=0).fillna("")
+    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python").fillna("")
     DESIGN = DesignIP.from_dataframe(df)
 else:
     DESIGN = DesignIP.from_directory(".")
@@ -42,9 +42,8 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 SAMPLE_NAMES = DESIGN.sample_names
 SAMPLE_NAMES_IP = DESIGN.sample_names_ip
 SAMPLE_NAMES_CONTROL = DESIGN.sample_names_control
-IP = DESIGN.ip_names
-CONTROL = DESIGN.control_names
-
+IP = DESIGN.ips_performed
+CONTROL = DESIGN.controls_performed
 
 # Define output files
 OUTPUT = ChIPOutput(
@@ -56,6 +55,9 @@ OUTPUT = ChIPOutput(
     scale_method=get_scale_method(config),
     **config    
 )
+
+NORMALISATION_SCALING = NormGroups.from_design(DESIGN, subset_column="scale_group", include_controls=True)
+NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", include_controls=True)
 
 
 # Load required rules
@@ -80,9 +82,9 @@ if config["spikein"]:
 else:
     ruleorder: align_paired > align_single > move_ref_bam
 
-# Define wildcard constraints
-wildcard_constraints:
-    treatment= "|".join(IP),
+# # Define wildcard constraints
+# wildcard_constraints:
+#     treatment= "|".join(IP),
 
 
 
@@ -92,19 +94,7 @@ rule all:
 
 
 onsuccess:
-    slurm_files = glob.glob("slurm-*.out")
-    sps_files = glob.glob("sps-*")
-    simg_files = glob.glob("*.simg")
-
-    for fn in [*slurm_files, *sps_files, *simg_files]:
-        try:
-            if not os.path.isdir(fn):
-                os.remove(fn)
-            else:
-                shutil.rmtree(fn)
-
-        except Exception as e:
-            print(e)
+   remove_unwanted_run_files()
 
 onerror:
     log_out = "seqnado_error.log"
@@ -112,3 +102,4 @@ onerror:
     print(
         f"An error occurred. Please check the log file {log_out} for more information."
     )
+    remove_unwanted_run_files()

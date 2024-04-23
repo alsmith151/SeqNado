@@ -2,7 +2,7 @@ library(edgeR)
 library(tidyverse)
 
 # Load the data
-counts <- read_table(snakemake@input[[1]])
+counts <- read_table(snakemake@input[[1]], comment = "#")
 metadata <- read_table(snakemake@input[[2]])
 
 # Create a DGEList object

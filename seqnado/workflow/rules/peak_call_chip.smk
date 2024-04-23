@@ -10,31 +10,45 @@ def get_lanceotron_threshold(wildcards):
     threshold = threshold_pattern.search(options).group(1)
     return threshold
 
+def format_macs_options(wildcards, options):
+
+    query_name = f"{wildcards.sample}_{wildcards.treatment}"
+    
+    is_paired = DESIGN.query(query_name).is_paired
+    options = check_options(options)
+
+    if not is_paired:
+        options = re.sub(r"-f BAMPE", "", options)
+    if not options:
+        return ""
+    else:
+        return options
+
 
 def get_control_bam(wildcards):
-    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    if exp.control:
-        control = f"seqnado_output/aligned/{wildcards.sample}_{exp.control}.bam"
+    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
+    if exp:
+        control = f"seqnado_output/aligned/{wildcards.sample}_{exp.ip_or_control_name}.bam"
     else:
         control = "UNDEFINED"
     return control
 
 
 def get_control_tag(wildcards):
-    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    if not exp.control:
+    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
+    if not exp:
         control = "UNDEFINED"
     else:
-        control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.control}"
+        control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.ip_or_control_name}"
     return control
 
 
 def get_control_bigwig(wildcards):
-    exp = DESIGN.query(sample_name=wildcards.sample, ip=wildcards.treatment)
-    if not exp.control:
+    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
+    if not exp:
         control = "UNDEFINED"
     else:
-        control = f"seqnado_output/bigwigs/deeptools/unscaled/{wildcards.sample}_{exp.control}.bigWig"
+        control = f"seqnado_output/bigwigs/deeptools/unscaled/{wildcards.sample}_{exp.ip_or_control_name}.bigWig"
     return control
 
 
@@ -45,7 +59,7 @@ rule macs2_with_input:
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
-        options=check_options(config["macs"]["callpeak"]),
+        options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
@@ -68,7 +82,7 @@ rule macs2_no_input:
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
-        options=check_options(config["macs"]["callpeak"]),
+        options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
         narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
@@ -195,7 +209,7 @@ rule seacr:
         runtime="2h",
     shell:
         """
-        SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1
+        SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1 || touch {params.prefix}.{params.stringency}.bed
         mv {params.prefix}.{params.stringency}.bed {params.prefix}_seacr.txt
         cut -f 1-3 {params.prefix}_seacr.txt > {output.peaks}
         """

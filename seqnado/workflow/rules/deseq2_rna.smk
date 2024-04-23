@@ -8,7 +8,6 @@ rule deseq2_report_rnaseq:
         yml="seqnado_output/resources/deseq2_params.yml"
     output:
         deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
-        size_factors="seqnado_output/resources/all_normalisation_factors.json"
     log:
         "seqnado_output/logs/deseq2/deseq2.log",
     container:

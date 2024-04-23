@@ -1,7 +1,3 @@
-from seqnado.design import NormGroups
-
-NORM_GROUPS = NormGroups.from_design(DESIGN)
-
 use rule align_paired as align_paired_spikein with:
     params:
         options="--no-mixed --no-discordant",
@@ -100,7 +96,7 @@ if config["spikein_options"]["normalisation_method"] == "orlando":
 
     rule calculate_normalisation_factors:
         input:
-            lambda wc: expand(rules.split_bam.output.stats, sample=[sample for sample in NORM_GROUPS.get_grouped_samples(wc.group)]),
+            lambda wc: expand(rules.split_bam.output.stats, sample=SAMPLE_NAMES_IP + SAMPLE_NAMES_CONTROL),
         output:
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
@@ -113,7 +109,7 @@ elif config["spikein_options"]["normalisation_method"] == "with_input":
 
     rule calculate_normalisation_factors:
         input:
-            lambda wc: expand(rules.split_bam.output.stats, sample=[sample for sample in NORM_GROUPS.get_grouped_samples(wc.group)]),
+            lambda wc: expand(rules.split_bam.output.stats, sample=SAMPLE_NAMES_IP + SAMPLE_NAMES_CONTROL),
         output:
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",

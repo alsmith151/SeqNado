@@ -25,7 +25,7 @@ def get_hub_params(config):
         "subgroup_by": config["ucsc_hub_details"].get(
             "subgroup_by",
             [
-                "pileup_method",
+                "method",
                 "norm"
             ],
         ),
@@ -33,8 +33,8 @@ def get_hub_params(config):
     }
 
     if ASSAY == "RNA":
-        hub_params["overlay_by"] = ["samplename", "pileup_method", "norm"]
-        hub_params["subgroup_by"] = ["samplename", "pileup_method", "norm", "strand"]
+        hub_params["overlay_by"] = ["samplename", "method", "norm"]
+        hub_params["subgroup_by"] = ["method", "norm", "strand"]
 
     return hub_params
 
@@ -64,7 +64,8 @@ rule validate_peaks:
             for peak_file in input.peaks:
                 with open(peak_file, "r+") as p:
                     peak_entries = p.readlines()
-                    if len(peak_entries) < 1:
+                    n_peak_lines = sum(1 for line in peak_entries if not line.startswith("#"))
+                    if n_peak_lines == 0: # empty peak file, write a dummy peak
                         p.write("chr21\t1\t2\n")
 
         with open(output.sentinel, "w") as s:
@@ -86,7 +87,7 @@ rule bed_to_bigbed:
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v > {input.bed}.tmp &&
-        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} &&
+        bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} 2> {log} &&
         rm {input.bed}.tmp
         """
 
