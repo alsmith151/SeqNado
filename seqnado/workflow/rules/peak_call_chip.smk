@@ -60,7 +60,7 @@ rule macs2_with_input:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
         options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
-        narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+        raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
@@ -71,7 +71,7 @@ rule macs2_with_input:
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
-        cat {params.narrow} | cut -f 1-3 > {output.peaks}
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | cut -f 1-3 > {output.peaks}
         """
 
 
@@ -83,7 +83,7 @@ rule macs2_no_input:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
         options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
-        narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+        raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
@@ -94,7 +94,7 @@ rule macs2_no_input:
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
-        cat {params.narrow} | cut -f 1-3 > {output.peaks}
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | cut -f 1-3 > {output.peaks}
         """
 
 
