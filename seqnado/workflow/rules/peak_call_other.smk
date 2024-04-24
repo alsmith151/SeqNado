@@ -28,7 +28,7 @@ rule macs2_no_input:
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
-        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | cut -f 1-3 > {output.peaks}
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
         """
 
 
