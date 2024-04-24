@@ -64,7 +64,7 @@ rule macs2_with_input:
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem="2GB",
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
         runtime="2h",
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
@@ -87,7 +87,7 @@ rule macs2_no_input:
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem="2GB",
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
         runtime="2h",
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
