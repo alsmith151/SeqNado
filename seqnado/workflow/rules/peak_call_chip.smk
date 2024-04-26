@@ -28,18 +28,19 @@ def format_macs_options(wildcards, options):
 def get_control_file(wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False):
     exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)
     
-    if not exp["control"] and not allow_null: # if control is not defined, return UNDEFINED. This is to prevent the rule from running
+    if not exp.has_control and not allow_null: # if control is not defined, return UNDEFINED. This is to prevent the rule from running
         return "UNDEFINED"
-    elif not exp["control"] and allow_null: # if control is not defined, return empty list
+    elif not exp.has_control and allow_null: # if control is not defined, return empty list
         return []
     
     match file_type:
         case "bam":
-            return f"seqnado_output/aligned/{exp['control'].name}.bam"
+            fn =  f"seqnado_output/aligned/{exp.control_fullname}.bam"
         case "tag":
-            return f"seqnado_output/tag_dirs/{exp['control'].name}"
+            fn =  f"seqnado_output/tag_dirs/{exp.control_fullname}"
         case "bigwig":
-            return f"seqnado_output/bigwigs/deeptools/unscaled/{exp['control'].name}.bigWig"
+            fn =  f"seqnado_output/bigwigs/deeptools/unscaled/{exp.control_fullname}.bigWig"
+    return fn
 
 
 rule macs2_with_input:
