@@ -1158,7 +1158,6 @@ class NonRNAOutput(Output):
             prefix="seqnado_output/peaks/merged/",
         )
 
-    @computed_field
     @property
     def peaks(self) -> List[str]:
         pcf_samples = PeakCallingFiles(
@@ -1225,8 +1224,9 @@ class ChIPOutput(NonRNAOutput):
         ip_sample_names = [
             s
             for s in self.sample_names
-            if any([c not in s for c in self.control_names])
+            if not any([c in s for c in self.control_names])
         ]
+
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
             names=ip_sample_names,
@@ -1250,7 +1250,6 @@ class ChIPOutput(NonRNAOutput):
         )
         return sif.files
 
-    @computed_field
     @property
     def files(self) -> List[str]:
         files = []
