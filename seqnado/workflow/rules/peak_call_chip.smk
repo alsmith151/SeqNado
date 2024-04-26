@@ -18,44 +18,34 @@ def format_macs_options(wildcards, options):
     options = check_options(options)
 
     if not is_paired:
-        options = re.sub(r"-f BAMPE", "-f BAM", options)
+        options = re.sub(r"-f BAMPE", "", options)
     if not options:
         return ""
     else:
         return options
 
 
-def get_control_bam(wildcards):
-    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
-    if exp:
-        control = f"seqnado_output/aligned/{wildcards.sample}_{exp.ip_or_control_name}.bam"
-    else:
-        control = "UNDEFINED"
-    return control
-
-
-def get_control_tag(wildcards):
-    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
-    if not exp:
-        control = "UNDEFINED"
-    else:
-        control = f"seqnado_output/tag_dirs/{wildcards.sample}_{exp.ip_or_control_name}"
-    return control
-
-
-def get_control_bigwig(wildcards):
-    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}")
-    if not exp:
-        control = "UNDEFINED"
-    else:
-        control = f"seqnado_output/bigwigs/deeptools/unscaled/{wildcards.sample}_{exp.ip_or_control_name}.bigWig"
-    return control
+def get_control_file(wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False):
+    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)
+    
+    if not exp["control"] and not allow_null: # if control is not defined, return UNDEFINED. This is to prevent the rule from running
+        return "UNDEFINED"
+    elif not exp["control"] and allow_null: # if control is not defined, return empty list
+        return []
+    
+    match file_type:
+        case "bam":
+            return f"seqnado_output/aligned/{exp['control'].name}.bam"
+        case "tag":
+            return f"seqnado_output/tag_dirs/{exp['control'].name}"
+        case "bigwig":
+            return f"seqnado_output/bigwigs/deeptools/unscaled/{exp['control'].name}.bigWig"
 
 
 rule macs2_with_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
-        control=get_control_bam,
+        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=False),
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
@@ -78,7 +68,7 @@ rule macs2_with_input:
 rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
-        control=lambda wc: [] if get_control_bam(wc) == "UNDEFINED" else get_control_bam(wc), 
+                control=lambda wc: get_control_file(wc, file_type="bam", allow_null=True), 
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
@@ -101,7 +91,7 @@ rule macs2_no_input:
 rule homer_with_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
-        control=get_control_tag,
+        control=lambda wc: get_control_file(wc, file_type="tag", allow_null=False),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -123,7 +113,7 @@ rule homer_with_input:
 rule homer_no_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
-        control=lambda wc: [] if get_control_tag(wc) == "UNDEFINED" else get_control_tag(wc),
+        control=lambda wc: get_control_file(wc, file_type="tag", allow_null=True),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -145,7 +135,7 @@ rule homer_no_input:
 rule lanceotron_with_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
-        control=get_control_bigwig,
+        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
@@ -170,7 +160,7 @@ rule lanceotron_with_input:
 rule lanceotron_no_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
-        control=lambda wc: [] if get_control_bigwig(wc) == "UNDEFINED" else get_control_bigwig(wc),
+        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
