@@ -18,7 +18,7 @@ def format_macs_options(wildcards, options):
     options = check_options(options)
 
     if not is_paired:
-        options = re.sub(r"-f BAMPE", "", options)
+        options = re.sub(r"-f BAMPE", "-f BAM", options)
     if not options:
         return ""
     else:

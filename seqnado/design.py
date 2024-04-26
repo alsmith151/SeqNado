@@ -718,7 +718,7 @@ class NormGroup(BaseModel):
         subset_value: Optional[List[str]] = None,
         include_controls: bool = False,
     ):
-        
+
         if isinstance(design, Design):
             df = (
                 design.to_dataframe()
@@ -745,12 +745,10 @@ class NormGroup(BaseModel):
             )
             df = pd.concat([df_ip, df_control])
 
-
         if subset_value:
             df = df.query(f"{subset_column} in {subset_value}")
 
         samples = df.index.tolist()
-
 
         reference_sample = reference_sample or df.index[0]
 
@@ -875,7 +873,9 @@ class BigWigFiles(BaseModel):
             self.pileup_method = [self.pileup_method]
 
         if self.include_unscaled and not self.scale_method:
-            self.scale_method = ["unscaled",]
+            self.scale_method = [
+                "unscaled",
+            ]
         elif self.include_unscaled and self.scale_method:
             self.scale_method = ["unscaled", self.scale_method]
         else:
@@ -941,6 +941,7 @@ class PeakCallingFiles(BaseModel):
 
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    make_heatmaps: bool = False
 
     @property
     def heatmap_files(self) -> List[str]:
@@ -952,7 +953,10 @@ class HeatmapFiles(BaseModel):
     @computed_field
     @property
     def files(self) -> List[str]:
-        return self.heatmap_files
+        if self.make_heatmaps:
+            return self.heatmap_files
+        else:
+            return []
 
 
 class HubFiles(BaseModel):
@@ -1170,7 +1174,6 @@ class NonRNAOutput(Output):
             files = pcf_samples.files + pcf_merged.files
         else:
             files = pcf_samples.files
-
         return files or []
 
     @computed_field
@@ -1221,8 +1224,9 @@ class ChIPOutput(NonRNAOutput):
         ip_sample_names = [
             s
             for s in self.sample_names
-            if any([c not in s for c in self.control_names])
+            if not any([c in s for c in self.control_names])
         ]
+
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
             names=ip_sample_names,
