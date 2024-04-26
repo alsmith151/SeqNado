@@ -480,7 +480,7 @@ class DesignIP(BaseModel):
                 control.add(f.control_performed)
         return list(control)
 
-    def query(self, sample_name: str) -> FastqSetIP:
+    def query(self, sample_name: str, full_experiment: bool = False) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
         """
         Extracts a pair of fastq files from the design.
         """
@@ -488,18 +488,31 @@ class DesignIP(BaseModel):
         control_names = set(
             f.control_fullname for f in self.experiments if f.has_control
         )
+        is_control = False
+
+        experiment_files = dict()
 
         if sample_name in ip_names or sample_name in control_names:
             for experiment in self.experiments:
                 if experiment.ip_set_fullname == sample_name:
-                    return experiment.ip
+                    experiment_files["ip"] = experiment.ip
+                    experiment_files["control"] = experiment.control
+                
                 elif (
                     experiment.has_control
                     and experiment.control_fullname == sample_name
                 ):
-                    return experiment.control
+                    is_control = True
+                    experiment_files["ip"] = experiment.ip
+                    experiment_files["control"] = experiment.control
         else:
             raise ValueError(f"Could not find sample with name {sample_name}")
+        
+
+        if full_experiment:
+            return experiment_files
+        else:
+            return experiment_files["ip"] if not is_control else experiment_files["control"]
 
     @classmethod
     def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
