@@ -941,6 +941,7 @@ class PeakCallingFiles(BaseModel):
 
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    make_heatmaps: bool = False
 
     @property
     def heatmap_files(self) -> List[str]:
@@ -952,7 +953,10 @@ class HeatmapFiles(BaseModel):
     @computed_field
     @property
     def files(self) -> List[str]:
-        return self.heatmap_files
+        if self.make_heatmaps:
+            return self.heatmap_files
+        else:
+            return []
 
 
 class HubFiles(BaseModel):
