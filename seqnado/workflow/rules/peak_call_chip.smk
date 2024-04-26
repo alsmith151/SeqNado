@@ -160,7 +160,7 @@ rule lanceotron_with_input:
 rule lanceotron_no_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
-        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
+        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=True),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
