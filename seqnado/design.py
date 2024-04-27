@@ -480,7 +480,9 @@ class DesignIP(BaseModel):
                 control.add(f.control_performed)
         return list(control)
 
-    def query(self, sample_name: str, full_experiment: bool = False) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
+    def query(
+        self, sample_name: str, full_experiment: bool = False
+    ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
         """
         Extracts a pair of fastq files from the design.
         """
@@ -497,7 +499,7 @@ class DesignIP(BaseModel):
                 if experiment.ip_set_fullname == sample_name:
                     experiment_files["ip"] = experiment.ip
                     experiment_files["control"] = experiment.control
-                
+
                 elif (
                     experiment.has_control
                     and experiment.control_fullname == sample_name
@@ -507,12 +509,15 @@ class DesignIP(BaseModel):
                     experiment_files["control"] = experiment.control
         else:
             raise ValueError(f"Could not find sample with name {sample_name}")
-        
 
         if full_experiment:
             return experiment_files
         else:
-            return experiment_files["ip"] if not is_control else experiment_files["control"]
+            return (
+                experiment_files["ip"]
+                if not is_control
+                else experiment_files["control"]
+            )
 
     @classmethod
     def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
@@ -731,7 +736,7 @@ class NormGroup(BaseModel):
         subset_value: Optional[List[str]] = None,
         include_controls: bool = False,
     ):
-        
+
         if isinstance(design, Design):
             df = (
                 design.to_dataframe()
@@ -758,12 +763,10 @@ class NormGroup(BaseModel):
             )
             df = pd.concat([df_ip, df_control])
 
-
         if subset_value:
             df = df.query(f"{subset_column} in {subset_value}")
 
         samples = df.index.tolist()
-
 
         reference_sample = reference_sample or df.index[0]
 
@@ -888,7 +891,9 @@ class BigWigFiles(BaseModel):
             self.pileup_method = [self.pileup_method]
 
         if self.include_unscaled and not self.scale_method:
-            self.scale_method = ["unscaled",]
+            self.scale_method = [
+                "unscaled",
+            ]
         elif self.include_unscaled and self.scale_method:
             self.scale_method = ["unscaled", self.scale_method]
         else:
