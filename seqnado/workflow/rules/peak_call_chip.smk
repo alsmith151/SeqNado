@@ -11,12 +11,9 @@ def get_lanceotron_threshold(wildcards):
     return threshold
 
 def format_macs_options(wildcards, options):
-
-    query_name = f"{wildcards.sample}_{wildcards.treatment}"
-    
+    query_name = f"{wildcards.sample}_{wildcards.treatment}"    
     is_paired = DESIGN.query(query_name).is_paired
     options = check_options(options)
-
     if not is_paired:
         options = re.sub(r"-f BAMPE", "", options)
     if not options:
@@ -26,21 +23,20 @@ def format_macs_options(wildcards, options):
 
 
 def get_control_file(wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False):
-    exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)
-    
-    if not exp["control"] and not allow_null: # if control is not defined, return UNDEFINED. This is to prevent the rule from running
-        return "UNDEFINED"
-    elif not exp["control"] and allow_null: # if control is not defined, return empty list
-        return []
-    
-    match file_type:
-        case "bam":
-            return f"seqnado_output/aligned/{exp['control'].name}.bam"
-        case "tag":
-            return f"seqnado_output/tag_dirs/{exp['control'].name}"
-        case "bigwig":
-            return f"seqnado_output/bigwigs/deeptools/unscaled/{exp['control'].name}.bigWig"
-
+    control_info = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)["control"]
+    if control_info:
+        match file_type:
+            case "bam":
+                return f"seqnado_output/aligned/{control_info.sample_name}.bam"
+            case "tag":
+                return f"seqnado_output/tag_dirs/{control_info.sample_name}"
+            case "bigwig":
+                return f"seqnado_output/bigwigs/deeptools/unscaled/{control_info.sample_name}.bigWig"
+    else:
+        if allow_null:
+            return []
+        else:
+            return "UNDEFINED"
 
 rule macs2_with_input:
     input:
