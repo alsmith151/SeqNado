@@ -156,6 +156,10 @@ def setup_configuration(assay, genome, template_data):
             template_data["make_heatmaps"] = get_user_input(
                 "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
             )
+        else :
+            template_data["pileup_method"] = "False"
+            template_data["scale"] = "False"
+            template_data["make_heatmaps"] = "False"
 
     # Call peaks
     if assay in ["chip", "atac"]:
@@ -202,38 +206,31 @@ def setup_configuration(assay, genome, template_data):
         if assay == "snp"
         else "False"
     )
+    if assay == "snp" and template_data["call_snps"]:
 
-    template_data["snp_calling_method"] = (
-        get_user_input(
+        template_data["snp_calling_method"] = get_user_input(
             "SNP caller:",
             default="bcftools",
             choices=["bcftools", "deepvariant"],
         )
-        if template_data["call_snps"]
-        else "False"
-    )
 
-    template_data["fasta"] = (
-        get_user_input("Path to reference fasta:", default="path/to/reference.fasta")
-        if template_data["call_snps"]
-        else "False"
-    )
-    template_data["fasta_index"] = (
-        get_user_input(
+        template_data["fasta"] = get_user_input(
+            "Path to reference fasta:", default="path/to/reference.fasta"
+        )
+
+        template_data["fasta_index"] = get_user_input(
             "Path to reference fasta index:", default="path/to/reference.fasta.fai"
         )
-        if template_data["call_snps"]
-        else "False"
-    )
 
-    template_data["snp_database"] = (
-        get_user_input(
+        template_data["snp_database"] = get_user_input(
             "Path to SNP database:",
             default="path/to/snp_database",
         )
-        if template_data["call_snps"]
-        else "False"
-    )
+    else:
+        template_data["snp_calling_method"] = "False"
+        template_data["fasta"] = "False"
+        template_data["fasta_index"] = "False"
+        template_data["snp_database"] = "False"
 
     # Make UCSC hub
     if assay not in ["snp"]:
@@ -247,7 +244,9 @@ def setup_configuration(assay, genome, template_data):
             else "seqnado_output/hub/"
         )
         template_data["email"] = (
-            get_user_input("What is your email address?", default=f"{username}@example.com")
+            get_user_input(
+                "What is your email address?", default=f"{username}@example.com"
+            )
             if template_data["make_ucsc_hub"]
             else f"{username}@example.com"
         )

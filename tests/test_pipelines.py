@@ -275,12 +275,7 @@ def user_inputs(
 
     defaults_snp = {
         "remove_pcr_duplicates": "no",
-        "spikein": "no",
-        "make_bigwigs": "no",
-        "pileup_method": "deeptools",
-        "scale": "no",
-        "make_heatmaps": "no",
-        "call_peaks": "no",
+        "call_snps": "no",
     }
 
     hub = {
