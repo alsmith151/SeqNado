@@ -7,8 +7,8 @@ if config["call_snps"]:
         output:
             vcf="seqnado_output/variant/bcftools/{sample}.vcf.gz",
         params:
-            fasta=config["genome"]["fasta"],
-            faidx=config["genome"]["fasta_index"],
+            fasta=config["fasta"],
+            faidx=config["fasta_index"],
         resources:
             mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
             runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
@@ -33,7 +33,7 @@ if config["call_snps"]:
         output:
             stats="seqnado_output/variant/bcftools/{sample}_filtered.stats.txt",
         params:
-            fasta=config["genome"]["fasta"],
+            fasta=config["fasta"],
         shell:
             "bcftools stats -F {params.fasta} -s - {input.vcf} > {output.stats}"
 
@@ -43,7 +43,7 @@ if config["call_snps"]:
         output:
             summary="seqnado_output/variant/bcftools/{sample}_summary.pdf",
         params:
-            fasta=config["genome"]["fasta"],
+            fasta=config["fasta"],
             out_dir="seqnado_output/variant/bcftools/",
         shell:
             "plot-vcfstats -p {params.out_dir} {input.stats}"

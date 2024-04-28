@@ -7,7 +7,6 @@ package_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(package_dir, "workflow/config")
 
 
-# Helper Functions
 def get_user_input(prompt, default=None, is_boolean=False, choices=None):
     while True:
         user_input = (
@@ -143,19 +142,20 @@ def setup_configuration(assay, genome, template_data):
             )
 
     # Make bigwigs
-    template_data["make_bigwigs"] = get_user_input(
-        "Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True
-    )
-    if template_data["make_bigwigs"]:
-        template_data["pileup_method"] = get_user_input(
-            "Pileup method:", default="deeptools", choices=["deeptools", "homer"]
+    if assay not in ["snp"]:
+        template_data["make_bigwigs"] = get_user_input(
+            "Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True
         )
-        template_data["scale"] = get_user_input(
-            "Scale bigwigs? (yes/no)", default="no", is_boolean=True
-        )
-        template_data["make_heatmaps"] = get_user_input(
-            "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
-        )
+        if template_data["make_bigwigs"]:
+            template_data["pileup_method"] = get_user_input(
+                "Pileup method:", default="deeptools", choices=["deeptools", "homer"]
+            )
+            template_data["scale"] = get_user_input(
+                "Scale bigwigs? (yes/no)", default="no", is_boolean=True
+            )
+            template_data["make_heatmaps"] = get_user_input(
+                "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
+            )
 
     # Call peaks
     if assay in ["chip", "atac"]:
@@ -196,29 +196,75 @@ def setup_configuration(assay, genome, template_data):
         else "False"
     )
 
-    # Make UCSC hub
-    template_data["make_ucsc_hub"] = get_user_input(
-        "Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True
+    # SNP options
+    template_data["call_snps"] = (
+        get_user_input("Call SNPs? (yes/no)", default="no", is_boolean=True)
+        if assay == "snp"
+        else "False"
     )
 
-    template_data["UCSC_hub_directory"] = (
-        get_user_input("UCSC hub directory:", default="seqnado_output/hub/")
-        if template_data["make_ucsc_hub"]
-        else "seqnado_output/hub/"
+    template_data["snp_calling_method"] = (
+        get_user_input(
+            "SNP caller:",
+            default="bcftools",
+            choices=["bcftools", "deepvariant"],
+        )
+        if template_data["call_snps"]
+        else "False"
     )
-    template_data["email"] = (
-        get_user_input("What is your email address?", default=f"{username}@example.com")
-        if template_data["make_ucsc_hub"]
-        else f"{username}@example.com"
+
+    template_data["fasta"] = (
+        get_user_input("Path to reference fasta:", default="path/to/reference.fasta")
+        if template_data["call_snps"]
+        else "False"
     )
-    template_data["color_by"] = (
-        get_user_input("Color by (for UCSC hub):", default="samplename")
-        if template_data["make_ucsc_hub"]
-        else "samplename"
+    template_data["fasta_index"] = (
+        get_user_input(
+            "Path to reference fasta index:", default="path/to/reference.fasta.fai"
+        )
+        if template_data["call_snps"]
+        else "False"
     )
+
+    template_data["snp_database"] = (
+        get_user_input(
+            "Path to SNP database:",
+            default="path/to/snp_database",
+        )
+        if template_data["call_snps"]
+        else "False"
+    )
+
+    # Make UCSC hub
+    if assay not in ["snp"]:
+        template_data["make_ucsc_hub"] = get_user_input(
+            "Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True
+        )
+
+        template_data["UCSC_hub_directory"] = (
+            get_user_input("UCSC hub directory:", default="seqnado_output/hub/")
+            if template_data["make_ucsc_hub"]
+            else "seqnado_output/hub/"
+        )
+        template_data["email"] = (
+            get_user_input("What is your email address?", default=f"{username}@example.com")
+            if template_data["make_ucsc_hub"]
+            else f"{username}@example.com"
+        )
+        template_data["color_by"] = (
+            get_user_input("Color by (for UCSC hub):", default="samplename")
+            if template_data["make_ucsc_hub"]
+            else "samplename"
+        )
 
     template_data["options"] = (
-        TOOL_OPTIONS if assay in ["chip", "atac", "snp"] else TOOL_OPTIONS_RNA
+        TOOL_OPTIONS
+        if assay in ["chip", "atac"]
+        else (
+            TOOL_OPTIONS_RNA
+            if assay == "rna"
+            else TOOL_OPTIONS_SNP if assay == "snp" else ""
+        )
     )
 
 
@@ -297,6 +343,26 @@ deeptools:
 heatmap:
     options: -b 1000 -m 5000 -a 1000
     colormap: RdYlBu_r 
+"""
+
+
+TOOL_OPTIONS_SNP = """
+trim_galore:
+    threads: 8
+    options: --2colour 20 
+
+bowtie2:
+    threads: 8
+    options:
+
+picard:
+    threads: 8
+    options:
+
+bcftools:
+    threads: 16
+    options:
+    
 """
 
 
