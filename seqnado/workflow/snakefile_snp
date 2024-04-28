@@ -8,7 +8,7 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, ATACOutput, NormGroups
+from seqnado.design import Design, SNPOutput, NormGroups
 from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files
 
 
@@ -42,7 +42,7 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
-OUTPUT = ATACOutput(
+OUTPUT = SNPOutput(
     assay=ASSAY,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
@@ -67,7 +67,6 @@ include: "rules/peak_call_other.smk"
 include: "rules/peak_call_grouped.smk"
 include: "rules/qc.smk"
 include: "rules/heatmap.smk"
-include: "rules/hub.smk"
 include: "rules/variant.smk"
 
 rule all:

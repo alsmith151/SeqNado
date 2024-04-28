@@ -218,7 +218,7 @@ def setup_configuration(assay, genome, template_data):
     )
 
     template_data["options"] = (
-        TOOL_OPTIONS if assay in ["chip", "atac"] else TOOL_OPTIONS_RNA
+        TOOL_OPTIONS if assay in ["chip", "atac", "snp"] else TOOL_OPTIONS_RNA
     )
 
 

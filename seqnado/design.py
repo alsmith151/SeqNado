@@ -1291,3 +1291,50 @@ class ChIPOutput(NonRNAOutput):
                 files.extend(file_list)
 
         return files
+
+
+class SNPOutput(Output):
+    assay: Literal["SNP"]
+    call_snps: bool = False
+    sample_names: List[str]
+    snp_calling_method: Optional[
+        Union[
+            Literal["bcftools", "deepvariant", False],
+            List[Literal["bcftools", "deepvariant"]],
+        ]
+    ] = None
+
+    @property
+    def snp_files(self) -> List[str]:
+        return expand(
+            "seqnado_output/variant/{method}/{sample}.vcf.gz",
+            sample=self.sample_names,
+            method=self.snp_calling_method,
+        )
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.bigwigs,
+            self.heatmaps,
+            self.ucsc_hub.files,
+            self.snp_files,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        if self.call_snps:
+            files.extend(self.snp_files)
+
+        return files
