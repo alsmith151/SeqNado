@@ -187,7 +187,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
         case "rna-rx":
             files = list(path.glob("rna-spikein*.fastq.gz"))
         case "snp":
-            files = list(path.glob("snp*.fastq.gz")
+            files = list(path.glob("snp*.fastq.gz"))
 
     return files
 
