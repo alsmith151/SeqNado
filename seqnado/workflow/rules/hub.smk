@@ -39,15 +39,6 @@ def get_hub_params(config):
     return hub_params
 
 
-rule save_design:
-    output:
-        "seqnado_output/design.csv",
-    container:
-        None
-    run:
-        DESIGN.to_dataframe().to_csv("seqnado_output/design.csv", index=False)
-
-
 rule validate_peaks:
     input:
         peaks=OUTPUT.peaks,

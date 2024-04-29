@@ -879,7 +879,13 @@ class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     names: List[str]
     pileup_method: Union[
-        Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]
+        Literal["deeptools", "homer", False],
+        List[
+            Literal[
+                "deeptools",
+                "homer",
+            ]
+        ],
     ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
@@ -1028,9 +1034,11 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: Optional[
-        Union[Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]]
+    pileup_method: Union[
+        Literal["deeptools", "homer", False],
+        List[Literal["deeptools", "homer"]],
     ] = None
+
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
     make_heatmaps: bool = False
@@ -1297,12 +1305,17 @@ class SNPOutput(Output):
     assay: Literal["SNP"]
     call_snps: bool = False
     sample_names: List[str]
+    make_ucsc_hub: bool = False
     snp_calling_method: Optional[
         Union[
             Literal["bcftools", "deepvariant", False],
             List[Literal["bcftools", "deepvariant"]],
         ]
     ] = None
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
 
     @property
     def snp_files(self) -> List[str]:
@@ -1325,9 +1338,6 @@ class SNPOutput(Output):
         )
 
         for file_list in (
-            self.bigwigs,
-            self.heatmaps,
-            self.ucsc_hub.files,
             self.snp_files,
             self.design,
         ):
@@ -1335,6 +1345,6 @@ class SNPOutput(Output):
                 files.extend(file_list)
 
         if self.call_snps:
-            files.extend(self.snp_files)
+            files.append(self.snp_files)
 
         return files

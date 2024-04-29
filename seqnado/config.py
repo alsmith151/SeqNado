@@ -61,7 +61,7 @@ def setup_configuration(assay, genome, template_data):
         if genome in genome_values:
             genome_dict[genome] = {
                 "indices": genome_values[genome].get(
-                    "bt2_indices" if assay in ["chip", "atac"] else "star_indices", ""
+                    "star_indices" if assay in ["rna"] else "bt2_indices"
                 ),
                 "chromosome_sizes": genome_values[genome].get("chromosome_sizes", ""),
                 "gtf": genome_values[genome].get("gtf", ""),
@@ -148,7 +148,9 @@ def setup_configuration(assay, genome, template_data):
         )
         if template_data["make_bigwigs"]:
             template_data["pileup_method"] = get_user_input(
-                "Pileup method:", default="deeptools", choices=["deeptools", "homer"]
+                "Pileup method:",
+                default="deeptools",
+                choices=["deeptools", "homer"],
             )
             template_data["scale"] = get_user_input(
                 "Scale bigwigs? (yes/no)", default="no", is_boolean=True
@@ -156,7 +158,7 @@ def setup_configuration(assay, genome, template_data):
             template_data["make_heatmaps"] = get_user_input(
                 "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
             )
-        else :
+        else:
             template_data["pileup_method"] = "False"
             template_data["scale"] = "False"
             template_data["make_heatmaps"] = "False"
@@ -233,28 +235,25 @@ def setup_configuration(assay, genome, template_data):
         template_data["snp_database"] = "False"
 
     # Make UCSC hub
-    if assay not in ["snp"]:
-        template_data["make_ucsc_hub"] = get_user_input(
-            "Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True
-        )
+    template_data["make_ucsc_hub"] = get_user_input(
+        "Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True
+    )
 
-        template_data["UCSC_hub_directory"] = (
-            get_user_input("UCSC hub directory:", default="seqnado_output/hub/")
-            if template_data["make_ucsc_hub"]
-            else "seqnado_output/hub/"
-        )
-        template_data["email"] = (
-            get_user_input(
-                "What is your email address?", default=f"{username}@example.com"
-            )
-            if template_data["make_ucsc_hub"]
-            else f"{username}@example.com"
-        )
-        template_data["color_by"] = (
-            get_user_input("Color by (for UCSC hub):", default="samplename")
-            if template_data["make_ucsc_hub"]
-            else "samplename"
-        )
+    template_data["UCSC_hub_directory"] = (
+        get_user_input("UCSC hub directory:", default="seqnado_output/hub/")
+        if template_data["make_ucsc_hub"]
+        else "seqnado_output/hub/"
+    )
+    template_data["email"] = (
+        get_user_input("What is your email address?", default=f"{username}@example.com")
+        if template_data["make_ucsc_hub"]
+        else f"{username}@example.com"
+    )
+    template_data["color_by"] = (
+        get_user_input("Color by (for UCSC hub):", default="samplename")
+        if template_data["make_ucsc_hub"]
+        else "samplename"
+    )
 
     template_data["options"] = (
         TOOL_OPTIONS

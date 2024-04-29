@@ -55,18 +55,12 @@ NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", in
 ###################
 # Pipeline config #
 ###################
-
+include: "rules/common.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/fastq_screen.smk"
 include: "rules/fastq_trim.smk"
-include: "rules/pileup_default.smk"
-include: "rules/pileup_norm.smk"
-include: "rules/pileup_grouped.smk"
-include: "rules/peak_call_other.smk"
-include: "rules/peak_call_grouped.smk"
 include: "rules/qc.smk"
-include: "rules/heatmap.smk"
 include: "rules/variant.smk"
 
 rule all:
