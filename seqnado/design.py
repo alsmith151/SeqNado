@@ -1319,11 +1319,14 @@ class SNPOutput(Output):
 
     @property
     def snp_files(self) -> List[str]:
-        return expand(
-            "seqnado_output/variant/{method}/{sample}.vcf.gz",
-            sample=self.sample_names,
-            method=self.snp_calling_method,
-        )
+        if self.call_snps:
+            return expand(
+                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                sample=self.sample_names,
+                method=self.snp_calling_method,
+            )
+        else:
+            return []
 
     @computed_field
     @property
