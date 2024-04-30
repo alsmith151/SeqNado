@@ -182,12 +182,6 @@ def cli_pipeline(
             ]
         )
 
-        # Home directory symlinks cause issues with singularity bind mounts
-        # to avoid this will change directory to the full resolved path of the current directory
-        cwd = pathlib.Path.cwd().resolve().absolute()
-        os.chdir(cwd)
-
-
     elif preset == "ls":
         cmd.extend(
             [
@@ -208,4 +202,16 @@ def cli_pipeline(
 
     print(logo)
 
-    completed = subprocess.run(cmd)
+
+
+    # Home directory symlinks cause issues with singularity bind mounts
+    # to avoid this will change directory to the full resolved path of the current directory
+    cwd = str(pathlib.Path(".").resolve())
+    os.chdir(cwd)
+    os.environ["PWD"] = cwd
+    completed = subprocess.run(cmd, cwd=cwd)
+
+    if completed.returncode != 0:
+        sys.exit(completed.returncode)
+    else:
+        sys.exit(0)
