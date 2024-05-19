@@ -6,6 +6,9 @@ rule lanceotron_no_input_consensus:
     output:
         peaks="seqnado_output/peaks/merged/lanceotron/{group}.bed",
     threads: 8
+    resources:
+        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
+        mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt - 1)}GB",
     params:
         outdir="seqnado_output/peaks/merged/lanceotron",
         options=check_options(config["lanceotron"]["callpeak"])
