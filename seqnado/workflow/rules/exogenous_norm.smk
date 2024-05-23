@@ -7,6 +7,7 @@ use rule align_paired as align_paired_spikein with:
     resources:
         mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
 
+
 use rule align_single as align_single_spikein with:
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
@@ -23,6 +24,7 @@ use rule sort_bam as sort_bam_spikein with:
         mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
     log:
         "seqnado_output/logs/aligned_spikein/{sample}_sort.log",
+
 
 use rule index_bam as index_bam_spikein with:
     input:
@@ -96,7 +98,10 @@ if config["spikein_options"]["normalisation_method"] == "orlando":
 
     rule calculate_normalisation_factors:
         input:
-            lambda wc: expand(rules.split_bam.output.stats, sample=SAMPLE_NAMES_IP + SAMPLE_NAMES_CONTROL),
+            lambda wc: expand(
+                rules.split_bam.output.stats,
+                sample=SAMPLE_NAMES_IP + SAMPLE_NAMES_CONTROL,
+            ),
         output:
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
@@ -109,7 +114,11 @@ elif config["spikein_options"]["normalisation_method"] == "with_input":
 
     rule calculate_normalisation_factors:
         input:
-            lambda wc: expand(rules.split_bam.output.stats, sample=SAMPLE_NAMES_IP + SAMPLE_NAMES_CONTROL),
+            lambda wc: expand(
+                rules.split_bam.output.stats,
+                sample=SAMPLE_NAMES_IP + SAMPLE_NAMES_CONTROL,
+            ),
+            design="seqnado_output/design.csv",
         output:
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
