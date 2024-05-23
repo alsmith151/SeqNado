@@ -632,7 +632,7 @@ class DesignIP(BaseModel):
                     experiment.control.r1.path if experiment.control else None
                 ),
                 "control_r2": (
-                    experiment.control.r2.path if experiment.control else None
+                    experiment.control.r2.path if experiment.control.r2 else None
                 ),
             }
 
