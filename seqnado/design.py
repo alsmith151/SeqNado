@@ -484,7 +484,7 @@ class DesignIP(BaseModel):
                 control.add(f.control_performed)
         return list(control)
 
-    def query(self, sample_name: str) -> FastqSetIP:
+    def query(self, sample_name: str, full_experiment: bool = False) -> Union[FastqSetIP, IPExperiment]:
         """
         Extracts a pair of fastq files from the design.
         """
@@ -492,18 +492,29 @@ class DesignIP(BaseModel):
         control_names = set(
             f.control_fullname for f in self.experiments if f.has_control
         )
+        is_control = False
 
         if sample_name in ip_names or sample_name in control_names:
             for experiment in self.experiments:
                 if experiment.ip_set_fullname == sample_name:
-                    return experiment.ip
+                    exp = experiment
+                    break
                 elif (
                     experiment.has_control
                     and experiment.control_fullname == sample_name
                 ):
-                    return experiment.control
+                    is_control = True
+                    exp = experiment
+                    break
+
         else:
             raise ValueError(f"Could not find sample with name {sample_name}")
+        
+
+        if full_experiment:
+            return exp
+        else:
+            return exp.ip if not is_control else exp.control
 
     @classmethod
     def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
@@ -945,6 +956,7 @@ class PeakCallingFiles(BaseModel):
 
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    make_heatmaps: bool = False
 
     @property
     def heatmap_files(self) -> List[str]:
@@ -956,7 +968,10 @@ class HeatmapFiles(BaseModel):
     @computed_field
     @property
     def files(self) -> List[str]:
-        return self.heatmap_files
+        if self.make_heatmaps:
+            return self.heatmap_files
+        else:
+            return []
 
 
 class HubFiles(BaseModel):
@@ -1158,7 +1173,6 @@ class NonRNAOutput(Output):
             prefix="seqnado_output/peaks/merged/",
         )
 
-    @computed_field
     @property
     def peaks(self) -> List[str]:
         pcf_samples = PeakCallingFiles(
@@ -1225,8 +1239,9 @@ class ChIPOutput(NonRNAOutput):
         ip_sample_names = [
             s
             for s in self.sample_names
-            if any([c not in s for c in self.control_names])
+            if not any([c in s for c in self.control_names])
         ]
+
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
             names=ip_sample_names,
@@ -1250,7 +1265,6 @@ class ChIPOutput(NonRNAOutput):
         )
         return sif.files
 
-    @computed_field
     @property
     def files(self) -> List[str]:
         files = []
