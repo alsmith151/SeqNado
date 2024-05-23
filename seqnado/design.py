@@ -632,10 +632,9 @@ class DesignIP(BaseModel):
                     experiment.control.r1.path if experiment.control else None
                 ),
                 "control_r2": (
-                    experiment.control.r2.path if experiment.control.r2 else None
+                    experiment.control.r2.path if experiment.control and experiment.control.r2 else None
                 ),
             }
-
             for k, v in metadata.model_dump(exclude_none=True).items():
                 row[k] = v
 
