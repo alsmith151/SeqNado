@@ -44,7 +44,7 @@ rule filter_bam_spikein:
         "seqnado_output/logs/aligned_spikein/{sample}_filter.log",
     shell:
         """
-    samtools view -b -F 256 -f 2 -q 30 -@ 8 {input.bam} > {output.bam} &&
+    samtools view -b -F 256 -f 2 -@ 8 {input.bam} > {output.bam} &&
     echo 'Filtered bam number of mapped reads:' > {log} 2>&1 &&
     samtools view -c {output.bam} >> {log} 2>&1
     """
