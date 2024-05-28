@@ -29,9 +29,13 @@ def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
 
 class FastqFile(BaseModel):
     path: pathlib.Path
+    use_resolved_name: bool = False
 
     def model_post_init(self, *args):
-        self.path = pathlib.Path(self.path).resolve()
+        if self.use_resolved_name:
+            self.path = pathlib.Path(self.path).resolve()
+        else:
+            self.path = pathlib.Path(self.path).absolute()
 
         if not self.path.exists() or str(self.path) in ["-", ".", "", None]:
             raise FileNotFoundError(f"{self.path} does not exist.")
