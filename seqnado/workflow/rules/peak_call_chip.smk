@@ -10,9 +10,8 @@ def get_lanceotron_threshold(wildcards):
     threshold = threshold_pattern.search(options).group(1)
     return threshold
 
-
 def format_macs_options(wildcards, options):
-    query_name = f"{wildcards.sample}_{wildcards.treatment}"
+    query_name = f"{wildcards.sample}_{wildcards.treatment}"    
     is_paired = DESIGN.query(query_name).is_paired
     options = check_options(options)
     if not is_paired:
@@ -23,35 +22,30 @@ def format_macs_options(wildcards, options):
         return options
 
 
-def get_control_file(
-    wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False
-):
-    exp = DESIGN.query(
-        sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True
-    )
-
-    if (
-        not exp.has_control and not allow_null
-    ):  # if control is not defined, return UNDEFINED. This is to prevent the rule from running
-        return "UNDEFINED"
-    elif (
-        not exp.has_control and allow_null
-    ):  # if control is not defined, return empty list
-        return []
-
-    match file_type:
-        case "bam":
-            fn = f"seqnado_output/aligned/{exp.control_fullname}.bam"
-        case "tag":
-            fn = f"seqnado_output/tag_dirs/{exp.control_fullname}"
-        case "bigwig":
-            fn = f"seqnado_output/bigwigs/deeptools/unscaled/{exp.control_fullname}.bigWig"
-    return fn
-
+def get_control_file(wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False):
+    control_info = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)["control"]
+    if control_info:
+        match file_type:
+            case "bam":
+                return f"seqnado_output/aligned/{control_info.sample_name}.bam"
+            case "tag":
+                return f"seqnado_output/tag_dirs/{control_info.sample_name}"
+            case "bigwig":
+                return f"seqnado_output/bigwigs/deeptools/unscaled/{control_info.sample_name}.bigWig"
+    else:
+        if allow_null:
+            return []
+        else:
+            return "UNDEFINED"
+        if allow_null:
+            return []
+        else:
+            return "UNDEFINED"
 
 rule macs2_with_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
+        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=False),
         control=lambda wc: get_control_file(wc, file_type="bam", allow_null=False),
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
@@ -75,7 +69,8 @@ rule macs2_with_input:
 rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
-        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=True),
+        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=True), 
+        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=True), 
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
@@ -99,6 +94,7 @@ rule homer_with_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
         control=lambda wc: get_control_file(wc, file_type="tag", allow_null=False),
+        control=lambda wc: get_control_file(wc, file_type="tag", allow_null=False),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -121,6 +117,7 @@ rule homer_no_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
         control=lambda wc: get_control_file(wc, file_type="tag", allow_null=True),
+        control=lambda wc: get_control_file(wc, file_type="tag", allow_null=True),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -142,6 +139,7 @@ rule homer_no_input:
 rule lanceotron_with_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
+        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
         control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
@@ -168,6 +166,7 @@ rule lanceotron_no_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
         control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=True),
+        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=True),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
@@ -188,7 +187,6 @@ rule lanceotron_no_input:
         cat {params.basename}_L-tron.bed | cut -f 1-3 > {output.peaks}
         """
 
-
 rule seacr:
     input:
         treatment="seqnado_output/bedgraphs/{sample}_{treatment}.bedGraph",
@@ -200,8 +198,7 @@ rule seacr:
         threshold=config["seacr"].get("threshold", 0.01),
         norm=config["seacr"].get("norm", "non"),
         stringency=config["seacr"].get("stringency", "stringent"),
-        prefix=lambda wc, output: pathlib.Path(output.peaks).parent
-        / pathlib.Path(output.peaks).name,
+        prefix=lambda wc, output: pathlib.Path(output.peaks).parent / pathlib.Path(output.peaks).name,
     threads: 1
     resources:
         mem="5GB",
@@ -212,7 +209,7 @@ rule seacr:
         mv {params.prefix}.{params.stringency}.bed {params.prefix}_seacr.txt
         cut -f 1-3 {params.prefix}_seacr.txt > {output.peaks}
         """
-
+    
 
 ruleorder: lanceotron_with_input > lanceotron_no_input
 ruleorder: homer_with_input > homer_no_input
