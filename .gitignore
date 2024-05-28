@@ -18,3 +18,4 @@ fastq_class_sandbox.ipynb
 test_rna_size_factors.ipynb
 tests/data/*
 pytestdebug.log
+sps*

@@ -49,11 +49,11 @@ jobs:
     - name: Test design works
       shell: pwsh
       run: |
-        seqnado-design chip tests/data/fastq/CTCF*.fastq.gz
-    - name: Test with pytest
+        seqnado-design chip tests/data/fastq/chip-rx*.fastq.gz
+    - name: Test pipeline
       shell: pwsh
       run: |
-        pytest -vv -s --cov=./ --cov-report=xml --cores 4
+        pytest -vv -s --cov=./ --cov-report=xml --cores 4 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4.0.1
       with:
