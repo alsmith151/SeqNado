@@ -29,13 +29,9 @@ def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
 
 class FastqFile(BaseModel):
     path: pathlib.Path
-    use_resolved_name: bool = False
 
     def model_post_init(self, *args):
-        if self.use_resolved_name:
-            self.path = pathlib.Path(self.path).resolve()
-        else:
-            self.path = pathlib.Path(self.path).absolute()
+        self.path = pathlib.Path(self.path).resolve()
 
         if not self.path.exists() or str(self.path) in ["-", ".", "", None]:
             raise FileNotFoundError(f"{self.path} does not exist.")
@@ -484,7 +480,9 @@ class DesignIP(BaseModel):
                 control.add(f.control_performed)
         return list(control)
 
-    def query(self, sample_name: str, full_experiment: bool = False) -> Union[FastqSetIP, IPExperiment]:
+    def query(
+        self, sample_name: str, full_experiment: bool = False
+    ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
         """
         Extracts a pair of fastq files from the design.
         """
@@ -494,27 +492,32 @@ class DesignIP(BaseModel):
         )
         is_control = False
 
+        experiment_files = dict()
+
         if sample_name in ip_names or sample_name in control_names:
             for experiment in self.experiments:
                 if experiment.ip_set_fullname == sample_name:
-                    exp = experiment
-                    break
+                    experiment_files["ip"] = experiment.ip
+                    experiment_files["control"] = experiment.control
+
                 elif (
                     experiment.has_control
                     and experiment.control_fullname == sample_name
                 ):
                     is_control = True
-                    exp = experiment
-                    break
-
+                    experiment_files["ip"] = experiment.ip
+                    experiment_files["control"] = experiment.control
         else:
             raise ValueError(f"Could not find sample with name {sample_name}")
-        
 
         if full_experiment:
-            return exp
+            return experiment_files
         else:
-            return exp.ip if not is_control else exp.control
+            return (
+                experiment_files["ip"]
+                if not is_control
+                else experiment_files["control"]
+            )
 
     @classmethod
     def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
@@ -733,7 +736,7 @@ class NormGroup(BaseModel):
         subset_value: Optional[List[str]] = None,
         include_controls: bool = False,
     ):
-        
+
         if isinstance(design, Design):
             df = (
                 design.to_dataframe()
@@ -760,12 +763,10 @@ class NormGroup(BaseModel):
             )
             df = pd.concat([df_ip, df_control])
 
-
         if subset_value:
             df = df.query(f"{subset_column} in {subset_value}")
 
         samples = df.index.tolist()
-
 
         reference_sample = reference_sample or df.index[0]
 
@@ -878,7 +879,13 @@ class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     names: List[str]
     pileup_method: Union[
-        Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]
+        Literal["deeptools", "homer", False],
+        List[
+            Literal[
+                "deeptools",
+                "homer",
+            ]
+        ],
     ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
@@ -890,7 +897,9 @@ class BigWigFiles(BaseModel):
             self.pileup_method = [self.pileup_method]
 
         if self.include_unscaled and not self.scale_method:
-            self.scale_method = ["unscaled",]
+            self.scale_method = [
+                "unscaled",
+            ]
         elif self.include_unscaled and self.scale_method:
             self.scale_method = ["unscaled", self.scale_method]
         else:
@@ -1025,9 +1034,11 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: Optional[
-        Union[Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]]
+    pileup_method: Union[
+        Literal["deeptools", "homer", False],
+        List[Literal["deeptools", "homer"]],
     ] = None
+
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
     make_heatmaps: bool = False
@@ -1286,5 +1297,57 @@ class ChIPOutput(NonRNAOutput):
         ):
             if file_list:
                 files.extend(file_list)
+
+        return files
+
+
+class SNPOutput(Output):
+    assay: Literal["SNP"]
+    call_snps: bool = False
+    sample_names: List[str]
+    make_ucsc_hub: bool = False
+    snp_calling_method: Optional[
+        Union[
+            Literal["bcftools", "deepvariant", False],
+            List[Literal["bcftools", "deepvariant"]],
+        ]
+    ] = None
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @property
+    def snp_files(self) -> List[str]:
+        if self.call_snps:
+            return expand(
+                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                sample=self.sample_names,
+                method=self.snp_calling_method,
+            )
+        else:
+            return []
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.snp_files,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        if self.call_snps:
+            files.append(self.snp_files)
 
         return files
