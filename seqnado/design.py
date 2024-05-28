@@ -484,9 +484,7 @@ class DesignIP(BaseModel):
                 control.add(f.control_performed)
         return list(control)
 
-    def query(
-        self, sample_name: str, full_experiment: bool = False
-    ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
+
     def query(
         self, sample_name: str, full_experiment: bool = False
     ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
@@ -1070,9 +1068,6 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: Union[
-        Literal["deeptools", "homer", False],
-        List[Literal["deeptools", "homer"]],
     pileup_method: Union[
         Literal["deeptools", "homer", False],
         List[Literal["deeptools", "homer"]],
