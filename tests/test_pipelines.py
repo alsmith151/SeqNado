@@ -224,7 +224,7 @@ def user_inputs(
         "scale": "no",
         "make_heatmaps": "yes",
         "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
+        "peak_calling_method": "macs",
     }
 
     defaults_chip = {
@@ -336,7 +336,7 @@ def config_yaml_for_testing(config_yaml, assay):
 
     if assay == "chip":
         config["pileup_method"] = ["deeptools", "homer"]
-        config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
+        config["peak_calling_method"] = ["lanceotron", "homer"]
         config["library_complexity"] = False
         config["bowtie2"]["options"] = "--no-mixed --no-discordant"
     elif assay == "chip-rx":
