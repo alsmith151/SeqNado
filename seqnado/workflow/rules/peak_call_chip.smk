@@ -11,12 +11,9 @@ def get_lanceotron_threshold(wildcards):
     return threshold
 
 def format_macs_options(wildcards, options):
-
-    query_name = f"{wildcards.sample}_{wildcards.treatment}"
-    
+    query_name = f"{wildcards.sample}_{wildcards.treatment}"    
     is_paired = DESIGN.query(query_name).is_paired
     options = check_options(options)
-
     if not is_paired:
         options = re.sub(r"-f BAMPE", "", options)
     if not options:
@@ -25,6 +22,21 @@ def format_macs_options(wildcards, options):
         return options
 
 
+def get_control_file(wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False):
+    control_info = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)["control"]
+    if control_info:
+        match file_type:
+            case "bam":
+                return f"seqnado_output/aligned/{control_info.sample_name}.bam"
+            case "tag":
+                return f"seqnado_output/tag_dirs/{control_info.sample_name}"
+            case "bigwig":
+                return f"seqnado_output/bigwigs/deeptools/unscaled/{control_info.sample_name}.bigWig"
+    else:
+        if allow_null:
+            return []
+        else:
+            return "UNDEFINED"
 def get_control_file(wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False):
     exp = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)
     
@@ -47,22 +59,23 @@ rule macs2_with_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
         control=lambda wc: get_control_file(wc, file_type="bam", allow_null=False),
+        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=False),
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
         options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
-        narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+        raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem="2GB",
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
         runtime="2h",
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
-        cat {params.narrow} | cut -f 1-3 > {output.peaks}
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
         """
 
 
@@ -70,28 +83,30 @@ rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
         control=lambda wc: get_control_file(wc, file_type="bam", allow_null=True), 
+        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=True), 
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
         options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
-        narrow=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+        raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem="2GB",
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
         runtime="2h",
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
-        cat {params.narrow} | cut -f 1-3 > {output.peaks}
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
         """
 
 
 rule homer_with_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
+        control=lambda wc: get_control_file(wc, file_type="tag", allow_null=False),
         control=lambda wc: get_control_file(wc, file_type="tag", allow_null=False),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
@@ -115,6 +130,7 @@ rule homer_no_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
         control=lambda wc: get_control_file(wc, file_type="tag", allow_null=True),
+        control=lambda wc: get_control_file(wc, file_type="tag", allow_null=True),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -136,6 +152,7 @@ rule homer_no_input:
 rule lanceotron_with_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
+        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
         control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
@@ -161,6 +178,7 @@ rule lanceotron_with_input:
 rule lanceotron_no_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
+        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=True),
         control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=True),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
