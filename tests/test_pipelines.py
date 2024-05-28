@@ -14,7 +14,7 @@ import requests
 
 @pytest.fixture(
     scope="function",
-    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp"],
+    params=["atac", "chip", "rna", "snp", "chip-rx", "rna-rx"],
     autouse=True,
 )
 def assay(request):
