@@ -336,7 +336,7 @@ def config_yaml_for_testing(config_yaml, assay):
 
     if assay == "chip":
         config["pileup_method"] = ["deeptools", "homer"]
-        config["peak_calling_method"] = ["lanceotron"]
+        config["peak_calling_method"] = ["macs", "homer", "lanceotron"]
         config["library_complexity"] = False
         config["bowtie2"]["options"] = "--no-mixed --no-discordant"
     elif assay == "chip-rx":
@@ -344,7 +344,6 @@ def config_yaml_for_testing(config_yaml, assay):
         config["peak_calling_method"] = ["seacr"]
     elif assay == "atac":
         config["call_peaks"] = True
-        config["peak_calling_method"] = ["macs", "homer", "lanceotron"]
 
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)
