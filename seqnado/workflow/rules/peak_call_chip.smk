@@ -46,7 +46,6 @@ rule macs2_with_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
         control=lambda wc: get_control_file(wc, file_type="bam", allow_null=False),
-        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=False),
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
     params:
@@ -69,7 +68,6 @@ rule macs2_with_input:
 rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample}_{treatment}.bam",
-        control=lambda wc: get_control_file(wc, file_type="bam", allow_null=True), 
         control=lambda wc: get_control_file(wc, file_type="bam", allow_null=True), 
     output:
         peaks="seqnado_output/peaks/macs/{sample}_{treatment}.bed",
@@ -94,7 +92,6 @@ rule homer_with_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
         control=lambda wc: get_control_file(wc, file_type="tag", allow_null=False),
-        control=lambda wc: get_control_file(wc, file_type="tag", allow_null=False),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -117,7 +114,6 @@ rule homer_no_input:
     input:
         treatment="seqnado_output/tag_dirs/{sample}_{treatment}",
         control=lambda wc: get_control_file(wc, file_type="tag", allow_null=True),
-        control=lambda wc: get_control_file(wc, file_type="tag", allow_null=True),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
     log:
@@ -139,7 +135,6 @@ rule homer_no_input:
 rule lanceotron_with_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
-        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
         control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
@@ -165,7 +160,6 @@ rule lanceotron_with_input:
 rule lanceotron_no_input:
     input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}_{treatment}.bigWig",
-        control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=True),
         control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=True),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
@@ -214,6 +208,3 @@ rule seacr:
 ruleorder: lanceotron_with_input > lanceotron_no_input
 ruleorder: homer_with_input > homer_no_input
 ruleorder: macs2_with_input > macs2_no_input
-
-
-# ucsc-bigwigtobedgraph
