@@ -241,7 +241,9 @@ def setup_configuration(assay, genome, template_data):
 
     template_data["UCSC_hub_directory"] = (
         get_user_input("UCSC hub directory:", default="seqnado_output/hub/")
+        get_user_input("UCSC hub directory:", default="seqnado_output/hub/")
         if template_data["make_ucsc_hub"]
+        else "seqnado_output/hub/"
         else "seqnado_output/hub/"
     )
     template_data["email"] = (
@@ -306,6 +308,8 @@ seacr:
 heatmap:
     options: -b 1000 -m 5000 -a 1000
     colormap: RdYlBu_r 
+    options: -b 1000 -m 5000 -a 1000
+    colormap: RdYlBu_r 
 """
 
 TOOL_OPTIONS_RNA = """
@@ -339,6 +343,8 @@ deeptools:
     bamcoverage: -bs 1 --normalizeUsing CPM
 
 heatmap:
+    options: -b 1000 -m 5000 -a 1000
+    colormap: RdYlBu_r 
     options: -b 1000 -m 5000 -a 1000
     colormap: RdYlBu_r 
 """
