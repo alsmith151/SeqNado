@@ -16,6 +16,9 @@ import requests
     scope="function",
     params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp"],
     autouse=True,
+    scope="function",
+    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp"],
+    autouse=True,
 )
 def assay(request):
     return request.param
@@ -188,6 +191,8 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             files = list(path.glob("rna-spikein*.fastq.gz"))
         case "snp":
             files = list(path.glob("snp*.fastq.gz"))
+        case "snp":
+            files = list(path.glob("snp*.fastq.gz"))
 
     return files
 
@@ -278,6 +283,11 @@ def user_inputs(
         "call_snps": "no",
     }
 
+    defaults_snp = {
+        "remove_pcr_duplicates": "no",
+        "call_snps": "no",
+    }
+
     hub = {
         "make_ucsc_hub": "yes",
         "UCSC_hub_directory": "test_hub",
@@ -296,6 +306,8 @@ def user_inputs(
             return {**defaults, **defaults_rna, **hub}
         case "rna-rx":
             return {**defaults, **defaults_rna_rx, **hub}
+        case "snp":
+            return {**defaults, **defaults_snp, **hub}
         case "snp":
             return {**defaults, **defaults_snp, **hub}
 
@@ -366,6 +378,7 @@ def design(seqnado_run_dir, assay_type, assay):
     if assay == "chip":
         # Add merge column to design file
         import pandas as pd
+
 
         df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
         df["merge"] = "MLL-MERGED-TOGETHER"

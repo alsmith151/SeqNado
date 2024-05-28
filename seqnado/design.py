@@ -29,9 +29,13 @@ def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
 
 class FastqFile(BaseModel):
     path: pathlib.Path
+    use_resolved_name: bool = False
 
     def model_post_init(self, *args):
-        self.path = pathlib.Path(self.path).resolve()
+        if self.use_resolved_name:
+            self.path = pathlib.Path(self.path).resolve()
+        else:
+            self.path = pathlib.Path(self.path).absolute()
 
         if not self.path.exists() or str(self.path) in ["-", ".", "", None]:
             raise FileNotFoundError(f"{self.path} does not exist.")
@@ -483,6 +487,9 @@ class DesignIP(BaseModel):
     def query(
         self, sample_name: str, full_experiment: bool = False
     ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
+    def query(
+        self, sample_name: str, full_experiment: bool = False
+    ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
         """
         Extracts a pair of fastq files from the design.
         """
@@ -493,10 +500,16 @@ class DesignIP(BaseModel):
         is_control = False
 
         experiment_files = dict()
+        is_control = False
+
+        experiment_files = dict()
 
         if sample_name in ip_names or sample_name in control_names:
             for experiment in self.experiments:
                 if experiment.ip_set_fullname == sample_name:
+                    experiment_files["ip"] = experiment.ip
+                    experiment_files["control"] = experiment.control
+
                     experiment_files["ip"] = experiment.ip
                     experiment_files["control"] = experiment.control
 
@@ -507,8 +520,20 @@ class DesignIP(BaseModel):
                     is_control = True
                     experiment_files["ip"] = experiment.ip
                     experiment_files["control"] = experiment.control
+                    is_control = True
+                    experiment_files["ip"] = experiment.ip
+                    experiment_files["control"] = experiment.control
         else:
             raise ValueError(f"Could not find sample with name {sample_name}")
+
+        if full_experiment:
+            return experiment_files
+        else:
+            return (
+                experiment_files["ip"]
+                if not is_control
+                else experiment_files["control"]
+            )
 
         if full_experiment:
             return experiment_files
@@ -885,6 +910,13 @@ class BigWigFiles(BaseModel):
                 "homer",
             ]
         ],
+        Literal["deeptools", "homer", False],
+        List[
+            Literal[
+                "deeptools",
+                "homer",
+            ]
+        ],
     ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
@@ -965,6 +997,7 @@ class PeakCallingFiles(BaseModel):
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     make_heatmaps: bool = False
+    make_heatmaps: bool = False
 
     @property
     def heatmap_files(self) -> List[str]:
@@ -976,6 +1009,10 @@ class HeatmapFiles(BaseModel):
     @computed_field
     @property
     def files(self) -> List[str]:
+        if self.make_heatmaps:
+            return self.heatmap_files
+        else:
+            return []
         if self.make_heatmaps:
             return self.heatmap_files
         else:
@@ -1036,7 +1073,11 @@ class Output(BaseModel):
     pileup_method: Union[
         Literal["deeptools", "homer", False],
         List[Literal["deeptools", "homer"]],
+    pileup_method: Union[
+        Literal["deeptools", "homer", False],
+        List[Literal["deeptools", "homer"]],
     ] = None
+
 
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
@@ -1250,7 +1291,9 @@ class ChIPOutput(NonRNAOutput):
             s
             for s in self.sample_names
             if not any([c in s for c in self.control_names])
+            if not any([c in s for c in self.control_names])
         ]
+
 
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
@@ -1296,6 +1339,58 @@ class ChIPOutput(NonRNAOutput):
         ):
             if file_list:
                 files.extend(file_list)
+
+        return files
+
+
+class SNPOutput(Output):
+    assay: Literal["SNP"]
+    call_snps: bool = False
+    sample_names: List[str]
+    make_ucsc_hub: bool = False
+    snp_calling_method: Optional[
+        Union[
+            Literal["bcftools", "deepvariant", False],
+            List[Literal["bcftools", "deepvariant"]],
+        ]
+    ] = None
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @property
+    def snp_files(self) -> List[str]:
+        if self.call_snps:
+            return expand(
+                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                sample=self.sample_names,
+                method=self.snp_calling_method,
+            )
+        else:
+            return []
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.snp_files,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        if self.call_snps:
+            files.append(self.snp_files)
 
         return files
 
