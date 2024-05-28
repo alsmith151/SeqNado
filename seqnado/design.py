@@ -484,9 +484,7 @@ class DesignIP(BaseModel):
                 control.add(f.control_performed)
         return list(control)
 
-    def query(
-        self, sample_name: str, full_experiment: bool = False
-    ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
+
     def query(
         self, sample_name: str, full_experiment: bool = False
     ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
