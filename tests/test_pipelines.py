@@ -161,7 +161,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     path = test_data_path / "fastq"
 
     if not path.exists():
-        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/fastq.tar.gz"
+        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
         r = requests.get(url, stream=True)
 
         tar_path = path.with_suffix(".tar.gz")

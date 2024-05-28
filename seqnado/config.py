@@ -7,7 +7,6 @@ package_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(package_dir, "workflow/config")
 
 
-# Helper Functions
 def get_user_input(prompt, default=None, is_boolean=False, choices=None):
     while True:
         user_input = (
@@ -62,7 +61,8 @@ def setup_configuration(assay, genome, template_data):
         if genome in genome_values:
             genome_dict[genome] = {
                 "indices": genome_values[genome].get(
-                    "bt2_indices" if assay in ["chip", "atac"] else "star_indices", ""
+                    "star_indices" if assay in ["rna"] else "bt2_indices"
+                    "star_indices" if assay in ["rna"] else "bt2_indices"
                 ),
                 "chromosome_sizes": genome_values[genome].get("chromosome_sizes", ""),
                 "gtf": genome_values[genome].get("gtf", ""),
@@ -143,19 +143,46 @@ def setup_configuration(assay, genome, template_data):
             )
 
     # Make bigwigs
-    template_data["make_bigwigs"] = get_user_input(
-        "Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True
-    )
-    if template_data["make_bigwigs"]:
-        template_data["pileup_method"] = get_user_input(
-            "Pileup method:", default="deeptools", choices=["deeptools", "homer"]
+    if assay not in ["snp"]:
+        template_data["make_bigwigs"] = get_user_input(
+            "Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True
         )
-        template_data["scale"] = get_user_input(
-            "Scale bigwigs? (yes/no)", default="no", is_boolean=True
+        if template_data["make_bigwigs"]:
+            template_data["pileup_method"] = get_user_input(
+                "Pileup method:",
+                default="deeptools",
+                choices=["deeptools", "homer"],
+            )
+            template_data["scale"] = get_user_input(
+                "Scale bigwigs? (yes/no)", default="no", is_boolean=True
+            )
+            template_data["make_heatmaps"] = get_user_input(
+                "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
+            )
+        else:
+            template_data["pileup_method"] = "False"
+            template_data["scale"] = "False"
+            template_data["make_heatmaps"] = "False"
+    if assay not in ["snp"]:
+        template_data["make_bigwigs"] = get_user_input(
+            "Do you want to make bigwigs? (yes/no)", default="no", is_boolean=True
         )
-        template_data["make_heatmaps"] = get_user_input(
-            "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
-        )
+        if template_data["make_bigwigs"]:
+            template_data["pileup_method"] = get_user_input(
+                "Pileup method:",
+                default="deeptools",
+                choices=["deeptools", "homer"],
+            )
+            template_data["scale"] = get_user_input(
+                "Scale bigwigs? (yes/no)", default="no", is_boolean=True
+            )
+            template_data["make_heatmaps"] = get_user_input(
+                "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
+            )
+        else:
+            template_data["pileup_method"] = "False"
+            template_data["scale"] = "False"
+            template_data["make_heatmaps"] = "False"
 
     # Call peaks
     if assay in ["chip", "atac"]:
@@ -196,15 +223,79 @@ def setup_configuration(assay, genome, template_data):
         else "False"
     )
 
+    # SNP options
+    template_data["call_snps"] = (
+        get_user_input("Call SNPs? (yes/no)", default="no", is_boolean=True)
+        if assay == "snp"
+        else "False"
+    )
+    if assay == "snp" and template_data["call_snps"]:
+
+        template_data["snp_calling_method"] = get_user_input(
+            "SNP caller:",
+            default="bcftools",
+            choices=["bcftools", "deepvariant"],
+        )
+
+        template_data["fasta"] = get_user_input(
+            "Path to reference fasta:", default="path/to/reference.fasta"
+        )
+
+        template_data["fasta_index"] = get_user_input(
+            "Path to reference fasta index:", default="path/to/reference.fasta.fai"
+        )
+
+        template_data["snp_database"] = get_user_input(
+            "Path to SNP database:",
+            default="path/to/snp_database",
+        )
+    else:
+        template_data["snp_calling_method"] = "False"
+        template_data["fasta"] = "False"
+        template_data["fasta_index"] = "False"
+        template_data["snp_database"] = "False"
+
+    # SNP options
+    template_data["call_snps"] = (
+        get_user_input("Call SNPs? (yes/no)", default="no", is_boolean=True)
+        if assay == "snp"
+        else "False"
+    )
+    if assay == "snp" and template_data["call_snps"]:
+
+        template_data["snp_calling_method"] = get_user_input(
+            "SNP caller:",
+            default="bcftools",
+            choices=["bcftools", "deepvariant"],
+        )
+
+        template_data["fasta"] = get_user_input(
+            "Path to reference fasta:", default="path/to/reference.fasta"
+        )
+
+        template_data["fasta_index"] = get_user_input(
+            "Path to reference fasta index:", default="path/to/reference.fasta.fai"
+        )
+
+        template_data["snp_database"] = get_user_input(
+            "Path to SNP database:",
+            default="path/to/snp_database",
+        )
+    else:
+        template_data["snp_calling_method"] = "False"
+        template_data["fasta"] = "False"
+        template_data["fasta_index"] = "False"
+        template_data["snp_database"] = "False"
+
     # Make UCSC hub
     template_data["make_ucsc_hub"] = get_user_input(
         "Do you want to make a UCSC hub? (yes/no)", default="no", is_boolean=True
     )
 
     template_data["UCSC_hub_directory"] = (
-        get_user_input("UCSC hub directory:", default="/path/to/ucsc_hub/")
+        get_user_input("UCSC hub directory:", default="seqnado_output/hub/")
         if template_data["make_ucsc_hub"]
-        else "."
+        else "seqnado_output/hub/"
     )
     template_data["email"] = (
         get_user_input("What is your email address?", default=f"{username}@example.com")
@@ -218,7 +309,20 @@ def setup_configuration(assay, genome, template_data):
     )
 
     template_data["options"] = (
-        TOOL_OPTIONS if assay in ["chip", "atac"] else TOOL_OPTIONS_RNA
+        TOOL_OPTIONS
+        if assay in ["chip", "atac"]
+        else (
+            TOOL_OPTIONS_RNA
+            if assay == "rna"
+            else TOOL_OPTIONS_SNP if assay == "snp" else ""
+        )
+        TOOL_OPTIONS
+        if assay in ["chip", "atac"]
+        else (
+            TOOL_OPTIONS_RNA
+            if assay == "rna"
+            else TOOL_OPTIONS_SNP if assay == "snp" else ""
+        )
     )
 
 
@@ -260,8 +364,8 @@ seacr:
     stringency: stringent
 
 heatmap:
-    options:
-    colormap: RdYlBu_r
+    options: -b 1000 -m 5000 -a 1000
+    colormap: RdYlBu_r 
 """
 
 TOOL_OPTIONS_RNA = """
@@ -295,8 +399,48 @@ deeptools:
     bamcoverage: -bs 1 --normalizeUsing CPM
 
 heatmap:
+    options: -b 1000 -m 5000 -a 1000
+    colormap: RdYlBu_r 
+"""
+
+
+TOOL_OPTIONS_SNP = """
+trim_galore:
+    threads: 8
+    options: --2colour 20 
+
+bowtie2:
+    threads: 8
     options:
-    colormap: RdYlBu_r
+
+picard:
+    threads: 8
+    options:
+
+bcftools:
+    threads: 16
+    options:
+    
+"""
+
+
+TOOL_OPTIONS_SNP = """
+trim_galore:
+    threads: 8
+    options: --2colour 20 
+
+bowtie2:
+    threads: 8
+    options:
+
+picard:
+    threads: 8
+    options:
+
+bcftools:
+    threads: 16
+    options:
+    
 """
 
 
