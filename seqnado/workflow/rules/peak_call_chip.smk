@@ -12,6 +12,7 @@ def get_lanceotron_threshold(wildcards):
 
 def format_macs_options(wildcards, options):
     query_name = f"{wildcards.sample}_{wildcards.treatment}"    
+    query_name = f"{wildcards.sample}_{wildcards.treatment}"    
     is_paired = DESIGN.query(query_name).is_paired
     options = check_options(options)
     if not is_paired:
@@ -22,6 +23,16 @@ def format_macs_options(wildcards, options):
         return options
 
 
+def get_control_file(wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False):
+    control_info = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)["control"]
+    if control_info:
+        match file_type:
+            case "bam":
+                return f"seqnado_output/aligned/{control_info.sample_name}.bam"
+            case "tag":
+                return f"seqnado_output/tag_dirs/{control_info.sample_name}"
+            case "bigwig":
+                return f"seqnado_output/bigwigs/deeptools/unscaled/{control_info.sample_name}.bigWig"
 def get_control_file(wildcards, file_type: Literal["bam", "tag", "bigwig"], allow_null=False):
     control_info = DESIGN.query(sample_name=f"{wildcards.sample}_{wildcards.treatment}", full_experiment=True)["control"]
     if control_info:
@@ -47,9 +58,11 @@ rule macs2_with_input:
     params:
         options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
+        raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
         mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
         runtime="2h",
     log:
@@ -57,6 +70,7 @@ rule macs2_with_input:
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
         cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
         """
 
@@ -70,9 +84,11 @@ rule macs2_no_input:
     params:
         options=lambda wc: format_macs_options(wc, config["macs"]["callpeak"]),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
+        raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
         mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
         runtime="2h",
     log:
@@ -80,6 +96,7 @@ rule macs2_no_input:
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
         cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
         """
 

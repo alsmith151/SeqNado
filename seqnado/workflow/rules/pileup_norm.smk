@@ -1,7 +1,7 @@
 from seqnado.helpers import check_options, get_group_for_sample
 
 def format_feature_counts(counts: str) -> pd.DataFrame:
-    counts = pd.read_csv(input.counts, sep="\t", comment="#")
+    counts = pd.read_csv(counts, sep="\t", comment="#")
     counts = counts.set_index("Geneid")
     counts = counts.drop(
         columns=["Chr", "Start", "End", "Strand", "Length"], errors="ignore"
@@ -10,7 +10,8 @@ def format_feature_counts(counts: str) -> pd.DataFrame:
 
 
 def create_metadata(counts: pd.DataFrame) -> pd.DataFrame:
-    return counts.columns.str.replace(".bam", "")
+    df = counts.columns.str.replace(".bam", "").to_frame("sample_name")
+    return df
 
 
 def get_scaling_factor(wildcards, scale_path: str) -> float:
@@ -92,7 +93,7 @@ rule count_bam:
         counts="seqnado_output/counts/counts.tsv",
     threads: 8
     shell:
-        "featureCounts -a {input.tiles} -a {input.tiles} -t tiles -o {output.counts} {input.bam} -T {threads} -p --countReadPairs"
+        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} -p --countReadPairs"
 
 
 rule setup_for_scaling_factors:
@@ -102,11 +103,11 @@ rule setup_for_scaling_factors:
         formatted_counts="seqnado_output/counts/{group}_formatted_counts.tsv",
         metadata="seqnado_output/counts/{group}_metadata.tsv",
     run:
-        counts = format_counts(input.counts)
-        counts.to_csv(output.formatted_counts, sep="\t")
+        counts = format_feature_counts(input[0])
+        counts.to_csv(output[0], sep="\t")
 
         metadata = create_metadata(counts)
-        metadata.to_csv(output.metadata, sep="\t", index=False, header=False)
+        metadata.to_csv(output[1], sep="\t", index=False, header=False)
 
 
 rule calculate_scaling_factors:

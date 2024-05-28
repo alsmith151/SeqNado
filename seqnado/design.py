@@ -29,9 +29,13 @@ def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
 
 class FastqFile(BaseModel):
     path: pathlib.Path
+    use_resolved_name: bool = False
 
     def model_post_init(self, *args):
-        self.path = pathlib.Path(self.path).resolve()
+        if self.use_resolved_name:
+            self.path = pathlib.Path(self.path).resolve()
+        else:
+            self.path = pathlib.Path(self.path).absolute()
 
         if not self.path.exists() or str(self.path) in ["-", ".", "", None]:
             raise FileNotFoundError(f"{self.path} does not exist.")
@@ -737,6 +741,7 @@ class NormGroup(BaseModel):
         include_controls: bool = False,
     ):
 
+
         if isinstance(design, Design):
             df = (
                 design.to_dataframe()
@@ -879,7 +884,13 @@ class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     names: List[str]
     pileup_method: Union[
-        Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]
+        Literal["deeptools", "homer", False],
+        List[
+            Literal[
+                "deeptools",
+                "homer",
+            ]
+        ],
     ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
@@ -891,6 +902,9 @@ class BigWigFiles(BaseModel):
             self.pileup_method = [self.pileup_method]
 
         if self.include_unscaled and not self.scale_method:
+            self.scale_method = [
+                "unscaled",
+            ]
             self.scale_method = [
                 "unscaled",
             ]
@@ -1028,9 +1042,11 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: Optional[
-        Union[Literal["deeptools", "homer"], List[Literal["deeptools", "homer"]]]
+    pileup_method: Union[
+        Literal["deeptools", "homer", False],
+        List[Literal["deeptools", "homer"]],
     ] = None
+
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
     make_heatmaps: bool = False
@@ -1289,5 +1305,57 @@ class ChIPOutput(NonRNAOutput):
         ):
             if file_list:
                 files.extend(file_list)
+
+        return files
+
+
+class SNPOutput(Output):
+    assay: Literal["SNP"]
+    call_snps: bool = False
+    sample_names: List[str]
+    make_ucsc_hub: bool = False
+    snp_calling_method: Optional[
+        Union[
+            Literal["bcftools", "deepvariant", False],
+            List[Literal["bcftools", "deepvariant"]],
+        ]
+    ] = None
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @property
+    def snp_files(self) -> List[str]:
+        if self.call_snps:
+            return expand(
+                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                sample=self.sample_names,
+                method=self.snp_calling_method,
+            )
+        else:
+            return []
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.snp_files,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        if self.call_snps:
+            files.append(self.snp_files)
 
         return files

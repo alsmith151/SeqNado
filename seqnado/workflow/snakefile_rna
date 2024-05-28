@@ -68,6 +68,7 @@ NORMALISATION_SCALING = NormGroups.from_design(DESIGN, subset_column="scale_grou
 NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", include_controls=True)
 
 # Rules to include
+include: "rules/common.smk"
 include: "rules/align_rna.smk"
 include: "rules/alignment_counts.smk"
 include: "rules/alignment_post_processing.smk"

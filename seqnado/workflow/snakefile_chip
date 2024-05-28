@@ -61,6 +61,7 @@ NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", in
 
 
 # Load required rules
+include: "rules/common.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/fastq_screen.smk"

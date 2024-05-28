@@ -1,70 +1,74 @@
-import os
-import sys
-import shutil
 from datetime import datetime
 import glob
-from snakemake.utils import min_version
-from seqnado.helpers import check_options
-import pandas as pd
+import os
+import shutil
+import sys
 
-ASSAY = "snp"
+import pandas as pd
+from snakemake.utils import min_version
+
+
+from seqnado.design import Design, SNPOutput, NormGroups
+from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files
+
+
+####################
+# Hardcoded config #
+####################
+
+ASSAY = "SNP"
 configfile: "config_snp.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
-utils.format_config_dict(config)
 
-# Get experiment design
+####################
+# Experiment config #
+####################
+
+# Load config
+format_config_dict(config)
+
+# Generate design
 if os.path.exists(config["design"]):
-    # Expect columns - sample fq1 fq2
-    FASTQ_SAMPLES = utils.GenericFastqSamples(
-        pd.read_csv(config["design"], sep="[\s+,\t]", engine="python")
-    )
-    assert FASTQ_SAMPLES.design.shape[0] > 0, "No samples found in design file"
-    for col in ["sample", "fq1", "fq2"]:
-        assert col in FASTQ_SAMPLES.design.columns, f"Design file must contain columns sample, fq1, fq2. Columns found: {FASTQ_SAMPLES.design.columns}"
-
+    df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python").fillna("")
+    DESIGN = Design.from_dataframe(df)
 else:
-    # Use pattern matching to get samples
-    fq_files = list(utils.get_fastq_files("."))
-    if fq_files:
-        FASTQ_SAMPLES = utils.GenericFastqSamples.from_files(fq_files)
-    else:
-        raise ValueError("No FASTQ files found in the working directory")
+    DESIGN = Design.from_directory(".")
+
+# Attempt to symlink the fastq files
+assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directory or no design file provided."
+symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
-DESIGN = FASTQ_SAMPLES.design
-SAMPLE_NAMES = FASTQ_SAMPLES.sample_names_all
-include: "rules/fastq_trim.smk"
-include: "rules/fastq_screen.smk"
+# Define global variables
+SAMPLE_NAMES = DESIGN.sample_names
+OUTPUT = SNPOutput(
+    assay=ASSAY,
+    run_design=DESIGN,
+    sample_names=SAMPLE_NAMES,
+    **config
+)
+
+NORMALISATION_SCALING = NormGroups.from_design(DESIGN, subset_column="scale_group", include_controls=True)
+NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", include_controls=True)
+
+###################
+# Pipeline config #
+###################
+include: "rules/common.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
-include: "rules/hub.smk"
+include: "rules/fastq_screen.smk"
+include: "rules/fastq_trim.smk"
 include: "rules/qc.smk"
 include: "rules/variant.smk"
 
-OUTPUT = utils.define_output_files(snakemake_design=DESIGN,
-                                            sample_names=SAMPLE_NAMES,
-                                            assay=ASSAY,
-                                            **config)
-
 rule all:
     input:
-        OUTPUT
+        OUTPUT.files
 
 onsuccess:
-    slurm_files = glob.glob("slurm-*.out")
-    sps_files = glob.glob("sps-*")
-    simg_files = glob.glob("*.simg")
-
-    for fn in [*slurm_files, *sps_files, *simg_files]:
-        try:
-            if not os.path.isdir(fn):
-                os.remove(fn)
-            else:
-                shutil.rmtree(fn)
-
-        except Exception as e:
-            print(e)
+    remove_unwanted_run_files()
 
 onerror:
     log_out = "seqnado_error.log"
@@ -72,3 +76,5 @@ onerror:
     print(
         f"An error occurred. Please check the log file {log_out} for more information."
     )
+    remove_unwanted_run_files()
+
