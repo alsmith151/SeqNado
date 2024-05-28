@@ -484,9 +484,7 @@ class DesignIP(BaseModel):
                 control.add(f.control_performed)
         return list(control)
 
-    def query(
-        self, sample_name: str, full_experiment: bool = False
-    ) -> Union[FastqSetIP, Dict[str, FastqSetIP]]:
+    def query(self, sample_name: str, full_experiment: bool = False) -> Union[FastqSetIP, IPExperiment]:
         """
         Extracts a pair of fastq files from the design.
         """
@@ -496,32 +494,27 @@ class DesignIP(BaseModel):
         )
         is_control = False
 
-        experiment_files = dict()
-
         if sample_name in ip_names or sample_name in control_names:
             for experiment in self.experiments:
                 if experiment.ip_set_fullname == sample_name:
-                    experiment_files["ip"] = experiment.ip
-                    experiment_files["control"] = experiment.control
-
+                    exp = experiment
+                    break
                 elif (
                     experiment.has_control
                     and experiment.control_fullname == sample_name
                 ):
                     is_control = True
-                    experiment_files["ip"] = experiment.ip
-                    experiment_files["control"] = experiment.control
+                    exp = experiment
+                    break
+
         else:
             raise ValueError(f"Could not find sample with name {sample_name}")
+        
 
         if full_experiment:
-            return experiment_files
+            return exp
         else:
-            return (
-                experiment_files["ip"]
-                if not is_control
-                else experiment_files["control"]
-            )
+            return exp.ip if not is_control else exp.control
 
     @classmethod
     def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
@@ -970,6 +963,7 @@ class PeakCallingFiles(BaseModel):
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     make_heatmaps: bool = False
+    make_heatmaps: bool = False
 
     @property
     def heatmap_files(self) -> List[str]:
@@ -981,6 +975,10 @@ class HeatmapFiles(BaseModel):
     @computed_field
     @property
     def files(self) -> List[str]:
+        if self.make_heatmaps:
+            return self.heatmap_files
+        else:
+            return []
         if self.make_heatmaps:
             return self.heatmap_files
         else:
@@ -1255,7 +1253,9 @@ class ChIPOutput(NonRNAOutput):
             s
             for s in self.sample_names
             if not any([c in s for c in self.control_names])
+            if not any([c in s for c in self.control_names])
         ]
+
 
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
