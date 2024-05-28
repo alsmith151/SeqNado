@@ -16,6 +16,9 @@ import requests
     scope="function",
     params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp"],
     autouse=True,
+    scope="function",
+    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp"],
+    autouse=True,
 )
 def assay(request):
     return request.param
@@ -163,7 +166,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     path = test_data_path / "fastq"
 
     if not path.exists():
-        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/fastq.tar.gz"
+        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
         r = requests.get(url, stream=True)
 
         tar_path = path.with_suffix(".tar.gz")
@@ -186,6 +189,8 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             files = list(path.glob("rna_*.fastq.gz"))
         case "rna-rx":
             files = list(path.glob("rna-spikein*.fastq.gz"))
+        case "snp":
+            files = list(path.glob("snp*.fastq.gz"))
         case "snp":
             files = list(path.glob("snp*.fastq.gz"))
 
@@ -278,6 +283,11 @@ def user_inputs(
         "call_snps": "no",
     }
 
+    defaults_snp = {
+        "remove_pcr_duplicates": "no",
+        "call_snps": "no",
+    }
+
     hub = {
         "make_ucsc_hub": "yes",
         "UCSC_hub_directory": "test_hub",
@@ -296,6 +306,8 @@ def user_inputs(
             return {**defaults, **defaults_rna, **hub}
         case "rna-rx":
             return {**defaults, **defaults_rna_rx, **hub}
+        case "snp":
+            return {**defaults, **defaults_snp, **hub}
         case "snp":
             return {**defaults, **defaults_snp, **hub}
 
@@ -336,12 +348,15 @@ def config_yaml_for_testing(config_yaml, assay):
 
     if assay == "chip":
         config["pileup_method"] = ["deeptools", "homer"]
-        config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
+        config["peak_calling_method"] = ["lanceotron"]
         config["library_complexity"] = False
         config["bowtie2"]["options"] = "--no-mixed --no-discordant"
     elif assay == "chip-rx":
         config["call_peaks"] = True
         config["peak_calling_method"] = ["seacr"]
+    elif assay == "atac":
+        config["call_peaks"] = True
+        config["peak_calling_method"] = ["homer", "lanceotron", "macs"]
 
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)
@@ -363,6 +378,7 @@ def design(seqnado_run_dir, assay_type, assay):
     if assay == "chip":
         # Add merge column to design file
         import pandas as pd
+
 
         df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
         df["merge"] = "MLL-MERGED-TOGETHER"
