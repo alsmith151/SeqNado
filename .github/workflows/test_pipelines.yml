@@ -108,6 +108,7 @@ jobs:
 
       - name: Extract environment and activate environment
         run: |
+          mkdir -p /home/runner/miniforge3/envs/seqnado_test
           tar -xzf seqnado_test.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
           source /home/runner/miniforge3/bin/activate seqnado_test
 
