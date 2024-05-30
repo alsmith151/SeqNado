@@ -39,6 +39,7 @@ jobs:
           cache-downloads: true
           cache-packages: ~/conda_pkgs_dir
           environment-file: testing.yml
+          environment-name: test
           miniforge-variant: Mambaforge
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
@@ -47,14 +48,20 @@ jobs:
       - name: list conda envs
         run: |
           conda env list
+          env_path="/home/runner/miniconda3/envs/test"
+          if [ -d "$env_path" ]; then
+            echo "Environment exists"
+          else
+            echo "Environment does not exist"
+          fi
         shell: bash -l {0}
 
-      # - name: Install package
-      #   if: steps.cache-conda.outputs.cache-hit != 'true'
-      #   run: |
-      #     source ~/miniforge3/bin/activate test
-      #     pip install .
-      #   shell: bash -l {0}
+      - name: Install package
+        if: steps.cache-conda.outputs.cache-hit != 'true'
+        run: |
+          source /home/runner/miniforge3/bin/activate test
+          pip install .
+        shell: bash -l {0}
 
       # - name: Verify and activate environment
       #   run: |
