@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test: ["test_config", "test_design", "test_pipeline"]
+        test: ["config", "design", "pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
 
     steps:
@@ -56,4 +56,4 @@ jobs:
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         run: |
-          pytest tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
