@@ -18,10 +18,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache conda
+      - name: Cache conda environment
         uses: actions/cache@v3
+        id: cache-conda
         with:
-          path: ~/miniconda3
+          path: ~/miniconda3/envs/test
           key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-conda-${{ matrix.python-version }}-
@@ -37,25 +38,24 @@ jobs:
           use-mamba: true
 
       - name: Create environment
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
           mamba env update -n test -f testing.yml
           pip install .
+        shell: bash -l {0}
+
+      - name: Verify environment
+        run: |
+          source ~/miniconda3/bin/activate test
           which seqnado
         shell: bash -l {0}
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
-
       - name: Save environment
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
-          mamba info --envs
           tar -czf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
       - uses: actions/upload-artifact@v3
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         with:
           name: test_env
           path: test_env.tar.gz
@@ -71,17 +71,24 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Download environment
+        if: needs.setup.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v3
         with:
           name: test_env
           path: .
 
       - name: Extract environment
+        if: needs.setup.outputs.cache-hit != 'true'
         run: |
           mkdir -p /home/runner/miniconda3/envs/test
           tar -xzf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
           echo "/home/runner/miniconda3/envs/test/bin" >> $GITHUB_PATH
-          seqnado chip --version
+        shell: bash -l {0}
+
+      - name: Add environment to PATH
+        run: |
+          echo "/home/runner/miniconda3/envs/test/bin" >> $GITHUB_PATH
+          /home/runner/miniconda3/envs/test/bin/seqnado chip --version
         shell: bash -l {0}
 
       - name: Run test_config_generation
