@@ -11,6 +11,12 @@ jobs:
       matrix:
         test: ["config", "design", "pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
+        image:
+          [
+            "3948023ce759e51abc90dfc36fd590e5.simg",
+            "c69acb375a13228d65f9178e44481827.simg",
+            "71c124ddd7f70a6d7226bfca418fcb8e.simg",
+          ]
 
     steps:
       - uses: actions/checkout@v3
