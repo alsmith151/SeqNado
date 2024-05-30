@@ -34,7 +34,6 @@ jobs:
             ${{ runner.os }}-env-
 
       - name: Set up conda using miniforge
-        if: steps.cache-conda.outputs.cache-hit != 'true'
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
@@ -42,13 +41,7 @@ jobs:
           miniforge-version: latest
           use-mamba: true
 
-      - name: Update environment
-        if: steps.cache-conda.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: mamba env update -n test -f testing.yml
-
       - name: Install the package
-        if: steps.cache-conda.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           pip install .
