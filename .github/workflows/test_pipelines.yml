@@ -48,7 +48,7 @@ jobs:
       - name: access artefact simg
         uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.image }}
+          name: ./singularity-images
           path: ./singularity-images
 
       - name: Extract Singularity images
@@ -68,31 +68,13 @@ jobs:
     strategy:
       matrix:
         container: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
-        image:
-          [
-            "3948023ce759e51abc90dfc36fd590e5.simg",
-            "c69acb375a13228d65f9178e44481827.simg",
-            "71c124ddd7f70a6d7226bfca418fcb8e.simg",
-          ]
-        exclude:
-          - container: seqnado_pipeline
-            image:
-              [
-                "c69acb375a13228d65f9178e44481827.simg",
-                "71c124ddd7f70a6d7226bfca418fcb8e.simg",
-              ]
-          - container: seqnado_extra
-            image:
-              [
-                "3948023ce759e51abc90dfc36fd590e5.simg",
-                "71c124ddd7f70a6d7226bfca418fcb8e.simg",
-              ]
-          - container: seqnado_report
-            image:
-              [
-                "3948023ce759e51abc90dfc36fd590e5.simg",
-                "c69acb375a13228d65f9178e44481827.simg",
-              ]
+        include:
+          - image: "3948023ce759e51abc90dfc36fd590e5.simg"
+            container: seqnado_pipeline
+          - image: "c69acb375a13228d65f9178e44481827.simg"
+            container: seqnado_extra
+          - image: "71c124ddd7f70a6d7226bfca418fcb8e.simg"
+            container: seqnado_report
 
     steps:
       - uses: actions/checkout@v3
@@ -110,7 +92,7 @@ jobs:
         run: |
           mkdir -p ./singularity-images
           for i in {1..5}; do
-            apptainer pull --force -dir ./singularity-images library://asmith151/seqnado/${{ matrix.container }}:latest
+            apptainer pull --force --dir ./singularity-images library://asmith151/seqnado/${{ matrix.container }}:latest
             if [ $? -eq 0 ]; then
               break
             fi
