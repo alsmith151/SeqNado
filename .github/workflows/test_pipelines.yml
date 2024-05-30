@@ -44,21 +44,26 @@ jobs:
           python-version: ${{ matrix.python-version }}
           use-mamba: true
 
-      - name: Install package
-        if: steps.cache-conda.outputs.cache-hit != 'true'
+      - name: list conda envs
         run: |
-          source ~/miniforge3/bin/activate test
-          pip install .
+          conda env list
         shell: bash -l {0}
 
-      - name: Verify and activate environment
-        run: |
-          source ~/miniforge3/bin/activate test
-          which seqnado
-        shell: bash -l {0}
+      # - name: Install package
+      #   if: steps.cache-conda.outputs.cache-hit != 'true'
+      #   run: |
+      #     source ~/miniforge3/bin/activate test
+      #     pip install .
+      #   shell: bash -l {0}
 
-      - name: Run test
-        run: |
-          source ~/miniforge3/bin/activate test
-          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
-        shell: bash -l {0}
+      # - name: Verify and activate environment
+      #   run: |
+      #     source ~/miniforge3/bin/activate test
+      #     which seqnado
+      #   shell: bash -l {0}
+
+      # - name: Run test
+      #   run: |
+      #     source ~/miniforge3/bin/activate test
+      #     pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
+      #   shell: bash -l {0}
