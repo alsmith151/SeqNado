@@ -91,6 +91,7 @@ jobs:
           path: singularity-images-${{ matrix.container }}.tar.gz
 
   test_config_generation:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     needs: setup
     runs-on: ubuntu-latest
     strategy:
@@ -110,16 +111,17 @@ jobs:
           mkdir -p ~/miniforge3/envs/seqnado_test
           tar -xzf conda-env.tar.gz -C ~/miniforge3/envs/seqnado_test
 
-      - name: Recreate symlink to environment
+      - name: Activate environment
         run: |
-          ln -s ~/miniforge3/envs/seqnado_test /usr/share/miniconda/envs/seqnado_test
+          source ~/miniforge3/bin/activate seqnado_test
 
       - name: Run test_config_generation
         shell: bash -l {0}
         run: |
-          ~/miniforge3/bin/mamba run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+          pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
 
   test_pipeline:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     needs: [setup, pull_singularity]
     runs-on: ubuntu-latest
     strategy:
@@ -139,9 +141,9 @@ jobs:
           mkdir -p ~/miniforge3/envs/seqnado_test
           tar -xzf conda-env.tar.gz -C ~/miniforge3/envs/seqnado_test
 
-      - name: Recreate symlink to environment
+      - name: Activate environment
         run: |
-          ln -s ~/miniforge3/envs/seqnado_test /usr/share/miniconda/envs/seqnado_test
+          source ~/miniforge3/bin/activate seqnado_test
 
       - name: Download Singularity images
         uses: actions/download-artifact@v3
@@ -157,4 +159,4 @@ jobs:
       - name: Run test_pipeline
         shell: bash -l {0}
         run: |
-          ~/miniforge3/bin/mamba run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
+          pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
