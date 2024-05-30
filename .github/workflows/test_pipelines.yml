@@ -31,14 +31,14 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ hashFiles('environment_minimal.yml', 'testing.yml') }}
+        key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}
         restore-keys: |
           ${{ runner.os }}-conda-
 
     - name: Set up conda using miniforge
       uses: conda-incubator/setup-miniconda@v3
       with:
-        environment-file: environment_minimal.yml
+        environment-file: testing.yml
         miniforge-version: latest
         miniforge-variant: Mambaforge
         python-version: ${{ matrix.python-version }}
@@ -46,12 +46,7 @@ jobs:
 
     - name: Install package dependencies
       run: |
-        mamba env update -n test -f environment_minimal.yml
-      shell: bash -l {0}
-
-    - name: Install testing dependencies
-      run: |
-        mamba env update -n test -f testing.yml
+        mamba env update -n seqnado_test -f testing.yml
       shell: bash -l {0}
 
     - name: Install the package
@@ -67,15 +62,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-singularity-
 
-    - name: Pull Singularity images
+    - name: Pull Singularity images with retries
       run: |
         mkdir -p /tmp/singularity-images
-        if [ ! -f /tmp/3948023ce759e51abc90dfc36fd590e5.simg ]; then
-          apptainer pull --force /tmp/3948023ce759e51abc90dfc36fd590e5.simg library://asmith151/seqnado/seqnado_pipeline:latest
-        fi
-        if [ ! -f /tmp/c69acb375a13228d65f9178e44481827.simg ]; then
-          apptainer pull --force /tmp/c69acb375a13228d65f9178e44481827.simg library://asmith151/seqnado/seqnado_extra:latest
-        fi
+        for i in {1..3}; do
+          apptainer pull --force /tmp/3948023ce759e51abc90dfc36fd590e5.simg library://asmith151/seqnado/seqnado_pipeline:latest && break || sleep 10;
+        done
+        for i in {1..3}; do
+          apptainer pull --force /tmp/c69acb375a13228d65f9178e44481827.simg library://asmith151/seqnado/seqnado_extra:latest && break || sleep 10;
+        done
 
     - name: Conda list
       shell: bash -l {0}
@@ -83,7 +78,7 @@ jobs:
 
     - name: Save environment for subsequent jobs
       run: |
-        tar -czf conda-env.tar.gz -C /home/runner/miniconda3/envs/test .
+        tar -czf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado .
     - uses: actions/upload-artifact@v3
       with:
         name: conda-env
@@ -113,20 +108,13 @@ jobs:
 
     - name: Extract environment
       run: |
-        mkdir -p /home/runner/miniconda3/envs/test
-        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/test
-
-    - name: Activate environment and install pytest
-      shell: bash -l {0}
-      run: |
-        source /home/runner/miniconda3/bin/activate test
-        pip install pytest pytest-xdist
+        mkdir -p /home/runner/miniconda3/envs/seqnado
+        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado
 
     - name: Run test_config_generation
       shell: bash -l {0}
       run: |
-        source /home/runner/miniconda3/bin/activate test
-        pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+        conda run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
 
   test_pipeline:
     needs: setup
@@ -152,17 +140,10 @@ jobs:
 
     - name: Extract environment
       run: |
-        mkdir -p /home/runner/miniconda3/envs/test
-        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/test
-
-    - name: Activate environment and install pytest
-      shell: bash -l {0}
-      run: |
-        source /home/runner/miniconda3/bin/activate test
-        pip install pytest pytest-xdist
+        mkdir -p /home/runner/miniconda3/envs/seqnado
+        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado
 
     - name: Run test_pipeline
       shell: bash -l {0}
       run: |
-        source /home/runner/miniconda3/bin/activate test
-        pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
+        conda run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
