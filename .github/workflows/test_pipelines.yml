@@ -87,7 +87,7 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Pull Singularity images with retries
+      - name: Pull Singularity images
         if: not [ -f ./singularity-images/${{ matrix.image }}.tar.gz ]
         run: |
           mkdir -p ./singularity-images
@@ -98,6 +98,11 @@ jobs:
             fi
             sleep 10
           done
+
+      - name: print list of files
+        shell: pwsh
+        run: |
+          ls -l ./singularity-images
 
       - name: Save Singularity images for subsequent jobs
         uses: actions/upload-artifact@v3
