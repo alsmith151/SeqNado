@@ -83,11 +83,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-singularity-
 
-      - name: Pull Singularity images with retries
+      - name: Pull Singularity images
         run: |
           mkdir -p /tmp/singularity-images
           for i in {1..5}; do
-            apptainer pull --force --output /tmp/singularity-images/${{ matrix.container }}.simg library://asmith151/seqnado/${{ matrix.container }}:latest
+            apptainer pull --force /tmp/singularity-images/${{ matrix.container }}.simg library://asmith151/seqnado/${{ matrix.container }}:latest
             if [ $? -eq 0 ]; then
               break
             fi
