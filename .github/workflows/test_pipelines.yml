@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        containers: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
+        container: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
 
     steps:
       - uses: actions/checkout@v3
@@ -79,7 +79,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/singularity-images
-          key: ${{ runner.os }}-singularity-${{ hashFiles('Singularity') }}
+          key: ${{ runner.os }}-singularity-${{ hashFiles('Singularity') }}-${{ matrix.container }}
           restore-keys: |
             ${{ runner.os }}-singularity-
 
@@ -87,7 +87,7 @@ jobs:
         run: |
           mkdir -p /tmp/singularity-images
           for i in {1..5}; do
-            apptainer pull --no-login --force --output /tmp/singularity-images library://asmith151/seqnado/${{ matrix.containers }}:latest
+            apptainer pull --no-login --force --output /tmp/singularity-images/${{ matrix.container }}.simg library://asmith151/seqnado/${{ matrix.container }}:latest
             if [ $? -eq 0 ]; then
               break
             fi
@@ -96,11 +96,11 @@ jobs:
 
       - name: Save Singularity images for subsequent jobs
         run: |
-          tar -czf singularity-images.tar.gz -C /tmp/singularity-images .
+          tar -czf singularity-images-${{ matrix.container }}.tar.gz -C /tmp/singularity-images .
       - uses: actions/upload-artifact@v3
         with:
-          name: singularity-images
-          path: singularity-images.tar.gz
+          name: singularity-images-${{ matrix.container }}
+          path: singularity-images-${{ matrix.container }}.tar.gz
 
   test_config_generation:
     needs: setup
