@@ -19,8 +19,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Cache conda environment
-        uses: actions/cache@v3
         id: cache-conda
+        uses: actions/cache@v3
         with:
           path: ~/miniconda3/envs/test
           key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
@@ -44,12 +44,21 @@ jobs:
           pip install .
         shell: bash -l {0}
 
+      - name: Verify environment
+        run: |
+          source ~/miniconda3/bin/activate test
+          which seqnado
+        shell: bash -l {0}
+
       - name: Save environment
         if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
           tar -czf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
-      - uses: actions/upload-artifact@v3
+        shell: bash -l {0}
+
+      - name: Upload environment
         if: steps.cache-conda.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@v3
         with:
           name: test_env
           path: test_env.tar.gz
@@ -61,24 +70,25 @@ jobs:
     strategy:
       matrix:
         test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
+
     steps:
       - uses: actions/checkout@v3
 
       - name: Download environment
-        if: needs.setup.outputs.cache-hit != 'true'
+        if: needs.setup.outputs.cache-conda.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v3
         with:
           name: test_env
           path: .
 
       - name: Extract environment
-        if: needs.setup.outputs.cache-hit != 'true'
+        if: needs.setup.outputs.cache-conda.outputs.cache-hit != 'true'
         run: |
           mkdir -p /home/runner/miniconda3/envs/test
           tar -xzf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
         shell: bash -l {0}
 
-      - name: Add environment to PATH from cache
+      - name: Add environment to PATH
         run: |
           echo "export PATH=/home/runner/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
           /home/runner/miniconda3/envs/test/bin/seqnado chip --version
