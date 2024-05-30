@@ -59,6 +59,9 @@ jobs:
 
   pull_singularity:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        containers: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
 
     steps:
       - uses: actions/checkout@v3
@@ -83,18 +86,13 @@ jobs:
       - name: Pull Singularity images with retries
         run: |
           mkdir -p /tmp/singularity-images
-          for i in {1..3}; do
-            apptainer pull --force /tmp/3948023ce759e51abc90dfc36fd590e5.simg library://asmith151/seqnado/seqnado_pipeline:latest && break || echo "Retrying... $i"
+          for i in {1..5}; do
+            apptainer pull --no-login --force --output /tmp/singularity-images library://asmith151/seqnado/${{ matrix.containers }}:latest
+            if [ $? -eq 0 ]; then
+              break
+            fi
             sleep 10
-          done || true
-          for i in {1..3}; do
-            apptainer pull --force /tmp/c69acb375a13228d65f9178e44481827.simg library://asmith151/seqnado/seqnado_extra:latest && break || echo "Retrying... $i"
-            sleep 10
-          done || true
-          for i in {1..3}; do
-            apptainer pull --force /tmp/71c124ddd7f70a6d7226bfca418fcb8e.simg library://asmith151/seqnado/seqnado_report:latest && break || echo "Retrying... $i"
-            sleep 10
-          done || true
+          done
 
       - name: Save Singularity images for subsequent jobs
         run: |
