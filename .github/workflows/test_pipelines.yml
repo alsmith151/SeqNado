@@ -36,12 +36,14 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: test
-          cache-downloads: true
-          cache-packages: ~/conda_pkgs_dir
+          auto-activate-base: true
+          channel-priority: strict
+          channels: conda-forge, bioconda, defaults
+          conda-solver: mamba
           environment-file: testing.yml
           environment-name: test
+          mamba-version: latest
           miniforge-variant: Mambaforge
-          miniforge-version: latest
           python-version: ${{ matrix.python-version }}
           use-mamba: true
           use-only-tar-bz2: true
