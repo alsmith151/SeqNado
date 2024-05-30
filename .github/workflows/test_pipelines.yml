@@ -53,12 +53,16 @@ jobs:
 
       - name: Save environment
         if: steps.cache-conda.outputs.cache-hit != 'true'
+        run: |
+          tar -czf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
+        shell: bash -l {0}
+
+      - name: Upload environment
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         uses: actions/upload-artifact@v3
         with:
           name: test_env
           path: test_env.tar.gz
-        run: |
-          tar -czf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
 
   test_config_generation:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
