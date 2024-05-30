@@ -48,12 +48,9 @@ jobs:
         shell: bash -l {0}
 
       - name: Verify environment
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
-          if [[ "${{ steps.cache-conda.outputs.cache-hit }}" != 'true' ]]; then
-            source ~/miniconda3/bin/activate test
-          else
-            echo "export PATH=$HOME/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
-          fi
+          source ~/miniconda3/bin/activate test
           which seqnado
         shell: bash -l {0}
 
@@ -95,11 +92,16 @@ jobs:
           tar -xzf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
         shell: bash -l {0}
 
-      - name: Verify environment and seqnado
+      - name: Add env to PATH
+        if: needs.setup.outputs.cache-hit != 'true'
         run: |
-          if [[ "${{ needs.setup.outputs.cache-hit }}" != 'true' ]]; then
-            echo "export PATH=$HOME/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
-          fi
+          echo "export PATH=$HOME/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
+          which seqnado
+        shell: bash -l {0}
+
+      - name: Verify environment
+        if: needs.setup.outputs.cache-hit == 'true'
+        run: |
           source ~/miniconda3/bin/activate test
           which seqnado
         shell: bash -l {0}
