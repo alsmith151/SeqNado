@@ -249,7 +249,7 @@ def user_inputs(
         "scale": "no",
         "make_heatmaps": "no",
         "call_peaks": "yes",
-        "peak_calling_method": "seacr",
+        "peak_calling_method": "lanceotron",
     }
 
     defaults_rna = {
@@ -324,6 +324,8 @@ def config_yaml(run_directory, user_inputs, assay_type):
     config_file_path = (
         run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
     )
+    if not config_file_path.exists():
+        print("debug stdout", stdout)
 
     assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
@@ -338,6 +340,8 @@ def config_yaml_for_testing(config_yaml, assay):
 
     if assay == "chip":
         config["library_complexity"] = False
+    elif assay == "chip-rx":
+        config["peak_calling_method"] = "seacr"
     elif assay == "atac":
         config["pileup_method"] = ["deeptools", "homer"]
         config["call_peaks"] = True
