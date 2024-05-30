@@ -40,30 +40,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
           use-mamba: true
 
-      - name: List conda environments
-        if: steps.cache-conda.outputs.cache-hit != 'true'
-        run: |
-          conda env list
-        shell: bash -l {0}
-
       - name: Install package
         if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
-          source /home/runner/miniforge3/etc/profile.d/conda.sh
-          conda activate test
           pip install .
-        shell: bash -l {0}
-
-      - name: Verify and activate environment from cache
-        if: steps.cache-conda.outputs.cache-hit == 'true'
-        run: |
-          source ~/miniforge3/etc/profile.d/conda.sh
-          conda activate test
         shell: bash -l {0}
 
       - name: Run tests
         run: |
-          source ~/miniforge3/etc/profile.d/conda.sh
-          conda activate test
-          pytest tests/${{ matrix.test }}/test_${{ matrix.test-case }}.py
+          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
         shell: bash -l {0}
