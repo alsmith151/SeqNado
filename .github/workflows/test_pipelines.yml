@@ -26,6 +26,7 @@ jobs:
           miniforge-variant: Mambaforge
           python-version: ${{ matrix.python-version }}
           use-mamba: true
+          environment-name: seqnado_test
 
       - name: Install package dependencies
         run: |
@@ -40,11 +41,11 @@ jobs:
       - name: Install the package
         shell: bash -l {0}
         run: |
-          conda run -n seqnado_test pip install .
+          mamba run -n seqnado_test pip install .
 
       - name: Conda list
         shell: bash -l {0}
-        run: conda run -n seqnado_test mamba list
+        run: mamba run -n seqnado_test mamba list
 
       - name: Save environment for subsequent jobs
         run: |
@@ -114,7 +115,7 @@ jobs:
       - name: Run test_config_generation
         shell: bash -l {0}
         run: |
-          conda run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+          mamba run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
 
   test_pipeline:
     needs: [setup, pull_singularity]
@@ -150,4 +151,4 @@ jobs:
       - name: Run test_pipeline
         shell: bash -l {0}
         run: |
-          conda run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
+          mamba run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
