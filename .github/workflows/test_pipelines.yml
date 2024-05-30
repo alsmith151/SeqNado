@@ -6,6 +6,7 @@ jobs:
   Test:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
+    needs: [pull_singularity]
     strategy:
       matrix:
         test: ["config", "design", "pipeline"]
@@ -13,14 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.1.2
-
-      - name: Add singularity hub remote
-        run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-          apptainer remote use SylabsCloud
 
       - name: Cache dependencies
         id: cache-conda
@@ -46,7 +39,56 @@ jobs:
         run: |
           pip install .
 
+      - name: Extract Singularity images
+        if: ${{ matrix.test }} == "pipeline"
+        shell: pwsh
+        run: |
+          tar -xzf /tmp/${{ matrix.image }}.tar.gz -C /tmp/
+
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+
+  pull_singularity:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        container: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
+        include:
+          - container: seqnado_pipeline
+            image: ["3948023ce759e51abc90dfc36fd590e5.simg"]
+          - container: seqnado_extra
+            image: ["c69acb375a13228d65f9178e44481827.simg"]
+          - container: seqnado_report
+            image: ["71c124ddd7f70a6d7226bfca418fcb8e.simg"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.1.2
+
+      - name: Add singularity hub remote
+        run: |
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+          apptainer remote use SylabsCloud
+
+      - name: Pull Singularity images with retries
+        run: |
+          mkdir -p /tmp
+          if not [ -f /tmp/${{ matrix.image }}.tar.gz ]; then
+           for i in {1..5}; do
+              apptainer pull --force --dir /tmp library://asmith151/seqnado/${{ matrix.container }}:latest
+              if [ $? -eq 0 ]; then
+                break
+              fi
+              sleep 10
+            done
+          fi
+
+      - name: Save Singularity images for subsequent jobs
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.container }}
+          path: /tmp/${{ matrix.image }}.tar.gz
