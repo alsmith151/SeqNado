@@ -26,6 +26,7 @@ jobs:
           key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-conda-${{ matrix.python-version }}-
+
       - name: Set up conda
         if: steps.cache-conda.outputs.cache-hit != 'true'
         uses: conda-incubator/setup-miniconda@v3
@@ -44,6 +45,7 @@ jobs:
         shell: bash -l {0}
 
       - name: Verify environment
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
           source ~/miniconda3/bin/activate test
           which seqnado
@@ -51,13 +53,12 @@ jobs:
 
       - name: Save environment
         if: steps.cache-conda.outputs.cache-hit != 'true'
-        run: |
-          tar -czf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
-      - uses: actions/upload-artifact@v3
-        if: steps.cache-conda.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@v3
         with:
           name: test_env
           path: test_env.tar.gz
+        run: |
+          tar -czf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
 
   test_config_generation:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
