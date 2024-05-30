@@ -324,6 +324,11 @@ def config_yaml(run_directory, user_inputs, assay_type):
     config_file_path = (
         run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
     )
+    # Debug information
+    print("STDOUT:", stdout)
+    print("STDERR:", stderr)
+    print("Config file path:", config_file_path)
+    
     assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
 

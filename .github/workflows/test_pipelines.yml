@@ -48,7 +48,7 @@ jobs:
       - name: Test design ${{ matrix.assay }}
         shell: pwsh
         run: |
-          seqnado-design chip tests/data/fastq/${{ matrix.assay }}*.fastq.gz
+          seqnado-design chip tests/data/fastq/${{ matrix.assay }}*
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
