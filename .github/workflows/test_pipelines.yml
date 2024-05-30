@@ -18,14 +18,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache conda environment
-        uses: actions/cache@v3
-        with:
-          path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-conda-
-
       - name: Set up conda using miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -74,14 +66,6 @@ jobs:
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
-
-      - name: Cache Singularity image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/singularity-images
-          key: ${{ runner.os }}-singularity-${{ hashFiles('Singularity') }}-${{ matrix.container }}
-          restore-keys: |
-            ${{ runner.os }}-singularity-
 
       - name: Pull Singularity images
         run: |
