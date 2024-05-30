@@ -110,7 +110,7 @@ jobs:
         run: |
           mkdir -p /singularity-images
           for i in {1..5}; do
-            apptainer pull --force tmp/${{ matrix.image }} library://asmith151/seqnado/${{ matrix.container }}:latest
+            apptainer pull --force -dir /singularity-images library://asmith151/seqnado/${{ matrix.container }}:latest
             if [ $? -eq 0 ]; then
               break
             fi
