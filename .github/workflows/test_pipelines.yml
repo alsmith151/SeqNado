@@ -11,144 +11,159 @@ jobs:
         python-version: ["3.12"]
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - uses: eWaterCycle/setup-apptainer@v2
-      with:
-        apptainer-version: 1.1.2
+      - uses: actions/checkout@v3
 
-    - name: Add singularity hub remote
-      run: |
-        apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-        apptainer remote use SylabsCloud
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Cache conda environment
+        uses: actions/cache@v3
+        with:
+          path: ~/conda_pkgs_dir
+          key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-
 
-    - name: Cache conda environment
-      uses: actions/cache@v3
-      with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-conda-
+      - name: Set up conda using miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: testing.yml
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          python-version: ${{ matrix.python-version }}
+          use-mamba: true
 
-    - name: Set up conda using miniforge
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        environment-file: testing.yml
-        miniforge-version: latest
-        miniforge-variant: Mambaforge
-        python-version: ${{ matrix.python-version }}
-        use-mamba: true
+      - name: Install package dependencies
+        run: |
+          mamba env update -n seqnado_test -f testing.yml
+        shell: bash -l {0}
 
-    - name: Install package dependencies
-      run: |
-        mamba env update -n seqnado_test -f testing.yml
-      shell: bash -l {0}
+      - name: Install the package
+        shell: bash -l {0}
+        run: |
+          source ~/miniconda3/bin/activate seqnado_test
+          pip install .
 
-    - name: Install the package
-      shell: bash -l {0}
-      run: |
-        source ~/miniconda3/bin/activate seqnado_test
-        pip install .
+      - name: Conda list
+        shell: bash -l {0}
+        run: source ~/miniconda3/bin/activate seqnado_test && mamba list
 
-    - name: Cache Singularity image
-      uses: actions/cache@v3
-      with:
-        path: /tmp/singularity-images
-        key: ${{ runner.os }}-singularity-${{ hashFiles('Singularity') }}
-        restore-keys: |
-          ${{ runner.os }}-singularity-
-
-    - name: Pull Singularity images with retries
-      run: |
-        mkdir -p /tmp/singularity-images
-        for i in {1..3}; do
-          apptainer pull --force /tmp/3948023ce759e51abc90dfc36fd590e5.simg library://asmith151/seqnado/seqnado_pipeline:latest && break || echo "Retrying... $i"
-          sleep 10
-        done || true
-        for i in {1..3}; do
-          apptainer pull --force /tmp/c69acb375a13228d65f9178e44481827.simg library://asmith151/seqnado/seqnado_extra:latest && break || echo "Retrying... $i"
-          sleep 10
-        done || true
-
-    - name: Conda list
-      shell: bash -l {0}
-      run: source ~/miniconda3/bin/activate seqnado_test && mamba list
-
-    - name: Save environment for subsequent jobs
-      run: |
-        tar -czf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test .
-    - uses: actions/upload-artifact@v3
-      with:
-        name: conda-env
-        path: conda-env.tar.gz
+      - name: Save environment for subsequent jobs
+        run: |
+          tar -czf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test .
+      - uses: actions/upload-artifact@v3
+        with:
+          name: conda-env
+          path: conda-env.tar.gz
 
   test_config_generation:
     needs: setup
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test-case: [
-          "atac",
-          "chip-rx",
-          "chip",
-          "rna-rx",
-          "rna",
-          "snp"
-        ]
+        test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Download environment
-      uses: actions/download-artifact@v3
-      with:
-        name: conda-env
-        path: .
+      - name: Download environment
+        uses: actions/download-artifact@v3
+        with:
+          name: conda-env
+          path: .
 
-    - name: Extract environment
-      run: |
-        mkdir -p /home/runner/miniconda3/envs/seqnado_test
-        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
+      - name: Extract environment
+        run: |
+          mkdir -p /home/runner/miniconda3/envs/seqnado_test
+          tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
 
-    - name: Run test_config_generation
-      shell: bash -l {0}
-      run: |
-        source ~/miniconda3/bin/activate seqnado_test
-        pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+      - name: Run test_config_generation
+        shell: bash -l {0}
+        run: |
+          source ~/miniconda3/bin/activate seqnado_test
+          pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+
+  pull_singularity:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.1.2
+
+      - name: Add singularity hub remote
+        run: |
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+          apptainer remote use SylabsCloud
+
+      - name: Cache Singularity image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/singularity-images
+          key: ${{ runner.os }}-singularity-${{ hashFiles('Singularity') }}
+          restore-keys: |
+            ${{ runner.os }}-singularity-
+
+      - name: Pull Singularity images with retries
+        run: |
+          mkdir -p /tmp/singularity-images
+          for i in {1..3}; do
+            apptainer pull --force /tmp/3948023ce759e51abc90dfc36fd590e5.simg library://asmith151/seqnado/seqnado_pipeline:latest && break || echo "Retrying... $i"
+            sleep 10
+          done || true
+          for i in {1..3}; do
+            apptainer pull --force /tmp/c69acb375a13228d65f9178e44481827.simg library://asmith151/seqnado/seqnado_extra:latest && break || echo "Retrying... $i"
+            sleep 10
+          done || true
+          for i in {1..3}; do
+            apptainer pull --force /tmp/71c124ddd7f70a6d7226bfca418fcb8e.simg library://asmith151/seqnado/seqnado_report:latest && break || echo "Retrying... $i"
+            sleep 10
+
+      - name: Save Singularity images for subsequent jobs
+        run: |
+          tar -czf singularity-images.tar.gz -C /tmp/singularity-images .
+      - uses: actions/upload-artifact@v3
+        with:
+          name: singularity-images
+          path: singularity-images.tar.gz
 
   test_pipeline:
-    needs: setup
+    needs: [setup, pull_singularity]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test-case: [
-          "atac",
-          "chip-rx",
-          "chip",
-          "rna-rx",
-          "rna",
-          "snp"
-        ]
+        test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Download environment
-      uses: actions/download-artifact@v3
-      with:
-        name: conda-env
-        path: .
+      - name: Download environment
+        uses: actions/download-artifact@v3
+        with:
+          name: conda-env
+          path: .
 
-    - name: Extract environment
-      run: |
-        mkdir -p /home/runner/miniconda3/envs/seqnado_test
-        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
+      - name: Extract environment
+        run: |
+          mkdir -p /home/runner/miniconda3/envs/seqnado_test
+          tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
 
-    - name: Run test_pipeline
-      shell: bash -l {0}
-      run: |
-        source ~/miniconda3/bin/activate seqnado_test
-        pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
+      - name: Download Singularity images
+        uses: actions/download-artifact@v3
+        with:
+          name: singularity-images
+          path: .
+
+      - name: Extract Singularity images
+        run: |
+          mkdir -p /tmp/singularity-images
+          tar -xzf singularity-images.tar.gz -C /tmp/singularity-images
+
+      - name: Run test_pipeline
+        shell: bash -l {0}
+        run: |
+          source ~/miniconda3/bin/activate seqnado_test
+          pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
