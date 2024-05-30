@@ -48,5 +48,5 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
+          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores
         shell: bash -l {0}
