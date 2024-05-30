@@ -12,9 +12,6 @@ jobs:
         test: ["test_config_generation"]
         test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
 
-    outputs:
-      cache-hit: ${{ steps.cache-conda.outputs.cache-hit }}
-
     steps:
       - uses: actions/checkout@v3
 
@@ -23,7 +20,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Cache conda environment
+        id: cache-conda
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/miniforge3/envs/test
+            ~/.cache/pip
+          key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-${{ matrix.python-version }}-
+
       - name: Setup environment
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: test
@@ -36,7 +45,9 @@ jobs:
           use-mamba: true
 
       - name: Install package
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
+          source ~/miniforge3/bin/activate test
           pip install .
         shell: bash -l {0}
 
