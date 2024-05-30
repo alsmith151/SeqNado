@@ -74,12 +74,11 @@ jobs:
       - name: Verify and activate environment from cache
         if: steps.cache-conda.outputs.cache-hit == 'true'
         run: |
-          conda env list
-          source /home/runner/miniforge3/bin/activate test
+          source ~/miniforge3/bin/activate test
         shell: bash -l {0}
 
-      # - name: Run test
-      #   run: |
-      #     source /home/runner/miniforge3/bin/activate test
-      #     pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
-      #   shell: bash -l {0}
+      - name: Run test
+        run: |
+          source ~/miniforge3/bin/activate test
+          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
+        shell: bash -l {0}
