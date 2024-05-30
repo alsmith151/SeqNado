@@ -74,13 +74,26 @@ jobs:
             "c69acb375a13228d65f9178e44481827.simg",
             "71c124ddd7f70a6d7226bfca418fcb8e.simg",
           ]
-        include:
+        exclude:
           - container: seqnado_pipeline
-            image: ["3948023ce759e51abc90dfc36fd590e5.simg"]
+            image:
+              [
+                "c69acb375a13228d65f9178e44481827.simg",
+                "71c124ddd7f70a6d7226bfca418fcb8e.simg",
+              ]
           - container: seqnado_extra
-            image: ["c69acb375a13228d65f9178e44481827.simg"]
+            image:
+              [
+                "3948023ce759e51abc90dfc36fd590e5.simg",
+                "71c124ddd7f70a6d7226bfca418fcb8e.simg",
+              ]
           - container: seqnado_report
-            image: ["71c124ddd7f70a6d7226bfca418fcb8e.simg"]
+            image:
+              [
+                "3948023ce759e51abc90dfc36fd590e5.simg",
+                "c69acb375a13228d65f9178e44481827.simg",
+              ]
+
     steps:
       - uses: actions/checkout@v3
       - uses: eWaterCycle/setup-apptainer@v2
