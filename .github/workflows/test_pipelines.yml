@@ -45,7 +45,7 @@ jobs:
         run: |
           pip install .
 
-      # - name: Test ${{ matrix.test }} ${{ matrix.assay }}
-      #   shell: pwsh
-      #   run: |
-      #     pytest -vv -s --cores 4 -k ${{ matrix.test }}[${{ matrix.assay }}]
+      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
+        shell: pwsh
+        run: |
+          pytest tests/test_pipelines.py::${{ matrix.test }} -vv -s --cores 4 -k ${{ matrix.assay }}
