@@ -1,18 +1,18 @@
 name: Python package
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   Build_and_Test:
     runs-on: ubuntu-latest
-
+    
     strategy:
       matrix:
         python-version: ["3.12"]
 
     steps:
     - uses: actions/checkout@v2
-    
+
     - uses: eWaterCycle/setup-apptainer@v2
       with:
         apptainer-version: 1.1.2
@@ -26,14 +26,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Cache conda environment
-      uses: actions/cache@v2
-      with:
-        path: ~/conda_env
-        key: ${{ runner.os }}-conda-${{ hashFiles('environment_minimal.yml', 'testing.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-conda-
 
     - name: Set up conda using miniforge
       uses: conda-incubator/setup-miniconda@v3
@@ -72,27 +64,3 @@ jobs:
       shell: pwsh
       run: |
         pytest -vv -s --cores 4 -k 'atac or chip or rna or snp'
-
-    # - name: Test pipeline atac
-    #   if: github.event_name == 'pull_request'
-    #   shell: pwsh
-    #   run: |
-    #     pytest -vv -s --cores 4 -k atac
-
-    # - name: Test pipeline chip
-    #   if: github.event_name == 'pull_request'
-    #   shell: pwsh
-    #   run: |
-    #     pytest -vv -s --cores 4 -k chip
-
-    # - name: Test pipeline rna
-    #   if: github.event_name == 'pull_request'
-    #   shell: pwsh
-    #   run: |
-    #     pytest -vv -s --cores 4 -k rna
-
-    # - name: Test pipeline snp
-    #   if: github.event_name == 'pull_request'
-    #   shell: pwsh
-    #   run: |
-    #     pytest -vv -s --cores 4 -k snp
