@@ -1,4 +1,4 @@
-name: seqnado_test
+name: test
 channels:
   - conda-forge
   - bioconda
@@ -11,6 +11,6 @@ dependencies:
   - python>=3.11
   - snakemake>8,<9
   - pip:
-    - snakemake-executor-plugin-slurm
-    - tracknado
-    - wget
+      - snakemake-executor-plugin-slurm
+      - tracknado
+      - wget

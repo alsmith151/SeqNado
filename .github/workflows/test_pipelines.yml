@@ -37,11 +37,11 @@ jobs:
 
       - name: Save environment
         run: |
-          tar -czf seqnado_test_env.tar.gz -C /home/runner/miniforge3/envs/seqnado_test .
+          tar -czf test_env.tar.gz -C /home/runner/miniforge3/envs/test .
       - uses: actions/upload-artifact@v3
         with:
-          name: seqnado_test_env
-          path: seqnado_test_env.tar.gz
+          name: test_env
+          path: test_env.tar.gz
 
   test_config_generation:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
@@ -56,16 +56,16 @@ jobs:
       - name: Download environment
         uses: actions/download-artifact@v3
         with:
-          name: seqnado_test
+          name: test
           path: .
 
       - name: Extract environment
         run: |
-          mkdir -p /home/runner/miniforge3/envs/seqnado_test
-          tar -xzf seqnado_test_env.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
+          mkdir -p /home/runner/miniforge3/envs/test
+          tar -xzf test_env.tar.gz -C /home/runner/miniforge3/envs/test
         shell: bash -l {0}
 
       - name: Run test_config_generation
         run: |
-          /home/runner/miniforge3/envs/seqnado_test/bin/pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
+          /home/runner/miniforge3/envs/test/bin/pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
         shell: bash -l {0}
