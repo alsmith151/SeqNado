@@ -27,16 +27,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
           use-mamba: true
 
-      - name: Install package
+      - name: Create environment
         run: |
           mamba env update -n test -f testing.yml
+          mamba init bash
+          mamba activate test
           pip install .
           which seqnado
-          mamba list
         shell: bash -l {0}
 
       - name: Save environment
         run: |
+          mamba info --envs
           tar -czf test_env.tar.gz -C /home/runner/miniforge3/envs/test .
       - uses: actions/upload-artifact@v3
         with:
