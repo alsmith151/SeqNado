@@ -22,15 +22,19 @@ jobs:
         run: |
           wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
           bash Miniforge3-Linux-x86_64.sh -b -p /home/runner/miniforge3
-          mamba init bash
-          mamba install -n base -c conda-forge conda -y
+          export PATH=/home/runner/miniforge3/bin:$PATH
+          source /home/runner/miniforge3/etc/profile.d/conda.sh
+          conda init bash
         shell: bash -l {0}
 
       - name: Create seqnado_test environment
         run: |
-          mamba env create -f testing.yml -n seqnado_test
-          mamba activate seqnado_test
+          conda env create -f testing.yml -n seqnado_test
+          conda activate seqnado_test
           pip install .
+          which seqnado
+          conda info --envs
+        shell: bash -l {0}
 
       - name: Save environment
         run: |
