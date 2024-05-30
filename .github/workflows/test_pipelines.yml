@@ -84,7 +84,7 @@ jobs:
     - name: Save environment for subsequent jobs
       run: |
         tar -czf conda-env.tar.gz ~/conda_env
-      uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v3
       with:
         name: conda-env
         path: conda-env.tar.gz
@@ -115,8 +115,7 @@ jobs:
       run: |
         tar -xzf conda-env.tar.gz
 
-    - name: Set up conda using extracted environment
-      uses: conda-incubator/setup-miniconda@v3
+    - uses: conda-incubator/setup-miniconda@v3
       with:
         activate-environment: test
         use-mamba: true
@@ -152,8 +151,7 @@ jobs:
       run: |
         tar -xzf conda-env.tar.gz
 
-    - name: Set up conda using extracted environment
-      uses: conda-incubator/setup-miniconda@v3
+    - uses: conda-incubator/setup-miniconda@v3
       with:
         activate-environment: test
         use-mamba: true
