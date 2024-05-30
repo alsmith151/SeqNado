@@ -92,14 +92,10 @@ jobs:
           tar -xzf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
         shell: bash -l {0}
 
-      - name: Add environment to PATH
+      - name: Verify environment and seqnado
         run: |
-          if [ "${{ needs.setup.outputs.cache-hit }}" = "true" ]; then
-            echo "export PATH=~/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
-          else
-            echo "export PATH=/home/runner/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
-          fi
-          /home/runner/miniconda3/envs/test/bin/seqnado chip --version
+          echo "export PATH=$HOME/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
+          which seqnado
         shell: bash -l {0}
 
       - name: Run test_config_generation
