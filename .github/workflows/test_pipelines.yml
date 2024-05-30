@@ -80,9 +80,10 @@ jobs:
         run: |
           mkdir -p /home/runner/miniconda3/envs/test
           tar -xzf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
+          /home/runner/miniconda3/envs/test/bin/seqnado chip --version
         shell: bash -l {0}
 
       - name: Run test_config_generation
         run: |
-          /home/runner/miniconda3/envs/test/bin/pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
+          /home/runner/miniconda3/envs/test/bin/pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
         shell: bash -l {0}
