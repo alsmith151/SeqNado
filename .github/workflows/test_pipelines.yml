@@ -39,11 +39,17 @@ jobs:
         run: |
           pip install .
 
+      - name: access artefact simg
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.image }}
+          path: /tmp
+
       - name: Extract Singularity images
-        if: ${{ matrix.test }} == "pipeline"
-        shell: pwsh
+        if: matrix.test == 'pipeline'
         run: |
-          tar -xzf /tmp/${{ matrix.image }}.tar.gz -C /tmp/
+          mkdir -p /tmp
+          tar -xzf /tmp/${{ matrix.image }}.tar.gz -C /tmp/singularity-images
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
@@ -75,20 +81,19 @@ jobs:
           apptainer remote use SylabsCloud
 
       - name: Pull Singularity images with retries
+        if: not [ -f /tmp/${{ matrix.image }}.tar.gz ]
         run: |
           mkdir -p /tmp
-          if not [ -f /tmp/${{ matrix.image }}.tar.gz ]; then
-           for i in {1..5}; do
-              apptainer pull --force --dir /tmp library://asmith151/seqnado/${{ matrix.container }}:latest
-              if [ $? -eq 0 ]; then
-                break
-              fi
-              sleep 10
-            done
-          fi
+          for i in {1..5}; do
+            apptainer pull --force tmp/${{ matrix.image }} library://asmith151/seqnado/${{ matrix.container }}:latest
+            if [ $? -eq 0 ]; then
+              break
+            fi
+            sleep 10
+          done
 
       - name: Save Singularity images for subsequent jobs
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.container }}
+          name: ${{ matrix.image }}
           path: /tmp/${{ matrix.image }}.tar.gz
