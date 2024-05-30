@@ -68,6 +68,12 @@ jobs:
     strategy:
       matrix:
         container: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
+        image:
+          [
+            "3948023ce759e51abc90dfc36fd590e5.simg",
+            "c69acb375a13228d65f9178e44481827.simg",
+            "71c124ddd7f70a6d7226bfca418fcb8e.simg",
+          ]
         include:
           - container: seqnado_pipeline
             image: ["3948023ce759e51abc90dfc36fd590e5.simg"]
@@ -89,7 +95,7 @@ jobs:
       - name: load simg artefact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.image }}
+          name: ${{ matrix.container }}
           path: /singularity-images
 
       - name: Pull Singularity images with retries
