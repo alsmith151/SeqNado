@@ -21,33 +21,33 @@ jobs:
       - name: Install Miniforge and Mamba
         run: |
           wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-          bash Miniforge3-Linux-x86_64.sh -b -p ~/miniforge3
-          ~/miniforge3/bin/conda init bash
-          ~/miniforge3/bin/conda install -n base -c conda-forge mamba -y
+          bash Miniforge3-Linux-x86_64.sh -b -p /home/runner/miniforge3
+          /home/runner/miniforge3/bin/conda init bash
+          /home/runner/miniforge3/bin/conda install -n base -c conda-forge mamba -y
         shell: bash -l {0}
 
       - name: Create and update environment
         run: |
-          ~/miniforge3/bin/mamba env create -f testing.yml -n seqnado_test || ~/miniforge3/bin/mamba env update -n seqnado_test -f testing.yml
+          /home/runner/miniforge3/bin/mamba env create -f testing.yml -n seqnado_test || /home/runner/miniforge3/bin/mamba env update -n seqnado_test -f testing.yml
         shell: bash -l {0}
 
       - name: Verify environment creation
         run: |
-          ~/miniforge3/bin/mamba env list
+          /home/runner/miniforge3/bin/mamba env list
         shell: bash -l {0}
 
       - name: Install the package
         shell: bash -l {0}
         run: |
-          ~/miniforge3/bin/mamba run -n seqnado_test pip install .
+          /home/runner/miniforge3/bin/mamba run -n seqnado_test pip install .
 
       - name: Conda list
         shell: bash -l {0}
-        run: ~/miniforge3/bin/mamba run -n seqnado_test mamba list
+        run: /home/runner/miniforge3/bin/mamba run -n seqnado_test mamba list
 
       - name: Save environment for subsequent jobs
         run: |
-          tar -czf conda-env.tar.gz -C ~/miniforge3/envs/seqnado_test .
+          tar -czf conda-env.tar.gz -C /home/runner/miniforge3/envs/seqnado_test .
       - uses: actions/upload-artifact@v3
         with:
           name: conda-env
@@ -108,12 +108,12 @@ jobs:
 
       - name: Extract environment
         run: |
-          mkdir -p ~/miniforge3/envs/seqnado_test
-          tar -xzf conda-env.tar.gz -C ~/miniforge3/envs/seqnado_test
+          mkdir -p /home/runner/miniforge3/envs/seqnado_test
+          tar -xzf conda-env.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
 
       - name: Activate environment
         run: |
-          source ~/miniforge3/bin/activate seqnado_test
+          source /home/runner/miniforge3/bin/activate seqnado_test
 
       - name: Run test_config_generation
         shell: bash -l {0}
@@ -138,12 +138,12 @@ jobs:
 
       - name: Extract environment
         run: |
-          mkdir -p ~/miniforge3/envs/seqnado_test
-          tar -xzf conda-env.tar.gz -C ~/miniforge3/envs/seqnado_test
+          mkdir -p /home/runner/miniforge3/envs/seqnado_test
+          tar -xzf conda-env.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
 
       - name: Activate environment
         run: |
-          source ~/miniforge3/bin/activate seqnado_test
+          source /home/runner/miniforge3/bin/activate seqnado_test
 
       - name: Download Singularity images
         uses: actions/download-artifact@v3
