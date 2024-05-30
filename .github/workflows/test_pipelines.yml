@@ -22,23 +22,16 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Cache conda
+      - name: Cache dependencies
         id: cache-conda
         uses: actions/cache@v3
         with:
-          path: ${{ runner.tool_cache }}
-          key: ${{ runner.os }}-conda-${{ hashFiles('**/testing.yml') }}
+          path: |
+            ~/.conda
+            ~/.cache/pip
+          key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
-            ${{ runner.os }}-conda-
-
-      - name: Cache pip
-        id: cache-pip
-        uses: actions/cache@v3
-        with:
-          path: ${{ runner.tool_cache }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/testing.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-env-
 
       - name: Set up conda using miniforge
         uses: conda-incubator/setup-miniconda@v3
