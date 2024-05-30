@@ -18,7 +18,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up conda using miniforge
+      - name: Cache conda
+        uses: actions/cache@v3
+        with:
+          path: ~/miniconda3
+          key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-${{ matrix.python-version }}-
+
+      - name: Set up conda
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
@@ -34,10 +43,18 @@ jobs:
           which seqnado
         shell: bash -l {0}
 
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+
       - name: Save environment
         run: |
           mamba info --envs
-          tar -czf test_env.tar.gz -C /home/runner/miniforge3/envs/test .
+          tar -czf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
       - uses: actions/upload-artifact@v3
         with:
           name: test_env
@@ -56,16 +73,16 @@ jobs:
       - name: Download environment
         uses: actions/download-artifact@v3
         with:
-          name: test
+          name: test_env
           path: .
 
       - name: Extract environment
         run: |
-          mkdir -p /home/runner/miniforge3/envs/test
-          tar -xzf test_env.tar.gz -C /home/runner/miniforge3/envs/test
+          mkdir -p /home/runner/miniconda3/envs/test
+          tar -xzf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
         shell: bash -l {0}
 
       - name: Run test_config_generation
         run: |
-          /home/runner/miniforge3/envs/test/bin/pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
+          /home/runner/miniconda3/envs/test/bin/pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
         shell: bash -l {0}
