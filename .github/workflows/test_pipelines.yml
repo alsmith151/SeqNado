@@ -9,7 +9,7 @@ jobs:
       matrix:
         python-version: ["3.12"]
         test: ["test_config_generation", "test_pipeline"]
-        test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
+        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
 
     steps:
       - uses: actions/checkout@v3
@@ -52,16 +52,12 @@ jobs:
         run: |
           pip install .
 
-      - name: Conda list
-        shell: pwsh
-        run: mamba list
-
-      - name: Test design works
+      - name: Test design ${{ matrix.assay }}
         shell: pwsh
         run: |
-          seqnado-design chip tests/data/fastq/chip-rx*.fastq.gz
+          seqnado-design chip tests/data/fastq/${{ matrix.assay }}*.fastq.gz
 
-      - name: Test pipeline
+      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         run: |
-          pytest -vv -s --cores 4 -k ${{ matrix.test }}[${{ matrix.test-case }}]
+          pytest -vv -s --cores 4 -k ${{ matrix.test }}[${{ matrix.assay }}]
