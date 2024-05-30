@@ -53,43 +53,6 @@ jobs:
           name: seqnado_test
           path: seqnado_test.tar.gz
 
-  pull_singularity:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        container: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.1.2
-
-      - name: Add singularity hub remote
-        run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-          apptainer remote use SylabsCloud
-
-      - name: Pull Singularity images with retries
-        run: |
-          mkdir -p /tmp/singularity-images
-          for i in {1..5}; do
-            apptainer pull --force --dir /tmp/singularity-images library://asmith151/seqnado/${{ matrix.container }}:latest
-            if [ $? -eq 0 ]; then
-              break
-            fi
-            sleep 10
-          done
-
-      - name: Save Singularity images for subsequent jobs
-        run: |
-          tar -czf singularity-images-${{ matrix.container }}.tar.gz -C /tmp/singularity-images .
-      - uses: actions/upload-artifact@v3
-        with:
-          name: singularity-images-${{ matrix.container }}
-          path: singularity-images-${{ matrix.container }}.tar.gz
-
   test_config_generation:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     needs: setup
