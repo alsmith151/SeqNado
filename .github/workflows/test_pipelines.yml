@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12"]
         test: ["test_config_generation", "test_pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
 
@@ -22,11 +21,6 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
       - name: Cache conda environment
         id: cache-conda
         uses: actions/cache@v3
@@ -34,9 +28,9 @@ jobs:
           path: |
             ~/miniforge3/envs/test
             ~/.cache/pip
-          key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
+          key: ${{ runner.os }}-conda-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
-            ${{ runner.os }}-conda-${{ matrix.python-version }}-
+            ${{ runner.os }}-conda-
 
       - name: Set up conda using miniforge
         uses: conda-incubator/setup-miniconda@v3
@@ -44,7 +38,6 @@ jobs:
           environment-file: testing.yml
           miniforge-variant: Mambaforge
           miniforge-version: latest
-          python-version: ${{ matrix.python-version }}
           use-mamba: true
 
       - name: Install the package
