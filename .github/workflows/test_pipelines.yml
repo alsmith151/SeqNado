@@ -95,6 +95,7 @@ jobs:
       - name: Verify environment and seqnado
         run: |
           echo "export PATH=$HOME/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
+          source ~/miniconda3/bin/activate test
           which seqnado
         shell: bash -l {0}
 
