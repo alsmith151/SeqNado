@@ -43,12 +43,11 @@ jobs:
       - name: Install the package
         shell: bash -l {0}
         run: |
-          source ~/miniconda3/bin/activate seqnado_test
-          pip install .
+          conda run -n seqnado_test pip install .
 
       - name: Conda list
         shell: bash -l {0}
-        run: source ~/miniconda3/bin/activate seqnado_test && mamba list
+        run: conda run -n seqnado_test mamba list
 
       - name: Save environment for subsequent jobs
         run: |
@@ -58,34 +57,7 @@ jobs:
           name: conda-env
           path: conda-env.tar.gz
 
-  test_config_generation:
-    needs: setup
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Download environment
-        uses: actions/download-artifact@v3
-        with:
-          name: conda-env
-          path: .
-
-      - name: Extract environment
-        run: |
-          mkdir -p /home/runner/miniconda3/envs/seqnado_test
-          tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
-
-      - name: Run test_config_generation
-        shell: bash -l {0}
-        run: |
-          source ~/miniconda3/bin/activate seqnado_test
-          pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
-
   pull_singularity:
-    needs: setup
     runs-on: ubuntu-latest
 
     steps:
@@ -122,6 +94,7 @@ jobs:
           for i in {1..3}; do
             apptainer pull --force /tmp/71c124ddd7f70a6d7226bfca418fcb8e.simg library://asmith151/seqnado/seqnado_report:latest && break || echo "Retrying... $i"
             sleep 10
+          done || true
 
       - name: Save Singularity images for subsequent jobs
         run: |
@@ -130,6 +103,31 @@ jobs:
         with:
           name: singularity-images
           path: singularity-images.tar.gz
+
+  test_config_generation:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download environment
+        uses: actions/download-artifact@v3
+        with:
+          name: conda-env
+          path: .
+
+      - name: Extract environment
+        run: |
+          mkdir -p /home/runner/miniconda3/envs/seqnado_test
+          tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
+
+      - name: Run test_config_generation
+        shell: bash -l {0}
+        run: |
+          conda run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
 
   test_pipeline:
     needs: [setup, pull_singularity]
@@ -165,5 +163,4 @@ jobs:
       - name: Run test_pipeline
         shell: bash -l {0}
         run: |
-          source ~/miniconda3/bin/activate seqnado_test
-          pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
+          conda run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
