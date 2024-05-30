@@ -36,7 +36,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: test
-          auto-activate-base: true
+          auto-activate-base: false
           channel-priority: strict
           channels: conda-forge, bioconda, defaults
           conda-solver: mamba
@@ -52,11 +52,11 @@ jobs:
         if: steps.cache-conda.outputs.cache-hit != 'true'
         run: mamba env update -n test -f testing.yml
 
-      - name: list conda envs
+      - name: List conda environments
         if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
           conda env list
-          env_path="/home/runner/miniconda3/envs/test"
+          env_path="~/miniforge3/envs/test"
           if [ -d "$env_path" ]; then
             echo "Environment exists"
           else
@@ -67,18 +67,21 @@ jobs:
       - name: Install package
         if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
-          source /home/runner/miniforge3/bin/activate test
+          source ~/miniforge3/etc/profile.d/conda.sh
+          conda activate test
           pip install .
         shell: bash -l {0}
 
       - name: Verify and activate environment from cache
         if: steps.cache-conda.outputs.cache-hit == 'true'
         run: |
-          source ~/miniforge3/bin/activate test
+          source ~/miniforge3/etc/profile.d/conda.sh
+          conda activate test
         shell: bash -l {0}
 
-      - name: Run test
+      - name: Run tests
         run: |
-          source ~/miniforge3/bin/activate test
-          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
+          source ~/miniforge3/etc/profile.d/conda.sh
+          conda activate test
+          pytest tests/${{ matrix.test }}/test_${{ matrix.test-case }}.py
         shell: bash -l {0}
