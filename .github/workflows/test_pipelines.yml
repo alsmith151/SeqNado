@@ -30,7 +30,7 @@ jobs:
     - name: Cache conda environment
       uses: actions/cache@v3
       with:
-        path: ~/conda_env
+        path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ hashFiles('environment_minimal.yml', 'testing.yml') }}
         restore-keys: |
           ${{ runner.os }}-conda-
@@ -83,7 +83,7 @@ jobs:
 
     - name: Save environment for subsequent jobs
       run: |
-        tar -czf conda-env.tar.gz ~/conda_env
+        tar -czf conda-env.tar.gz /home/runner/miniconda3/envs/test
     - uses: actions/upload-artifact@v3
       with:
         name: conda-env
@@ -113,7 +113,7 @@ jobs:
 
     - name: Extract environment
       run: |
-        tar -xzf conda-env.tar.gz
+        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/
 
     - uses: conda-incubator/setup-miniconda@v3
       with:
@@ -149,7 +149,7 @@ jobs:
 
     - name: Extract environment
       run: |
-        tar -xzf conda-env.tar.gz
+        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/
 
     - uses: conda-incubator/setup-miniconda@v3
       with:
