@@ -27,7 +27,7 @@ jobs:
         id: cache-conda
         uses: actions/cache@v3
         with:
-          path: ~/miniconda3/envs/test
+          path: ~/conda_pkgs_dir
           key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-conda-${{ matrix.python-version }}-
@@ -41,6 +41,8 @@ jobs:
           miniforge-variant: Mambaforge
           python-version: ${{ matrix.python-version }}
           use-mamba: true
+          cache-downloads: true
+          cache-packages: ~/conda_pkgs_dir
 
       - name: Create environment
         if: steps.cache-conda.outputs.cache-hit != 'true'
@@ -51,12 +53,12 @@ jobs:
 
       - name: Verify and activate environment
         run: |
-          echo "export PATH=$HOME/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
-          source ~/miniconda3/bin/activate test
+          source ~/miniforge3/bin/activate test
           which seqnado
         shell: bash -l {0}
 
       - name: Run test
         run: |
+          source ~/miniforge3/bin/activate test
           pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
         shell: bash -l {0}
