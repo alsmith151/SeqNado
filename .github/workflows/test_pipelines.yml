@@ -3,12 +3,14 @@ name: Python package
 on: [push, pull_request]
 
 jobs:
-  setup:
+  setup_test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         python-version: ["3.12"]
+        test: ["test_config_generation"]
+        test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
 
     outputs:
       cache-hit: ${{ steps.cache-conda.outputs.cache-hit }}
@@ -67,46 +69,7 @@ jobs:
           name: test_env
           path: test_env.tar.gz
 
-  test_config_generation:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
-    needs: setup
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Download environment
-        if: needs.setup.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v3
-        with:
-          name: test_env
-          path: .
-
-      - name: Extract environment
-        if: needs.setup.outputs.cache-hit != 'true'
+      - name: Run test
         run: |
-          mkdir -p /home/runner/miniconda3/envs/test
-          tar -xzf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
-        shell: bash -l {0}
-
-      - name: Add env to PATH
-        if: needs.setup.outputs.cache-hit != 'true'
-        run: |
-          echo "export PATH=$HOME/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
-          which seqnado
-        shell: bash -l {0}
-
-      - name: Verify environment
-        if: needs.setup.outputs.cache-hit == 'true'
-        run: |
-          source ~/miniconda3/bin/activate test
-          which seqnado
-        shell: bash -l {0}
-
-      - name: Run test_config_generation
-        run: |
-          pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4 -k
+          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
         shell: bash -l {0}
