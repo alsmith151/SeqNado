@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test: ["test_config_generation", "test_pipeline"]
+        test: ["test_config", "test_design", "test_pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
 
     steps:
@@ -44,11 +44,6 @@ jobs:
         shell: pwsh
         run: |
           pip install .
-
-      - name: Test design ${{ matrix.assay }}
-        shell: pwsh
-        run: |
-          seqnado-design chip tests/data/fastq/${{ matrix.assay }}*
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh

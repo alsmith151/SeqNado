@@ -328,7 +328,7 @@ def config_yaml(run_directory, user_inputs, assay_type):
     print("STDOUT:", stdout)
     print("STDERR:", stderr)
     print("Config file path:", config_file_path)
-    
+
     assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
 
@@ -398,9 +398,11 @@ def set_up(seqnado_run_dir, fastqs):
     os.chdir(cwd)
 
 
-def test_config_generation(config_yaml, assay_type):
+def test_config(config_yaml, assay_type):
     assert os.path.exists(config_yaml), f"{assay_type} config file not created."
 
+def test_design(design, assay_type):
+    assert os.path.exists(design), f"{assay_type} design file not created."
 
 @pytest.fixture(scope="function", autouse=True)
 def apptainer_args(indicies, test_data_path):
