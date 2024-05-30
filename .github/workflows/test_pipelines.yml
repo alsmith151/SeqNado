@@ -18,22 +18,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Miniforge and conda
-        run: |
-          wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-          bash Miniforge3-Linux-x86_64.sh -b -p /home/runner/miniforge3
-          export PATH=/home/runner/miniforge3/bin:$PATH
-          source /home/runner/miniforge3/etc/profile.d/conda.sh
-          conda init bash
-        shell: bash -l {0}
+      - name: Set up conda using miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: testing.yml
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          python-version: ${{ matrix.python-version }}
+          use-mamba: true
 
-      - name: Create seqnado_test environment
+      - name: Install package
         run: |
-          conda env create -f testing.yml -n seqnado_test
-          conda activate seqnado_test
+          mamba env update -n test -f testing.yml
           pip install .
           which seqnado
-          conda info --envs
+          mamba list
         shell: bash -l {0}
 
       - name: Save environment
@@ -60,15 +59,13 @@ jobs:
           name: seqnado_test
           path: .
 
-      - name: Extract environment and activate environment
+      - name: Extract environment
         run: |
           mkdir -p /home/runner/miniforge3/envs/seqnado_test
           tar -xzf seqnado_test_env.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
-          source activate /home/runner/miniforge3/envs/seqnado_test
-          pytest --help
         shell: bash -l {0}
 
       - name: Run test_config_generation
         run: |
-          /home/runner/miniforge3/envs/seqnado_test run -n seqnado_test pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
+          /home/runner/miniforge3/envs/seqnado_test/bin/pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
         shell: bash -l {0}
