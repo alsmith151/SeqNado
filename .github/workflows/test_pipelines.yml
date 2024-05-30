@@ -73,16 +73,11 @@ jobs:
         run: |
           mkdir -p /home/runner/miniforge3/envs/seqnado_test
           tar -xzf seqnado_test.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
-          source /home/runner/miniforge3/bin/conda init bash
-          source /home/runner/miniforge3/bin/conda activate seqnado_test
-        shell: bash -l {0}
-
-      - name: Verify environment
-        run: |
-          /home/runner/miniforge3/bin/conda env list
+          source activate /home/runner/miniforge3/envs/seqnado_test
+          pytest --help
         shell: bash -l {0}
 
       - name: Run test_config_generation
         run: |
-          /home/runner/miniforge3/bin/conda run -n seqnado_test pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
+          /home/runner/miniforge3/envs/seqnado_test run -n seqnado_test pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
         shell: bash -l {0}
