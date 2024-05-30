@@ -52,7 +52,7 @@ jobs:
     - name: Install the package
       shell: bash -l {0}
       run: |
-        pip install .
+        mamba run -n seqnado_test pip install .
 
     - name: Cache Singularity image
       uses: actions/cache@v3
@@ -114,7 +114,7 @@ jobs:
     - name: Run test_config_generation
       shell: bash -l {0}
       run: |
-        conda run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+        mamba run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
 
   test_pipeline:
     needs: setup
@@ -146,4 +146,4 @@ jobs:
     - name: Run test_pipeline
       shell: bash -l {0}
       run: |
-        conda run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
+        mamba run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
