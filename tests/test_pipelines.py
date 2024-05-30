@@ -249,7 +249,7 @@ def user_inputs(
         "scale": "no",
         "make_heatmaps": "no",
         "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
+        "peak_calling_method": "seacr",
     }
 
     defaults_rna = {
@@ -336,14 +336,9 @@ def config_yaml_for_testing(config_yaml, assay):
         config = yaml.safe_load(f)
 
     if assay == "chip":
-        config["pileup_method"] = ["deeptools", "homer"]
-        config["peak_calling_method"] = ["lanceotron"]
         config["library_complexity"] = False
-        config["bowtie2"]["options"] = "--no-mixed --no-discordant"
-    elif assay == "chip-rx":
-        config["call_peaks"] = True
-        config["peak_calling_method"] = ["seacr"]
     elif assay == "atac":
+        config["pileup_method"] = ["deeptools", "homer"]
         config["call_peaks"] = True
         config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
 
