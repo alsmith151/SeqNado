@@ -18,32 +18,32 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Miniforge and Mamba
+      - name: Install Miniforge and conda
         run: |
           wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
           bash Miniforge3-Linux-x86_64.sh -b -p /home/runner/miniforge3
           /home/runner/miniforge3/bin/conda init bash
-          /home/runner/miniforge3/bin/conda install -n base -c conda-forge mamba -y
+          /home/runner/miniforge3/bin/conda install -n base -c conda-forge conda -y
         shell: bash -l {0}
 
       - name: Create and update environment
         run: |
-          /home/runner/miniforge3/bin/mamba env create -f testing.yml -n seqnado_test || /home/runner/miniforge3/bin/mamba env update -n seqnado_test -f testing.yml
+          /home/runner/miniforge3/bin/conda env create -f testing.yml -n seqnado_test || /home/runner/miniforge3/bin/conda env update -n seqnado_test -f testing.yml
         shell: bash -l {0}
 
       - name: Verify environment creation
         run: |
-          /home/runner/miniforge3/bin/mamba env list
+          /home/runner/miniforge3/bin/conda env list
         shell: bash -l {0}
 
       - name: Install the package
         shell: bash -l {0}
         run: |
-          /home/runner/miniforge3/bin/mamba run -n seqnado_test pip install .
+          /home/runner/miniforge3/bin/conda run -n seqnado_test pip install .
 
       - name: Conda list
         shell: bash -l {0}
-        run: /home/runner/miniforge3/bin/mamba run -n seqnado_test mamba list
+        run: /home/runner/miniforge3/bin/conda run -n seqnado_test conda list
 
       - name: Save environment for subsequent jobs
         run: |
@@ -73,12 +73,16 @@ jobs:
         run: |
           mkdir -p /home/runner/miniforge3/envs/seqnado_test
           tar -xzf seqnado_test.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
-          source /home/runner/miniforge3/bin/activate seqnado_test
+          source /home/runner/miniforge3/bin/conda init bash
+          source /home/runner/miniforge3/bin/conda activate seqnado_test
+        shell: bash -l {0}
 
-      - name: list environments
+      - name: Verify environment
         run: |
-          mamba list
+          /home/runner/miniforge3/bin/conda env list
+        shell: bash -l {0}
 
       - name: Run test_config_generation
         run: |
-          pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
+          /home/runner/miniforge3/bin/conda run -n seqnado_test pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
+        shell: bash -l {0}
