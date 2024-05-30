@@ -44,12 +44,6 @@ jobs:
           pip install .
         shell: bash -l {0}
 
-      - name: Verify environment
-        run: |
-          source ~/miniconda3/bin/activate test
-          which seqnado
-        shell: bash -l {0}
-
       - name: Save environment
         if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
@@ -82,16 +76,15 @@ jobs:
         run: |
           mkdir -p /home/runner/miniconda3/envs/test
           tar -xzf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
-          echo "/home/runner/miniconda3/envs/test/bin" >> $GITHUB_PATH
         shell: bash -l {0}
 
-      - name: Add environment to PATH
+      - name: Add environment to PATH from cache
         run: |
-          echo "/home/runner/miniconda3/envs/test/bin" >> $GITHUB_PATH
+          echo "export PATH=/home/runner/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
           /home/runner/miniconda3/envs/test/bin/seqnado chip --version
         shell: bash -l {0}
 
       - name: Run test_config_generation
         run: |
-          pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+          pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4 -k
         shell: bash -l {0}
