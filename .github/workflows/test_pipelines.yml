@@ -37,8 +37,6 @@ jobs:
         with:
           activate-environment: test
           auto-activate-base: false
-          channel-priority: strict
-          channels: conda-forge, bioconda, defaults
           environment-file: testing.yml
           environment-name: test
           miniforge-variant: Mambaforge
