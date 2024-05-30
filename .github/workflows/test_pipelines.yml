@@ -50,7 +50,6 @@ jobs:
         shell: bash -l {0}
 
       - name: Verify environment
-        if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
           source ~/miniconda3/bin/activate test
           which seqnado
