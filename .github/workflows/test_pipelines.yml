@@ -56,4 +56,4 @@ jobs:
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         run: |
-          pytest tests/test_pipelines.py::${{ matrix.test }} -vv -s --cores 4 -k ${{ matrix.assay }}
+          pytest tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
