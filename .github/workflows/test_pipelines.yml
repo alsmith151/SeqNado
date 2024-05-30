@@ -52,7 +52,8 @@ jobs:
     - name: Install the package
       shell: bash -l {0}
       run: |
-        mamba run -n seqnado_test pip install .
+        source ~/miniconda3/bin/activate seqnado_test
+        pip install .
 
     - name: Cache Singularity image
       uses: actions/cache@v3
@@ -66,15 +67,17 @@ jobs:
       run: |
         mkdir -p /tmp/singularity-images
         for i in {1..3}; do
-          apptainer pull --force /tmp/3948023ce759e51abc90dfc36fd590e5.simg library://asmith151/seqnado/seqnado_pipeline:latest && break || sleep 10;
-        done
+          apptainer pull --force /tmp/3948023ce759e51abc90dfc36fd590e5.simg library://asmith151/seqnado/seqnado_pipeline:latest && break || echo "Retrying... $i"
+          sleep 10
+        done || true
         for i in {1..3}; do
-          apptainer pull --force /tmp/c69acb375a13228d65f9178e44481827.simg library://asmith151/seqnado/seqnado_extra:latest && break || sleep 10;
-        done
+          apptainer pull --force /tmp/c69acb375a13228d65f9178e44481827.simg library://asmith151/seqnado/seqnado_extra:latest && break || echo "Retrying... $i"
+          sleep 10
+        done || true
 
     - name: Conda list
       shell: bash -l {0}
-      run: mamba list
+      run: source ~/miniconda3/bin/activate seqnado_test && mamba list
 
     - name: Save environment for subsequent jobs
       run: |
@@ -114,7 +117,8 @@ jobs:
     - name: Run test_config_generation
       shell: bash -l {0}
       run: |
-        mamba run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+        source ~/miniconda3/bin/activate seqnado_test
+        pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
 
   test_pipeline:
     needs: setup
@@ -146,4 +150,5 @@ jobs:
     - name: Run test_pipeline
       shell: bash -l {0}
       run: |
-        mamba run -n seqnado_test pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
+        source ~/miniconda3/bin/activate seqnado_test
+        pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
