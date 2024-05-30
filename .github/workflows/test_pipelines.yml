@@ -1,12 +1,10 @@
 name: Python package
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
-  test:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+  Test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         python-version: ["3.12"]
@@ -15,12 +13,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.1.2
@@ -30,33 +22,45 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Cache conda environment
-        id: cache-conda
-        uses: actions/cache@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
         with:
-          path: |
-            ~/miniforge3/envs/test
-            ~/.cache/pip
-          key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-conda-${{ matrix.python-version }}-
+          python-version: ${{ matrix.python-version }}
 
       - name: Set up conda using miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
-          environment-file: testing.yml
-          miniforge-variant: Mambaforge
+          environment-file: environment_minimal.yml
           miniforge-version: latest
+          miniforge-variant: Mambaforge
           python-version: ${{ matrix.python-version }}
           use-mamba: true
 
-      - name: Install package
-        if: steps.cache-conda.outputs.cache-hit != 'true'
+      - name: Install package dependencies
         run: |
-          pip install .
+          mamba env update -n test -f environment_minimal.yml
         shell: bash -l {0}
 
-      - name: Test ${{ matrix.test }} ${{ matrix.test-case }}
+      - name: Install testing dependencies
         run: |
-          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4
+          mamba env update -n test -f testing.yml
         shell: bash -l {0}
+
+      - name: Install the package
+        shell: bash -l {0}
+        run: |
+          pip install .
+
+      - name: Conda list
+        shell: pwsh
+        run: mamba list
+
+      - name: Test design works
+        shell: pwsh
+        run: |
+          seqnado-design chip tests/data/fastq/chip-rx*.fastq.gz
+
+      - name: Test pipeline
+        shell: pwsh
+        run: |
+          pytest -vv -s --cores 4 -k ${{ matrix.test }}[${{ matrix.test-case }}]
