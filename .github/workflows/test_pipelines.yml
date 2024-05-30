@@ -82,10 +82,12 @@ jobs:
       run: mamba list
 
     - name: Save environment for subsequent jobs
+      run: |
+        tar -czf conda-env.tar.gz ~/conda_env
       uses: actions/upload-artifact@v3
       with:
         name: conda-env
-        path: ~/conda_env
+        path: conda-env.tar.gz
 
   test_config_generation:
     needs: setup
@@ -103,13 +105,17 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Restore environment
+    - name: Download environment
       uses: actions/download-artifact@v3
       with:
         name: conda-env
-        path: ~/conda_env
+        path: .
 
-    - name: Set up conda using restored environment
+    - name: Extract environment
+      run: |
+        tar -xzf conda-env.tar.gz
+
+    - name: Set up conda using extracted environment
       uses: conda-incubator/setup-miniconda@v3
       with:
         activate-environment: test
@@ -136,13 +142,17 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Restore environment
+    - name: Download environment
       uses: actions/download-artifact@v3
       with:
         name: conda-env
-        path: ~/conda_env
+        path: .
 
-    - name: Set up conda using restored environment
+    - name: Extract environment
+      run: |
+        tar -xzf conda-env.tar.gz
+
+    - name: Set up conda using extracted environment
       uses: conda-incubator/setup-miniconda@v3
       with:
         activate-environment: test
