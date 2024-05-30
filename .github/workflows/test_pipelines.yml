@@ -83,7 +83,8 @@ jobs:
 
     - name: Save environment for subsequent jobs
       run: |
-        tar -czf conda-env.tar.gz /home/runner/miniconda3/envs/test
+        mkdir -p /home/runner/miniconda3/envs/test
+        tar -czf conda-env.tar.gz -C /home/runner/miniconda3/envs/test .
     - uses: actions/upload-artifact@v3
       with:
         name: conda-env
@@ -113,7 +114,8 @@ jobs:
 
     - name: Extract environment
       run: |
-        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/
+        mkdir -p /home/runner/miniconda3/envs/test
+        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/test
 
     - uses: conda-incubator/setup-miniconda@v3
       with:
@@ -149,7 +151,8 @@ jobs:
 
     - name: Extract environment
       run: |
-        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/
+        mkdir -p /home/runner/miniconda3/envs/test
+        tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/test
 
     - uses: conda-incubator/setup-miniconda@v3
       with:
