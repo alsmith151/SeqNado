@@ -30,7 +30,6 @@ jobs:
       - name: Create environment
         run: |
           mamba env update -n test -f testing.yml
-          mamba init bash
           mamba activate test
           pip install .
           which seqnado
