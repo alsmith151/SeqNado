@@ -4,6 +4,7 @@ on: [push]
 
 jobs:
   Test:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,8 +26,6 @@ jobs:
         id: cache-conda
         uses: actions/cache@v3
         with:
-          path: |
-            ~/mambaforge/envs/test
           key: ${{ runner.os }}-conda-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-conda-
@@ -35,7 +34,6 @@ jobs:
         id: cache-pip
         uses: actions/cache@v3
         with:
-          path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
