@@ -26,7 +26,6 @@ jobs:
           miniforge-variant: Mambaforge
           python-version: ${{ matrix.python-version }}
           use-mamba: true
-          environment-name: seqnado_test
 
       - name: Install package dependencies
         run: |
@@ -112,6 +111,10 @@ jobs:
           mkdir -p /home/runner/miniconda3/envs/seqnado_test
           tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
 
+      - name: Recreate symlink to environment
+        run: |
+          ln -s /home/runner/miniconda3/envs/seqnado_test /usr/share/miniconda/envs/seqnado_test
+
       - name: Run test_config_generation
         shell: bash -l {0}
         run: |
@@ -136,6 +139,10 @@ jobs:
         run: |
           mkdir -p /home/runner/miniconda3/envs/seqnado_test
           tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
+
+      - name: Recreate symlink to environment
+        run: |
+          ln -s /home/runner/miniconda3/envs/seqnado_test /usr/share/miniconda/envs/seqnado_test
 
       - name: Download Singularity images
         uses: actions/download-artifact@v3
