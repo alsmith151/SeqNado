@@ -22,36 +22,23 @@ jobs:
         run: |
           wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
           bash Miniforge3-Linux-x86_64.sh -b -p /home/runner/miniforge3
-          /home/runner/miniforge3/bin/conda init bash
-          /home/runner/miniforge3/bin/conda install -n base -c conda-forge conda -y
+          mamba init bash
+          mamba install -n base -c conda-forge conda -y
         shell: bash -l {0}
 
-      - name: Create and update environment
+      - name: Create seqnado_test environment
         run: |
-          /home/runner/miniforge3/bin/conda env create -f testing.yml -n seqnado_test || /home/runner/miniforge3/bin/conda env update -n seqnado_test -f testing.yml
-        shell: bash -l {0}
+          mamba env create -f testing.yml -n seqnado_test
+          mamba activate seqnado_test
+          pip install .
 
-      - name: Verify environment creation
+      - name: Save environment
         run: |
-          /home/runner/miniforge3/bin/conda env list
-        shell: bash -l {0}
-
-      - name: Install the package
-        shell: bash -l {0}
-        run: |
-          /home/runner/miniforge3/bin/conda run -n seqnado_test pip install .
-
-      - name: Conda list
-        shell: bash -l {0}
-        run: /home/runner/miniforge3/bin/conda run -n seqnado_test conda list
-
-      - name: Save environment for subsequent jobs
-        run: |
-          tar -czf seqnado_test.tar.gz -C /home/runner/miniforge3/envs/seqnado_test .
+          tar -czf seqnado_test_env.tar.gz -C /home/runner/miniforge3/envs/seqnado_test .
       - uses: actions/upload-artifact@v3
         with:
-          name: seqnado_test
-          path: seqnado_test.tar.gz
+          name: seqnado_test_env
+          path: seqnado_test_env.tar.gz
 
   test_config_generation:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
@@ -72,7 +59,7 @@ jobs:
       - name: Extract environment and activate environment
         run: |
           mkdir -p /home/runner/miniforge3/envs/seqnado_test
-          tar -xzf seqnado_test.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
+          tar -xzf seqnado_test_env.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
           source activate /home/runner/miniforge3/envs/seqnado_test
           pytest --help
         shell: bash -l {0}
