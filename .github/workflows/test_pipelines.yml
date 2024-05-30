@@ -38,8 +38,8 @@ jobs:
           activate-environment: test
           auto-activate-base: false
           environment-file: testing.yml
-          environment-name: test
           miniforge-variant: Mambaforge
+          miniforge-version: latest
           python-version: ${{ matrix.python-version }}
           use-mamba: true
           use-only-tar-bz2: true
