@@ -49,7 +49,7 @@ jobs:
           use-only-tar-bz2: true
 
       - name: Update environment
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         run: mamba env update -n test -f testing.yml
 
       - name: list conda envs
