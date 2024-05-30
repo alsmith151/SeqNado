@@ -42,7 +42,6 @@ jobs:
           conda-solver: mamba
           environment-file: testing.yml
           environment-name: test
-          mamba-version: latest
           miniforge-variant: Mambaforge
           python-version: ${{ matrix.python-version }}
           use-mamba: true
