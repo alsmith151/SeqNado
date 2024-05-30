@@ -3,7 +3,7 @@ name: Python package
 on: [push, pull_request]
 
 jobs:
-  setup_test:
+  test:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
 
@@ -56,7 +56,7 @@ jobs:
           pip install .
         shell: bash -l {0}
 
-      - name: Run tests ${{ matrix.test }} ${{ matrix.test-case }}
+      - name: Test ${{ matrix.test }} ${{ matrix.test-case }}
         run: |
           pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4
         shell: bash -l {0}
