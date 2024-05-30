@@ -51,7 +51,6 @@ jobs:
 
       - name: Verify environment
         run: |
-          source ~/miniconda3/bin/activate test
           which seqnado
         shell: bash -l {0}
 
