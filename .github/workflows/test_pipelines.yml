@@ -49,23 +49,12 @@ jobs:
           pip install .
         shell: bash -l {0}
 
-      - name: Verify environment
+      - name: Verify and activate environment
         run: |
+          echo "export PATH=$HOME/miniconda3/envs/test/bin:$PATH" >> $GITHUB_ENV
+          source ~/miniconda3/bin/activate test
           which seqnado
         shell: bash -l {0}
-
-      - name: Save environment
-        if: steps.cache-conda.outputs.cache-hit != 'true'
-        run: |
-          tar -czf test_env.tar.gz -C /home/runner/miniconda3/envs/test .
-        shell: bash -l {0}
-
-      - name: Upload environment
-        if: steps.cache-conda.outputs.cache-hit != 'true'
-        uses: actions/upload-artifact@v3
-        with:
-          name: test_env
-          path: test_env.tar.gz
 
       - name: Run test
         run: |
