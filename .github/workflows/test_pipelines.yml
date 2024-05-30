@@ -43,6 +43,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           use-mamba: true
           use-only-tar-bz2: true
+          channels: conda-forge, bioconda, defaults
 
       - name: Update environment
         if: steps.cache-conda.outputs.cache-hit != 'true'
