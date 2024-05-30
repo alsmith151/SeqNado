@@ -1,18 +1,18 @@
 name: Python package
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
-  Build_and_Test:
+  setup:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         python-version: ["3.12"]
 
     steps:
-    - uses: actions/checkout@v2
-
+    - uses: actions/checkout@v3
+    
     - uses: eWaterCycle/setup-apptainer@v2
       with:
         apptainer-version: 1.1.2
@@ -23,9 +23,17 @@ jobs:
         apptainer remote use SylabsCloud
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Cache conda environment
+      uses: actions/cache@v3
+      with:
+        path: ~/conda_env
+        key: ${{ runner.os }}-conda-${{ hashFiles('environment_minimal.yml', 'testing.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-conda-
 
     - name: Set up conda using miniforge
       uses: conda-incubator/setup-miniconda@v3
@@ -51,16 +59,96 @@ jobs:
       run: |
         pip install .
 
+    - name: Cache Singularity image
+      uses: actions/cache@v3
+      with:
+        path: /tmp/singularity-images
+        key: ${{ runner.os }}-singularity-${{ hashFiles('Singularity') }}
+        restore-keys: |
+          ${{ runner.os }}-singularity-
+
+    - name: Pull Singularity images
+      run: |
+        mkdir -p /tmp/singularity-images
+        if [ ! -f /tmp/3948023ce759e51abc90dfc36fd590e5.simg ]; then
+          apptainer pull --force /tmp/3948023ce759e51abc90dfc36fd590e5.simg library://asmith151/seqnado/seqnado_pipeline:latest
+        fi
+        if [ ! -f /tmp/c69acb375a13228d65f9178e44481827.simg ]; then
+          apptainer pull --force /tmp/c69acb375a13228d65f9178e44481827.simg library://asmith151/seqnado/seqnado_extra:latest
+        fi
+
     - name: Conda list
       shell: pwsh
       run: mamba list
 
-    - name: Test design works
-      shell: pwsh
-      run: |
-        seqnado-design chip tests/data/fastq/chip-rx*.fastq.gz
+    - name: Save environment for subsequent jobs
+      uses: actions/upload-artifact@v3
+      with:
+        name: conda-env
+        path: ~/conda_env
 
-    - name: Test pipeline in parallel
+  test_config_generation:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-case: [
+          "atac",
+          "chip-rx",
+          "chip",
+          "rna-rx",
+          "rna",
+          "snp"
+        ]
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Restore environment
+      uses: actions/download-artifact@v3
+      with:
+        name: conda-env
+        path: ~/conda_env
+
+    - name: Set up conda using restored environment
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        activate-environment: test
+        use-mamba: true
+
+    - name: Run test_config_generation
       shell: pwsh
       run: |
-        pytest -vv -s --cores 4 -k 'atac or chip or rna or snp'
+        pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
+
+  test_pipeline:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-case: [
+          "atac",
+          "chip-rx",
+          "chip",
+          "rna-rx",
+          "rna",
+          "snp"
+        ]
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Restore environment
+      uses: actions/download-artifact@v3
+      with:
+        name: conda-env
+        path: ~/conda_env
+
+    - name: Set up conda using restored environment
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        activate-environment: test
+        use-mamba: true
+
+    - name: Run test_pipeline
+      shell: pwsh
+      run: |
+        pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
