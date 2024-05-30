@@ -44,18 +44,12 @@ jobs:
         if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
           conda env list
-          env_path="~/miniforge3/envs/test"
-          if [ -d "$env_path" ]; then
-            echo "Environment exists"
-          else
-            echo "Environment does not exist"
-          fi
         shell: bash -l {0}
 
       - name: Install package
         if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
-          source ~/miniforge3/etc/profile.d/conda.sh
+          source /home/runner/miniforge3/etc/profile.d/conda.sh
           conda activate test
           pip install .
         shell: bash -l {0}
