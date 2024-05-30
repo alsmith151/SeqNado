@@ -53,6 +53,7 @@ jobs:
         run: mamba env update -n test -f testing.yml
 
       - name: list conda envs
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         run: |
           conda env list
           env_path="/home/runner/miniconda3/envs/test"
@@ -70,14 +71,14 @@ jobs:
           pip install .
         shell: bash -l {0}
 
-      # - name: Verify and activate environment
-      #   run: |
-      #     source ~/miniforge3/bin/activate test
-      #     which seqnado
-      #   shell: bash -l {0}
+      - name: Verify and activate environment
+        run: |
+          source /home/runner/miniforge3/bin/activate test
+          which seqnado
+        shell: bash -l {0}
 
-      # - name: Run test
-      #   run: |
-      #     source ~/miniforge3/bin/activate test
-      #     pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
-      #   shell: bash -l {0}
+      - name: Run test
+        run: |
+          source /home/runner/miniforge3/bin/activate test
+          pytest "tests/test_pipelines.py::${{ matrix.test }}[${{ matrix.test-case }}]" -vv -s --cores 4 -k
+        shell: bash -l {0}
