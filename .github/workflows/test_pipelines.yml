@@ -92,12 +92,6 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: load simg artefact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ matrix.container }}
-          path: /singularity-images
-
       - name: Pull Singularity images with retries
         if: not [ -f /singularity-images/${{ matrix.image }}.tar.gz ]
         run: |
