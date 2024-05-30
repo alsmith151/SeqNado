@@ -106,49 +106,15 @@ jobs:
           name: seqnado_test
           path: .
 
-      - name: Extract environment
+      - name: Extract environment and activate environment
         run: |
-          mkdir -p /home/runner/miniforge3/envs/seqnado_test
           tar -xzf seqnado_test.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
+          source /home/runner/miniforge3/bin/activate seqnado_test
+
+      - name: list environments
+        run: |
+          mamba list
 
       - name: Run test_config_generation
-        shell: bash -l {0}
         run: |
-          /home/runner/miniforge3/bin/mamba run -n seqnado_test pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
-
-  test_pipeline:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
-    needs: [setup, pull_singularity]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Download environment
-        uses: actions/download-artifact@v3
-        with:
-          name: seqnado_test
-          path: .
-
-      - name: Extract environment
-        run: |
-          mkdir -p /home/runner/miniforge3/envs/seqnado_test
-          tar -xzf seqnado_test.tar.gz -C /home/runner/miniforge3/envs/seqnado_test
-
-      - name: Download Singularity images
-        uses: actions/download-artifact@v3
-        with:
-          name: singularity-images-${{ matrix.container }}
-          path: .
-
-      - name: Extract Singularity images
-        run: |
-          mkdir -p /tmp/singularity-images
-          tar -xzf singularity-images-${{ matrix.container }}.tar.gz -C /tmp/singularity-images
-
-      - name: Run test_pipeline
-        shell: bash -l {0}
-        run: |
-          /home/runner/miniforge3/bin/mamba run -n seqnado_test pytest "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]" -vv -s --cores 4
+          pytest "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]" -vv -s --cores 4
