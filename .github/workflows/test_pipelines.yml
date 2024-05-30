@@ -21,16 +21,24 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Cache conda environment
+      - name: Cache conda
         id: cache-conda
         uses: actions/cache@v3
         with:
           path: |
             ~/mambaforge/envs/test
-            ~/.cache/pip
           key: ${{ runner.os }}-conda-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-conda-
+
+      - name: Cache pip
+        id: cache-conda
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/testing.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Set up conda using miniforge
         uses: conda-incubator/setup-miniconda@v3
@@ -40,21 +48,12 @@ jobs:
           miniforge-version: latest
           use-mamba: true
 
-      - name: Cache pip packages
-        id: cache-pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: Install the package
         shell: pwsh
         run: |
           pip install .
 
-      # - name: Test ${{ matrix.test }} ${{ matrix.assay }}
-      #   shell: pwsh
-      #   run: |
-      #     pytest tests/test_pipelines.py::${{ matrix.test }} -vv -s --cores 4 -k ${{ matrix.assay }}
+      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
+        shell: pwsh
+        run: |
+          pytest tests/test_pipelines.py::${{ matrix.test }} -vv -s --cores 4 -k ${{ matrix.assay }}
