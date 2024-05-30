@@ -42,6 +42,11 @@ jobs:
           miniforge-version: latest
           use-mamba: true
 
+      - name: Update environment
+        if: steps.cache-conda.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: mamba env update -n test -f testing.yml
+
       - name: Install the package
         if: steps.cache-conda.outputs.cache-hit != 'true'
         shell: pwsh
