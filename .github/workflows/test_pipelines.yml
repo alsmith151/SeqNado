@@ -27,27 +27,28 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Cache conda environment
+        id: cache-conda
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/miniforge3/envs/test
+            ~/.cache/pip
+          key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/testing.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-${{ matrix.python-version }}-
+
       - name: Set up conda using miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
-          environment-file: environment_minimal.yml
-          miniforge-version: latest
+          environment-file: testing.yml
           miniforge-variant: Mambaforge
+          miniforge-version: latest
           python-version: ${{ matrix.python-version }}
           use-mamba: true
 
-      - name: Install package dependencies
-        run: |
-          mamba env update -n test -f environment_minimal.yml
-        shell: bash -l {0}
-
-      - name: Install testing dependencies
-        run: |
-          mamba env update -n test -f testing.yml
-        shell: bash -l {0}
-
       - name: Install the package
-        shell: bash -l {0}
+        shell: pwsh
         run: |
           pip install .
 
