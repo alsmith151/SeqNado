@@ -31,19 +31,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-conda-${{ matrix.python-version }}-
 
-      - name: Setup environment
-        if: steps.cache-conda.outputs.cache-hit != 'true'
+      - name: Set up conda using miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-environment: test
-          auto-activate-base: false
           environment-file: testing.yml
           miniforge-variant: Mambaforge
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
           use-mamba: true
-          use-only-tar-bz2: true
-          channels: conda-forge, bioconda, defaults
 
       - name: List conda environments
         if: steps.cache-conda.outputs.cache-hit != 'true'
