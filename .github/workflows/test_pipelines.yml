@@ -78,12 +78,11 @@ jobs:
         fi
 
     - name: Conda list
-      shell: pwsh
+      shell: bash -l {0}
       run: mamba list
 
     - name: Save environment for subsequent jobs
       run: |
-        mkdir -p /home/runner/miniconda3/envs/test
         tar -czf conda-env.tar.gz -C /home/runner/miniconda3/envs/test .
     - uses: actions/upload-artifact@v3
       with:
@@ -117,14 +116,16 @@ jobs:
         mkdir -p /home/runner/miniconda3/envs/test
         tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/test
 
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        activate-environment: test
-        use-mamba: true
+    - name: Activate environment and install pytest
+      shell: bash -l {0}
+      run: |
+        source /home/runner/miniconda3/bin/activate test
+        pip install pytest pytest-xdist
 
     - name: Run test_config_generation
-      shell: pwsh
+      shell: bash -l {0}
       run: |
+        source /home/runner/miniconda3/bin/activate test
         pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_config_generation[${{ matrix.test-case }}]"
 
   test_pipeline:
@@ -154,12 +155,14 @@ jobs:
         mkdir -p /home/runner/miniconda3/envs/test
         tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/test
 
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        activate-environment: test
-        use-mamba: true
+    - name: Activate environment and install pytest
+      shell: bash -l {0}
+      run: |
+        source /home/runner/miniconda3/bin/activate test
+        pip install pytest pytest-xdist
 
     - name: Run test_pipeline
-      shell: pwsh
+      shell: bash -l {0}
       run: |
+        source /home/runner/miniconda3/bin/activate test
         pytest -vv -s --cores 4 -k "tests/test_pipelines.py::test_pipeline[${{ matrix.test-case }}]"
