@@ -126,6 +126,7 @@ jobs:
     strategy:
       matrix:
         test-case: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
+        container: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
     steps:
       - uses: actions/checkout@v3
 
@@ -139,10 +140,6 @@ jobs:
         run: |
           mkdir -p /home/runner/miniconda3/envs/seqnado_test
           tar -xzf conda-env.tar.gz -C /home/runner/miniconda3/envs/seqnado_test
-
-      - name: Recreate symlink to environment
-        run: |
-          ln -s /home/runner/miniconda3/envs/seqnado_test /usr/share/miniconda/envs/seqnado_test
 
       - name: Download Singularity images
         uses: actions/download-artifact@v3
