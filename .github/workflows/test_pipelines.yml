@@ -5,9 +5,13 @@ on: [push]
 jobs:
   Test:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
+  Test:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        test: ["config", "design", "pipeline"]
+        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
         test: ["config", "design", "pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
 
