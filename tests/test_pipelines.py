@@ -250,6 +250,8 @@ def user_inputs(
         "make_heatmaps": "no",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
+        "call_peaks": "yes",
+        "peak_calling_method": "lanceotron",
     }
 
     defaults_rna = {
@@ -345,6 +347,7 @@ def config_yaml_for_testing(config_yaml, assay):
     elif assay == "atac":
         config["pileup_method"] = ["deeptools", "homer"]
         config["call_peaks"] = True
+        config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
         config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
 
     with open(config_yaml, "w") as f:
