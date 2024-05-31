@@ -19,8 +19,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ~/cache/conda
-            ~/cache/pip
+            ~/.conda
+            ~/.cache/pip
           key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-env-
@@ -43,7 +43,7 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: cache/apptainer
+          path: ~/.singularity
           key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
           restore-keys: |
             ${{ runner.os }}-singularity-
