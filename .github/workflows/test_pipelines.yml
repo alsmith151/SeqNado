@@ -64,8 +64,13 @@ jobs:
         run: |
           apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_pipeline:latest
 
-      - name: Pull Singularity Image seqnado_extra
-        if: matrix.test == 'pipeline' && matrix.assay in ['atac', 'chip']
+      - name: Pull Singularity Image seqnado_extra atac
+        if: matrix.test == 'pipeline' && matrix.assay == 'atac'
+        run: |
+          apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_extra:latest
+
+      - name: Pull Singularity Image seqnado_extra chip
+        if: matrix.test == 'pipeline' && matrix.assay == 'chip'
         run: |
           apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_extra:latest
 
