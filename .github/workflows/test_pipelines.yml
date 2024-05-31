@@ -24,6 +24,7 @@ jobs:
           key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-env-
+
       - name: Setup conda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -36,6 +37,7 @@ jobs:
         shell: pwsh
         run: |
           pip install .
+
       - name: Cache singularity
         if: matrix.test == 'pipeline'
         id: cache-singularity
@@ -45,6 +47,7 @@ jobs:
           key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
           restore-keys: |
             ${{ runner.os }}-singularity-
+
       - uses: eWaterCycle/setup-apptainer@v2
         if: matrix.test == 'pipeline'
         with:
@@ -56,6 +59,7 @@ jobs:
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
+
       - name: Pull singularity images
         if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
@@ -69,6 +73,7 @@ jobs:
           elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
             apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
           fi
+          
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         env:
