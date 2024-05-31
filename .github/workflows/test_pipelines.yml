@@ -65,7 +65,7 @@ jobs:
           apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_pipeline:latest
 
       - name: Pull Singularity Image seqnado_extra
-        if: matrix.test == 'pipeline' && matrix.assay != ['chip-rx', 'rna', 'rna-rx', 'snp']
+        if: matrix.test == 'pipeline' && matrix.assay in ['atac', 'chip']
         run: |
           apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_extra:latest
 
