@@ -21,6 +21,7 @@ jobs:
           path: |
             ~/.conda
             ~/.cache/pip
+            ~/.cache/apptainer
           key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-env-
@@ -37,6 +38,16 @@ jobs:
         shell: pwsh
         run: |
           pip install .
+
+      - uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.1.2
+
+      - name: Add singularity hub remote
+        shell: pwsh
+        run: |
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+          apptainer remote use SylabsCloud
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
