@@ -38,7 +38,7 @@ jobs:
         run: |
           pip install .
 
-      - name: Cache singularity setup
+      - name: Cache singularity
         id: cache-singularity
         uses: actions/cache@v3
         with:
