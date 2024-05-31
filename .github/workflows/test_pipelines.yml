@@ -34,7 +34,6 @@ jobs:
           use-mamba: true
 
       - name: Install the package
-        shell: pwsh
         run: |
           pip install .
 
@@ -45,14 +44,12 @@ jobs:
 
       - name: Add singularity hub remote
         if: matrix.test == 'pipeline'
-        shell: pwsh
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
       - name: Download singularity images
         if: matrix.test == 'pipeline'
-        shell: pwsh
         run: |
           mkdir -p singularity_images
           if [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
@@ -72,7 +69,13 @@ jobs:
           name: singularity-images-${{ matrix.assay }}
           path: singularity_images/
 
+      - name: Download singularity images from artifacts
+        if: matrix.test == 'pipeline'
+        uses: actions/download-artifact@v3
+        with:
+          name: singularity-images-${{ matrix.assay }}
+          path: singularity_images/
+
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
-        shell: pwsh
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
