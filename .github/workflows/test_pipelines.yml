@@ -66,7 +66,7 @@ jobs:
         run: |
           echo "Pulling singularity images from the remote repository..."
           mkdir -p tmp
-          if [[ "${{ matrix.test }}" == "pipeline"; then
+          if [[ "${{ matrix.test }}" == "pipeline" ]]; then
             apptainer pull --force library://asmith151/seqnado/seqnado_pipeline:latest
           elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
             apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
