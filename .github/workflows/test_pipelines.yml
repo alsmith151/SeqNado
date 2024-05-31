@@ -39,18 +39,40 @@ jobs:
         run: |
           pip install .
 
-      - name: get singularity tar files
-        if: matrix.test == 'pipeline'
+      - name: Download Singularity image seqnado_pipeline
+        if: matrix.test == 'pipeline' && matrix.assay != 'rna-rx'
         uses: actions/download-artifact@v3
         with:
-          name: singularity-images
+          name: singularity-images-seqnado_pipeline
+          path: .
+
+      - name: Download Singularity image seqnado_extra
+        if: matrix.test == 'pipeline' && matrix.assay != 'rna-rx'
+        uses: actions/download-artifact@v3
+        with:
+          name: singularity-images-seqnado_extra
+          path: .
+
+      - name: Download Singularity image seqnado_report
+        if: matrix.test == 'pipeline' && matrix.assay == 'rna-rx'
+        uses: actions/download-artifact@v3
+        with:
+          name: singularity-images-seqnado_report
           path: .
 
       - name: Extract Singularity images
         if: matrix.test == 'pipeline'
+        shell: pwsh
         run: |
-          mkdir -p /tmp/singularity-images
-          tar -xzf singularity-images.tar.gz -C /tmp/singularity-images
+          mkdir -p /home/runner/singularity-images
+          if ${{ matrix.assay != 'rna-rx' }}; then
+            tar -xzf singularity-images-seqnado_pipeline.tar.gz -C /home/runner/singularity-images
+            tar -xzf singularity-images-seqnado_extra.tar.gz -C /home/runner/singularity-images
+          else
+            tar -xzf singularity-images-seqnado_pipeline.tar.gz -C /home/runner/singularity-images
+            tar -xzf singularity-images-seqnado_extra.tar.gz -C /home/runner/singularity-images
+            tar -xzf singularity-images-seqnado_report.tar.gz -C /home/runner/singularity-images
+          fi
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
