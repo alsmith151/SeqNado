@@ -21,7 +21,6 @@ jobs:
           path: |
             ~/.conda
             ~/.cache/pip
-            ~/.cache/apptainer
           key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-env-
@@ -44,12 +43,36 @@ jobs:
         with:
           apptainer-version: 1.1.2
 
+      - name: Cache Singularity Images
+        id: cache-simg
+        uses: actions/cache@v3
+        with:
+          path: /root/.singularity/cache
+          key: ${{ runner.os }}-simg-${{ matrix.assay }}-${{ matrix.test }}
+          restore-keys: |
+            ${{ runner.os }}-simg-
+
       - name: Add singularity hub remote
         if: matrix.test == 'pipeline'
         shell: pwsh
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
+
+      - name: Pull Singularity Image seqnado_pipeline
+        if: matrix.test == 'pipeline'
+        run: |
+          apptainer pull --force --dir /root/.singularity/cache library://asmith151/seqnado/seqnado_pipeline:latest
+
+      - name: Pull Singularity Image seqnado_extra
+        if: matrix.test == 'pipeline'
+        run: |
+          apptainer pull --force --dir /root/.singularity/cache library://asmith151/seqnado/seqnado_extra:latest
+
+      - name: Pull Singularity Image seqnado_report
+        if: matrix.test == 'pipeline' && matrix.assay == 'rna-rx'
+        run: |
+          apptainer pull --force --dir /root/.singularity/cache library://asmith151/seqnado/seqnado_report:latest
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
