@@ -66,16 +66,12 @@ jobs:
         run: |
           echo "Pulling singularity images from the remote repository..."
           mkdir -p tmp
-          if [ ! -f "tmp/seqnado_pipeline_latest.sif" ]; then
-            if [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
-              apptainer pull --force tmp/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
-              apptainer pull --force tmp/seqnado_extra_latest.sif library://asmith151/seqnado/seqnado_extra:latest
-            elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
-              apptainer pull --force tmp/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
-              apptainer pull --force tmp/seqnado_report_latest.sif library://asmith151/seqnado/seqnado_report:latest
-            elif [[ "${{ matrix.assay }}" == "chip-rx" || "${{ matrix.assay }}" == "rna" || "${{ matrix.assay }}" == "snp" ]]; then
-              apptainer pull --force tmp/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
-            fi
+          if [[ "${{ matrix.test }}" == "pipeline"; then
+            apptainer pull --force library://asmith151/seqnado/seqnado_pipeline:latest
+          elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
+            apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
+          elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
+            apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
           fi
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
