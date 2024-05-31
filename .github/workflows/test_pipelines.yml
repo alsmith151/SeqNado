@@ -3,61 +3,54 @@ name: Python package
 on: [push]
 
 jobs:
-  Build_and_Test:
-
+  Test:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12"]
+        test: ["config", "design", "pipeline"]
+        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: eWaterCycle/setup-apptainer@v2
-      with:
-        apptainer-version: 1.1.2
-    - name: Add singularity hub remote
-      run: |
-        apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-        apptainer remote use SylabsCloud
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up conda using miniforge
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        environment-file: environment_minimal.yml
-        miniforge-version: latest
-        miniforge-variant: Mambaforge
-        python-version: ${{ matrix.python-version }}
-        use-mamba: true
-    - name: Install package dependencies
-      run: |
-        mamba env update -n test -f environment_minimal.yml
-      shell: bash -l {0}
-    - name: Install testing dependencies
-      run: |
-        mamba env update -n test -f testing.yml
-      shell: bash -l {0}
-    - name: Install the package
-      shell: bash -l {0}
-      run: |
-        pip install .
-    - name: Conda list
-      shell: pwsh
-      run: mamba list
-    - name: Test design works
-      shell: pwsh
-      run: |
-        seqnado-design chip tests/data/fastq/chip-rx*.fastq.gz
-    - name: Test pipeline
-      shell: pwsh
-      run: |
-          pytest -vv -s --cores 4 
-    #     pytest -vv -s --cov=./ --cov-report=xml --cores 4 
-    # - name: Upload coverage reports to Codecov
-    #   uses: codecov/codecov-action@v4.0.1
-    #   with:
-    #     token: ${{ secrets.CODECOV_TOKEN }}
-    #     slug: alsmith151/SeqNado
+      - uses: actions/checkout@v3
 
+      - name: Cache dependencies
+        id: cache-env
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.conda
+            ~/.cache/pip
+          key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-env-
+
+      - name: Set up conda using miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: testing.yml
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
+
+      - name: Install the package
+        shell: pwsh
+        run: |
+          pip install .
+
+      - uses: eWaterCycle/setup-apptainer@v2
+        if: matrix.test == 'pipeline'
+        with:
+          apptainer-version: 1.1.2
+
+      - name: Add singularity hub remote
+        if: matrix.test == 'pipeline'
+        shell: pwsh
+        run: |
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+          apptainer remote use SylabsCloud
+
+      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
+        shell: pwsh
+        run: |
+          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4

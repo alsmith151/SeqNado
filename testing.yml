@@ -1,7 +1,16 @@
+name: test
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
+  - pip
   - pytest
   - pytest-cov
+  - pytest-xdist
+  - python>=3.11
+  - snakemake>8,<9
+  - pip:
+      - snakemake-executor-plugin-slurm
+      - tracknado
+      - wget

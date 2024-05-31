@@ -163,7 +163,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     path = test_data_path / "fastq"
 
     if not path.exists():
-        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/fastq.tar.gz"
+        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
         r = requests.get(url, stream=True)
 
         tar_path = path.with_suffix(".tar.gz")
@@ -324,6 +324,9 @@ def config_yaml(run_directory, user_inputs, assay_type):
     config_file_path = (
         run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
     )
+    if not config_file_path.exists():
+        print("debug stdout", stdout)
+
     assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
 
@@ -336,14 +339,11 @@ def config_yaml_for_testing(config_yaml, assay):
         config = yaml.safe_load(f)
 
     if assay == "chip":
-        config["pileup_method"] = ["deeptools", "homer"]
-        config["peak_calling_method"] = ["lanceotron"]
         config["library_complexity"] = False
-        config["bowtie2"]["options"] = "--no-mixed --no-discordant"
     elif assay == "chip-rx":
-        config["call_peaks"] = True
-        config["peak_calling_method"] = ["seacr"]
+        config["peak_calling_method"] = "seacr"
     elif assay == "atac":
+        config["pileup_method"] = ["deeptools", "homer"]
         config["call_peaks"] = True
         config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
 
@@ -398,9 +398,11 @@ def set_up(seqnado_run_dir, fastqs):
     os.chdir(cwd)
 
 
-def test_config_generation(config_yaml, assay_type):
+def test_config(config_yaml, assay_type):
     assert os.path.exists(config_yaml), f"{assay_type} config file not created."
 
+def test_design(design, assay_type):
+    assert os.path.exists(design), f"{assay_type} design file not created."
 
 @pytest.fixture(scope="function", autouse=True)
 def apptainer_args(indicies, test_data_path):
