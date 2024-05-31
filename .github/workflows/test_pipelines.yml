@@ -47,7 +47,7 @@ jobs:
         id: cache-simg
         uses: actions/cache@v3
         with:
-          path: /root/.singularity/cache
+          path: /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}}
           key: ${{ runner.os }}-simg-${{ matrix.assay }}-${{ matrix.test }}
           restore-keys: |
             ${{ runner.os }}-simg-
@@ -62,17 +62,17 @@ jobs:
       - name: Pull Singularity Image seqnado_pipeline
         if: matrix.test == 'pipeline'
         run: |
-          apptainer pull --force --dir /root/.singularity/cache library://asmith151/seqnado/seqnado_pipeline:latest
+          apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_pipeline:latest
 
       - name: Pull Singularity Image seqnado_extra
-        if: matrix.test == 'pipeline'
+        if: matrix.test == 'pipeline' && matrix.assay != ['chip-rx', 'rna', 'rna-rx', 'snp']
         run: |
-          apptainer pull --force --dir /root/.singularity/cache library://asmith151/seqnado/seqnado_extra:latest
+          apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_extra:latest
 
       - name: Pull Singularity Image seqnado_report
         if: matrix.test == 'pipeline' && matrix.assay == 'rna-rx'
         run: |
-          apptainer pull --force --dir /root/.singularity/cache library://asmith151/seqnado/seqnado_report:latest
+          apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_report:latest
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
