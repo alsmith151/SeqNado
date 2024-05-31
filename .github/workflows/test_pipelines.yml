@@ -48,7 +48,7 @@ jobs:
             ${{ runner.os }}-singularity-
       
       - uses: eWaterCycle/setup-apptainer@v2
-        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
+        if: matrix.test == 'pipeline' 
         with:
           apptainer-version: 1.1.2
       
