@@ -413,8 +413,12 @@ def apptainer_args(indicies, test_data_path):
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
     os.environ["APPTAINER_BINDPATH"] = (
-        f"{wd}:{wd}, {test_data_path}:{test_data_path}, {indicies_mount}:{indicies_mount}, {tmpdir}:{tmpdir}"
+        f"{wd}:{wd},"
+        f"{test_data_path}:{test_data_path},"
+        f"{indicies_mount}:{indicies_mount},"
+        f"{tmpdir}:{tmpdir}"
     )
+    os.environ["APPTAINER_CACHEDIR"] = f"{tmpdir}"
 
 
 @pytest.fixture(scope="function")

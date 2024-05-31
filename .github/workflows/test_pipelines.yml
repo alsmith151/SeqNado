@@ -80,5 +80,7 @@ jobs:
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
+        env:
+          TMPDIR: /tmp
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
