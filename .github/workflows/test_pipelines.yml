@@ -43,7 +43,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: tmp/
-          key: ${{ runner.os }}-singularity-${{ matrix.test }}-${{ matrix.assay }}${{ hashFiles('tmp/*') }}
+          key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
           restore-keys: |
             ${{ runner.os }}-singularity-
 
