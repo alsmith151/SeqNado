@@ -11,12 +11,6 @@ jobs:
       matrix:
         test: ["config", "design", "pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp"]
-        image:
-          [
-            "3948023ce759e51abc90dfc36fd590e5.simg",
-            "c69acb375a13228d65f9178e44481827.simg",
-            "71c124ddd7f70a6d7226bfca418fcb8e.simg",
-          ]
 
     steps:
       - uses: actions/checkout@v3
@@ -45,17 +39,26 @@ jobs:
         run: |
           pip install .
 
-      - name: access artefact simg
+      - name: access artefact "3948023ce759e51abc90dfc36fd590e5.simg"
+        if: ${{ matrix.test == 'pipeline' }}
         uses: actions/download-artifact@v3
         with:
-          name: ./singularity-images
+          name: 3948023ce759e51abc90dfc36fd590e5.simg
           path: ./singularity-images
 
-      - name: Extract Singularity images
-        if: matrix.test == 'pipeline'
-        run: |
-          mkdir -p ./singularity-images
-          tar -xzf ./singularity-images/${{ matrix.image }}.tar.gz -C ./singularity-images
+      - name: access artefact "c69acb375a13228d65f9178e44481827.simg"
+        if: ${{ matrix.test == 'pipeline' }}
+        uses: actions/download-artifact@v3
+        with:
+          name: c69acb375a13228d65f9178e44481827.simg
+          path: ./singularity-images
+
+      - name: access artefact "71c124ddd7f70a6d7226bfca418fcb8e.simg"
+        if: ${{ matrix.test == 'pipeline' }}
+        uses: actions/download-artifact@v3
+        with:
+          name: 71c124ddd7f70a6d7226bfca418fcb8e.simg
+          path: ./singularity-images
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
