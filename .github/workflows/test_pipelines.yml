@@ -6,7 +6,6 @@ jobs:
   Test:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
-    needs: [pull_singularity]
     strategy:
       matrix:
         test: ["config", "design", "pipeline"]
