@@ -43,7 +43,7 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: ~/.singularity
+          path: ~/.apptainer
           key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
           restore-keys: |
             ${{ runner.os }}-singularity-
