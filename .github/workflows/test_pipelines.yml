@@ -39,6 +39,7 @@ jobs:
           pip install .
 
       - name: Cache singularity
+        if: matrix.test == 'pipeline'
         id: cache-singularity
         uses: actions/cache@v3
         with:
