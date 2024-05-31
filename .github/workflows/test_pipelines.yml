@@ -43,38 +43,34 @@ jobs:
         with:
           apptainer-version: 1.1.2
 
-      - name: Add singularity hub remote
+      - name: Download singularity images from artifacts
         if: matrix.test == 'pipeline'
-        shell: pwsh
-        run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-          apptainer remote use SylabsCloud
+        uses: actions/download-artifact@v3
+        with:
+          name: singularity-images-${{ matrix.assay }}
+          path: singularity_images/
+        continue-on-error: true
 
-      - name: Download singularity images
+      - name: Pull singularity images
         if: matrix.test == 'pipeline'
         shell: bash
         run: |
           mkdir -p singularity_images
-          if [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
-            apptainer pull --force singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
-            apptainer pull --force singularity_images/seqnado_extra_latest.sif library://asmith151/seqnado/seqnado_extra:latest
-          elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
-            apptainer pull --force singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
-            apptainer pull --force singularity_images/seqnado_report_latest.sif library://asmith151/seqnado/seqnado_report:latest
-          elif [[ "${{ matrix.assay }}" == "chip-rx" || "${{ matrix.assay }}" == "rna" || "${{ matrix.assay }}" == "snp" ]]; then
-            apptainer pull --force singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
+          if [ ! -f "singularity_images/seqnado_pipeline_latest.sif" ]; then
+            if [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
+              apptainer pull --force singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
+              apptainer pull --force singularity_images/seqnado_extra_latest.sif library://asmith151/seqnado/seqnado_extra:latest
+            elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
+              apptainer pull --force singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
+              apptainer pull --force singularity_images/seqnado_report_latest.sif library://asmith151/seqnado/seqnado_report:latest
+            elif [[ "${{ matrix.assay }}" == "chip-rx" || "${{ matrix.assay }}" == "rna" || "${{ matrix.assay }}" == "snp" ]]; then
+              apptainer pull --force singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
+            fi
           fi
 
       - name: Save singularity images
         if: matrix.test == 'pipeline'
         uses: actions/upload-artifact@v3
-        with:
-          name: singularity-images-${{ matrix.assay }}
-          path: singularity_images/
-
-      - name: Download singularity images from artifacts
-        if: matrix.test == 'pipeline'
-        uses: actions/download-artifact@v3
         with:
           name: singularity-images-${{ matrix.assay }}
           path: singularity_images/
