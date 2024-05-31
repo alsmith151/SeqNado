@@ -52,18 +52,18 @@ jobs:
 
       - name: Download singularity images
         if: matrix.test == 'pipeline'
-        shell: pwsh
+        shell: bash
         run: |
-          New-Item -ItemType Directory -Force -Path singularity_images
-          if (${{ matrix.assay }} -eq 'atac' -or ${{ matrix.assay }} -eq 'chip') {
+          mkdir -p singularity_images
+          if [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
             apptainer pull --force --no-login singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
             apptainer pull --force --no-login singularity_images/seqnado_extra_latest.sif library://asmith151/seqnado/seqnado_extra:latest
-          } elseif (${{ matrix.assay }} -eq 'rna-rx') {
+          elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
             apptainer pull --force --no-login singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
             apptainer pull --force --no-login singularity_images/seqnado_report_latest.sif library://asmith151/seqnado/seqnado_report:latest
-          } elseif (${{ matrix.assay }} -eq 'chip-rx' -or ${{ matrix.assay }} -eq 'rna' -or ${{ matrix.assay }} -eq 'snp') {
+          elif [[ "${{ matrix.assay }}" == "chip-rx" || "${{ matrix.assay }}" == "rna" || "${{ matrix.assay }}" == "snp" ]]; then
             apptainer pull --force --no-login singularity_images/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
-          }
+          fi
 
       - name: Save singularity images
         if: matrix.test == 'pipeline'
