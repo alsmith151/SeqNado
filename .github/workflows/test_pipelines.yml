@@ -48,15 +48,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-singularity-
 
-      - name: Check if singularity setup was cached
-        if: matrix.test == 'pipeline'
-        run: |
-          if [ "${{ steps.cache-singularity.outputs.cache-hit }}" == 'true' ]; then
-            echo "Singularity setup was restored from cache."
-          else
-            echo "Singularity setup was not found in cache. Proceeding with setup."
-          fi
-
       - uses: eWaterCycle/setup-apptainer@v2
         if: matrix.test == 'pipeline'
         with:
@@ -85,15 +76,6 @@ jobs:
             elif [[ "${{ matrix.assay }}" == "chip-rx" || "${{ matrix.assay }}" == "rna" || "${{ matrix.assay }}" == "snp" ]]; then
               apptainer pull --force tmp/seqnado_pipeline_latest.sif library://asmith151/seqnado/seqnado_pipeline:latest
             fi
-          fi
-
-      - name: Verify singularity image usage
-        if: matrix.test == 'pipeline'
-        run: |
-          if [ "${{ steps.cache-singularity.outputs.cache-hit }}" == 'true' ]; then
-            echo "Using cached singularity images."
-          else
-            echo "Using freshly pulled singularity images."
           fi
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
