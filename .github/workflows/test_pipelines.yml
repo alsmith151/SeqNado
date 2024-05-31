@@ -43,41 +43,12 @@ jobs:
         with:
           apptainer-version: 1.1.2
 
-      - name: Cache Singularity Images
-        id: cache-simg
-        uses: actions/cache@v3
-        with:
-          path: /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}}
-          key: ${{ runner.os }}-simg-${{ matrix.assay }}-${{ matrix.test }}
-          restore-keys: |
-            ${{ runner.os }}-simg-
-
       - name: Add singularity hub remote
         if: matrix.test == 'pipeline'
         shell: pwsh
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
-
-      - name: Pull Singularity Image seqnado_pipeline
-        if: matrix.test == 'pipeline'
-        run: |
-          apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_pipeline:latest
-
-      - name: Pull Singularity Image seqnado_extra atac
-        if: matrix.test == 'pipeline' && matrix.assay == 'atac'
-        run: |
-          apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_extra:latest
-
-      - name: Pull Singularity Image seqnado_extra chip
-        if: matrix.test == 'pipeline' && matrix.assay == 'chip'
-        run: |
-          apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_extra:latest
-
-      - name: Pull Singularity Image seqnado_report
-        if: matrix.test == 'pipeline' && matrix.assay == 'rna-rx'
-        run: |
-          apptainer pull --force --dir /root/.singularity/cache/${{matrix.test}}-${{matrix.assay}} library://asmith151/seqnado/seqnado_report:latest
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
