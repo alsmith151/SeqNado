@@ -39,26 +39,18 @@ jobs:
         run: |
           pip install .
 
-      - name: access artefact "3948023ce759e51abc90dfc36fd590e5.simg"
-        if: ${{ matrix.test == 'pipeline' }}
+      - name: get singularity tar files
+        if: matrix.test == 'pipeline'
         uses: actions/download-artifact@v3
         with:
-          name: 3948023ce759e51abc90dfc36fd590e5.simg
-          path: ./singularity-images
+          name: singularity-images
+          path: .
 
-      - name: access artefact "c69acb375a13228d65f9178e44481827.simg"
-        if: ${{ matrix.test == 'pipeline' }}
-        uses: actions/download-artifact@v3
-        with:
-          name: c69acb375a13228d65f9178e44481827.simg
-          path: ./singularity-images
-
-      - name: access artefact "71c124ddd7f70a6d7226bfca418fcb8e.simg"
-        if: ${{ matrix.test == 'pipeline' }}
-        uses: actions/download-artifact@v3
-        with:
-          name: 71c124ddd7f70a6d7226bfca418fcb8e.simg
-          path: ./singularity-images
+      - name: Extract Singularity images
+        if: matrix.test == 'pipeline'
+        run: |
+          mkdir -p /tmp/singularity-images
+          tar -xzf singularity-images.tar.gz -C /tmp/singularity-images
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
@@ -71,13 +63,6 @@ jobs:
     strategy:
       matrix:
         container: ["seqnado_pipeline", "seqnado_extra", "seqnado_report"]
-        include:
-          - image: "3948023ce759e51abc90dfc36fd590e5.simg"
-            container: seqnado_pipeline
-          - image: "c69acb375a13228d65f9178e44481827.simg"
-            container: seqnado_extra
-          - image: "71c124ddd7f70a6d7226bfca418fcb8e.simg"
-            container: seqnado_report
 
     steps:
       - uses: actions/checkout@v3
@@ -86,12 +71,13 @@ jobs:
           apptainer-version: 1.1.2
 
       - name: Add singularity hub remote
+        shell: pwsh
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
       - name: Pull Singularity images
-        if: not [ -f ./singularity-images/${{ matrix.image }}.tar.gz ]
+        shell: pwsh
         run: |
           mkdir -p ./singularity-images
           for i in {1..5}; do
@@ -102,13 +88,13 @@ jobs:
             sleep 10
           done
 
-      - name: print list of files
+      - name: tar Singularity images
         shell: pwsh
         run: |
-          ls -l ./singularity-images
+          tar -czf singularity-images-${{ matrix.container }}.tar.gz -C ./singularity-images .
 
-      - name: Save Singularity images for subsequent jobs
+      - name: Save Singularity tar files
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.image }}
-          path: ./singularity-images/${{ matrix.image }}.tar.gz
+          name: singularity-images-${{ matrix.container }}
+          path: singularity-images-${{ matrix.container }}.tar.gz
