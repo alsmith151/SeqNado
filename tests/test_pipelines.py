@@ -409,13 +409,18 @@ def test_design(design, assay_type):
 
 @pytest.fixture(scope="function", autouse=True)
 def apptainer_args(indicies, test_data_path):
-
     indicies_mount = indicies.parent if not indicies.is_dir() else indicies
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
+    apptainer_cache_dir = pathlib.Path.home() / ".apptainer"
+    
     os.environ["APPTAINER_BINDPATH"] = (
-        f"{wd}:{wd}, {test_data_path}:{test_data_path}, {indicies_mount}:{indicies_mount}"
+        f"{wd}:{wd},"
+        f"{test_data_path}:{test_data_path},"
+        f"{indicies_mount}:{indicies_mount},"
+        f"{tmpdir}:{tmpdir}"
     )
+    os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
 
 
 @pytest.fixture(scope="function")
