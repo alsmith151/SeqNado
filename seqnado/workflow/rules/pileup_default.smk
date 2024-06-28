@@ -124,21 +124,26 @@ rule fragment_bedgraph:
         bedgraph="seqnado_output/bedgraphs/{sample}.bedGraph",
     params:
         outdir="seqnado_output/bedgraphs",
-    threads: config["deeptools"]["threads"]
+        genome=config["genome"]["chromosome_sizes"]
+    threads: config["deeptools"]["threads"],
     resources:
-        mem="2GB",
-        runtime="4h",
+        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
+        mem=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}GB",
     log:
         "seqnado_output/logs/bedgraphs/{sample}.log",
     shell:
         """
-        samtools sort -o {params.outdir}/{wildcards.sample}_sorted.bam {input.bam} -T {params.outdir}/tmp_{wildcards.sample} 2> {log}
-        samtools index {params.outdir}/{wildcards.sample}_sorted.bam 2> {log}
-        bamCoverage --binSize 1 --extendReads -p {threads} --normalizeUsing None --outFileFormat bedgraph -b {params.outdir}/{wildcards.sample}_sorted.bam -o {output.bedgraph} 2>> {log}
+        samtools sort -@ {threads} -o {params.outdir}/{wildcards.sample}_sorted.bam {input.bam} -T {params.outdir}/tmp_{wildcards.sample} 2> {log}
+        samtools index {params.outdir}/{wildcards.sample}_sorted.bam 2>> {log}
+        bedtools bamtobed -bedpe -i {params.outdir}/{wildcards.sample}_sorted.bam > {params.outdir}/{wildcards.sample}.bedpe 2>> {log}
+        awk '$1 == $4 && $6 - $2 < 1000 {{print $1, $2, $6}}' {params.outdir}/{wildcards.sample}.bedpe > {params.outdir}/{wildcards.sample}_filtered.bed 2>> {log}
+        sort -k1,1 -k2,2n -k3,3n {params.outdir}/{wildcards.sample}_filtered.bed > {params.outdir}/{wildcards.sample}_sorted.bed 2>> {log}
+        bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_sorted.bed -g {params.genome} -threads {threads} > {output.bedgraph} 2>> {log}
         
+        rm {params.outdir}/{wildcards.sample}.bedpe
+        rm {params.outdir}/{wildcards.sample}_filtered.bed
+        rm {params.outdir}/{wildcards.sample}_sorted.bed
         rm {params.outdir}/{wildcards.sample}_sorted.bam
+        rm {params.outdir}/{wildcards.sample}_sorted.bam.bai
         rm {params.outdir}/tmp*
         """
-
-
-ruleorder: deeptools_make_bigwigs_rna_plus > deeptools_make_bigwigs_rna_minus > deeptools_make_bigwigs
