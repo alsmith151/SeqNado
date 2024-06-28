@@ -123,21 +123,21 @@ rule fragment_bedgraph:
     output:
         bedgraph="seqnado_output/bedgraphs/{sample}.bedGraph",
     params:
-        genome=config["genome"]["chromosome_sizes"],
-        outdir="seqnado_output/bedgraphs/",
+        outdir="seqnado_output/bedgraphs",
+    threads: config["deeptools"]["threads"]
+    resources:
+        mem="2GB",
+        runtime="4h",
     log:
         "seqnado_output/logs/bedgraphs/{sample}.log",
     shell:
         """
-        samtools sort -n -o {params.outdir}/{wildcards.sample}_sorted.bam {input.bam} 2> {log}
-        bedtools bamtobed -bedpe -i {params.outdir}/{wildcards.sample}_sorted.bam > {params.outdir}/{wildcards.sample}.bed 2>> {log}
-        awk '$1==$4 && $6-$2 < 1000 {{print $0}}' {params.outdir}/{wildcards.sample}.bed > {params.outdir}/{wildcards.sample}_clean.bed 2>> {log}
-        cut -f 1,2,6 {params.outdir}/{wildcards.sample}_clean.bed | sort -k1,1 -k2,2n -k3,3n > {params.outdir}/{wildcards.sample}_fragments.bed 2>> {log}
-        bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_fragments.bed -g {params.genome} > {output.bedgraph} 2>> {log}
+        samtools sort -o {params.outdir}/{wildcards.sample}_sorted.bam {input.bam} -T {params.outdir}/tmp_{wildcards.sample} 2> {log}
+        samtools index {params.outdir}/{wildcards.sample}_sorted.bam 2> {log}
+        bamCoverage --binSize 1 --extendReads -p {threads} --normalizeUsing None --outFileFormat bedgraph -b {params.outdir}/{wildcards.sample}_sorted.bam -o {output.bedgraph} 2>> {log}
         
-        rm {params.outdir}/{wildcards.sample}.bed
-        rm {params.outdir}/{wildcards.sample}_clean.bed
-        rm {params.outdir}/{wildcards.sample}_fragments.bed
+        rm {params.outdir}/{wildcards.sample}_sorted.bam
+        rm {params.outdir}/tmp*
         """
 
 
