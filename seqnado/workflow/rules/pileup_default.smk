@@ -1,6 +1,7 @@
 import re
 from seqnado.helpers import check_options
 
+
 def format_deeptools_options(wildcards, options):
     is_paired = DESIGN.query(wildcards.sample).is_paired
 
@@ -60,12 +61,13 @@ rule deeptools_make_bigwigs:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}.bigWig",
     params:
-        options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
+        options=lambda wildcards: format_deeptools_options(
+            wildcards, config["deeptools"]["bamcoverage"]
+        ),
     resources:
-        mem="2GB",
-        runtime="4h",
-    threads:
-        config["deeptools"]["threads"]
+        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
+        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt - 1)}GB",
+    threads: config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/unscaled/{sample}.log",
     shell:
@@ -121,14 +123,15 @@ rule fragment_bedgraph:
     output:
         bedgraph="seqnado_output/bedgraphs/{sample}.bedGraph",
     params:
-        genome=config['genome']['chromosome_sizes'],
+        genome=config["genome"]["chromosome_sizes"],
         outdir="seqnado_output/bedgraphs/",
     log:
         "seqnado_output/logs/bedgraphs/{sample}.log",
     shell:
         """
-        bedtools bamtobed -bedpe -i {input.bam} > {params.outdir}/{wildcards.sample}.bed 2> {log}
-        awk '$1==$4 && $6-$2 < 1000 {{print $0}}' {params.outdir}/{wildcards.sample}.bed > {params.outdir}/{wildcards.sample}_clean.bed 2>> {log}
+        samtools sort -n -o {params.outdir}/{wildcards.sample}_sorted.bam {input.bam} 2> {log}
+        bedtools bamtobed -bedpe -i {params.outdir}/{wildcards.sample}_sorted.bam > {params.outdir}/{wildcards.sample}.bed 2>> {log}
+        awk '$1==$4 && $6-$2 < 1000 {print $0}' {params.outdir}/{wildcards.sample}.bed > {params.outdir}/{wildcards.sample}_clean.bed 2>> {log}
         cut -f 1,2,6 {params.outdir}/{wildcards.sample}_clean.bed | sort -k1,1 -k2,2n -k3,3n > {params.outdir}/{wildcards.sample}_fragments.bed 2>> {log}
         bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_fragments.bed -g {params.genome} > {output.bedgraph} 2>> {log}
         
@@ -136,5 +139,6 @@ rule fragment_bedgraph:
         rm {params.outdir}/{wildcards.sample}_clean.bed
         rm {params.outdir}/{wildcards.sample}_fragments.bed
         """
+
 
 ruleorder: deeptools_make_bigwigs_rna_plus > deeptools_make_bigwigs_rna_minus > deeptools_make_bigwigs
