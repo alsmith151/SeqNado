@@ -133,14 +133,17 @@ rule fragment_bedgraph:
         "seqnado_output/logs/bedgraphs/{sample}.log",
     shell:
         """
-        samtools sort -n -@ {threads} -o {params.outdir}/{wildcards.sample}_sorted.bam {input.bam} -T {params.outdir}/tmp_{wildcards.sample} 2> {log}
-        bedtools bamtobed -bedpe -i {params.outdir}/{wildcards.sample}_sorted.bam > {params.outdir}/{wildcards.sample}.bedpe 2>> {log}
+        samtools view -f 3 -b {input.bam} > {params.outdir}/{wildcards.sample}_filtered.bam 2> {log}
+        samtools sort -n -@ {threads} -o {params.outdir}/{wildcards.sample}_sorted_name.bam {params.outdir}/{wildcards.sample}_filtered.bam -T {params.outdir}/tmp_{wildcards.sample} 2>> {log}
+        bedtools bamtobed -bedpe -i {params.outdir}/{wildcards.sample}_sorted_name.bam > {params.outdir}/{wildcards.sample}.bedpe 2>> {log}
         awk '$1 == $4 && $6 - $2 < 1000 {{print $1, $2, $6}}' {params.outdir}/{wildcards.sample}.bedpe > {params.outdir}/{wildcards.sample}_filtered.bed 2>> {log}
         sort -k1,1 -k2,2n -k3,3n {params.outdir}/{wildcards.sample}_filtered.bed > {params.outdir}/{wildcards.sample}_sorted.bed 2>> {log}
-        bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_sorted.bed -g {params.genome} > {output.bedgraph} 2>> {log}
+        bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_sorted.bed -g {params.genome} -threads {threads} > {output.bedgraph} 2>> {log}
+
         rm {params.outdir}/{wildcards.sample}.bedpe
         rm {params.outdir}/{wildcards.sample}_filtered.bed
         rm {params.outdir}/{wildcards.sample}_sorted.bed
-        rm {params.outdir}/{wildcards.sample}_sorted.bam
+        rm {params.outdir}/{wildcards.sample}_filtered.bam
+        rm {params.outdir}/{wildcards.sample}_sorted_name.bam
         rm {params.outdir}/tmp*
         """
