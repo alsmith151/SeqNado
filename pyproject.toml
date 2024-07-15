@@ -22,7 +22,7 @@ dependencies = [
     "drmaa",
     "pandas",
     "pandera",
-    "pulp<=2.7.0",
+    "pulp<=2.9.0",
     "pydantic",
     "pyranges",
     "pyyaml",
