@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options
+from seqnado.helpers import check_options, define_memory_requested, define_time_requested
 
 rule align_paired:
     input:
@@ -15,8 +15,8 @@ rule align_paired:
         ),
     threads: config["star"]["threads"]
     resources:
-        mem="35GB",
-        runtime="6h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=35, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES)
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
