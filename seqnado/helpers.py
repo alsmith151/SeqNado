@@ -58,7 +58,7 @@ def extract_apptainer_args(options: List[str]) -> Tuple[List[str], str]:
     return options, apptainer_args
 
 
-def define_memory_requested(wildcards: Any, attempts: int = 1, initial_value: int  = 1, scale: float = 1) -> str:
+def define_memory_requested(attempts: int = 1, initial_value: int  = 1, scale: float = 1) -> str:
     """
     Define the memory requested for the job.
     """
@@ -66,7 +66,7 @@ def define_memory_requested(wildcards: Any, attempts: int = 1, initial_value: in
     memory = memory * scale
     return f"{memory}G"
 
-def define_time_requested(wildcards: Any, attempts: int = 1, initial_value: int = 1, scale: float = 1) -> str:
+def define_time_requested(attempts: int = 1, initial_value: int = 1, scale: float = 1) -> str:
     """
     Define the time requested for the job.
 
