@@ -16,7 +16,7 @@ rule align_paired:
     threads: config["star"]["threads"]
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=35, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES)
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:

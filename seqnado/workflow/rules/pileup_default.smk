@@ -21,8 +21,8 @@ rule homer_make_tag_directory:
     params:
         options=check_options(config["homer"]["maketagdirectory"]),
     resources:
-        mem="4GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/homer/maketagdirectory_{sample}.log",
     shell:
@@ -37,8 +37,8 @@ rule homer_make_bigwigs:
     log:
         "seqnado_output/logs/homer/makebigwigs_{sample}.log",
     resources:
-        mem="4GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     params:
         genome_name=config["genome"]["name"],
         genome_chrom_sizes=config["genome"]["chromosome_sizes"],
@@ -62,8 +62,8 @@ rule deeptools_make_bigwigs:
     params:
         options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
     resources:
-        mem="2GB",
-        runtime="4h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads:
         config["deeptools"]["threads"]
     log:
@@ -84,8 +84,8 @@ rule deeptools_make_bigwigs_rna_plus:
         options=check_options(config["deeptools"]["bamcoverage"]),
     threads: config["deeptools"]["threads"]
     resources:
-        mem="2GB",
-        runtime="4h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/pileups/deeptools/unscaled/{sample}_plus.log",
     shell:
@@ -104,8 +104,8 @@ rule deeptools_make_bigwigs_rna_minus:
         options=check_options(config["deeptools"]["bamcoverage"]),
     threads: config["deeptools"]["threads"]
     resources:
-        mem="2GB",
-        runtime="4h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/pileups/deeptools/unscaled/{sample}_minus.log",
     shell:

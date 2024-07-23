@@ -54,8 +54,8 @@ rule macs2_with_input:
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
@@ -77,8 +77,8 @@ rule macs2_no_input:
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
@@ -100,8 +100,8 @@ rule homer_with_input:
         options=check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem="4GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp  -i {input.control} > {log} 2>&1 &&
@@ -122,8 +122,8 @@ rule homer_no_input:
         options=check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem="4GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -149,7 +149,7 @@ rule lanceotron_with_input:
     threads: 1
     resources:
         mem="10GB",
-        runtime="6h",
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
@@ -174,7 +174,7 @@ rule lanceotron_no_input:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt)}GB",
-        runtime="6h",
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
@@ -195,8 +195,8 @@ rule seacr:
         prefix=lambda wc, output: pathlib.Path(output.peaks).parent / pathlib.Path(output.peaks).name,
     threads: 1
     resources:
-        mem="5GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1 || touch {params.prefix}.{params.stringency}.bed

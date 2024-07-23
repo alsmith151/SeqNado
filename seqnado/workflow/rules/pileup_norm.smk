@@ -183,8 +183,8 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
         scale=get_norm_factor_spikein,
     threads: config["deeptools"]["threads"]
     resources:
-        mem="2GB",
-        runtime="4h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/pileups/deeptools/spikein/{sample}_plus.log",
     shell:
@@ -203,8 +203,8 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
         scale=lambda wc: get_norm_factor_spikein(wc, negative=True),
     threads: config["deeptools"]["threads"]
     resources:
-        mem="2GB",
-        runtime="4h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/pileups/deeptools/spikein/{sample}_minus.log",
     shell:

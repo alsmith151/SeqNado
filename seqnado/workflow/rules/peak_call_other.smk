@@ -21,8 +21,8 @@ rule macs2_no_input:
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem="2GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}.bed",
     shell:
@@ -43,8 +43,8 @@ rule homer_no_input:
         options=check_options(config["homer"]["findpeaks"]),
     threads: 1
     resources:
-        mem="4GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         findPeaks {input.treatment} {params.options} -o {output.peaks}.tmp > {log} 2>&1 &&
@@ -68,7 +68,7 @@ rule lanceotron_no_input:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt)}GB",
-        runtime="6h",
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&

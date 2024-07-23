@@ -7,7 +7,7 @@ rule lanceotron_no_input_consensus:
         peaks="seqnado_output/peaks/merged/lanceotron/{group}.bed",
     threads: 8
     resources:
-        runtime=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}h",
+         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt - 1)}GB",
     params:
         outdir="seqnado_output/peaks/merged/lanceotron",
