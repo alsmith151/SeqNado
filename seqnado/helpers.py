@@ -62,7 +62,7 @@ def define_memory_requested(attempts: int = 1, initial_value: int  = 1, scale: f
     """
     Define the memory requested for the job.
     """
-    memory = int(initial_value) * 2 ** int(attempts)
+    memory = int(initial_value) * 2 ** (int(attempts) - 1)
     memory = memory * float(scale)
     return f"{memory}G"
 
@@ -72,7 +72,7 @@ def define_time_requested(attempts: int = 1, initial_value: int = 1, scale: floa
 
     Base time is 1 hour.
     """
-    time = int(initial_value) * 2 ** int(attempts)
+    time = int(initial_value) * 2 ** (int(attempts) - 1)
     time = time * float(scale)
     return f"{time}h"
 
