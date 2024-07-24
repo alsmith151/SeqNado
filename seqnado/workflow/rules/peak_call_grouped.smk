@@ -8,7 +8,7 @@ rule lanceotron_no_input_consensus:
     threads: 8
     resources:
          runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt - 1)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=10, attempts=attempt, scale=SCALE_RESOURCES),,
     params:
         outdir="seqnado_output/peaks/merged/lanceotron",
         options=check_options(config["lanceotron"]["callpeak"])
