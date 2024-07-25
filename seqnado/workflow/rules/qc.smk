@@ -1,5 +1,5 @@
 import os
-from seqnado.helpers import check_options
+from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
 rule fastqc_raw_paired:
     input:

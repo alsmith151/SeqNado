@@ -1,5 +1,5 @@
 import re
-from seqnado.helpers import check_options
+from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
 def format_deeptools_options(wildcards, options):
     is_paired = DESIGN.query(wildcards.sample).is_paired

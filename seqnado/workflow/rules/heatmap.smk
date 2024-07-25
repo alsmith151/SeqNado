@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options, get_scale_method
+from seqnado.helpers import check_options, get_scale_method, define_memory_requested, define_time_requested
 
 if ASSAY == "ChIP":
     prefix = SAMPLE_NAMES_IP

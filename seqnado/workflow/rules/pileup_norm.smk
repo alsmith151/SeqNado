@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options, get_group_for_sample
+from seqnado.helpers import check_options, get_group_for_sample, define_memory_requested, define_time_requested
 
 def format_feature_counts(counts: str) -> pd.DataFrame:
     counts = pd.read_csv(counts, sep="\t", comment="#")

@@ -1,3 +1,6 @@
+from seqnado.helpers import check_options, define_time_requested, define_memory_requested
+
+
 
 rule fastq_screen_paired:
     input:
