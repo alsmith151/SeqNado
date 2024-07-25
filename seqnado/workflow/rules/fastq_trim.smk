@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options
+from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
 
 rule trimgalore_paired:
@@ -11,8 +11,8 @@ rule trimgalore_paired:
         trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
     threads: 4
     resources:
-        mem="2GB",
-        runtime="4h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     params:
         options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
@@ -34,8 +34,8 @@ rule trimgalore_single:
         trimmed=temp("seqnado_output/trimmed/{sample}.fastq.gz"),
     threads: 4
     resources:
-        mem="2GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     params:
         options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",

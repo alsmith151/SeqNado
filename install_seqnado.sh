@@ -29,7 +29,7 @@ conda activate base
 
 # Set the environment variables for CCB
 if [[ $(hostname) =~ "imm-" ]]; then
-  echo export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank" >> ~/.bashrc
+  echo 'export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank"' >> ~/.bashrc
   export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank"
 fi
 

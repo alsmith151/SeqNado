@@ -1,3 +1,6 @@
+from seqnado.helpers import check_options, define_time_requested, define_memory_requested
+
+
 
 rule fastq_screen_paired:
     input:
@@ -54,7 +57,7 @@ rule multiqc_fastqscreen:
     log:
         "seqnado_output/logs/multiqc_fastqscreen.log",
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2**attempt}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "multiqc -o seqnado_output/qc -n full_fastqscreen_report.html --force seqnado_output/qc/fastq_screen > {log} 2>&1"
 

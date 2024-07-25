@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options
+from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
 
 rule sort_bam:
@@ -7,7 +7,7 @@ rule sort_bam:
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
-        mem=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: 8
     log:
         "seqnado_output/logs/sorted/{sample}.log",
@@ -26,7 +26,7 @@ rule index_bam:
         bai=temp("seqnado_output/aligned/sorted/{sample}.bam.bai"),
     threads: 1
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt - 1)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "samtools index -@ {threads} -b {input.bam}"
 
@@ -46,8 +46,8 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
         params:
             blacklist=check_options(config["blacklist"]),
         resources:
-            mem="5GB",
-            runtime="4h",
+            mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
+            runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:
@@ -72,7 +72,7 @@ else:
             ),
         threads: 1
         resources:
-            mem="1GB",
+            mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:
@@ -99,8 +99,8 @@ if config["remove_pcr_duplicates_method"] == "picard":
         params:
             options=check_options(config["picard"]["options"]),
         resources:
-            mem="5GB",
-            runtime="4h",
+            mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
+            runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log:
             "seqnado_output/logs/duplicates/{sample}.log",
         shell:

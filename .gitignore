@@ -19,3 +19,4 @@ test_rna_size_factors.ipynb
 tests/data/*
 pytestdebug.log
 sps*
+seqnado.sif

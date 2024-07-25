@@ -114,6 +114,13 @@ def cli_design(method, files, output="design.csv"):
     help="Remove symlinks created by previous runs. Useful for re-running pipeline after misconfiguration.",
 )
 @click.option(
+    '-s',
+    '--scale-resources',
+    help="Scale factor the memory and time resources for the pipeline",
+    default=1.0,
+    type=float
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
@@ -128,6 +135,7 @@ def cli_pipeline(
     version=False,
     verbose=False,
     clean_symlinks=False,
+    scale_resources=1.0,
 ):
     """Runs the data processing pipeline"""
 
@@ -150,6 +158,9 @@ def cli_pipeline(
         logger.add(sys.stderr, level="INFO")
 
     pipeline_options, cores = extract_cores_from_options(pipeline_options)
+
+    # Scale the memory and time resources
+    os.environ["SCALE_RESOURCES"] = str(scale_resources)
 
     # Removes old symlinks if requested
     if clean_symlinks:

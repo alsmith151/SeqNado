@@ -1,5 +1,5 @@
 import os
-from seqnado.helpers import check_options
+from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
 rule fastqc_raw_paired:
     input:
@@ -17,7 +17,7 @@ rule fastqc_raw_paired:
     threads: 1
     resources:
         mem="1.5GB",
-        runtime=lambda wildcards, attempt: f"{1 * 2 ** (attempt - 1)}h",
+         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
@@ -82,7 +82,7 @@ rule samtools_stats:
         stats="seqnado_output/qc/alignment_raw/{sample}.txt",
     threads: 1
     resources:
-        mem=lambda wildcards, attempt: f"{1 * 2 ** (attempt)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """samtools stats {input.bam} > {output.stats}"""
 
@@ -142,7 +142,7 @@ rule multiqc:
     log:
         "seqnado_output/logs/multiqc.log",
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
 
@@ -170,7 +170,7 @@ rule multiqc_raw:
     log:
         "seqnado_output/logs/multiqc_raw.log",
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/fastqc_raw -n fastq_raw_qc.html --force > {log} 2>&1"
 
@@ -198,7 +198,7 @@ rule multiqc_trimmed:
     log:
         "seqnado_output/logs/multiqc_trimmed.log",
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/fastqc_trimmed -n fastq_trimmed_qc.html --force > {log} 2>&1"
 
@@ -214,7 +214,7 @@ rule multiqc_alignment_raw:
     log:
         "seqnado_output/logs/multiqc_alignment_raw.log",
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_raw -n alignment_raw_qc.html --force > {log} 2>&1"
 
@@ -230,7 +230,7 @@ rule multiqc_alignment_filtered:
     log:
         "seqnado_output/logs/multiqc_alignment_filtered.log",
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_filtered -n alignment_filtered_qc.html --force > {log} 2>&1"
 
@@ -246,7 +246,7 @@ rule multiqc_library_complexity:
     log:
         "seqnado_output/logs/multiqc_library_complexity.log",
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2 ** (attempt)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "multiqc -o seqnado_output/qc seqnado_output/aligned/duplicates_removed -n library_complexity_qc.html --force > {log} 2>&1"
 

@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options
+from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
 rule feature_counts:
     input:
@@ -11,8 +11,8 @@ rule feature_counts:
         options=check_options(config["featurecounts"]["options"]),
     threads: config["featurecounts"]["threads"]
     resources:
-        mem=lambda wildcards, attempt: f"{3 * 2 ** (attempt)}GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
     shell:
@@ -41,8 +41,8 @@ rule salmon_counts_paired:
         options=check_options(config["salmon"]["options"]),
     threads: config["salmon"]["threads"]
     resources:
-        mem=lambda wildcards, attempt: f"{3 * 2 ** (attempt)}GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/readcounts/salmon/salmon_{sample}.log",
     shell:
@@ -61,8 +61,8 @@ rule salmon_counts_single:
         options=check_options(config["salmon"]["options"]),
     threads: config["salmon"]["threads"]
     resources:
-        mem=lambda wildcards, attempt: f"{3 * 2 ** (attempt)}GB",
-        runtime="2h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/readcounts/salmon/salmon_{sample}.log",
     shell:
