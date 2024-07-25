@@ -68,7 +68,7 @@ pip install seqnado
 Ensure that the environment variables are set correctly. This can be done by adding the following to your `.bashrc` or `.bash_profile`. Run this command to add the environment variables to your `.bashrc`:
 
 ```bash
-echo export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank" >> ~/.bashrc
+echo 'export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank"' >> ~/.bashrc
 ```
 
 Reload the `.bashrc` file:

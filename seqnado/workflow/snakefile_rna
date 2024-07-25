@@ -7,7 +7,6 @@ import sys
 import pandas as pd
 from snakemake.utils import min_version
 
-
 from seqnado.design import Design, RNAOutput, NormGroups
 from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files
 
@@ -15,6 +14,7 @@ from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwa
 # Hardcoded config #
 ####################
 ASSAY = "RNA"
+SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 
 
 configfile: "config_rna.yml"

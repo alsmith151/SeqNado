@@ -20,8 +20,8 @@ rule deeptools_make_bigwigs_consensus:
     params:
         options=lambda wildcards: format_deeptools_options_grouped(wildcards, config["deeptools"]["bamcoverage"]),
     resources:
-        mem="4GB",
-        runtime="4h",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads:
         config["deeptools"]["threads"]
     log:
