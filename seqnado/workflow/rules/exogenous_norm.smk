@@ -5,14 +5,14 @@ use rule align_paired as align_paired_spikein with:
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
     resources:
-        mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
 
 
 use rule align_single as align_single_spikein with:
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
     resources:
-        mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
 
 
 use rule sort_bam as sort_bam_spikein with:
@@ -21,7 +21,7 @@ use rule sort_bam as sort_bam_spikein with:
     output:
         bam=temp("seqnado_output/aligned/spikein/sorted/{sample}.bam"),
     resources:
-        mem=lambda wildcards, attempt: f"{8 * 2 ** (attempt - 1)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/aligned_spikein/{sample}_sort.log",
 

@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options, get_scale_method
+from seqnado.helpers import check_options, get_scale_method, define_memory_requested, define_time_requested
 
 if ASSAY == "ChIP":
     prefix = SAMPLE_NAMES_IP
@@ -23,7 +23,7 @@ rule heatmap_matrix:
     threads: config["deeptools"]["threads"]
     resources:
         runtime=lambda wildcards, attempt: f"{1 * 2**attempt}h",
-        mem=lambda wildcards, attempt: f"{4 * 2**attempt}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/heatmap/matrix.log",
     shell:
@@ -38,7 +38,7 @@ rule heatmap_plot:
     params:
         colormap=check_options(config["heatmap"]["colormap"]),
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2**attempt}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/heatmap/heatmap.log",
     shell:
@@ -51,7 +51,7 @@ rule heatmap_metaplot:
     output:
         metaplot="seqnado_output/heatmap/metaplot.pdf",
     resources:
-        mem=lambda wildcards, attempt: f"{2 * 2**attempt}GB"
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/heatmap/metaplot.log",
     shell:
