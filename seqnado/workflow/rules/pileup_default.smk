@@ -140,6 +140,7 @@ rule fragment_bedgraph:
         awk '$1==$4 && $6-$2 < 1000' {output.bed} > {output.fragments}.temp 2>> {log}
         awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' {output.fragments}.temp | sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>> {log}
         bedtools genomecov -bg -i {output.fragments} -g {params.genome} > {output.bdg} 2>> {log}
+        rm seqnado_output/bedgraphs/{wildcards.sample}.fragments.bed.temp
         """
 
 ruleorder: deeptools_make_bigwigs_rna_plus > deeptools_make_bigwigs_rna_minus > deeptools_make_bigwigs
