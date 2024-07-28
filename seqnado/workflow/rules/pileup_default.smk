@@ -121,7 +121,6 @@ rule fragment_bedgraph:
     output:
         filtered=temp("seqnado_output/bedgraphs/{sample}.filtered.bam"),
         sort=temp("seqnado_output/bedgraphs/{sample}.sorted.bam"),
-        temp=temp("seqnado_output/bedgraphs/{sample}.sorted.temp.bam"),
         bed=temp("seqnado_output/bedgraphs/{sample}.bed"),
         fragments=temp("seqnado_output/bedgraphs/{sample}.fragments.bed"),
         bdg="seqnado_output/bedgraphs/{sample}.bedGraph",
@@ -135,7 +134,7 @@ rule fragment_bedgraph:
         "seqnado_output/logs/bedgraphs/{sample}.log",
     shell:"""
         samtools view -@ {threads} -q 30 -f 2 -h {input.bam} | grep -v chrM > {output.filtered} 2> {log}
-        samtools sort -@ {threads} -o {output.filtered} -T {output.temp} {output.sort} 2>> {log}
+        samtools sort -@ {threads} -m 900M -o {output.sort} -T {output.sort}.tmp {output.filtered} 2>> {log}
         bedtools bamtobed -bedpe -i {output.sort} > {output.bed}
         awk '$1==$4 && $6-$2 < 1000' {output.bed} > {output.fragments}.temp 2>> {log}
         awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' {output.fragments}.temp | sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>> {log}
