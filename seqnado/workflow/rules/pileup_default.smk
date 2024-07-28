@@ -128,6 +128,9 @@ rule fragment_bedgraph:
     params:
         genome=config['genome']['chromosome_sizes'],
     threads: 16
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),    
     log:
         "seqnado_output/logs/bedgraphs/{sample}.log",
     shell:"""
