@@ -125,16 +125,16 @@ rule fragment_bedgraph:
         bdg="seqnado_output/bedgraphs/{sample}.bedGraph",
     params:
         genome=config['genome']['chromosome_sizes'],
+    threads: 16
     log:
         "seqnado_output/logs/bedgraphs/{sample}.log",
     shell:"""
-        samtools view -q 30 -f 2 -h {input.bam} | grep -v chrM | \
-        samtools sort -o {output.filtered} -T {output.filtered}.tmp > {log} 2>&1
-        bedtools bamtobed -bedpe -i {output.filtered} > {output.bed} 2>&1 | tee -a {log}
-        awk '$1==$4 && $6-$2 < 1000 {{print $0}}' {output.bed} 2>&1 | tee -a {log} | \
-        awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' 2>&1 | tee -a {log} | \
-        sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>&1 | tee -a {log}
-        bedtools genomecov -bg -i {output.fragments} -g {params.genome} > {output.bdg} 2>&1 | tee -a {log}
+        samtools view -@ {threads} -q 30 -f 2 -h {input.bam} | grep -v chrM > {output.filtered}.temp 2> {log}
+        samtools sort -@ {threads} -o {output.filtered} -T {output.filtered}.tmp {output.filtered}.temp 2>> {log}
+        bedtools bamtobed -bedpe -i {output.filtered} > {output.bed} 2>> {log}
+        awk '$1==$4 && $6-$2 < 1000' {output.bed} > {output.fragments}.temp 2>> {log}
+        awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' {output.fragments}.temp | sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>> {log}
+        bedtools genomecov -bg -i {output.fragments} -g {params.genome} > {output.bdg} 2>> {log}
         """
 
 ruleorder: deeptools_make_bigwigs_rna_plus > deeptools_make_bigwigs_rna_minus > deeptools_make_bigwigs
