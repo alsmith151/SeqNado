@@ -119,24 +119,22 @@ rule fragment_bedgraph:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
     output:
-        bedgraph="seqnado_output/bedgraphs/{sample}.bedGraph",
+        filtered=temp("seqnado_output/bedgraphs/{sample}.filtered.bam"),
+        bed=temp("seqnado_output/bedgraphs/{sample}.bed"),
+        fragments=temp("seqnado_output/bedgraphs/{sample}.fragments.bed"),
+        bdg="seqnado_output/bedgraphs/{sample}.bedGraph",
     params:
         genome=config['genome']['chromosome_sizes'],
-        outdir="seqnado_output/bedgraphs/",
     log:
         "seqnado_output/logs/bedgraphs/{sample}.log",
-    shell:
-        """
-        samtools sort -n {input.bam} -o {input.bam}.sorted &&
-        bedtools bamtobed -bedpe -i {input.bam}.sorted > {params.outdir}/{wildcards.sample}.bed 2> {log}
-        awk '$1==$4 && $6-$2 < 1000 {{print $0}}' {params.outdir}/{wildcards.sample}.bed > {params.outdir}/{wildcards.sample}_clean.bed 2>> {log}
-        cut -f 1,2,6 {params.outdir}/{wildcards.sample}_clean.bed | sort -k1,1 -k2,2n -k3,3n > {params.outdir}/{wildcards.sample}_fragments.bed 2>> {log}
-        bedtools genomecov -bg -i {params.outdir}/{wildcards.sample}_fragments.bed -g {params.genome} > {output.bedgraph} 2>> {log}
-        
-        rm {params.outdir}/{wildcards.sample}.bed
-        rm {params.outdir}/{wildcards.sample}_clean.bed
-        rm {params.outdir}/{wildcards.sample}_fragments.bed
-        rm {input.bam}.sorted
+    shell:"""
+        samtools view -q 30 -f 2 -h {input.bam} | grep -v chrM | \
+        samtools sort -o {output.filtered} -T {output.filtered}.tmp > {log} 2>&1
+        bedtools bamtobed -bedpe -i {output.filtered} > {output.bed} 2>&1 | tee -a {log}
+        awk '$1==$4 && $6-$2 < 1000 {{print $0}}' {output.bed} 2>&1 | tee -a {log} | \
+        awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' 2>&1 | tee -a {log} | \
+        sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>&1 | tee -a {log}
+        bedtools genomecov -bg -i {output.fragments} -g {params.genome} > {output.bdg} 2>&1 | tee -a {log}
         """
 
 ruleorder: deeptools_make_bigwigs_rna_plus > deeptools_make_bigwigs_rna_minus > deeptools_make_bigwigs
