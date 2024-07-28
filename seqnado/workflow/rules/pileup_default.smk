@@ -122,6 +122,7 @@ rule fragment_bedgraph:
         filtered=temp("seqnado_output/bedgraphs/{sample}.filtered.bam"),
         sort=temp("seqnado_output/bedgraphs/{sample}.sorted.bam"),
         bed=temp("seqnado_output/bedgraphs/{sample}.bed"),
+        bed_log=temp("seqnado_output/logs/bedgraphs/{sample}_bamtobed.log"),
         fragments=temp("seqnado_output/bedgraphs/{sample}.fragments.bed"),
         bdg="seqnado_output/bedgraphs/{sample}.bedGraph",
     params:
@@ -135,7 +136,7 @@ rule fragment_bedgraph:
     shell:"""
         samtools view -@ {threads} -q 30 -f 2 -h {input.bam} | grep -v chrM > {output.filtered} 2> {log}
         samtools sort -@ {threads} -m 900M -o {output.sort} -T {output.sort}.tmp {output.filtered} 2>> {log}
-        bedtools bamtobed -bedpe -i {output.sort} > {output.bed}
+        bedtools bamtobed -bedpe -i {output.sort} > {output.bed} 2>> {output.bed_log}
         awk '$1==$4 && $6-$2 < 1000' {output.bed} > {output.fragments}.temp 2>> {log}
         awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' {output.fragments}.temp | sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>> {log}
         bedtools genomecov -bg -i {output.fragments} -g {params.genome} > {output.bdg} 2>> {log}
