@@ -291,3 +291,36 @@ def remove_unwanted_run_files():
 
         except Exception as e:
             print(e)
+
+
+def get_genomes(): 
+
+    import json
+    import sys
+
+    seqnado_config_dir = pathlib.Path('~/.config/seqnado').expanduser()
+    genome_config = seqnado_config_dir / 'genomes.json'
+
+    if genome_config.exists():
+        logger.debug(f"Genome config found at {genome_config}")
+        with open(genome_config, 'r') as f:
+            genome_values = json.load(f)
+        
+        if genome_values.get('dm6'):
+            if "PATH" in  genome_values['dm6']['bt2_indices']:
+                logger.error(f'Template genome file found. Please update the genome file {genome_config} with the correct paths.')
+                sys.exit(1)
+    
+    return genome_values
+
+
+
+        
+
+
+
+
+
+
+    # with open(os.path.join(template_dir, "preset_genomes.json"), "r") as f:
+    #     genome_values = json.load(f)
