@@ -7,8 +7,6 @@ rule save_design:
     run:
         DESIGN.to_dataframe().to_csv("seqnado_output/design.csv", index=False)
 
-
-
 rule md5sum_fastq:
     input:
         fq1="seqnado_output/fastqs/{sample}_1.fastq.gz",
@@ -22,6 +20,16 @@ rule md5sum_fastq:
         md5sum {input.fq2} > {output.md5_2}
         """
 
+rule md5sum_fastq_combined:
+    input:
+        md5sums=expand("seqnado_output/md5sums/{sample}_{read}.md5", read=["1", "2"], sample=SAMPLES),
+    output:
+        "seqnado_output/fastq_md5sums.txt",
+    shell:
+        """
+        cat {input.md5sums} > {output}
+        """
+
 
 rule md5sum_bam:
     input:
@@ -31,4 +39,34 @@ rule md5sum_bam:
     shell:
         """
         md5sum {input} > {output}
+        """
+
+rule md5sum_bam_combined:
+    input:
+        md5sums=expand("seqnado_output/md5sums/{sample}.md5", sample=SAMPLES),
+    output:
+        "seqnado_output/bam_md5sums.txt",
+    shell:
+        """
+        cat {input.md5sums} > {output}
+        """
+
+rule md5sum_bigwigs:
+    input:
+        bigwig="seqnado_output/bigwigs/{method}/unscaled/{sample}.bigWig"
+    output:
+        "seqnado_output/md5sums/{sample}.md5"
+    shell:
+        """
+        md5sum {input.bigwig} > {output}
+        """
+
+rule md5sum_bigwigs_combined:
+    input:
+        md5sums=expand("seqnado_output/md5sums/{sample}.md5", sample=SAMPLES),
+    output:
+        "seqnado_output/bigwig_md5sums.txt",
+    shell:
+        """
+        cat {input.md5sums} > {output}
         """
