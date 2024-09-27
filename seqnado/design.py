@@ -863,6 +863,26 @@ class NormGroups(BaseModel):
         return self.sample_groups[group]
 
 
+class GEOFiles(BaseModel):
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    
+    @property
+    def fastq_md5(self) -> List[str]:
+        return ["seqnado_output/fastq_md5sums.txt"]
+
+    @property
+    def bam_md5(self) -> List[str]:
+        return ["seqnado_output/bam_md5sums.txt"]
+    
+    @property
+    def bigwig_md5(self) -> List[str]:
+        return ["seqnado_output/bigwig_md5sums.txt"]
+
+    @property
+    def files(self) -> List[str]:
+        return self.fastq_md5 + self.bam_md5 + self.bigwig_md5
+
+
 class QCFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     fastq_screen: bool = False
@@ -1084,6 +1104,8 @@ class Output(BaseModel):
     fastq_screen: bool = False
     library_complexity: bool = False
 
+    geo_submission_files: bool = False
+
     @property
     def merge_bigwigs(self):
         return "merge" in self.run_design.to_dataframe().columns
@@ -1179,6 +1201,9 @@ class RNAOutput(Output):
             ).files
         )
 
+        if self.geo_submission_files:
+            files.extend(GEOFiles(assay=self.assay).files)
+
         for file_list in (
             self.bigwigs,
             self.heatmaps,
@@ -1248,6 +1273,9 @@ class NonRNAOutput(Output):
                 library_complexity=self.library_complexity,
             ).files
         )
+
+        if self.geo_submission_files:
+            files.extend(GEOFiles(assay=self.assay).files)
 
         for file_list in (
             self.bigwigs,
@@ -1323,6 +1351,9 @@ class ChIPOutput(NonRNAOutput):
                 library_complexity=self.library_complexity,
             ).files
         )
+
+        if self.geo_submission_files:
+            files.extend(GEOFiles(assay=self.assay).files)
 
         for file_list in (
             self.bigwigs,
