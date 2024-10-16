@@ -11,7 +11,7 @@ if config["call_snps"]:
             faidx=config["fasta_index"],
         resources:
             mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
-            runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
+            runtime=lambda wildcards, attempt: f"{6 * 2 ** (attempt - 1)}h",
         threads: config["bcftools"]["threads"]
         log:
             "seqnado_output/logs/variant/bcftools/bcftools/{sample}.log",
