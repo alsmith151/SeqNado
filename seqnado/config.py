@@ -360,6 +360,7 @@ picard:
 bcftools:
     threads: 16
     options:
+    filter:
     
 """
 

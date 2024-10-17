@@ -1359,58 +1359,8 @@ class SNPOutput(Output):
         if self.call_snps:
             return expand(
                 "seqnado_output/variant/{method}/{sample}.vcf.gz",
-                sample=self.sample_names,
-                method=self.snp_calling_method,
-            )
-        else:
-            return []
-
-    @computed_field
-    @property
-    def files(self) -> List[str]:
-        files = []
-        files.extend(
-            QCFiles(
-                assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
-            ).files
-        )
-
-        for file_list in (
-            self.snp_files,
-            self.design,
-        ):
-            if file_list:
-                files.extend(file_list)
-
-        if self.call_snps:
-            files.append(self.snp_files)
-
-        return files
-
-
-class SNPOutput(Output):
-    assay: Literal["SNP"]
-    call_snps: bool = False
-    sample_names: List[str]
-    make_ucsc_hub: bool = False
-    snp_calling_method: Optional[
-        Union[
-            Literal["bcftools", "deepvariant", False],
-            List[Literal["bcftools", "deepvariant"]],
-        ]
-    ] = None
-
-    @property
-    def design(self):
-        return ["seqnado_output/design.csv"]
-
-    @property
-    def snp_files(self) -> List[str]:
-        if self.call_snps:
-            return expand(
-                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                "seqnado_output/variant/{method}/{sample}.anno.vcf.gz",
+                "seqnado_output/variant/{method}/{sample}/{sample}_summary.pdf",
                 sample=self.sample_names,
                 method=self.snp_calling_method,
             )
