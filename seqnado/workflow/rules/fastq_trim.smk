@@ -9,10 +9,10 @@ rule trimgalore_paired:
     output:
         trimmed1=temp("seqnado_output/trimmed/{sample}_1.fastq.gz"),
         trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
-    threads: 4
     resources:
-        mem="2GB",
-        runtime="4h",
+        runtime=lambda wildcards, attempt: f"{6 * 2 ** (attempt - 1)}h",
+        mem=lambda wildcards, attempt: f"{4 * 2 ** (attempt - 1)}GB",
+    threads: config["trim_galore"]["threads"]
     params:
         options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",

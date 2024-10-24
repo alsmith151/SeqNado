@@ -14,8 +14,8 @@ retries: 3
 
 default-resources: 
     slurm_partition: "short"
-    runtime: "1h"
-    mem: "3G"
+    runtime: "8h"
+    mem: "10G"
 
 # local-storage-prefix: $TMPDIR
 # default-storage-provider: fs

@@ -17,7 +17,7 @@ rule fastqc_raw_paired:
     threads: 1
     resources:
         mem="1.5GB",
-        runtime=lambda wildcards, attempt: f"{1 * 2 ** (attempt - 1)}h",
+        runtime=lambda wildcards, attempt: f"{6 * 2 ** (attempt - 1)}h",
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
