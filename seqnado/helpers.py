@@ -1,11 +1,10 @@
-from typing import Dict, Union, Optional, List, Tuple
 import pathlib
-import numpy as np
 import shlex
+from typing import Dict, List, Optional, Tuple, Union
 
+import numpy as np
 from loguru import logger
-
-
+import pandas as pd
 from seqnado.design import Design, DesignIP
 
 
@@ -26,12 +25,18 @@ def extract_cores_from_options(options: List[str]) -> Tuple[List[str], int]:
     try:
         cores_flag = options.index("-c")
         cores = int(options[cores_flag + 1])
-        options = [o for i, o in enumerate(options) if i not in [cores_flag, cores_flag + 1]]
+        options = [
+            o for i, o in enumerate(options) if i not in [cores_flag, cores_flag + 1]
+        ]
     except ValueError:
         try:
             cores_flag = options.index("--cores")
             cores = int(options[cores_flag + 1])
-            options = [o for i, o in enumerate(options) if i not in [cores_flag, cores_flag + 1]]
+            options = [
+                o
+                for i, o in enumerate(options)
+                if i not in [cores_flag, cores_flag + 1]
+            ]
         except ValueError:
             cores = 1
             logger.warning("No core flag provided. Defaulting to 1 core.")
@@ -39,8 +44,9 @@ def extract_cores_from_options(options: List[str]) -> Tuple[List[str], int]:
         cores = 1
         options = [o for i, o in enumerate(options) if i not in [cores_flag]]
         logger.warning("Core flag provided but no value given. Defaulting to 1 core.")
-    
+
     return options, cores
+
 
 def extract_apptainer_args(options: List[str]) -> Tuple[List[str], str]:
     """
@@ -51,7 +57,11 @@ def extract_apptainer_args(options: List[str]) -> Tuple[List[str], str]:
     try:
         apptainer_flag = options.index("--apptainer-args")
         apptainer_args = options[apptainer_flag + 1]
-        options = [o for i, o in enumerate(options) if i not in [apptainer_flag, apptainer_flag + 1]]
+        options = [
+            o
+            for i, o in enumerate(options)
+            if i not in [apptainer_flag, apptainer_flag + 1]
+        ]
     except ValueError:
         apptainer_args = ""
 
@@ -69,7 +79,9 @@ def symlink_file(
     if not new_path.exists() and source_path.is_file():
         # logger.debug(f"Symlinking {source_path} to {output_dir / new_file_name}")
         if str(source_path) in [".", "..", "", None, "None"]:
-            logger.warning(f"Source path is empty for {new_file_name}. Will not symlink.")
+            logger.warning(
+                f"Source path is empty for {new_file_name}. Will not symlink."
+            )
 
         else:
             new_path.symlink_to(source_path.resolve())
@@ -88,23 +100,36 @@ def symlink_fastq_files(
     if isinstance(design, Design):
         for fastq_set in design.fastq_sets:
             if fastq_set.is_paired:
-                symlink_file(output_dir, fastq_set.r1.path, f"{fastq_set.name}_1.fastq.gz")
-                symlink_file(output_dir, fastq_set.r2.path, f"{fastq_set.name}_2.fastq.gz")
+                symlink_file(
+                    output_dir, fastq_set.r1.path, f"{fastq_set.name}_1.fastq.gz"
+                )
+                symlink_file(
+                    output_dir, fastq_set.r2.path, f"{fastq_set.name}_2.fastq.gz"
+                )
             else:
-                symlink_file(output_dir, fastq_set.r1.path, f"{fastq_set.name}.fastq.gz")
+                symlink_file(
+                    output_dir, fastq_set.r1.path, f"{fastq_set.name}.fastq.gz"
+                )
 
     elif isinstance(design, DesignIP):
         for experiment in design.experiments:
-
             if experiment.fastqs_are_paired:
                 symlink_file(
-                    output_dir, experiment.ip.r1.path, f"{experiment.ip.name}_{experiment.ip_performed}_1.fastq.gz"
+                    output_dir,
+                    experiment.ip.r1.path,
+                    f"{experiment.ip.name}_{experiment.ip_performed}_1.fastq.gz",
                 )
                 symlink_file(
-                    output_dir, experiment.ip.r2.path, f"{experiment.ip.name}_{experiment.ip_performed}_2.fastq.gz"
+                    output_dir,
+                    experiment.ip.r2.path,
+                    f"{experiment.ip.name}_{experiment.ip_performed}_2.fastq.gz",
                 )
             else:
-                symlink_file(output_dir, experiment.ip.r1.path, f"{experiment.ip.name}_{experiment.ip_performed}.fastq.gz")
+                symlink_file(
+                    output_dir,
+                    experiment.ip.r1.path,
+                    f"{experiment.ip.name}_{experiment.ip_performed}.fastq.gz",
+                )
 
             # Control files
             if experiment.has_control:
@@ -219,11 +244,10 @@ def check_options(value: object):
     else:
         return value
 
+
 def pepe_silvia():
     print("PEPE SILVIA")
-    _pepe_silvia = (
-        "https://relix.com/wp-content/uploads/2017/03/tumblr_o16n2kBlpX1ta3qyvo1_1280.jpg"
-    )
+    _pepe_silvia = "https://relix.com/wp-content/uploads/2017/03/tumblr_o16n2kBlpX1ta3qyvo1_1280.jpg"
     return _pepe_silvia
 
 
@@ -239,18 +263,19 @@ def get_group_for_sample(wildcards, design: Union[Design, DesignIP], strip: str 
         # logger.error(f"Sample {wildcards.sample} not found in normalisation groups.")
         raise KeyError(f"Sample {wildcards.sample} not found in normalisation groups.")
 
+
 def get_scale_method(config: Dict) -> Optional[str]:
     """
     Returns the scale method based on the config.
     """
 
     if config["spikein"]:
-       method = "spikein"
+        method = "spikein"
     elif config["scale"]:
         method = "csaw"
     else:
         method = None
-    
+
     return method
 
 
@@ -272,3 +297,10 @@ def remove_unwanted_run_files():
 
         except Exception as e:
             print(e)
+
+
+def get_chromosomes_from_file(file):
+    """Extract chromosome names from .fai or chrom.sizes file."""
+    df = pd.read_csv(file, sep="\t", header=None)
+    chromosomes = df[0].tolist()
+    return chromosomes

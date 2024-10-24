@@ -11,7 +11,7 @@ if config["call_snps"]:
             faidx=config["fasta_index"],
         resources:
             mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
-            runtime=lambda wildcards, attempt: f"{6 * 2 ** (attempt - 1)}h",
+            runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
         threads: config["bcftools"]["threads"]
         log:
             "seqnado_output/logs/variant/bcftools/bcftools/{sample}.log",
@@ -25,7 +25,7 @@ if config["call_snps"]:
             vcf=temp("seqnado_output/variant/bcftools/{sample}.split.vcf.gz"),
         resources:
             mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
-            runtime=lambda wildcards, attempt: f"{6 * 2 ** (attempt - 1)}h",
+            runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
         threads: config["bcftools"]["threads"]
         log:
             "seqnado_output/logs/variant/bcftools/split/{sample}.log",
@@ -44,7 +44,7 @@ if config["call_snps"]:
             options=check_options(config["bcftools"]["filter"]),
         resources:
             mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
-            runtime=lambda wildcards, attempt: f"{6 * 2 ** (attempt - 1)}h",
+            runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
         threads: config["bcftools"]["threads"]
         log:
             "seqnado_output/logs/variant/bcftools/filter/{sample}.log",
@@ -59,13 +59,16 @@ if config["call_snps"]:
             idx=rules.bcftools_filter_snp.output.idx,
         output:
             vcf="seqnado_output/variant/bcftools/{sample}.anno.vcf.gz",
+            idx="seqnado_output/variant/bcftools/{sample}.anno.vcf.gz.csi",
         params:
             dbsnp=config["snp_database"],
         threads: config["bcftools"]["threads"]
         log:
             "seqnado_output/logs/variant/bcftools/annotate/{sample}.log",
-        shell:
-            "bcftools annotate --threads {threads} -a {params.dbsnp} -c ID -Oz -o {output.vcf} {input.vcf} > {log} 2>&1"
+        shell:"""
+        bcftools annotate --threads {threads} -a {params.dbsnp} -c ID -Oz -o {output.vcf} {input.vcf} > {log} 2>&1
+        bcftools index -f {output.vcf} 
+        """
 
     rule bcftools_stats:
         input:

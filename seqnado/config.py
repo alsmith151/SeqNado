@@ -98,7 +98,7 @@ def setup_configuration(assay, genome, template_data):
     # Handle duplicates
     template_data["remove_pcr_duplicates"] = get_user_input(
         "Remove PCR duplicates? (yes/no)",
-        default="yes" if assay in ["chip", "atac"] else "no",
+        default="yes" if assay in ["chip", "atac", "snp"] else "no",
         is_boolean=True,
     )
     if template_data["remove_pcr_duplicates"]:
@@ -172,7 +172,7 @@ def setup_configuration(assay, genome, template_data):
             template_data["peak_calling_method"] = get_user_input(
                 "Peak caller:",
                 default="lanceotron",
-                choices=["lanceotron", "macs", "homer"],
+                choices=["lanceotron", "macs", "homer", "seacr"],
             )
 
     # RNA options
@@ -233,6 +233,12 @@ def setup_configuration(assay, genome, template_data):
         template_data["fasta"] = "False"
         template_data["fasta_index"] = "False"
         template_data["snp_database"] = "False"
+
+    template_data["run_wasp"] = (
+        get_user_input("Run WASP? (yes/no)", default="no", is_boolean=True)
+        if assay == "snp"
+        else "False"
+    )
 
     # Make UCSC hub
     template_data["make_ucsc_hub"] = get_user_input(

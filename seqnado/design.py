@@ -1341,7 +1341,9 @@ class ChIPOutput(NonRNAOutput):
 class SNPOutput(Output):
     assay: Literal["SNP"]
     call_snps: bool = False
+    run_wasp: bool = False
     sample_names: List[str]
+    chromosomes: List[str]
     make_ucsc_hub: bool = False
     snp_calling_method: Optional[
         Union[
@@ -1373,6 +1375,20 @@ class SNPOutput(Output):
             )
         else:
             return []
+    
+    @property
+    def wasp_files(self) -> List[str]:
+        return (
+            expand(
+                "seqnado_output/wasp/split_vcf/{sample}_{chromosome}.vcf.gz",
+                sample=self.sample_names,
+                chromosome=self.chromosomes
+            )
+            + expand(
+                "seqnado_output/wasp/as_counts/{sample}.as_counts.txt.gz",
+                sample=self.sample_names
+            )
+        )
         
     @computed_field
     @property
@@ -1388,6 +1404,7 @@ class SNPOutput(Output):
 
         for file_list in (
             self.snp_files,
+            self.wasp_files,
             self.design,
         ):
             if file_list:
