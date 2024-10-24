@@ -1356,17 +1356,24 @@ class SNPOutput(Output):
 
     @property
     def snp_files(self) -> List[str]:
-        if self.call_snps:
-            return expand(
-                "seqnado_output/variant/{method}/{sample}.vcf.gz",
-                "seqnado_output/variant/{method}/{sample}.anno.vcf.gz",
-                "seqnado_output/variant/{method}/{sample}/{sample}_summary.pdf",
-                sample=self.sample_names,
-                method=self.snp_calling_method,
+        if self.call_snps and self.snp_calling_method:
+            method = self.snp_calling_method if isinstance(self.snp_calling_method, list) else [self.snp_calling_method]
+            return (
+                expand(
+                    "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                    sample=self.sample_names,
+                    method=method
+                )
+                + expand(
+                    "seqnado_output/variant/{method}/{sample}.anno.vcf.gz",
+                    sample=self.sample_names,
+                    method=method
+                )
+                + ["seqnado_output/qc/snp_stats_qc.html"]
             )
         else:
             return []
-
+        
     @computed_field
     @property
     def files(self) -> List[str]:
