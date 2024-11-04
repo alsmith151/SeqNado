@@ -152,9 +152,9 @@ def setup_configuration(assay, genome, template_data):
                 default="deeptools",
                 choices=["deeptools", "homer"],
             )
-            template_data["scale"] = get_user_input(
-                "Scale bigwigs? (yes/no)", default="no", is_boolean=True
-            )
+            # template_data["scale"] = get_user_input(
+            #     "Scale bigwigs? (yes/no)", default="no", is_boolean=True
+            # )
             template_data["make_heatmaps"] = get_user_input(
                 "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
             )
@@ -263,6 +263,10 @@ def setup_configuration(assay, genome, template_data):
             if assay == "rna"
             else TOOL_OPTIONS_SNP if assay == "snp" else ""
         )
+    )
+
+    template_data['geo_submission_files'] = get_user_input(
+        "Generate GEO submission files (MD5Sums, read count summaries...)? (yes/no)", default="no", is_boolean=True
     )
 
 

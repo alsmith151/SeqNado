@@ -288,19 +288,23 @@ def user_inputs(
         "color_by": "samplename",
     }
 
+    geo = {
+        "geo_submission_files": "yes",
+    }
+
     match assay:
         case "atac":
-            return {**defaults, **defaults_atac, **hub}
+            return {**defaults, **defaults_atac, **hub, **geo}
         case "chip":
-            return {**defaults, **defaults_chip, **hub}
+            return {**defaults, **defaults_chip, **hub, **geo}
         case "chip-rx":
-            return {**defaults, **defaults_chip_rx, **hub}
+            return {**defaults, **defaults_chip_rx, **hub, **geo}
         case "rna":
-            return {**defaults, **defaults_rna, **hub}
+            return {**defaults, **defaults_rna, **hub, **geo}
         case "rna-rx":
-            return {**defaults, **defaults_rna_rx, **hub}
+            return {**defaults, **defaults_rna_rx, **hub, **geo}
         case "snp":
-            return {**defaults, **defaults_snp, **hub}
+            return {**defaults, **defaults_snp, **hub, **geo}
 
 
 @pytest.fixture(scope="function")

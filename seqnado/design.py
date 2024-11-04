@@ -1201,8 +1201,7 @@ class RNAOutput(Output):
             ).files
         )
 
-        if self.geo_submission_files:
-            files.extend(GEOFiles(assay=self.assay).files)
+        files.extend(GEOFiles(assay=self.assay).files)
 
         for file_list in (
             self.bigwigs,
@@ -1274,8 +1273,8 @@ class NonRNAOutput(Output):
             ).files
         )
 
-        if self.geo_submission_files:
-            files.extend(GEOFiles(assay=self.assay).files)
+
+        files.extend(GEOFiles(assay=self.assay).files)
 
         for file_list in (
             self.bigwigs,
