@@ -866,21 +866,10 @@ class NormGroups(BaseModel):
 class GEOFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     
-    @property
-    def fastq_md5(self) -> List[str]:
-        return ["seqnado_output/fastq_md5sums.txt"]
-
-    @property
-    def bam_md5(self) -> List[str]:
-        return ["seqnado_output/bam_md5sums.txt"]
-    
-    @property
-    def bigwig_md5(self) -> List[str]:
-        return ["seqnado_output/bigwig_md5sums.txt"]
 
     @property
     def files(self) -> List[str]:
-        return self.fastq_md5 + self.bam_md5 + self.bigwig_md5
+        return ["seqnado_output/geo_submission/md5sums.txt"]
 
 
 class QCFiles(BaseModel):
