@@ -77,6 +77,14 @@ rule samples_table:
         
         df = params.design.to_geo_dataframe(params.assay, params.pipeline_config)
         df.to_csv(output[0], sep="\t", index=False)
+    
+rule protocol:
+    output:
+        "seqnado_output/geo_submission/protocol.txt",
+    params:
+        assay=ASSAY,
+    script:
+        "../scripts/produce_data_processing_protocol.py"
 
 
         

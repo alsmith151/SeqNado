@@ -962,7 +962,8 @@ class GEOFiles(BaseModel):
         return ["seqnado_output/geo_submission/md5sums.txt", 
                 "seqnado_output/geo_submission/raw_data_checksums.txt",
                 "seqnado_output/geo_submission/processed_data_checksums.txt",
-                "seqnado_output/geo_submission/samples_table.txt"]
+                "seqnado_output/geo_submission/samples_table.txt",
+                "seqnado_output/geo_submission/protocol.txt"]
 
         
 
