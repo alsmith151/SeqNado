@@ -34,7 +34,7 @@ rule md5sum:
     shell:
         """
         cd seqnado_output/geo_submission
-        md5sum > md5sums.txt
+        md5sum * > md5sums.txt
         cd ../..
         """
 
@@ -50,7 +50,7 @@ rule geo_md5_table:
         import pandas as pd 
         import numpy as np
 
-        df = pd.read_csv("seqnado_output/geo_submission/md5sums.txt", sep=" ", header=None)
+        df = pd.read_csv("seqnado_output/geo_submission/md5sums.txt", sep=r"\s+", header=None)
         df.columns = ["md5sum", "file"]
 
         df = df.assign(is_raw=lambda df: df.file.str.contains(".fastq.gz"))
@@ -58,9 +58,9 @@ rule geo_md5_table:
         df_raw = df[df.is_raw]
         df_processed = df[~df.is_raw]
 
-        for df in ([output.raw, output.processed], [df_raw, df_processed]):
+        for (outfile, df) in zip([output.raw, output.processed], [df_raw, df_processed]):
             df = df.rename(columns={"file": "file name", "md5sum": "file checksum"})[['file name', 'file checksum']]
-            df.to_csv(output.raw, index=False, sep="\t")
+            df.to_csv(outfile, index=False, sep="\t")
 
 
 rule samples_table:
