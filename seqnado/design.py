@@ -13,8 +13,12 @@ import pandera
 from pandera.typing import Index, DataFrame, Series
 from enum import Enum
 
-from seqnado.helpers import predict_organism
 
+def predict_organism(genome: str) -> str:
+    if "hg" in genome:
+        return "Homo sapiens"
+    elif "mm" in genome:
+        return "Mus musculus"
 
 def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
     if isinstance(path, str):
