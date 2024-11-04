@@ -75,7 +75,7 @@ rule samples_table:
     container: None
     run:
         
-        df = params.design.to_geo_dataframe(params.assay, pipeline_config)
+        df = params.design.to_geo_dataframe(params.assay, params.pipeline_config)
         df.to_csv(output[0], sep="\t", index=False)
 
 
