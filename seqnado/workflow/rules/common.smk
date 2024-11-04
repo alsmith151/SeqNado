@@ -22,7 +22,7 @@ rule md5sum_fastq:
 
 rule md5sum_fastq_combined:
     input:
-        md5sums=expand("seqnado_output/md5sums/{sample}_{read}.md5", read=["1", "2"], sample=SAMPLES),
+        md5sums=expand("seqnado_output/md5sums/{sample}_{read}.md5", read=["1", "2"], sample=SAMPLE_NAMES),
     output:
         "seqnado_output/fastq_md5sums.txt",
     shell:
@@ -43,7 +43,7 @@ rule md5sum_bam:
 
 rule md5sum_bam_combined:
     input:
-        md5sums=expand("seqnado_output/md5sums/{sample}.md5", sample=SAMPLES),
+        md5sums=expand("seqnado_output/md5sums/{sample}.md5", sample=SAMPLE_NAMES),
     output:
         "seqnado_output/bam_md5sums.txt",
     shell:
@@ -63,7 +63,7 @@ rule md5sum_bigwigs:
 
 rule md5sum_bigwigs_combined:
     input:
-        md5sums=expand("seqnado_output/md5sums/{sample}.md5", sample=SAMPLES),
+        md5sums=expand("seqnado_output/md5sums/{sample}.md5", sample=SAMPLE_NAMES),
     output:
         "seqnado_output/bigwig_md5sums.txt",
     shell:
