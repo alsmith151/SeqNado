@@ -1,8 +1,13 @@
-def get_files_for_symlink(wc):
+import pathlib
+from typing import Any, List
+
+def get_files_for_symlink(wc: Any = None) -> List[str]:
 
     fastqs = DESIGN.fastq_paths
-    bigwigs = [fn for fn OUTPUT.bigwigs if 'deeptools' in fn]
-    peaks = OUTPUT.peaks
+    bigwigs = OUTPUT.bigwigs
+    bigwigs = [f for f in bigwigs if ("deeptools") in str(f)]
+    peaks = [OUTPUT.peaks[0]] if len(OUTPUT.peaks) > 0 else [] # Just take the first peak file need to change this to handle multiple peak files
+
     return [*fastqs, *bigwigs, *peaks]
 
 
@@ -10,7 +15,7 @@ rule geo_symlink:
     input:
         files=get_files_for_symlink,
     output:
-        linked_files=direcory("seqnado_output/geo_submission/"),
+        linked_files=[f"seqnado_output/geo_submission/{pathlib.Path(f).name}" for f in get_files_for_symlink()],
     shell:
         """
         mkdir -p seqnado_output/geo_submission
@@ -23,7 +28,7 @@ rule geo_symlink:
 
 rule md5sum:
     input:
-        files=geo_symlink.output.linked_files,
+        files=rules.geo_symlink.output.linked_files,
     output:
         "seqnado_output/geo_submission/md5sums.txt",
     shell:
@@ -64,9 +69,9 @@ rule samples_table:
     output:
         "seqnado_output/geo_submission/samples_table.txt",
     params: 
-        assay=ASSAY
-        pipeline_config=config
-        design=DESIGN
+        assay=ASSAY,
+        pipeline_config=config,
+        design=DESIGN,
     container: None
     run:
         
