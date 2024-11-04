@@ -424,7 +424,9 @@ def apptainer_args(indicies, test_data_path):
         f"{indicies_mount}:{indicies_mount},"
         f"{tmpdir}:{tmpdir}"
     )
-    os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
+
+    if not os.environ.get("APPTAINER_CACHEDIR"):
+        os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
 
 
 @pytest.fixture(scope="function")
