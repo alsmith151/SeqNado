@@ -80,6 +80,8 @@ rule samples_table:
 
 
         
-
-        
-        
+localrules:
+    geo_symlink,
+    md5sum,
+    geo_md5_table,
+    samples_table
