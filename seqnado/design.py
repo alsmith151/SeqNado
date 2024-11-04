@@ -1483,6 +1483,10 @@ class SNPOutput(Output):
             )
         else:
             return []
+    
+    @property
+    def peaks(self):
+        return []
 
     @computed_field
     @property
