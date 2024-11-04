@@ -75,8 +75,8 @@ rule samples_table:
     container: None
     run:
         
-        df = design.to_geo_dataframe(assay, pipeline_config)
-        df.to_csv("seqnado_output/geo_submission/samples_table.txt", sep="\t", index=False)
+        df = params.design.to_geo_dataframe(params.assay, pipeline_config)
+        df.to_csv(output[0], sep="\t", index=False)
 
 
         
