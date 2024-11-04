@@ -221,7 +221,6 @@ def user_inputs(
         "shift_atac_reads": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -232,7 +231,6 @@ def user_inputs(
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -246,7 +244,6 @@ def user_inputs(
         "spikein_genome": "dm6",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "no",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -259,7 +256,6 @@ def user_inputs(
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "rna_quantification": "feature_counts",
         "run_deseq2": "no",
@@ -270,7 +266,6 @@ def user_inputs(
         "spikein": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "no",
         "rna_quantification": "feature_counts",
         "run_deseq2": "yes",
@@ -345,6 +340,7 @@ def config_yaml_for_testing(config_yaml, assay):
         config = yaml.safe_load(f)
 
     if assay == "chip":
+        config['scale'] = "yes"
         config["library_complexity"] = False
     elif assay == "chip-rx":
         config["peak_calling_method"] = "seacr"
