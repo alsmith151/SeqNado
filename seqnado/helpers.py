@@ -291,3 +291,10 @@ def remove_unwanted_run_files():
 
         except Exception as e:
             print(e)
+
+
+def predict_organism(genome: str) -> str:
+    if "hg" in genome:
+        return "Homo sapiens"
+    elif "mm" in genome:
+        return "Mus musculus"
