@@ -43,6 +43,7 @@ rule md5sum:
         """
         cd seqnado_output/geo_submission
         md5sum > md5sums.txt
+        cd ../..
         """
 
 
