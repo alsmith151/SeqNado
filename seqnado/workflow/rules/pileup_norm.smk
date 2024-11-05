@@ -91,9 +91,11 @@ rule count_bam:
         tiles="seqnado_output/resources/genome_tiled.gtf",
     output:
         counts="seqnado_output/counts/counts.tsv",
+    params:
+        options="-p --countReadPairs" if all(e.ip.r1.is_paired for e in DESIGN.experiments) else "",
     threads: 8
     shell:
-        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} -p --countReadPairs"
+        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads}"
 
 
 rule setup_for_scaling_factors:
