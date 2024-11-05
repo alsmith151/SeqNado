@@ -92,9 +92,6 @@ def get_count_options(wc):
     else:
         return "-p" if all(fs.is_paired for fs in design.fastq_sets) else ""
 
-
-
-
 rule count_bam:
     input:
         bam=expand("seqnado_output/aligned/{sample}.bam", sample=DESIGN.sample_names),
@@ -102,7 +99,7 @@ rule count_bam:
     output:
         counts="seqnado_output/counts/counts.tsv",
     params:
-        options=,
+        options=lambda wc: get_count_options(wc),
     threads: 8
     shell:
         "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} {params.options}"
