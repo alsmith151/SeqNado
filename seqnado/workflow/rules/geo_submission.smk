@@ -5,8 +5,14 @@ def get_files_for_symlink(wc: Any = None) -> List[str]:
 
     fastqs = DESIGN.fastq_paths
     bigwigs = OUTPUT.bigwigs
-    bigwigs = [f for f in bigwigs if ("deeptools") in str(f)]
+    if assay == "RNA":
+        bigwigs = []
+    else:
+        bigwigs = [f for f in bigwigs if ("deeptools") in str(f)]
+
+    
     peaks = [OUTPUT.peaks[0]] if len(OUTPUT.peaks) > 0 else [] # Just take the first peak file need to change this to handle multiple peak files
+
 
     return [*fastqs, *bigwigs, *peaks]
 
