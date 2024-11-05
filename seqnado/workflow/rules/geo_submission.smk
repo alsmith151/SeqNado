@@ -8,7 +8,7 @@ def get_files_for_symlink(wc: Any = None) -> List[str]:
     extra = []
     if ASSAY == "RNA":
         bigwigs = []
-        extra.append(OUTPUT.counts)
+        extra.append(*OUTPUT.counts)
     else:
         bigwigs = [f for f in bigwigs if ("deeptools") in str(f)]
 
