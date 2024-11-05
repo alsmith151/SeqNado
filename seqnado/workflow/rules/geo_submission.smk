@@ -6,7 +6,7 @@ def get_files_for_symlink(wc: Any = None) -> List[str]:
     fastqs = DESIGN.fastq_paths
     bigwigs = OUTPUT.bigwigs
     extra = []
-    if assay == "RNA":
+    if ASSAY == "RNA":
         bigwigs = []
         extra.append(OUTPUT.counts)
     else:
