@@ -85,6 +85,16 @@ rule tile_regions:
         ).pipe(pr.PyRanges)
         genome_tiled.to_gtf(output.genome_tiled)
 
+
+def get_count_options(wc):
+    if ASSAY == 'ChIP':
+        return "-p --countReadPairs" if all(e.ip.r1.is_paired for e in DESIGN.experiments) else ""
+    else:
+        return "-p" if all(fs.is_paired for fs in design.fastq_sets) else ""
+
+
+
+
 rule count_bam:
     input:
         bam=expand("seqnado_output/aligned/{sample}.bam", sample=DESIGN.sample_names),
@@ -92,10 +102,10 @@ rule count_bam:
     output:
         counts="seqnado_output/counts/counts.tsv",
     params:
-        options="-p --countReadPairs" if all(e.ip.r1.is_paired for e in DESIGN.experiments) else "",
+        options=,
     threads: 8
     shell:
-        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads}"
+        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} {params.options}"
 
 
 rule setup_for_scaling_factors:
