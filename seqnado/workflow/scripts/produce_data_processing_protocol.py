@@ -52,6 +52,12 @@ def lanceotron_version():
     version = subprocess.check_output(cmd, shell=True).decode().strip()
     return version
 
+def macs2_version():
+    cmd = 'macs2 --version'
+    version = subprocess.check_output(cmd, shell=True).decode().strip()
+    re.search(r'(\d|\.)+$', version).group(1)
+    return version
+
 
 
 
@@ -71,11 +77,15 @@ BigWig files were generated using deepTools {bamCoverage_version()} with the fol
 
 if assay == 'RNA':
     content += f"""Strands were separated using the --filterRNAstrand option"""
-    content += f"""Alignments were quantified using featureCounts v{featureCounts_version()} with the following parameters: {config['featureCounts']['options']}"""
+    content += f"""Alignments were quantified using featureCounts v{featureCounts_version()} with the following parameters: {config['featurecounts']['options']}"""
 
 
 if assay in ['ChIP', 'ATAC', 'CUT&TAG']:
-    content += f"""Peak calling was performed using lanceotron v1.2.6 with the following parameters: {config['lanceotron']['callpeak']}"""
+    if "lanceotron" in  config['peak_calling_method']:
+        content += f"""Peak calling was performed using lanceotron v1.2.6 with the following parameters: {config['lanceotron']['callpeak']}"""
+    
+    if 'macs2' in config['peak_calling_method']:
+        content += f"""Peak calling was performed using MACS2 v{macs2_version()} with the following parameters: {config['macs2']['callpeak']}"""
 
 
 
