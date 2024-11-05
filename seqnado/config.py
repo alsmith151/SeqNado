@@ -172,7 +172,7 @@ def setup_configuration(assay, genome, template_data):
             template_data["peak_calling_method"] = get_user_input(
                 "Peak caller:",
                 default="lanceotron",
-                choices=["lanceotron", "macs", "homer"],
+                choices=["lanceotron", "macs", "homer", "seacr"],
             )
 
     # RNA options
