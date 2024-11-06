@@ -17,6 +17,7 @@ fastq_class_sandbox.ipynb
 2024*
 test_rna_size_factors.ipynb
 tests/data/*
+!tests/data/plotting_coordinates.bed
 pytestdebug.log
 sps*
 seqnado.sif
