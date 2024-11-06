@@ -35,7 +35,7 @@ ASSAY = snakemake.params.assay
 # %%
 
 # Load the tracks into a DataFrame
-df = pd.DataFrame(snakemake.input.files, columns=["path"])
+df = pd.DataFrame([pathlib.Path(p) for p in snakemake.input.data], columns=["path"])
 df["name"] = df["path"].apply(lambda x: x.stem)
 df["type"] = df["path"].apply(lambda x: x.suffix)
 df["normalisation"] = np.where(
@@ -69,7 +69,7 @@ fig = pn.Figure(
 
 fig.add_track(
     "genes",
-    genome=snakemake.input.genome,
+    file=snakemake.params.genome,
     gene_style="normal",
     min_gene_length=int(1e3),
     label_y_offset=-75,
