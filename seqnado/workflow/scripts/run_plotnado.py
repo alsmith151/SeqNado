@@ -15,24 +15,7 @@ plt.rcParams["svg.fonttype"] = "none"
 # %%
 ASSAY = snakemake.params.assay
 
-# %%
-# coords = "chr21:28,724,819-29,649,773"
 
-# %%
-# bws = list(
-#     pathlib.Path(
-#         "pytest-current/chipcurrent/2024-11-06_chip_test/seqnado_output/bigwigs/deeptools"
-#     ).rglob("*.bigWig")
-# )
-# bed = [
-#     p
-#     for p in pathlib.Path(
-#         "pytest-current/chipcurrent/2024-11-06_chip_test/seqnado_output/peaks"
-#     ).rglob("*.bed")
-#     if not "L-tron" in str(p)
-# ]
-
-# %%
 
 # Load the tracks into a DataFrame
 df = pd.DataFrame([pathlib.Path(p) for p in snakemake.input.data], columns=["path"])
@@ -67,16 +50,19 @@ fig = pn.Figure(
     autospacing=True,
 )
 
-fig.add_track(
-    "genes",
-    file=snakemake.params.genome,
-    gene_style="normal",
-    min_gene_length=int(1e3),
-    label_y_offset=-75,
-    label_loc="right",
-    arrow_color="black",
-    fontsize=6,
-)
+fig.add_track('scale')
+
+if snakemake.params.genes:
+    fig.add_track(
+        "genes",
+        file=snakemake.params.genes,
+        gene_style="normal",
+        min_gene_length=int(1e3),
+        label_y_offset=-75,
+        label_loc="right",
+        arrow_color="black",
+        fontsize=6,
+    )
 
 
 names = df["name"].unique()
@@ -113,14 +99,15 @@ for track in df.itertuples():
 
 # %%
 
-outdir = pathlib.Path(snakemake.output[0])
+outdir = pathlib.Path(snakemake.params.outdir)
 for region in coords.df.itertuples():
 
     fig_name = f"{region.Chromosome}-{region.Start}-{region.End}" if not hasattr(region, "Name") and not region.Name else region.Name
-    fig.save(output=outdir / f"{fig_name}.svg", gr=region)
+    region_coords = f"{region.Chromosome}:{region.Start}-{region.End}"
+    fig.save(output=outdir / f"{fig_name}.svg", gr=region_coords)
     
 # %%
-fig.to_toml(snakemake.output[1])
+fig.to_toml(snakemake.output.template)
 
 
 

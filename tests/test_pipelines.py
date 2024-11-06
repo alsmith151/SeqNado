@@ -295,6 +295,7 @@ def user_inputs(
     plot  = {
         'perform_plotting': 'yes',
         'plotting_coordinates': str(plot_bed),
+        'plotting_genes': '\n',
     }
 
     match assay:
