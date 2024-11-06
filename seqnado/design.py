@@ -631,6 +631,7 @@ class DesignIP(BaseModel):
             .assign(
                 has_control=lambda x: x["path_control"].notnull(),
             )
+            .drop_duplicates('path_ip')
         )
 
         # Group the files by the sample base
@@ -673,6 +674,7 @@ class DesignIP(BaseModel):
                         f"Invalid number of fastq files ({group.shape[0]}) for {name_without_ip}"
                     )
             
+            breakpoint()
             experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
 
         return cls(
