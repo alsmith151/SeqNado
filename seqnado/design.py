@@ -1165,7 +1165,6 @@ class SpikeInFiles(BaseModel):
 
 
 class PlotFiles(BaseModel):
-    make_plots: bool = False
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
     plotting_format: Literal["svg", "png", 'pdf'] = "svg"
 
@@ -1174,18 +1173,17 @@ class PlotFiles(BaseModel):
         import pyranges as pr
 
         plots = []
-        coords = pr.read_bed(self.plotting_coordinates)
+        coords = pr.read_bed(str(self.plotting_coordinates))
         outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
         for region in coords.df.itertuples():
             fig_name = f"{region.Chromosome}-{region.Start}-{region.End}" if not hasattr(region, "Name") and not region.Name else region.Name
-            plots.append(outdir / f"{fig_name}.{self.format}")
+            plots.append(outdir / f"{fig_name}.{self.plotting_format}")
         
         return plots
     
-    @computed_field
     @property
     def files(self) -> List[str]:
-        if self.make_plots and self.plotting_coordinates:
+        if self.plotting_coordinates:
             return self.get_plot_names()
         else:
             return []
@@ -1216,7 +1214,6 @@ class Output(BaseModel):
     library_complexity: bool = False
 
     geo_submission_files: bool = False
-
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
 
     @property
@@ -1280,7 +1277,7 @@ class Output(BaseModel):
     
     @property
     def plots(self):
-        pf = PlotFiles(make_plots=True, coordinates=self.plotting_coordinates)
+        pf = PlotFiles(plotting_coordinates=self.plotting_coordinates, plotting_format='svg')
         return pf.files
 
 
