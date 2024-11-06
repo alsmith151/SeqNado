@@ -46,6 +46,7 @@ SAMPLE_NAMES_CONTROL = DESIGN.sample_names_control
 IP = DESIGN.ips_performed
 CONTROL = DESIGN.controls_performed
 
+
 # Define output files
 OUTPUT = ChIPOutput(
     assay=ASSAY,
@@ -77,6 +78,8 @@ include: "rules/qc.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
 include: "rules/geo_submission.smk"
+include: "rules/visualisation.smk"
+
 
 
 

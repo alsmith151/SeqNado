@@ -18,7 +18,9 @@
         "star_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/STAR_2.7.10b",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf",
-        "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz"
+        "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz",
+        "genes": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38_genes.bed"
+
     },
     "hg38_dm6": {
         "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/UCSC/bt2_index/hg38_dm6",

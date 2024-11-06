@@ -626,58 +626,55 @@ class DesignIP(BaseModel):
                 control_files,
                 on=["sample_base_without_ip"],
                 suffixes=("_ip", "_control"),
-                how="left",
+                how="outer",
             )
             .assign(
                 has_control=lambda x: x["path_control"].notnull(),
             )
-            .drop_duplicates(["sample_base", "read_number"])
+            .drop_duplicates('path_ip')
         )
 
         # Group the files by the sample base
         experiments = []
         for base, group in df.groupby("sample_base"):
-
             name_without_ip = group["sample_base_without_ip"].iloc[0]
-            if group.shape[0] == 1:
-                # Single end experiment
-                ip = FastqSetIP(
-                    name=name_without_ip, r1=FastqFileIP(path=group["path_ip"].iloc[0])
-                )
 
-                if pathlib.Path(str(group["path_control"].iloc[0])).exists():
-                    control = FastqSetIP(
-                        name=name_without_ip,
-                        r1=FastqFileIP(path=group["path_control"].iloc[0]),
+            match group.shape[0]:
+                case 1:
+                    # Single end experiment no control
+                    ip = FastqSetIP(
+                        name=name_without_ip, r1=FastqFileIP(path=group["path_ip"].iloc[0])
                     )
-                else:
                     control = None
-
-                experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
-
-            elif group.shape[0] == 2:
-                # Paired end experiment
-                ip = FastqSetIP(
-                    name=name_without_ip,
-                    r1=FastqFileIP(path=group["path_ip"].iloc[0]),
-                    r2=FastqFileIP(path=group["path_ip"].iloc[1]),
-                )
-
-                if group["has_control"].iloc[0]:
+                
+                case 2:
+                    # Paired end experiment no control
+                    ip = FastqSetIP(
+                        name=name_without_ip,
+                        r1=FastqFileIP(path=group["path_ip"].iloc[0]),
+                        r2=FastqFileIP(path=group["path_ip"].iloc[1]),
+                    )
+                    control = None
+                
+                case 4:
+                    # Paired end experiment with control
+                    ip = FastqSetIP(
+                        name=name_without_ip,
+                        r1=FastqFileIP(path=group["path_ip"].iloc[0]),
+                        r2=FastqFileIP(path=group["path_ip"].iloc[1]),
+                    )
                     control = FastqSetIP(
                         name=name_without_ip,
                         r1=FastqFileIP(path=group["path_control"].iloc[0]),
                         r2=FastqFileIP(path=group["path_control"].iloc[1]),
                     )
-                else:
-                    control = None
-
-                experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
-
-            else:
-                raise ValueError(
-                    f"Invalid number of fastq files ({group.shape[0]}) for {name_without_ip}"
-                )
+                
+                case _:
+                    raise ValueError(
+                        f"Invalid number of fastq files ({group.shape[0]}) for {name_without_ip}"
+                    )
+            
+            experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
 
         return cls(
             experiments=experiments,
@@ -1120,10 +1117,6 @@ class HeatmapFiles(BaseModel):
             return self.heatmap_files
         else:
             return []
-        if self.make_heatmaps:
-            return self.heatmap_files
-        else:
-            return []
 
 
 class HubFiles(BaseModel):
@@ -1171,6 +1164,33 @@ class SpikeInFiles(BaseModel):
             return []
 
 
+class PlotFiles(BaseModel):
+    plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
+    plotting_format: Literal["svg", "png", 'pdf'] = "svg"
+
+    
+    def get_plot_names(self):
+        import pyranges as pr
+
+        plots = []
+        coords = pr.read_bed(str(self.plotting_coordinates))
+        outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
+        for region in coords.df.itertuples():
+            fig_name = f"{region.Chromosome}-{region.Start}-{region.End}" if not hasattr(region, "Name") and not region.Name else region.Name
+            plots.append(outdir / f"{fig_name}.{self.plotting_format}")
+        
+        return plots
+    
+    @property
+    def files(self) -> List[str]:
+        if self.plotting_coordinates:
+            return self.get_plot_names()
+        else:
+            return []
+
+
+
+
 class Output(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     run_design: Union[Design, DesignIP]
@@ -1194,6 +1214,14 @@ class Output(BaseModel):
     library_complexity: bool = False
 
     geo_submission_files: bool = False
+    plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
+
+    # Correct plotting_coordinates type as it may be False
+    @validator("plotting_coordinates", pre=True)
+    def validate_plotting_coordinates(cls, v):
+        if v is False:
+            return None
+        return v
 
     @property
     def merge_bigwigs(self):
@@ -1253,6 +1281,11 @@ class Output(BaseModel):
             bigbed = bed.with_suffix(".bigBed")
             bb.append(bigbed)
         return bb
+    
+    @property
+    def plots(self):
+        pf = PlotFiles(plotting_coordinates=self.plotting_coordinates, plotting_format='svg')
+        return pf.files
 
 
 class RNAOutput(Output):
@@ -1298,6 +1331,7 @@ class RNAOutput(Output):
             self.ucsc_hub.files,
             self.counts,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1371,6 +1405,7 @@ class NonRNAOutput(Output):
             self.ucsc_hub.files,
             self.peaks,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1450,6 +1485,7 @@ class ChIPOutput(NonRNAOutput):
             self.peaks,
             self.spikeins,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)

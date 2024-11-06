@@ -193,6 +193,11 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
 
 
 @pytest.fixture(scope="function")
+def plot_bed(test_data_path):
+    return test_data_path / "plotting_coordinates.bed"
+
+
+@pytest.fixture(scope="function")
 def run_directory(tmpdir_factory, assay):
     fn = tmpdir_factory.mktemp(assay)
     return fn
@@ -200,7 +205,7 @@ def run_directory(tmpdir_factory, assay):
 
 @pytest.fixture(scope="function")
 def user_inputs(
-    test_data_path, indicies, chromsizes, assay, assay_type, gtf, blacklist
+    test_data_path, indicies, chromsizes, assay, assay_type, gtf, blacklist, plot_bed
 ):
 
     defaults = {
@@ -287,19 +292,25 @@ def user_inputs(
         "geo_submission_files": "yes",
     }
 
+    plot  = {
+        'perform_plotting': 'yes' if not assay == "snp" else 'no',
+        'plotting_coordinates': str(plot_bed) if not assay == "snp" else None,
+        'plotting_genes': None,
+    }
+
     match assay:
         case "atac":
-            return {**defaults, **defaults_atac, **hub, **geo}
+            return {**defaults, **defaults_atac, **hub, **geo, **plot}
         case "chip":
-            return {**defaults, **defaults_chip, **hub, **geo}
+            return {**defaults, **defaults_chip, **hub, **geo,  **plot}
         case "chip-rx":
-            return {**defaults, **defaults_chip_rx, **hub, **geo}
+            return {**defaults, **defaults_chip_rx, **hub, **geo,  **plot}
         case "rna":
-            return {**defaults, **defaults_rna, **hub, **geo}
+            return {**defaults, **defaults_rna, **hub, **geo,  **plot}
         case "rna-rx":
-            return {**defaults, **defaults_rna_rx, **hub, **geo}
+            return {**defaults, **defaults_rna_rx, **hub, **geo,  **plot}
         case "snp":
-            return {**defaults, **defaults_snp, **hub, **geo}
+            return {**defaults, **defaults_snp, **hub, **geo, **plot}
 
 
 @pytest.fixture(scope="function")

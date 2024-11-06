@@ -28,7 +28,7 @@ rule geo_symlink:
 
         for file in {input.files}
         do
-            ln -s $(realpath $file) seqnado_output/geo_submission/$(basename $file)
+            ln -sf $(realpath $file) seqnado_output/geo_submission/$(basename $file)
         done
         """
 
