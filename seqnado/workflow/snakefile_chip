@@ -76,6 +76,8 @@ include: "rules/pileup_grouped.smk"
 include: "rules/qc.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
+include: "rules/geo_submission.smk"
+
 
 
 if config["spikein"]:

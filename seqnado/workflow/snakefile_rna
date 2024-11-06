@@ -80,6 +80,8 @@ include: "rules/hub.smk"
 include: "rules/pileup_norm.smk"
 include: "rules/pileup_default.smk"
 include: "rules/qc.smk"
+include: "rules/geo_submission.smk"
+
 
 
 rule all:

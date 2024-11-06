@@ -6,7 +6,10 @@ counts <- read_table(snakemake@input[[1]], comment = "#")
 metadata <- read_table(snakemake@input[[2]])
 
 # Create a DGEList object
-dge_list <- DGEList(counts=counts, group=metadata)
+
+print(colnames(metadata))
+
+dge_list <- DGEList(counts=counts, group=colnames(metadata))
 dge_list <- calcNormFactors(dge_list)
 
 # Save the scaling factors

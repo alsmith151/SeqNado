@@ -71,6 +71,7 @@ include: "rules/peak_call_grouped.smk"
 include: "rules/qc.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
+include: "rules/geo_submission.smk"
 
 rule all:
     input:

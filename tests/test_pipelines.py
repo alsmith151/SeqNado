@@ -221,7 +221,6 @@ def user_inputs(
         "shift_atac_reads": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -232,7 +231,6 @@ def user_inputs(
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -246,7 +244,6 @@ def user_inputs(
         "spikein_genome": "dm6",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "no",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -259,7 +256,6 @@ def user_inputs(
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "rna_quantification": "feature_counts",
         "run_deseq2": "no",
@@ -270,7 +266,6 @@ def user_inputs(
         "spikein": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "no",
         "rna_quantification": "feature_counts",
         "run_deseq2": "yes",
@@ -288,19 +283,23 @@ def user_inputs(
         "color_by": "samplename",
     }
 
+    geo = {
+        "geo_submission_files": "yes",
+    }
+
     match assay:
         case "atac":
-            return {**defaults, **defaults_atac, **hub}
+            return {**defaults, **defaults_atac, **hub, **geo}
         case "chip":
-            return {**defaults, **defaults_chip, **hub}
+            return {**defaults, **defaults_chip, **hub, **geo}
         case "chip-rx":
-            return {**defaults, **defaults_chip_rx, **hub}
+            return {**defaults, **defaults_chip_rx, **hub, **geo}
         case "rna":
-            return {**defaults, **defaults_rna, **hub}
+            return {**defaults, **defaults_rna, **hub, **geo}
         case "rna-rx":
-            return {**defaults, **defaults_rna_rx, **hub}
+            return {**defaults, **defaults_rna_rx, **hub, **geo}
         case "snp":
-            return {**defaults, **defaults_snp, **hub}
+            return {**defaults, **defaults_snp, **hub, **geo}
 
 
 @pytest.fixture(scope="function")
@@ -341,6 +340,7 @@ def config_yaml_for_testing(config_yaml, assay):
         config = yaml.safe_load(f)
 
     if assay == "chip":
+        config['scale'] = "yes"
         config["library_complexity"] = False
     elif assay == "chip-rx":
         config["peak_calling_method"] = "seacr"
@@ -420,7 +420,9 @@ def apptainer_args(indicies, test_data_path):
         f"{indicies_mount}:{indicies_mount},"
         f"{tmpdir}:{tmpdir}"
     )
-    os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
+
+    if not os.environ.get("APPTAINER_CACHEDIR"):
+        os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
 
 
 @pytest.fixture(scope="function")

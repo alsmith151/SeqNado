@@ -63,6 +63,8 @@ include: "rules/fastq_screen.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/qc.smk"
 include: "rules/variant.smk"
+include: "rules/geo_submission.smk"
+
 
 rule all:
     input:

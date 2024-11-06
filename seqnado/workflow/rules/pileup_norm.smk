@@ -6,17 +6,26 @@ def format_feature_counts(counts: str) -> pd.DataFrame:
     counts = counts.drop(
         columns=["Chr", "Start", "End", "Strand", "Length"], errors="ignore"
     )
+    count_files = get_count_files(None)
+    counts = counts.loc[:, count_files]
     return counts
 
 
 def create_metadata(counts: pd.DataFrame) -> pd.DataFrame:
-    df = counts.columns.str.replace(".bam", "").to_frame("sample_name")
+    count_files = get_count_files(None)
+    counts = counts.loc[:, count_files]
+    df = counts.columns.to_frame("sample_name")
     return df
 
 
 def get_scaling_factor(wildcards, scale_path: str) -> float:
-    df = pd.read_csv(scale_path, sep="\t", header=None, index_col=0)
-    return df.loc[wildcards.sample, "norm.factors"]
+    df = pd.read_csv(scale_path, sep="\t", index_col=0)
+    try:
+        factor = df.loc[wildcards.sample, "norm.factors"]
+    except KeyError:
+        factor = 1
+
+    return factor
 
 
 def get_norm_factor_spikein(wildcards, negative=False):
@@ -85,15 +94,39 @@ rule tile_regions:
         ).pipe(pr.PyRanges)
         genome_tiled.to_gtf(output.genome_tiled)
 
+
+def get_count_files(wildcards):
+
+    import pathlib
+
+    files = []
+    if ASSAY in ['ChIP', 'CUT&TAG']:
+        df = DESIGN.to_dataframe()
+        for row in df.itertuples():
+
+            try:
+                f1 = pathlib.Path(row.ip_r1)
+                f2 = pathlib.Path(row.ip_r2)
+                if f1.exists() and f2.exists():
+                    files.append(f"seqnado_output/aligned/{row.sample_name}_{row.ip}.bam")
+            except TypeError:
+                pass
+    
+    return files
+        
+
+
 rule count_bam:
     input:
-        bam=expand("seqnado_output/aligned/{sample}.bam", sample=DESIGN.sample_names),
+        bam=lambda wc: get_count_files(wc),
         tiles="seqnado_output/resources/genome_tiled.gtf",
     output:
         counts="seqnado_output/counts/counts.tsv",
+    params:
+        options='-p --countReadPairs',
     threads: 8
     shell:
-        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} -p --countReadPairs"
+        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} {params.options}"
 
 
 rule setup_for_scaling_factors:
@@ -104,7 +137,7 @@ rule setup_for_scaling_factors:
         metadata="seqnado_output/counts/{group}_metadata.tsv",
     run:
         counts = format_feature_counts(input[0])
-        counts.to_csv(output[0], sep="\t")
+        counts.to_csv(output[0], sep="\t", index=False)
 
         metadata = create_metadata(counts)
         metadata.to_csv(output[1], sep="\t", index=False, header=False)
@@ -151,7 +184,7 @@ rule deeptools_make_bigwigs_scale:
             wc,
             f"seqnado_output/resources/{get_group_for_sample(wc , DESIGN)}_scaling_factors.tsv",
         ),
-        options=check_options(config["deeptools"]["bamcoverage"]),
+        options=lambda wc: format_deeptools_bamcoverage_options(wc)
     threads: config["deeptools"]["threads"]
     log:
         "seqnado_output/logs/pileups/deeptools/scaled/{sample}.log",
