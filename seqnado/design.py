@@ -1120,10 +1120,6 @@ class HeatmapFiles(BaseModel):
             return self.heatmap_files
         else:
             return []
-        if self.make_heatmaps:
-            return self.heatmap_files
-        else:
-            return []
 
 
 class HubFiles(BaseModel):
@@ -1171,6 +1167,35 @@ class SpikeInFiles(BaseModel):
             return []
 
 
+class PlotFiles(BaseModel):
+    make_plots: bool = False
+    coordinates: Optional[Union[str, pathlib.Path]] = None
+    format: Literal["svg", "png", 'pdf'] = "svg"
+
+    
+    def get_plot_names(self):
+        import pyranges as pr
+
+        plots = []
+        coords = pr.read_bed(self.coordinates)
+        outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
+        for region in coords.df.itertuples():
+            fig_name = f"{region.Chromosome}-{region.Start}-{region.End}" if not hasattr(region, "Name") and not region.Name else region.Name
+            plots.append(outdir / f"{fig_name}.{self.format}")
+        
+        return plots
+    
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        if self.make_plots and self.coordinates:
+            return self.get_plot_names()
+        else:
+            return []
+
+
+
+
 class Output(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     run_design: Union[Design, DesignIP]
@@ -1194,6 +1219,8 @@ class Output(BaseModel):
     library_complexity: bool = False
 
     geo_submission_files: bool = False
+
+    plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
 
     @property
     def merge_bigwigs(self):
@@ -1253,6 +1280,11 @@ class Output(BaseModel):
             bigbed = bed.with_suffix(".bigBed")
             bb.append(bigbed)
         return bb
+    
+    @property
+    def plots(self):
+        pf = PlotFiles(make_plots=True, coordinates=self.plotting_coordinates)
+        return pf.files
 
 
 class RNAOutput(Output):
@@ -1298,6 +1330,7 @@ class RNAOutput(Output):
             self.ucsc_hub.files,
             self.counts,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1371,6 +1404,7 @@ class NonRNAOutput(Output):
             self.ucsc_hub.files,
             self.peaks,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1450,6 +1484,7 @@ class ChIPOutput(NonRNAOutput):
             self.peaks,
             self.spikeins,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)
