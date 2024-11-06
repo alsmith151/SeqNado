@@ -293,7 +293,7 @@ def user_inputs(
     }
 
     plot  = {
-        'perform_plotting': 'yes',
+        'perform_plotting': 'yes' if not assay == "snp" else 'no',
         'plotting_coordinates': str(plot_bed),
         'plotting_genes': '\n',
     }
@@ -310,7 +310,7 @@ def user_inputs(
         case "rna-rx":
             return {**defaults, **defaults_rna_rx, **hub, **geo,  **plot}
         case "snp":
-            return {**defaults, **defaults_snp, **hub, **geo}
+            return {**defaults, **defaults_snp, **hub, **geo, **plot}
 
 
 @pytest.fixture(scope="function")

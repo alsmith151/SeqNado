@@ -12,7 +12,8 @@ rule generate_plotnado_visualisation:
         template="seqnado_output/genome_browser_plots/template.toml",
     params:
         assay=ASSAY,
-        genome=config["genome"]["name"].split('_')[0] if "_" in config["genome"]["name"] else config["genome"]["name"],
+        genes=config['plotting_genes'],
+        outdir="seqnado_output/genome_browser_plots/",
     container:
         "library://asmith151/plotnado/plotnado:latest"
     script:
