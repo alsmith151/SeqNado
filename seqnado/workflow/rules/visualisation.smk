@@ -6,13 +6,13 @@ rule generate_plotnado_visualisation:
             OUTPUT.bigwigs,
             OUTPUT.peaks,
         ],
-        regions=config["plotnado"]["regions"],
+        regions=config['plotting_coordinates'],
     output:
         plots=OUTPUT.plots,
         template="seqnado_output/genome_browser_plots/template.toml",
     params:
         assay=ASSAY,
-        genome=config["genome"]["name"],
+        genome=config["genome"]["name"].split('_')[0] if "_" in config["genome"]["name"] else config["genome"]["name"],
     container:
         "library://asmith151/plotnado/plotnado:latest"
     script:
