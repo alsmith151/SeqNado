@@ -674,7 +674,6 @@ class DesignIP(BaseModel):
                         f"Invalid number of fastq files ({group.shape[0]}) for {name_without_ip}"
                     )
             
-            breakpoint()
             experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
 
         return cls(

@@ -275,8 +275,10 @@ def setup_configuration(assay, genome, template_data):
 
     if template_data['perform_plotting']:
         template_data['plotting_coordinates'] = get_user_input(
-            "Path to bed file with coordinates for plotting",
-        ) 
+            "Path to bed file with coordinates for plotting", default=None
+        )
+    else:
+        template_data['plotting_coordinates'] = None
 
 
 
