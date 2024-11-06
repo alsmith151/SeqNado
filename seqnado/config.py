@@ -269,6 +269,16 @@ def setup_configuration(assay, genome, template_data):
         "Generate GEO submission files (MD5Sums, read count summaries...)? (yes/no)", default="no", is_boolean=True
     )
 
+    template_data['perform_plotting'] = get_user_input(
+        "Perform plotting? (yes/no)", default="no", is_boolean=True
+    )
+
+    if template_data['perform_plotting']:
+        template_data['plotting_coordinates'] = get_user_input(
+            "Path to bed file with coordinates for plotting",
+        ) 
+
+
 
 TOOL_OPTIONS = """
 trim_galore:
