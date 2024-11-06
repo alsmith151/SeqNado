@@ -1216,6 +1216,13 @@ class Output(BaseModel):
     geo_submission_files: bool = False
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
 
+    # Correct plotting_coordinates type as it may be False
+    @validator("plotting_coordinates", pre=True)
+    def validate_plotting_coordinates(cls, v):
+        if v is False:
+            return None
+        return v
+
     @property
     def merge_bigwigs(self):
         return "merge" in self.run_design.to_dataframe().columns

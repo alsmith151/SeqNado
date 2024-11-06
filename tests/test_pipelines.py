@@ -294,8 +294,8 @@ def user_inputs(
 
     plot  = {
         'perform_plotting': 'yes' if not assay == "snp" else 'no',
-        'plotting_coordinates': str(plot_bed),
-        'plotting_genes': '\n',
+        'plotting_coordinates': str(plot_bed) if not assay == "snp" else None,
+        'plotting_genes': None,
     }
 
     match assay:
