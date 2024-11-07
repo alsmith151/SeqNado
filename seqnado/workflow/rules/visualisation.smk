@@ -6,7 +6,6 @@ rule generate_plotnado_visualisation:
             OUTPUT.bigwigs,
             OUTPUT.peaks,
         ],
-        regions=config['plotting_coordinates'],
     output:
         plots=OUTPUT.plots,
         template="seqnado_output/genome_browser_plots/template.toml",
@@ -14,6 +13,7 @@ rule generate_plotnado_visualisation:
         assay=ASSAY,
         genes=config['plotting_genes'],
         outdir="seqnado_output/genome_browser_plots/",
+        regions=config['plotting_coordinates'],
     container:
         "library://asmith151/plotnado/plotnado:latest"
     script:
