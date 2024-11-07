@@ -1214,6 +1214,8 @@ class Output(BaseModel):
     library_complexity: bool = False
 
     geo_submission_files: bool = False
+
+    make_plots: bool = False
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
 
     # Correct plotting_coordinates type as it may be False
@@ -1284,8 +1286,11 @@ class Output(BaseModel):
     
     @property
     def plots(self):
-        pf = PlotFiles(plotting_coordinates=self.plotting_coordinates, plotting_format='svg')
-        return pf.files
+        if self.make_plots:
+            pf = PlotFiles(plotting_coordinates=self.plotting_coordinates, plotting_format='svg')
+            return pf.files
+        else:
+            return []
 
 
 class RNAOutput(Output):
