@@ -1295,7 +1295,7 @@ class Output(BaseModel):
     @property
     def geo_files(self):
         if self.geo_submission_files:
-            return self.geo_files
+            return GEOFiles(assay=self.assay).files
         else:
             return []
 
