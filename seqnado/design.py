@@ -631,7 +631,6 @@ class DesignIP(BaseModel):
             .assign(
                 has_control=lambda x: x["path_control"].notnull(),
             )
-            .drop_duplicates('path_ip')
         )
 
         # Group the files by the sample base
@@ -1193,6 +1192,7 @@ class PlotFiles(BaseModel):
 
 class Output(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
 
