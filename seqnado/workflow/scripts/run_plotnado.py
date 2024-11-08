@@ -42,7 +42,7 @@ if ASSAY == "ChIP":
 
 
 # Load the regions
-coords = pr.read_bed(snakemake.input.regions)
+coords = pr.read_bed(snakemake.params.regions)
 
 # Generate the figure
 # %%
