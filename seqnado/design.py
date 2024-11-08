@@ -1291,6 +1291,13 @@ class Output(BaseModel):
             return pf.files
         else:
             return []
+    
+    @property
+    def geo_files(self):
+        if self.geo_submission_files:
+            return self.geo_files
+        else:
+            return []
 
 
 class RNAOutput(Output):
@@ -1328,7 +1335,7 @@ class RNAOutput(Output):
             ).files
         )
 
-        files.extend(GEOFiles(assay=self.assay).files)
+        files.extend(self.geo_files)
 
         for file_list in (
             self.bigwigs,
@@ -1402,7 +1409,7 @@ class NonRNAOutput(Output):
         )
 
 
-        files.extend(GEOFiles(assay=self.assay).files)
+        files.extend(self.geo_files)
 
         for file_list in (
             self.bigwigs,
@@ -1481,7 +1488,7 @@ class ChIPOutput(NonRNAOutput):
         )
 
         if self.geo_submission_files:
-            files.extend(GEOFiles(assay=self.assay).files)
+            files.extend(self.geo_files)
 
         for file_list in (
             self.bigwigs,
