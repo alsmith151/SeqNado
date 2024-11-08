@@ -50,6 +50,7 @@ CONTROL = DESIGN.controls_performed
 # Define output files
 OUTPUT = ChIPOutput(
     assay=ASSAY,
+    config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     ip_names=IP,

@@ -1193,6 +1193,7 @@ class PlotFiles(BaseModel):
 
 class Output(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
 
