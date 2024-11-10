@@ -2,39 +2,96 @@ import pathlib
 from typing import Any, List
 
 def get_files_for_symlink(wc: Any = None) -> List[str]:
+    """
+    Get all files that need to be symlinked for GEO submission
+    """
 
-    fastqs = DESIGN.fastq_paths
-    bigwigs = OUTPUT.bigwigs
-    extra = []
-    if ASSAY == "RNA":
-        bigwigs = []
-        extra.append(*OUTPUT.counts)
-    else:
-        bigwigs = [f for f in bigwigs if ("deeptools") in str(f)]
+    from seqnado.design import GEOFiles
 
-    
-    peaks = [OUTPUT.peaks[0]] if len(OUTPUT.peaks) > 0 else [] # Just take the first peak file need to change this to handle multiple peak files
-    return [*fastqs, *bigwigs, *peaks, *extra]
+    geo_files = GEOFiles(assay=OUTPUT.assay,
+                         design=OUTPUT.design_dataframe,
+                         sample_names=OUTPUT.sample_names,
+                         config=OUTPUT.config,
+                         processed_files=[str(p) for p in OUTPUT.files],
+                         )
+
+    fastq_dir = pathlib.Path("seqnado_output/fastqs")
+    fastqs = sorted([str(fastq_dir / fn)  for fq_pair in geo_files.raw_files.values() for fn in fq_pair])
+    processed_files = [str(p) for p in geo_files.processed_data_files['path'].tolist()]
+    return [*fastqs, *processed_files]
+
+def get_symlinked_files(wc: Any = None) -> List[str]:
+    """
+    Get all files that have been symlinked for GEO submission
+    """
+
+    from seqnado.design import GEOFiles
+
+    outdir = pathlib.Path("seqnado_output/geo_submission")
+    fastqs = [str(outdir / fn) for fqs in OUTPUT.geo_files.raw_files.values() for fn in fqs]
+
+    geo_files = GEOFiles(assay=OUTPUT.assay,
+                         design=OUTPUT.design_dataframe,
+                         sample_names=OUTPUT.sample_names,
+                         config=OUTPUT.config,
+                         processed_files=[str(p) for p in OUTPUT.files],
+                         )
+
+    processed_files = geo_files.processed_data_files['output_file_name'].tolist()
+    processed_files = [outdir / fn for fn in processed_files]
+
+
+    return [*fastqs, *processed_files]
+
 
 
 rule geo_symlink:
     input:
         files=get_files_for_symlink,
     output:
-        linked_files=[f"seqnado_output/geo_submission/{pathlib.Path(f).name}" for f in get_files_for_symlink()],
-    shell:
-        """
-        mkdir -p seqnado_output/geo_submission
+        files=get_symlinked_files(),
+    params:
+        output=OUTPUT,
+    container: None
+    run:
+        from seqnado.design import GEOFiles
 
-        for file in {input.files}
-        do
-            ln -sf $(realpath $file) seqnado_output/geo_submission/$(basename $file)
-        done
-        """
+        geo_files = GEOFiles(assay=OUTPUT.assay,
+                         design=OUTPUT.design_dataframe,
+                         sample_names=OUTPUT.sample_names,
+                         config=OUTPUT.config,
+                         processed_files=[str(p) for p in OUTPUT.files],
+                         )        
+
+        fastqs = geo_files.raw_files
+        processed_files = geo_files.processed_data_files
+
+        # Create symlinks for raw files
+        src = pathlib.Path("seqnado_output/fastqs")
+        dest = pathlib.Path("seqnado_output/geo_submission")
+        for sample_name, fastq in fastqs.items():
+            for fq in fastq:
+                fq = pathlib.Path(fq)
+                src_file = (src / fq.name).absolute().resolve()
+                dest_file = dest / fq.name
+
+                if not dest_file.exists():
+                    dest_file.symlink_to(src_file)
+        
+        # Create symlinks for processed files
+        for _, row in processed_files.iterrows():
+            src_file = pathlib.Path(row['path']).absolute().resolve()
+            dest_file = dest / row['output_file_name']
+            if not dest_file.exists():
+                dest_file.symlink_to(src_file)
+        
+
+
+
 
 rule md5sum:
     input:
-        files=rules.geo_symlink.output.linked_files,
+        files=get_symlinked_files,
     output:
         "seqnado_output/geo_submission/md5sums.txt",
     shell:
@@ -70,18 +127,22 @@ rule geo_md5_table:
 
 
 rule samples_table:
-    input:
-        design=config["design"],
     output:
         "seqnado_output/geo_submission/samples_table.txt",
     params: 
-        assay=ASSAY,
-        pipeline_config=config,
-        design=DESIGN,
+        run_output=OUTPUT,
     container: None
     run:
+
+        from seqnado.design import GEOFiles
+
+        df = GEOFiles(assay=OUTPUT.assay,
+                         design=OUTPUT.design_dataframe,
+                         sample_names=OUTPUT.sample_names,
+                         config=OUTPUT.config,
+                         processed_files=[str(p) for p in OUTPUT.files]
+                         ).metadata
         
-        df = params.design.to_geo_dataframe(params.assay, params.pipeline_config)
         df.to_csv(output[0], sep="\t", index=False)
     
 rule protocol:

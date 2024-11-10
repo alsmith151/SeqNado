@@ -919,7 +919,7 @@ def generate_fastq_raw_names(sample_name: str) -> Dict[str, List[str]]:
     """
     Get the fastq files for a sample.
     """
-    exts = ["_R1.fastq.gz", "_R2.fastq.gz"]
+    exts = ["_1.fastq.gz", "_2.fastq.gz"]
     fq = [f"{sample_name}{ext}" for ext in exts]
     return {sample_name: fq}
 
@@ -928,7 +928,12 @@ class GEOFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
     sample_names: List[str]
     config: dict
-    design: Union[DataFrameDesign, DataFrameDesignIP]
+    design: pd.DataFrame
+
+    processed_files: Optional[List[Union[str, pathlib.Path]]] = None
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @property
     def md5sums(self):
@@ -940,13 +945,14 @@ class GEOFiles(BaseModel):
             "seqnado_output/geo_submission/protocol.txt",
         ]
 
+
     @property
     def processed_data_files(self) -> pd.DataFrame:
         wanted_exts = [".txt", ".bigWig", ".bed"]
-        unwanted_files = [*self.ucsc_hub.files, *self.geo_files]
+        unwanted_files = [*self.md5sums]
 
         return (
-            pd.Series([pathlib.Path(p) for p in self.files])
+            pd.Series([pathlib.Path(p) for p in self.processed_files])
             .to_frame("path")
             .assign(
                 ext=lambda x: x["path"].apply(lambda x: x.suffix),
@@ -964,6 +970,7 @@ class GEOFiles(BaseModel):
                     x["path"].apply(lambda x: x.parts[-2]),
                 ),
             )
+            .query('~name.str.contains("hub.txt")')
             .assign(
                 normalisation=lambda df: df.normalisation.str.replace(
                     "unscaled", ""
@@ -990,21 +997,21 @@ class GEOFiles(BaseModel):
 
     @property
     def processed_data_per_sample(self) -> Dict[str, List[str]]:
-        self.processed_data_files.groupby("name")["output_file_name"].apply(
+        return self.processed_data_files.groupby("name")["output_file_name"].apply(
             list
         ).to_dict()
 
-    @property
-    def processed_data_for_symlink(self) -> Dict[str, List[str]]:
-        processed_data_files = dict()
-        for sample_name, df_by_name in self.processed_data_files.groupby("name"):
-            for file_type, df_by_file_type in df_by_name.groupby("file_type"):
-                processed_data_files[sample_name] = dict()
-                processed_data_files[sample_name][file_type] = dict(
-                    src=df_by_file_type["path"].tolist(),
-                    dst=df_by_file_type["output_file_name"].tolist(),
-                )
-        return processed_data_files
+    # @property
+    # def processed_data_for_symlink(self) -> Dict[str, List[str]]:
+    #     processed_data_files = dict()
+    #     for sample_name, df_by_name in self.processed_data_files.groupby("name"):
+    #         for file_type, df_by_file_type in df_by_name.groupby("file_type"):
+    #             processed_data_files[sample_name] = dict()
+    #             processed_data_files[sample_name][file_type] = dict(
+    #                 src=df_by_file_type["path"].tolist(),
+    #                 dst=df_by_file_type["output_file_name"].tolist(),
+    #             )
+    #     return processed_data_files
 
     @property
     def raw_files(self) -> Dict[str, List[str]]:
@@ -1024,7 +1031,7 @@ class GEOFiles(BaseModel):
         organism = predict_organism(self.config["genome"]["name"])
         instrument_model = self.config.get("instrument_model", "Illumina NovaSeq X")
 
-        for sample_row in self.design.to_dataframe().itertuples():
+        for sample_row in self.design.itertuples():
             library_name = (
                 sample_row.sample_name
                 if not self.assay in ["ChIP", "CUT&TAG"]
@@ -1055,7 +1062,7 @@ class GEOFiles(BaseModel):
                 instrument_model=instrument_model,
                 description=None,
                 raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
-                processed_data_file=self.processed_data_per_sample.get(library_name, []),
+                processed_data_file=[str(p) for p in self.processed_data_per_sample.get(library_name, [])],
             )
 
             geo_samples.append(geo_sample)
@@ -1397,7 +1404,12 @@ class Output(BaseModel):
     @property
     def geo_files(self):
         if self.geo_submission_files:
-            return GEOFiles(assay=self.assay, design=self.design_dataframe, config=self.config).files
+            return GEOFiles(
+                assay=self.assay,
+                sample_names=self.sample_names,
+                design=self.design_dataframe,
+                config=self.config,
+            )
         else:
             return []
 
@@ -1436,7 +1448,7 @@ class RNAOutput(Output):
             ).files
         )
 
-        files.extend(self.geo_files)
+        files.extend(self.geo_files.files)
 
         for file_list in (
             self.bigwigs,
@@ -1509,7 +1521,7 @@ class NonRNAOutput(Output):
             ).files
         )
 
-        files.extend(self.geo_files)
+        files.extend(self.geo_files.files)
 
         for file_list in (
             self.bigwigs,
@@ -1587,7 +1599,7 @@ class ChIPOutput(NonRNAOutput):
         )
 
         if self.geo_submission_files:
-            files.extend(self.geo_files)
+            files.extend(self.geo_files.files)
 
         for file_list in (
             self.bigwigs,
