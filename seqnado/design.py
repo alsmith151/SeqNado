@@ -999,11 +999,6 @@ class GEOFiles(BaseModel):
             ),
         )
 
-        # Convert the output file name to a pathlib.Path object
-        df = df.assign(
-            output_file_name=lambda df: df["output_file_name"].apply(pathlib.Path),
-        )
-
         return df
 
     @property
