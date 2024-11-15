@@ -929,6 +929,7 @@ class GEOFiles(BaseModel):
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
+    extensions_allowed: List[str] = [".txt", ".bigWig", ".bed", ".tsv", ".vcf.gz"]
 
     processed_files: Optional[List[Union[str, pathlib.Path]]] = None
 
@@ -947,7 +948,8 @@ class GEOFiles(BaseModel):
 
     @property
     def processed_data_files(self) -> pd.DataFrame:
-        wanted_exts = [".txt", ".bigWig", ".bed", '.tsv']
+        
+        wanted_exts = self.extensions_allowed
         unwanted_files = [*self.md5sums]
 
         # Create a DataFrame with the processed files

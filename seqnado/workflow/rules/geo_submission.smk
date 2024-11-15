@@ -37,8 +37,12 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
                          processed_files=[str(p) for p in OUTPUT.files],
                          )
 
-    processed_files = geo_files.processed_data_files['output_file_name'].tolist()
-    processed_files = [outdir / fn for fn in processed_files]
+
+
+    if processed_files := geo_files.processed_data_files['output_file_name'].tolist():
+        processed_files = [outdir / fn for fn in processed_files]
+    else:
+        processed_files = []
 
 
     return [*fastqs, *processed_files]
