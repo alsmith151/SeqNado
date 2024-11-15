@@ -947,7 +947,7 @@ class GEOFiles(BaseModel):
 
     @property
     def processed_data_files(self) -> pd.DataFrame:
-        wanted_exts = [".txt", ".bigWig", ".bed"]
+        wanted_exts = [".txt", ".bigWig", ".bed", '.tsv']
         unwanted_files = [*self.md5sums]
 
         # Create a DataFrame with the processed files
