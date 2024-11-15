@@ -31,7 +31,7 @@ def bowtie2_version():
 
 def featureCounts_version():
     cmd = 'featureCounts -v'
-    version = subprocess.check_output(cmd, shell=True).decode().strip()
+    version = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode().strip().replace('featureCounts v', '')
     return version
 
 def bamCoverage_version():
@@ -76,7 +76,7 @@ BigWig files were generated using deepTools {bamCoverage_version()} with the fol
 """
 
 if assay == 'RNA':
-    content += f"""Strands were separated using the --filterRNAstrand option"""
+    content += f"""Strands were separated using the --filterRNAstrand option. """
     content += f"""Alignments were quantified using featureCounts v{featureCounts_version()} with the following parameters: {config['featurecounts']['options']}"""
 
 
@@ -89,7 +89,8 @@ if assay in ['ChIP', 'ATAC', 'CUT&TAG']:
 
 
 
-content = content.strip().replace('the following parameters: False', 'with default parameters')
+content = content.strip().replace('the following parameters: False', 'with default parameters').replace('/n/n', '/n')
+content = "\n".join([l.strip('\n') for l in content.splitlines() if l.strip()])
 
 
 with open(snakemake.output[0], 'w') as f:
