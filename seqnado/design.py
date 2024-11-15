@@ -945,61 +945,72 @@ class GEOFiles(BaseModel):
             "seqnado_output/geo_submission/protocol.txt",
         ]
 
-
     @property
     def processed_data_files(self) -> pd.DataFrame:
         wanted_exts = [".txt", ".bigWig", ".bed"]
         unwanted_files = [*self.md5sums]
 
-        return (
-            pd.Series([pathlib.Path(p) for p in self.processed_files])
-            .to_frame("path")
-            .assign(
-                ext=lambda x: x["path"].apply(lambda x: x.suffix),
-            )
-            .query("ext in @wanted_exts")
-            .query("~path.astype('str').isin(@unwanted_files)")
-            .assign(
-                name=lambda x: x["path"].apply(lambda x: x.stem),
-                normalisation=lambda x: np.where(
-                    x["ext"] != ".bed", x["path"].apply(lambda x: x.parts[-2]), ""
-                ),
-                method=lambda x: np.where(
-                    x["ext"] == ".bigWig",
-                    x["path"].apply(lambda x: x.parts[-3]),
-                    x["path"].apply(lambda x: x.parts[-2]),
-                ),
-            )
-            .query('~name.str.contains("hub.txt")')
-            .assign(
-                normalisation=lambda df: df.normalisation.str.replace(
-                    "unscaled", ""
-                ).str.replace("spikein", "reference-normalised")
-            )
-            .sort_values(by=["name", "ext", "method", "normalisation"])
-            .assign(
-                output_file_name=lambda x: (
-                    x["name"] + "_" + x["method"] + "_" + x["normalisation"] + x["ext"]
-                ).str.replace("_.", "."),
-                file_type=lambda df: np.select(
-                    [
-                        df["ext"] == ".bigWig",
-                        df["ext"] == ".bed",
-                        df["ext"] == ".txt",
-                    ],
-                    ["signal", "peaks", "counts"],
-                ),
-            )
-            .assign(
-                output_file_name=lambda df: df["output_file_name"].apply(pathlib.Path),
+        # Create a DataFrame with the processed files
+        df = pd.Series([pathlib.Path(p) for p in self.processed_files]).to_frame("path")
+        df = df.assign(
+            ext=lambda x: x["path"].apply(lambda x: x.suffix),
+        )
+
+        # Filter the DataFrame to only include the wanted files
+        df = df.query("ext in @wanted_exts")
+        df = df.query("~path.astype('str').isin(@unwanted_files)")
+        df = df.query('~path.astype("str").str.contains("hub.txt")')
+
+        # Add the sample name, method, and normalisation columns
+        df = df.assign(name=lambda x: x["path"].apply(lambda x: x.stem))
+        df = df.assign(
+            normalisation=lambda x: np.where(
+                x["ext"] != ".bed", x["path"].apply(lambda x: x.parts[-2]), ""
             )
         )
+        df = df.assign(
+            method=lambda x: np.where(
+                x["ext"] == ".bigWig",
+                x["path"].apply(lambda x: x.parts[-3]),
+                x["path"].apply(lambda x: x.parts[-2]),
+            ),
+        )
+        df = df.assign(
+            normalisation=lambda df: df.normalisation.str.replace(
+                "unscaled", ""
+            ).str.replace("spikein", "reference-normalised")
+        )
+        df = df.sort_values(by=["name", "ext", "method", "normalisation"])
+        
+        # Add the output file name and file type columns
+        df = df.assign(
+            output_file_name=lambda x: (
+                x["name"] + "_" + x["method"] + "_" + x["normalisation"] + x["ext"]
+            ).str.replace("_.", "."),
+            file_type=lambda df: np.select(
+                [
+                    df["ext"] == ".bigWig",
+                    df["ext"] == ".bed",
+                    df["ext"] == ".txt",
+                ],
+                ["signal", "peaks", "counts"],
+            ),
+        )
+
+        # Convert the output file name to a pathlib.Path object
+        df = df.assign(
+            output_file_name=lambda df: df["output_file_name"].apply(pathlib.Path),
+        )
+
+        return df
 
     @property
     def processed_data_per_sample(self) -> Dict[str, List[str]]:
-        return self.processed_data_files.groupby("name")["output_file_name"].apply(
-            list
-        ).to_dict()
+        return (
+            self.processed_data_files.groupby("name")["output_file_name"]
+            .apply(list)
+            .to_dict()
+        )
 
     # @property
     # def processed_data_for_symlink(self) -> Dict[str, List[str]]:
@@ -1062,7 +1073,9 @@ class GEOFiles(BaseModel):
                 instrument_model=instrument_model,
                 description=None,
                 raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
-                processed_data_file=[str(p) for p in self.processed_data_per_sample.get(library_name, [])],
+                processed_data_file=[
+                    str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                ],
             )
 
             geo_samples.append(geo_sample)
