@@ -344,6 +344,10 @@ star:
     threads: 16
     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
 
+samtools:
+    threads: 16
+    filter_options: -f 2
+
 picard:
     threads: 8
     options:
@@ -380,6 +384,10 @@ bowtie2:
     threads: 8
     options:
 
+samtools:
+    threads: 16
+    filter_options: -f 2
+    
 picard:
     threads: 8
     options:
