@@ -40,8 +40,7 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
 
 
     if not geo_files.processed_data_files.empty:
-        processed_files = geo_files.processed_data_files['output_file_name'].astype(str).tolist()
-        processed_files = [outdir / fn for fn in processed_files]
+        processed_files = [outdir / str(fn) for (index, fn) in geo_files.processed_data_files['output_file_name'].items()]
     else:
         processed_files = []
 

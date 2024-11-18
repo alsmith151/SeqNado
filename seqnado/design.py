@@ -915,11 +915,15 @@ class NormGroups(BaseModel):
         return self.sample_groups[group]
 
 
-def generate_fastq_raw_names(sample_name: str) -> Dict[str, List[str]]:
+def generate_fastq_raw_names(sample_name: str, is_paired: bool = True) -> Dict[str, List[str]]:
     """
     Get the fastq files for a sample.
     """
-    exts = ["_1.fastq.gz", "_2.fastq.gz"]
+
+    if is_paired:
+        exts = ["_R1.fastq.gz", "_R2.fastq.gz"]
+    else:
+        exts = [".fastq.gz"]
     fq = [f"{sample_name}{ext}" for ext in exts]
     return {sample_name: fq}
 
@@ -1009,24 +1013,17 @@ class GEOFiles(BaseModel):
             .to_dict()
         )
 
-    # @property
-    # def processed_data_for_symlink(self) -> Dict[str, List[str]]:
-    #     processed_data_files = dict()
-    #     for sample_name, df_by_name in self.processed_data_files.groupby("name"):
-    #         for file_type, df_by_file_type in df_by_name.groupby("file_type"):
-    #             processed_data_files[sample_name] = dict()
-    #             processed_data_files[sample_name][file_type] = dict(
-    #                 src=df_by_file_type["path"].tolist(),
-    #                 dst=df_by_file_type["output_file_name"].tolist(),
-    #             )
-    #     return processed_data_files
-
     @property
     def raw_files(self) -> Dict[str, List[str]]:
         fastq = dict()
-        for sample_name in self.sample_names:
-            fastq.update(generate_fastq_raw_names(sample_name))
 
+        for row in self.design.itertuples():
+            sample_name = row.sample_name if self.assay not in ["ChIP", "CUT&TAG"] else f"{row.sample_name}_{row.ip}"
+            is_paired = hasattr(row, "r2") or hasattr(row, "ip_r2")
+            fqs = generate_fastq_raw_names(sample_name, is_paired)
+            fastq.update(fqs)
+
+    
         return fastq
 
     @property
