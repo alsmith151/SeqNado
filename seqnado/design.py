@@ -997,11 +997,15 @@ class GEOFiles(BaseModel):
                 [
                     df["ext"] == ".bigWig",
                     df["ext"] == ".bed",
-                    df["ext"] == ".txt",
+                    df['ext'] == ".tsv",
+                    df['ext'] == ".vcf.gz",
                 ],
-                ["signal", "peaks", "counts"],
+                ["signal", "peaks", "counts", 'variants'],
+                default="other",
             ),
         )
+
+        df = df[df.file_type != "other"]
 
         return df
 
