@@ -124,9 +124,11 @@ rule count_bam:
         counts="seqnado_output/counts/counts.tsv",
     params:
         options='-p --countReadPairs',
+    log:
+        "seqnado_output/logs/counts/{group}.log",
     threads: 8
     shell:
-        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} {params.options}"
+        "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} {params.options} > {log} 2>&1"
 
 
 rule setup_for_scaling_factors:
