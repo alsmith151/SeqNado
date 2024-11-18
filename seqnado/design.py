@@ -248,10 +248,11 @@ class FastqSetIP(FastqSet):
     name: str = Field(default=None, description="Name of the sample set")
     r1: FastqFileIP
     r2: Optional[FastqFileIP] = None
+    ip: str = Field(default=None, description="IP performed on the sample")
 
     @property
     def ip_or_control_name(self) -> str:
-        return self.r1.ip
+        return self.ip if self.ip else self.r1.ip
 
     @property
     def sample_name(self) -> str:
@@ -741,12 +742,14 @@ class DesignIP(BaseModel):
         for _, row in df.iterrows():
             ip = FastqSetIP(
                 name=row["sample_name"],
+                ip=row["ip"],
                 r1=FastqFileIP(path=row["ip_r1"]),
                 r2=FastqFileIP(path=row["ip_r2"]) if row["ip_r2"] else None,
             )
             control = (
                 FastqSetIP(
                     name=row["sample_name"],
+                    ip=row["control"],
                     r1=FastqFileIP(path=row["control_r1"])
                     if row["control_r1"]
                     else None,
@@ -764,7 +767,6 @@ class DesignIP(BaseModel):
             metadata.append(
                 Metadata(**{k: v for k, v in row.items() if k not in non_metadata_keys})
             )
-
         return cls(experiments=experiments, metadata=metadata, **kwargs)
 
     @classmethod
@@ -921,7 +923,7 @@ def generate_fastq_raw_names(sample_name: str, is_paired: bool = True) -> Dict[s
     """
 
     if is_paired:
-        exts = ["_R1.fastq.gz", "_R2.fastq.gz"]
+        exts = ["_1.fastq.gz", "_2.fastq.gz"]
     else:
         exts = [".fastq.gz"]
     fq = [f"{sample_name}{ext}" for ext in exts]
