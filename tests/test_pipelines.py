@@ -181,7 +181,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             files = list(path.glob("chip-rx*.fastq.gz"))
             files.append(path / "chip-rx-single_MLL.fastq.gz")
         case "chip-rx":
-            files = list(path.glob("chip-rx*.fastq.gz"))
+            files = list(path.glob("chip-rx_*.fastq.gz"))
         case "rna":
             files = list(path.glob("rna_*.fastq.gz"))
         case "rna-rx":
