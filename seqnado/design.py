@@ -638,7 +638,7 @@ class DesignIP(BaseModel):
         experiments = []
         for base, group in df.groupby("sample_base"):
             name_without_ip = group["sample_base_without_ip"].iloc[0]
-
+            
             match group.shape[0]:
                 case 1:
                     # Single end experiment no control
@@ -659,10 +659,19 @@ class DesignIP(BaseModel):
 
                 case 4:
                     # Paired end experiment with control
+
+                    # | path_ip | path_control |
+                    # |---------|--------------|
+                    # | r1      | r1           |
+                    # | r1      | r2           |
+                    # | r2      | r1           |
+                    # | r2      | r2           |
+
+
                     ip = FastqSetIP(
                         name=name_without_ip,
                         r1=FastqFileIP(path=group["path_ip"].iloc[0]),
-                        r2=FastqFileIP(path=group["path_ip"].iloc[1]),
+                        r2=FastqFileIP(path=group["path_ip"].iloc[2]),
                     )
                     control = FastqSetIP(
                         name=name_without_ip,
