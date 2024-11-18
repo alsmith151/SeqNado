@@ -8,14 +8,13 @@ rule sort_bam:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    threads: 8
+    threads: config["samtools"]["threads"]
     log:
         "seqnado_output/logs/sorted/{sample}.log",
     shell:
         """
         samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M &&
-        echo 'Sorted bam number of mapped reads:' > {log} 2>&1 &&
-        samtools view -f 2 -c {output.bam} >> {log} 2>&1
+        echo 'Sorted bam number of mapped reads:' > {log} 2>&1
         """
 
 
@@ -55,8 +54,7 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
             bedtools intersect -v -b {params.blacklist} -a {input.bam} > {output.bam} &&
             samtools index -b {output.bam} -o {output.bai} &&
             echo "Removed blacklisted regions" > {log} &&
-            echo 'Number of mapped reads' >> {log} 2>&1 &&
-            samtools view -f 2 -c {output.bam} >> {log} 2>&1
+            echo 'Number of mapped reads' >> {log} 2>&1
             """
 
 else:
@@ -80,8 +78,7 @@ else:
                 mv {input.bam} {output.bam} &&
                 mv {input.bai} {output.bai} &&
                 echo "No blacklisted regions specified" > {log} &&
-                echo 'Number of mapped reads' >> {log} 2>&1 &&
-                samtools view -f 2 -c {output.bam} >> {log} 2>&1
+                echo 'Number of mapped reads' >> {log} 2>&1
                 """
 
 
@@ -107,8 +104,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
             """
             picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} > {log} 2>&1 &&
             mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
-            echo 'duplicates_removed bam number of mapped reads:' >> {log} 2>&1 &&
-            samtools view -f 2 -c {output.bam} >> {log} 2>&1
+            echo 'duplicates_removed bam number of mapped reads:' >> {log} 2>&1
             """
 
 else:
@@ -153,8 +149,7 @@ if config["shift_atac_reads"]:
             rsbamtk shift -b {input.bam} -o {output.tmp} &&
             samtools sort {output.tmp} -@ {threads} -o {output.bam} &&
             samtools index {output.bam} &&
-            echo 'Shifted reads' > {log} 2>&1 &&
-            samtools view -f 2 -c {output.bam} >> {log} 2>&1
+            echo 'Shifted reads' > {log} 2>&1
             """
 
 else:
@@ -176,15 +171,35 @@ else:
             echo 'Will not shift reads' > {log} &&
             mv {input.bam} {output.bam} &&
             mv {input.bam}.bai {output.bai} &&
-            echo 'Number of reads' >> {log} 2>&1 &&
-            samtools view -f 2 -c {output.bam} >> {log} 2>&1
+            echo 'Number of reads' >> {log} 2>&1
             """
 
 
-rule move_bam_to_final_location:
+rule filter_bam:
     input:
         bam="seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam",
         bai="seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai",
+    output:
+        bam="seqnado_output/aligned/filtered/{sample}.bam",
+        bai="seqnado_output/aligned/filtered/{sample}.bam.bai",
+    threads: config["samtools"]["threads"]
+    resources:
+        mem="500MB",
+    log:
+        "seqnado_output/logs/filter/{sample}.log",
+    params:
+        options=check_options(config["samtools"]["filter_options"]),
+    shell:
+        """
+        samtools view -@ {threads} -h -b {input.bam} {params.options} > {output.bam} &&
+        samtools index {output.bam} &&
+        echo 'Filtered reads' > {log} 2>&1
+        """
+
+rule move_bam_to_final_location:
+    input:
+        bam="seqnado_output/aligned/filtered/{sample}.bam",
+        bai="seqnado_output/aligned/filtered/{sample}.bam.bai",
     output:
         bam="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam",
         bai="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam.bai",
@@ -195,8 +210,7 @@ rule move_bam_to_final_location:
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
         echo "BAM moved to final location" > {log} &&
-        echo 'Number of reads' > {log} 2>&1 &&
-        samtools view -f 2 -c {output.bam} >> {log} 2>&1
+        echo 'Number of reads' > {log} 2>&1
         """
 
 
@@ -216,7 +230,7 @@ rule merge_bams:
         bams=get_bam_files_for_merge,
     output:
         temp("seqnado_output/aligned/merged/{group}.bam"),
-    threads: 8
+    threads: config["samtools"]["threads"]
     log:
         "seqnado_output/logs/merge_bam/{group}.log",
     shell:

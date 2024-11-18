@@ -7,6 +7,7 @@ def format_deeptools_options(wildcards, options):
     if not is_paired:
         options = re.sub(r"--extendReads", "", options)
         options = re.sub(r"-e", "", options)
+        options = re.sub(r"--samFlagInclude 3", "", options)
     if not options:
         return ""
     else:

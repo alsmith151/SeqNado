@@ -57,6 +57,7 @@ config["project_name"] = PROJECT_NAME
 # Define output files
 OUTPUT = RNAOutput(
     assay=ASSAY,
+    config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     run_deseq2=RUN_DESEQ2,

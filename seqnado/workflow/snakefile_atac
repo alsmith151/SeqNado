@@ -46,6 +46,7 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 SAMPLE_NAMES = DESIGN.sample_names
 OUTPUT = ATACOutput(
     assay=ASSAY,
+    config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     **config
