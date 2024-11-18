@@ -311,7 +311,7 @@ homer:
 deeptools:
     threads: 8
     alignmentsieve: --minMappingQuality 30 
-    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10 --samFlagExclude 4
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
 
 macs:
     version: 2
