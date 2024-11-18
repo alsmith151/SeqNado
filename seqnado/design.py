@@ -1025,7 +1025,13 @@ class GEOFiles(BaseModel):
 
         for row in self.design.itertuples():
             sample_name = row.sample_name if self.assay not in ["ChIP", "CUT&TAG"] else f"{row.sample_name}_{row.ip}"
-            is_paired = hasattr(row, "r2") or hasattr(row, "ip_r2")
+
+            is_paired = False
+            if hasattr(row, "r2") and row.r2:
+                is_paired = True
+            elif hasattr(row, "ip_r2") and row.ip_r2:
+                is_paired = True
+
             fqs = generate_fastq_raw_names(sample_name, is_paired)
             fastq.update(fqs)
 
