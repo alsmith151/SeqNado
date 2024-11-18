@@ -181,10 +181,32 @@ else:
             """
 
 
-rule move_bam_to_final_location:
+rule filter_bam:
     input:
         bam="seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam",
         bai="seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai",
+    output:
+        bam="seqnado_output/aligned/filtered/{sample}.bam",
+        bai="seqnado_output/aligned/filtered/{sample}.bam.bai",
+    threads: 1
+    resources:
+        mem="500MB",
+    log:
+        "seqnado_output/logs/filter/{sample}.log",
+    params:
+        options=check_options(config["filter_options"]),
+    shell:
+        """
+        samtools view -h {input.bam} {options} | samtools view -b - > {output.bam} &&
+        samtools index {output.bam} &&
+        echo 'Filtered reads' > {log} 2>&1 &&
+        samtools view -f 2 -c {output.bam} >> {log} 2>&1
+        """
+
+rule move_bam_to_final_location:
+    input:
+        bam="seqnado_output/aligned/filtered/{sample}.bam",
+        bai="seqnado_output/aligned/filtered/{sample}.bam.bai",
     output:
         bam="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam",
         bai="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam.bai",
