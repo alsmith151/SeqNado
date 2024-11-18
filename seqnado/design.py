@@ -7,10 +7,18 @@ from typing import Any, Dict, List, Literal, LiteralString, Optional, Union
 import numpy as np
 import pandas as pd
 from loguru import logger
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, validator
 from snakemake.io import expand
 import pandera
 from pandera.typing import Index, DataFrame, Series
+from enum import Enum
+
+
+def predict_organism(genome: str) -> str:
+    if "hg" in genome:
+        return "Homo sapiens"
+    elif "mm" in genome:
+        return "Mus musculus"
 
 
 def is_path(path: Optional[Union[str, pathlib.Path]]) -> Optional[pathlib.Path]:
@@ -167,6 +175,14 @@ class FastqFileIP(FastqFile):
 
         return base
 
+    @validator("ip")
+    def allow_na_or_nan(cls, v):
+        if v is None or v is pd.NA or (isinstance(v, float) and np.isnan(v)):
+            return v
+        if not isinstance(v, str):
+            raise ValueError("ip must be a string, None, pd.NA, or np.nan")
+        return v
+
 
 class Metadata(BaseModel):
     deseq2: Optional[str] = None
@@ -232,10 +248,11 @@ class FastqSetIP(FastqSet):
     name: str = Field(default=None, description="Name of the sample set")
     r1: FastqFileIP
     r2: Optional[FastqFileIP] = None
+    ip: str = Field(default=None, description="IP performed on the sample")
 
     @property
     def ip_or_control_name(self) -> str:
-        return self.r1.ip
+        return self.ip if self.ip else self.r1.ip
 
     @property
     def sample_name(self) -> str:
@@ -276,7 +293,6 @@ class IPExperiment(BaseModel):
 
     @property
     def fastqs_are_paired(self) -> bool:
-
         ip = self.ip.is_paired
         control = self.control.is_paired if self.control else True
         return ip and control
@@ -351,7 +367,6 @@ class Design(BaseModel):
         # Create the fastq sets
         fastq_sets = []
         for sample_name, group in df.groupby("sample_base"):
-
             if group.shape[0] == 1:
                 fq_set = FastqSet(
                     name=sample_name, r1=group["fastq_files"].iloc[0], **kwargs
@@ -448,6 +463,55 @@ class Design(BaseModel):
 
         return cls.from_fastq_files(fastq_files, **kwargs)
 
+    def to_geo_dataframe(
+        self, assay: Literal["ATAC", "RNA", "SNP"], pipeline_config: dict
+    ) -> pd.DataFrame:
+        """
+        Create a pandas DataFrame with the GEO metadata.
+        """
+        geo_samples = []
+        for sample_row in self.to_dataframe().itertuples():
+            if assay != "RNA":
+                processed_data_file = [f"{sample_row.sample_name}.bw"]
+            else:
+                processed_data_file = [
+                    "read_counts.tsv",
+                    f"{sample_row.sample_name}_plus.bw",
+                    f"{sample_row.sample_name}_minus.bw",
+                ]
+
+            sample = GEOSample(
+                assay=assay,
+                library_name=f"{sample_row.sample_name}",
+                title=f"{sample_row.sample_name}",
+                organism=predict_organism(pipeline_config["genome"]["name"]),
+                cell_line=None,
+                cell_type=None,
+                antibody=None,
+                genotype=None,
+                treatment=sample_row.treatment
+                if hasattr(sample_row, "treatment")
+                else None,
+                time=sample_row.time if hasattr(sample_row, "time") else None,
+                single_or_paired="paired-end" if sample_row.r2 else "single",
+                instrument_model=pipeline_config.get(
+                    "instrument_model", "Illumina NovaSeq X"
+                ),
+                description=None,
+                processed_data_file=processed_data_file,
+                raw_file=[
+                    pathlib.Path(sample_row.r1).name,
+                    pathlib.Path(sample_row.r2).name,
+                ]
+                if sample_row.r2
+                else [pathlib.Path(sample_row.r1).name],
+            )
+
+            geo_samples.append(sample)
+
+        df_samples = GEOSamples(samples=geo_samples).to_dataframe()
+        return df_samples
+
 
 class DesignIP(BaseModel):
     experiments: List[IPExperiment]
@@ -483,7 +547,6 @@ class DesignIP(BaseModel):
             if f.has_control:
                 control.add(f.control_performed)
         return list(control)
-
 
     def query(
         self, sample_name: str, full_experiment: bool = False
@@ -533,15 +596,6 @@ class DesignIP(BaseModel):
                 else experiment_files["control"]
             )
 
-        if full_experiment:
-            return experiment_files
-        else:
-            return (
-                experiment_files["ip"]
-                if not is_control
-                else experiment_files["control"]
-            )
-
     @classmethod
     def from_fastq_files(cls, fq: List[Union[str, pathlib.Path]], **kwargs):
         """
@@ -571,63 +625,66 @@ class DesignIP(BaseModel):
         ]
 
         # Merge the IP and control files using the sample base without the IP
-        df = (
-            ip_files.merge(
-                control_files,
-                on=["sample_base_without_ip"],
-                suffixes=("_ip", "_control"),
-                how="left",
-            )
-            .assign(
-                has_control=lambda x: x["path_control"].notnull(),
-            )
-            .drop_duplicates(["sample_base", "read_number"])
+        df = ip_files.merge(
+            control_files,
+            on=["sample_base_without_ip"],
+            suffixes=("_ip", "_control"),
+            how="outer",
+        ).assign(
+            has_control=lambda x: x["path_control"].notnull(),
         )
 
         # Group the files by the sample base
         experiments = []
         for base, group in df.groupby("sample_base"):
-
             name_without_ip = group["sample_base_without_ip"].iloc[0]
-            if group.shape[0] == 1:
-                # Single end experiment
-                ip = FastqSetIP(
-                    name=name_without_ip, r1=FastqFileIP(path=group["path_ip"].iloc[0])
-                )
-
-                if pathlib.Path(str(group["path_control"].iloc[0])).exists():
-                    control = FastqSetIP(
+            
+            match group.shape[0]:
+                case 1:
+                    # Single end experiment no control
+                    ip = FastqSetIP(
                         name=name_without_ip,
-                        r1=FastqFileIP(path=group["path_control"].iloc[0]),
+                        r1=FastqFileIP(path=group["path_ip"].iloc[0]),
                     )
-                else:
                     control = None
 
-                experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
+                case 2:
+                    # Paired end experiment no control
+                    ip = FastqSetIP(
+                        name=name_without_ip,
+                        r1=FastqFileIP(path=group["path_ip"].iloc[0]),
+                        r2=FastqFileIP(path=group["path_ip"].iloc[1]),
+                    )
+                    control = None
 
-            elif group.shape[0] == 2:
-                # Paired end experiment
-                ip = FastqSetIP(
-                    name=name_without_ip,
-                    r1=FastqFileIP(path=group["path_ip"].iloc[0]),
-                    r2=FastqFileIP(path=group["path_ip"].iloc[1]),
-                )
+                case 4:
+                    # Paired end experiment with control
 
-                if group["has_control"].iloc[0]:
+                    # | path_ip | path_control |
+                    # |---------|--------------|
+                    # | r1      | r1           |
+                    # | r1      | r2           |
+                    # | r2      | r1           |
+                    # | r2      | r2           |
+
+
+                    ip = FastqSetIP(
+                        name=name_without_ip,
+                        r1=FastqFileIP(path=group["path_ip"].iloc[0]),
+                        r2=FastqFileIP(path=group["path_ip"].iloc[2]),
+                    )
                     control = FastqSetIP(
                         name=name_without_ip,
                         r1=FastqFileIP(path=group["path_control"].iloc[0]),
                         r2=FastqFileIP(path=group["path_control"].iloc[1]),
                     )
-                else:
-                    control = None
 
-                experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
+                case _:
+                    raise ValueError(
+                        f"Invalid number of fastq files ({group.shape[0]}) for {name_without_ip}"
+                    )
 
-            else:
-                raise ValueError(
-                    f"Invalid number of fastq files ({group.shape[0]}) for {name_without_ip}"
-                )
+            experiments.append(IPExperiment(ip=ip, control=control, **kwargs))
 
         return cls(
             experiments=experiments,
@@ -655,7 +712,9 @@ class DesignIP(BaseModel):
                     experiment.control.r1.path if experiment.control else None
                 ),
                 "control_r2": (
-                    experiment.control.r2.path if experiment.control and experiment.control.r2 else None
+                    experiment.control.r2.path
+                    if experiment.control and experiment.control.r2
+                    else None
                 ),
             }
             for k, v in metadata.model_dump(exclude_none=True).items():
@@ -672,6 +731,8 @@ class DesignIP(BaseModel):
         """
         Create a Design object from a pandas DataFrame.
         """
+
+        df = df.fillna("")
         df = DataFrameDesignIP.validate(df)
 
         experiments = []
@@ -690,13 +751,17 @@ class DesignIP(BaseModel):
         for _, row in df.iterrows():
             ip = FastqSetIP(
                 name=row["sample_name"],
+                ip=row["ip"],
                 r1=FastqFileIP(path=row["ip_r1"]),
                 r2=FastqFileIP(path=row["ip_r2"]) if row["ip_r2"] else None,
             )
             control = (
                 FastqSetIP(
                     name=row["sample_name"],
-                    r1=FastqFileIP(path=row["control_r1"]),
+                    ip=row["control"],
+                    r1=FastqFileIP(path=row["control_r1"])
+                    if row["control_r1"]
+                    else None,
                     r2=(
                         FastqFileIP(path=row["control_r2"])
                         if row["control_r2"]
@@ -711,7 +776,6 @@ class DesignIP(BaseModel):
             metadata.append(
                 Metadata(**{k: v for k, v in row.items() if k not in non_metadata_keys})
             )
-
         return cls(experiments=experiments, metadata=metadata, **kwargs)
 
     @classmethod
@@ -758,7 +822,6 @@ class NormGroup(BaseModel):
         subset_value: Optional[List[str]] = None,
         include_controls: bool = False,
     ):
-
         if isinstance(design, Design):
             df = (
                 design.to_dataframe()
@@ -861,6 +924,183 @@ class NormGroups(BaseModel):
 
     def get_grouped_samples(self, group: str) -> List[str]:
         return self.sample_groups[group]
+
+
+def generate_fastq_raw_names(sample_name: str, is_paired: bool = True) -> Dict[str, List[str]]:
+    """
+    Get the fastq files for a sample.
+    """
+
+    if is_paired:
+        exts = ["_1.fastq.gz", "_2.fastq.gz"]
+    else:
+        exts = [".fastq.gz"]
+    fq = [f"{sample_name}{ext}" for ext in exts]
+    return {sample_name: fq}
+
+
+class GEOFiles(BaseModel):
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    sample_names: List[str]
+    config: dict
+    design: pd.DataFrame
+    extensions_allowed: List[str] = [".txt", ".bigWig", ".bed", ".tsv", ".vcf.gz"]
+
+    processed_files: Optional[List[Union[str, pathlib.Path]]] = None
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @property
+    def md5sums(self):
+        return [
+            "seqnado_output/geo_submission/md5sums.txt",
+            "seqnado_output/geo_submission/raw_data_checksums.txt",
+            "seqnado_output/geo_submission/processed_data_checksums.txt",
+            "seqnado_output/geo_submission/samples_table.txt",
+            "seqnado_output/geo_submission/protocol.txt",
+        ]
+
+    @property
+    def processed_data_files(self) -> pd.DataFrame:
+        
+        wanted_exts = self.extensions_allowed
+        unwanted_files = [*self.md5sums]
+
+        # Create a DataFrame with the processed files
+        df = pd.Series([pathlib.Path(p) for p in self.processed_files]).to_frame("path")
+        df = df.assign(
+            ext=lambda x: x["path"].apply(lambda x: x.suffix),
+        )
+
+        # Filter the DataFrame to only include the wanted files
+        df = df.query("ext in @wanted_exts")
+        df = df.query("~path.astype('str').isin(@unwanted_files)")
+        df = df.query('~path.astype("str").str.contains("hub.txt")')
+
+        # Add the sample name, method, and normalisation columns
+        df = df.assign(name=lambda x: x["path"].apply(lambda x: x.stem))
+        df = df.assign(
+            normalisation=lambda x: np.where(
+                x["ext"] != ".bed", x["path"].apply(lambda x: x.parts[-2]), ""
+            )
+        )
+        df = df.assign(
+            method=lambda x: np.where(
+                x["ext"] == ".bigWig",
+                x["path"].apply(lambda x: x.parts[-3]),
+                x["path"].apply(lambda x: x.parts[-2]),
+            ),
+        )
+        df = df.assign(
+            normalisation=lambda df: df.normalisation.str.replace(
+                "unscaled", ""
+            ).str.replace("spikein", "reference-normalised")
+        )
+        df = df.sort_values(by=["name", "ext", "method", "normalisation"])
+        
+        # Add the output file name and file type columns
+        df = df.assign(
+            output_file_name=lambda x: (
+                x["name"] + "_" + x["method"] + "_" + x["normalisation"] + x["ext"]
+            ).str.replace("_.", "."),
+            file_type=lambda df: np.select(
+                [
+                    df["ext"] == ".bigWig",
+                    df["ext"] == ".bed",
+                    df['ext'] == ".tsv",
+                    df['ext'] == ".vcf.gz",
+                ],
+                ["signal", "peaks", "counts", 'variants'],
+                default="other",
+            ),
+        )
+
+        df = df[df.file_type != "other"]
+
+        return df
+
+    @property
+    def processed_data_per_sample(self) -> Dict[str, List[str]]:
+        return (
+            self.processed_data_files.groupby("name")["output_file_name"]
+            .apply(list)
+            .to_dict()
+        )
+
+    @property
+    def raw_files(self) -> Dict[str, List[str]]:
+        fastq = dict()
+
+        for row in self.design.itertuples():
+            sample_name = row.sample_name if self.assay not in ["ChIP", "CUT&TAG"] else f"{row.sample_name}_{row.ip}"
+
+            is_paired = False
+            if hasattr(row, "r2") and row.r2:
+                is_paired = True
+            elif hasattr(row, "ip_r2") and row.ip_r2:
+                is_paired = True
+
+            fqs = generate_fastq_raw_names(sample_name, is_paired)
+            fastq.update(fqs)
+
+    
+        return fastq
+
+    @property
+    def metadata(self):
+        """
+        Create a pandas DataFrame with the GEO metadata.
+        """
+        geo_samples = []
+
+        organism = predict_organism(self.config["genome"]["name"])
+        instrument_model = self.config.get("instrument_model", "Illumina NovaSeq X")
+
+        for sample_row in self.design.itertuples():
+            library_name = (
+                sample_row.sample_name
+                if not self.assay in ["ChIP", "CUT&TAG"]
+                else f"{sample_row.sample_name}_{sample_row.ip}"
+            )
+            title = (
+                sample_row.sample_name
+                if not self.assay in ["ChIP", "CUT&TAG"]
+                else f"{sample_row.sample_name} {sample_row.ip}"
+            )
+            antibody = sample_row.ip if self.assay in ["ChIP", "CUT&TAG"] else None
+            is_paired_end = hasattr(sample_row, "r2") or hasattr(sample_row, "ip_r2")
+
+            geo_sample = GEOSample(
+                assay=self.assay,
+                library_name=library_name,
+                title=title,
+                organism=organism,
+                cell_line=None,
+                cell_type=None,
+                antibody=antibody,
+                genotype=None,
+                treatment=sample_row.treatment
+                if hasattr(sample_row, "treatment")
+                else None,
+                time=sample_row.time if hasattr(sample_row, "time") else None,
+                single_or_paired="paired-end" if is_paired_end else "single",
+                instrument_model=instrument_model,
+                description=None,
+                raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                processed_data_file=[
+                    str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                ],
+            )
+
+            geo_samples.append(geo_sample)
+
+        df_samples = GEOSamples(samples=geo_samples).to_dataframe()
+        return df_samples
+
+    @property
+    def files(self) -> List[str]:
+        return [*self.md5sums]
 
 
 class QCFiles(BaseModel):
@@ -1011,10 +1251,6 @@ class HeatmapFiles(BaseModel):
             return self.heatmap_files
         else:
             return []
-        if self.make_heatmaps:
-            return self.heatmap_files
-        else:
-            return []
 
 
 class HubFiles(BaseModel):
@@ -1062,8 +1298,37 @@ class SpikeInFiles(BaseModel):
             return []
 
 
+class PlotFiles(BaseModel):
+    plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
+    plotting_format: Literal["svg", "png", "pdf"] = "svg"
+
+    def get_plot_names(self):
+        import pyranges as pr
+
+        plots = []
+        coords = pr.read_bed(str(self.plotting_coordinates))
+        outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
+        for region in coords.df.itertuples():
+            fig_name = (
+                f"{region.Chromosome}-{region.Start}-{region.End}"
+                if not hasattr(region, "Name") and not region.Name
+                else region.Name
+            )
+            plots.append(outdir / f"{fig_name}.{self.plotting_format}")
+
+        return plots
+
+    @property
+    def files(self) -> List[str]:
+        if self.plotting_coordinates:
+            return self.get_plot_names()
+        else:
+            return []
+
+
 class Output(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
 
@@ -1072,7 +1337,6 @@ class Output(BaseModel):
         Literal["deeptools", "homer", False],
         List[Literal["deeptools", "homer"]],
     ] = None
-
 
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
@@ -1083,6 +1347,18 @@ class Output(BaseModel):
 
     fastq_screen: bool = False
     library_complexity: bool = False
+
+    geo_submission_files: bool = False
+
+    make_plots: bool = False
+    plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
+
+    # Correct plotting_coordinates type as it may be False
+    @validator("plotting_coordinates", pre=True)
+    def validate_plotting_coordinates(cls, v):
+        if v is False:
+            return None
+        return v
 
     @property
     def merge_bigwigs(self):
@@ -1143,6 +1419,28 @@ class Output(BaseModel):
             bb.append(bigbed)
         return bb
 
+    @property
+    def plots(self):
+        if self.make_plots:
+            pf = PlotFiles(
+                plotting_coordinates=self.plotting_coordinates, plotting_format="svg"
+            )
+            return pf.files
+        else:
+            return []
+
+    @property
+    def geo_files(self):
+        if self.geo_submission_files:
+            return GEOFiles(
+                assay=self.assay,
+                sample_names=self.sample_names,
+                design=self.design_dataframe,
+                config=self.config,
+            )
+        else:
+            return []
+
 
 class RNAOutput(Output):
     assay: Literal["RNA"]
@@ -1169,7 +1467,6 @@ class RNAOutput(Output):
     @computed_field
     @property
     def files(self) -> List[str]:
-
         files = []
         files.extend(
             QCFiles(
@@ -1179,12 +1476,15 @@ class RNAOutput(Output):
             ).files
         )
 
+        files.extend(self.geo_files.files)
+
         for file_list in (
             self.bigwigs,
             self.heatmaps,
             self.ucsc_hub.files,
             self.counts,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1249,12 +1549,15 @@ class NonRNAOutput(Output):
             ).files
         )
 
+        files.extend(self.geo_files.files)
+
         for file_list in (
             self.bigwigs,
             self.heatmaps,
             self.ucsc_hub.files,
             self.peaks,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1288,7 +1591,6 @@ class ChIPOutput(NonRNAOutput):
             if not any([c in s for c in self.control_names])
             if not any([c in s for c in self.control_names])
         ]
-
 
         pcf_samples = PeakCallingFiles(
             assay=self.assay,
@@ -1324,6 +1626,9 @@ class ChIPOutput(NonRNAOutput):
             ).files
         )
 
+        if self.geo_submission_files:
+            files.extend(self.geo_files.files)
+
         for file_list in (
             self.bigwigs,
             self.heatmaps,
@@ -1331,6 +1636,7 @@ class ChIPOutput(NonRNAOutput):
             self.peaks,
             self.spikeins,
             self.design,
+            self.plots,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1365,6 +1671,10 @@ class SNPOutput(Output):
         else:
             return []
 
+    @property
+    def peaks(self):
+        return []
+
     @computed_field
     @property
     def files(self) -> List[str]:
@@ -1390,53 +1700,84 @@ class SNPOutput(Output):
         return files
 
 
-class SNPOutput(Output):
-    assay: Literal["SNP"]
-    call_snps: bool = False
-    sample_names: List[str]
-    make_ucsc_hub: bool = False
-    snp_calling_method: Optional[
-        Union[
-            Literal["bcftools", "deepvariant", False],
-            List[Literal["bcftools", "deepvariant"]],
-        ]
-    ] = None
+class Molecule(Enum):
+    rna_total = "total RNA"
+    rna_polya = "polyA RNA"
+    rna_cytoplasmic = "cytoplasmic RNA"
+    rna_nuclear = "nuclear RNA"
+    dna_genomic = "genomic DNA"
+    protein = "protein"
+    other = "other"
 
-    @property
-    def design(self):
-        return ["seqnado_output/design.csv"]
 
+class GEOSample(BaseModel):
+    assay: Literal["ATAC", "ChIP", "CUT&TAG", "RNA", "SNP"]
+    library_name: str
+    title: str
+    organism: Literal["Homo sapiens", "Mus musculus"]
+    cell_line: Optional[str] = None
+    cell_type: Optional[str] = None
+    antibody: Optional[str] = None
+    genotype: Optional[str] = None
+    treatment: Optional[str] = None
+    time: Optional[str] = None
+    single_or_paired: Literal["single", "paired-end"]
+    instrument_model: str
+    description: Optional[str] = None
+    processed_data_file: List[str]
+    raw_file: List[str]
+
+    @computed_field
     @property
-    def snp_files(self) -> List[str]:
-        if self.call_snps:
-            return expand(
-                "seqnado_output/variant/{method}/{sample}.vcf.gz",
-                sample=self.sample_names,
-                method=self.snp_calling_method,
-            )
+    def molecule(self) -> Molecule:
+        if self.assay == "ATAC":
+            return Molecule.dna_genomic
+        elif self.assay == "RNA" and any(
+            n in self.title.lower() for n in ["tt-seq", "nasc", "point"]
+        ):
+            return Molecule.rna_nuclear
+        elif self.assay == "RNA":
+            return Molecule.rna_polya
+        elif self.assay == "SNP":
+            return Molecule.dna_genomic
         else:
-            return []
+            return Molecule.dna_genomic
 
-    @computed_field
     @property
-    def files(self) -> List[str]:
-        files = []
-        files.extend(
-            QCFiles(
-                assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
-            ).files
-        )
+    def to_series(self):
+        data = {
+            "library name": self.library_name,
+            "title": self.title,
+            "organism": self.organism,
+            "cell line": self.cell_line,
+            "cell type": self.cell_type,
+            "ChIP antibody": self.antibody,
+            "molecule": self.molecule.value,
+            "single or paired-end": self.single_or_paired,
+            "instrument model": self.instrument_model,
+            "description": self.description,
+        }
 
-        for file_list in (
-            self.snp_files,
-            self.design,
-        ):
-            if file_list:
-                files.extend(file_list)
+        processed_data = {
+            f"processed data file {i}": f
+            for i, f in enumerate(self.processed_data_file)
+        }
 
-        if self.call_snps:
-            files.append(self.snp_files)
+        raw_data = {f"raw file {i}": f for i, f in enumerate(self.raw_file)}
 
-        return files
+        data.update(processed_data)
+        data.update(raw_data)
+
+        if self.assay in ["ATAC", "RNA", "SNP"]:
+            del data["ChIP antibody"]
+
+        return pd.Series(data)
+
+
+class GEOSamples(BaseModel):
+    samples: List[GEOSample]
+
+    def to_dataframe(self):
+        df = pd.concat([s.to_series for s in self.samples], axis=1).T
+        df.columns = df.columns.str.replace(r"\s\d+$", "", regex=True).str.strip()
+        return df

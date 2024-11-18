@@ -46,9 +46,11 @@ SAMPLE_NAMES_CONTROL = DESIGN.sample_names_control
 IP = DESIGN.ips_performed
 CONTROL = DESIGN.controls_performed
 
+
 # Define output files
 OUTPUT = ChIPOutput(
     assay=ASSAY,
+    config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     ip_names=IP,
@@ -76,6 +78,10 @@ include: "rules/pileup_grouped.smk"
 include: "rules/qc.smk"
 include: "rules/heatmap.smk"
 include: "rules/hub.smk"
+include: "rules/geo_submission.smk"
+include: "rules/visualisation.smk"
+
+
 
 
 if config["spikein"]:

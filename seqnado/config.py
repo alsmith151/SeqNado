@@ -152,9 +152,9 @@ def setup_configuration(assay, genome, template_data):
                 default="deeptools",
                 choices=["deeptools", "homer"],
             )
-            template_data["scale"] = get_user_input(
-                "Scale bigwigs? (yes/no)", default="no", is_boolean=True
-            )
+            # template_data["scale"] = get_user_input(
+            #     "Scale bigwigs? (yes/no)", default="no", is_boolean=True
+            # )
             template_data["make_heatmaps"] = get_user_input(
                 "Do you want to make heatmaps? (yes/no)", default="no", is_boolean=True
             )
@@ -172,7 +172,7 @@ def setup_configuration(assay, genome, template_data):
             template_data["peak_calling_method"] = get_user_input(
                 "Peak caller:",
                 default="lanceotron",
-                choices=["lanceotron", "macs", "homer"],
+                choices=["lanceotron", "macs", "homer", "seacr"],
             )
 
     # RNA options
@@ -265,6 +265,29 @@ def setup_configuration(assay, genome, template_data):
         )
     )
 
+    template_data['geo_submission_files'] = get_user_input(
+        "Generate GEO submission files (MD5Sums, read count summaries...)? (yes/no)", default="no", is_boolean=True
+    )
+
+    template_data['perform_plotting'] = get_user_input(
+        "Perform plotting? (yes/no)", default="no", is_boolean=True
+    )
+
+    if template_data['perform_plotting']:
+        template_data['plotting_coordinates'] = get_user_input(
+            "Path to bed file with coordinates for plotting", default=None
+        )
+        if genome in genome_values and genome_values.get('genes'):
+            template_data['plotting_genes'] = genome_values[genome].get('genes')
+        else:
+            template_data['plotting_genes'] = get_user_input(
+                "Path to bed file with genes.", default=None
+            )
+    else:
+        template_data['plotting_coordinates'] = None
+        template_data['plotting_genes'] = None
+
+
 
 TOOL_OPTIONS = """
 trim_galore:
@@ -274,6 +297,10 @@ trim_galore:
 bowtie2:
     threads: 8
     options:
+
+samtools:
+    threads: 16
+    filter_options: -f 2
 
 picard:
     threads: 8
@@ -288,7 +315,7 @@ homer:
 deeptools:
     threads: 8
     alignmentsieve: --minMappingQuality 30 
-    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
 
 macs:
     version: 2
@@ -316,6 +343,10 @@ trim_galore:
 star:
     threads: 16
     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
+
+samtools:
+    threads: 16
+    filter_options: -f 2
 
 picard:
     threads: 8
@@ -353,6 +384,10 @@ bowtie2:
     threads: 8
     options:
 
+samtools:
+    threads: 16
+    filter_options: -f 2
+    
 picard:
     threads: 8
     options:

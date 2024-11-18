@@ -57,6 +57,7 @@ config["project_name"] = PROJECT_NAME
 # Define output files
 OUTPUT = RNAOutput(
     assay=ASSAY,
+    config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     run_deseq2=RUN_DESEQ2,
@@ -80,6 +81,10 @@ include: "rules/hub.smk"
 include: "rules/pileup_norm.smk"
 include: "rules/pileup_default.smk"
 include: "rules/qc.smk"
+include: "rules/geo_submission.smk"
+include: "rules/visualisation.smk"
+
+
 
 
 rule all:

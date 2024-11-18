@@ -313,14 +313,3 @@ def get_genomes():
     
     return genome_values
 
-
-
-        
-
-
-
-
-
-
-    # with open(os.path.join(template_dir, "preset_genomes.json"), "r") as f:
-    #     genome_values = json.load(f)

@@ -178,10 +178,10 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
         case "atac":
             files = list(path.glob("atac*.fastq.gz"))
         case "chip":
-            files = list(path.glob("chip-rx*.fastq.gz"))
-            files.append(path / "chip-rx-single_MLL.fastq.gz")
+            files = list(path.glob("chip-rx_*.fastq.gz"))
+            # files.append(path / "chip-rx-single_MLL.fastq.gz")
         case "chip-rx":
-            files = list(path.glob("chip-rx*.fastq.gz"))
+            files = list(path.glob("chip-rx_*.fastq.gz"))
         case "rna":
             files = list(path.glob("rna_*.fastq.gz"))
         case "rna-rx":
@@ -193,6 +193,11 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
 
 
 @pytest.fixture(scope="function")
+def plot_bed(test_data_path):
+    return test_data_path / "plotting_coordinates.bed"
+
+
+@pytest.fixture(scope="function")
 def run_directory(tmpdir_factory, assay):
     fn = tmpdir_factory.mktemp(assay)
     return fn
@@ -200,7 +205,7 @@ def run_directory(tmpdir_factory, assay):
 
 @pytest.fixture(scope="function")
 def user_inputs(
-    test_data_path, indicies, chromsizes, assay, assay_type, gtf, blacklist
+    test_data_path, indicies, chromsizes, assay, assay_type, gtf, blacklist, plot_bed
 ):
 
     defaults = {
@@ -221,7 +226,6 @@ def user_inputs(
         "shift_atac_reads": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -232,7 +236,6 @@ def user_inputs(
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -246,7 +249,6 @@ def user_inputs(
         "spikein_genome": "dm6",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "no",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
@@ -259,7 +261,6 @@ def user_inputs(
         "spikein": "no",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "yes",
         "rna_quantification": "feature_counts",
         "run_deseq2": "no",
@@ -270,7 +271,6 @@ def user_inputs(
         "spikein": "yes",
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
-        "scale": "no",
         "make_heatmaps": "no",
         "rna_quantification": "feature_counts",
         "run_deseq2": "yes",
@@ -288,19 +288,29 @@ def user_inputs(
         "color_by": "samplename",
     }
 
+    geo = {
+        "geo_submission_files": "yes",
+    }
+
+    plot  = {
+        'perform_plotting': 'yes' if not assay == "snp" else 'no',
+        'plotting_coordinates': str(plot_bed) if not assay == "snp" else None,
+        'plotting_genes': None,
+    }
+
     match assay:
         case "atac":
-            return {**defaults, **defaults_atac, **hub}
+            return {**defaults, **defaults_atac, **hub, **geo, **plot}
         case "chip":
-            return {**defaults, **defaults_chip, **hub}
+            return {**defaults, **defaults_chip, **hub, **geo,  **plot}
         case "chip-rx":
-            return {**defaults, **defaults_chip_rx, **hub}
+            return {**defaults, **defaults_chip_rx, **hub, **geo,  **plot}
         case "rna":
-            return {**defaults, **defaults_rna, **hub}
+            return {**defaults, **defaults_rna, **hub, **geo,  **plot}
         case "rna-rx":
-            return {**defaults, **defaults_rna_rx, **hub}
+            return {**defaults, **defaults_rna_rx, **hub, **geo,  **plot}
         case "snp":
-            return {**defaults, **defaults_snp, **hub}
+            return {**defaults, **defaults_snp, **hub, **geo, **plot}
 
 
 @pytest.fixture(scope="function")
@@ -341,6 +351,7 @@ def config_yaml_for_testing(config_yaml, assay):
         config = yaml.safe_load(f)
 
     if assay == "chip":
+        config['scale'] = "yes"
         config["library_complexity"] = False
     elif assay == "chip-rx":
         config["peak_calling_method"] = "seacr"
@@ -420,7 +431,9 @@ def apptainer_args(indicies, test_data_path):
         f"{indicies_mount}:{indicies_mount},"
         f"{tmpdir}:{tmpdir}"
     )
-    os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
+
+    if not os.environ.get("APPTAINER_CACHEDIR"):
+        os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
 
 
 @pytest.fixture(scope="function")
