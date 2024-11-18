@@ -298,6 +298,10 @@ bowtie2:
     threads: 8
     options:
 
+samtools:
+    threads: 16
+    filter_options: -f 2
+
 picard:
     threads: 8
     options:
