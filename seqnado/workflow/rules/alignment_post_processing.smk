@@ -197,7 +197,7 @@ rule filter_bam:
         options=check_options(config["filter_options"]),
     shell:
         """
-        samtools view -h {input.bam} {options} | samtools view -b - > {output.bam} &&
+        samtools view -h {input.bam} {params.options} | samtools view -b - > {output.bam} &&
         samtools index {output.bam} &&
         echo 'Filtered reads' > {log} 2>&1 &&
         samtools view -f 2 -c {output.bam} >> {log} 2>&1
