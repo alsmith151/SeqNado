@@ -42,7 +42,7 @@ def bamCoverage_version():
 def picard_version():
     cmd = 'picard MarkDuplicates --version'
     try:
-        version = subprocess.check_output(cmd, shell=True).decode().strip()
+        version = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode().strip().removeprefix('Version:')
     except subprocess.CalledProcessError:
         version = "3.1.1"
     return version
