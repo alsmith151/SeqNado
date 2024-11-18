@@ -125,7 +125,7 @@ rule count_bam:
     params:
         options='-p --countReadPairs',
     log:
-        "seqnado_output/logs/counts/{group}.log",
+        "seqnado_output/logs/counts/readcounts.log",
     threads: 8
     shell:
         "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} {params.options} > {log} 2>&1"
