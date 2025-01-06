@@ -6,10 +6,50 @@ from loguru import logger
 import sys
 import pathlib
 import shlex
+from seqnado.helpers import get_genomes
 
 
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
+GENOMES = get_genomes()
+
+
+
+@click.command()
+def init():
+    """
+    Initializes the seqnado pipeline
+     
+    """
+    import loguru.logger as logger
+    import os
+    import json
+    
+    # Get current conda environment
+    conda_env = os.environ.get("CONDA_DEFAULT_ENV")
+    conda_env_ok = input(f"Current conda environment is {conda_env}. Is this correct? (y/n): ")
+    if conda_env_ok.lower() != "y":
+        logger.error("Please activate the correct conda environment and re-run the command")
+        sys.exit(1)
+    
+    logger.info("Initialising the correct environmental variables for the pipeline")
+    os.system(f"bash {PACKAGE_DIR}/init.sh")
+
+    logger.info("Initialising genome files")
+    seqnado_config_dir = pathlib.Path('~/.config/seqnado').expanduser()
+    seqnado_config_dir.mkdir(parents=True, exist_ok=True)
+
+    genome_template = pathlib.Path(PACKAGE_DIR) / 'workflow' / 'config' / 'genomes_template.json'
+    genome_config = seqnado_config_dir / 'genomes.json'
+    if not genome_config.exists():
+        with open(genome_template, 'r') as f:
+            genome_template = json.load(f)
+        
+        with open(genome_config, 'w') as f:
+            json.dump(genome_template, f)
+
+    logger.info("Initialisation complete")
+
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
