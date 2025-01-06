@@ -298,6 +298,10 @@ bowtie2:
     threads: 8
     options:
 
+samtools:
+    threads: 16
+    filter_options: -f 2
+
 picard:
     threads: 8
     options:
@@ -311,7 +315,7 @@ homer:
 deeptools:
     threads: 8
     alignmentsieve: --minMappingQuality 30 
-    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
 
 macs:
     version: 2
@@ -339,6 +343,10 @@ trim_galore:
 star:
     threads: 16
     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
+
+samtools:
+    threads: 16
+    filter_options: -f 2
 
 picard:
     threads: 8
@@ -376,6 +384,10 @@ bowtie2:
     threads: 8
     options:
 
+samtools:
+    threads: 16
+    filter_options: -f 2
+    
 picard:
     threads: 8
     options:
