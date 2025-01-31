@@ -28,7 +28,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
-          miniforge-variant: Miniforge3
+          miniforge-variant: Miniforge
           miniforge-version: latest
           use-mamba: true
 
@@ -56,6 +56,11 @@ jobs:
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
+      - name: Check Apptainer installation
+        shell: bash
+        run: |
+          apptainer --version
+          apptainer remote list
       - name: Pull singularity images
         if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
@@ -63,11 +68,11 @@ jobs:
           echo "Pulling singularity images from the remote repository..."
           mkdir -p tmp
           if [[ "${{ matrix.test }}" == "pipeline" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_pipeline:latest
+            apptainer pull --force --userns library://asmith151/seqnado/seqnado_pipeline:latest
           elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
+            apptainer pull --force --userns library://asmith151/seqnado/seqnado_extra:latest
           elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
+            apptainer pull --force --userns library://asmith151/seqnado/seqnado_report:latest
           fi
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
