@@ -27,25 +27,30 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
 
     from seqnado.design import GEOFiles
 
-    outdir = pathlib.Path("seqnado_output/geo_submission")
-    fastqs = [str(outdir / fn) for fqs in OUTPUT.geo_files.raw_files.values() for fn in fqs]
+    try:
 
-    geo_files = GEOFiles(assay=OUTPUT.assay,
-                         design=OUTPUT.design_dataframe,
-                         sample_names=OUTPUT.sample_names,
-                         config=OUTPUT.config,
-                         processed_files=[str(p) for p in OUTPUT.files],
-                         )
+        outdir = pathlib.Path("seqnado_output/geo_submission")
+        fastqs = [str(outdir / fn) for fqs in OUTPUT.geo_files.raw_files.values() for fn in fqs]
 
-
-
-    if not geo_files.processed_data_files.empty:
-        processed_files = [outdir / str(fn) for (index, fn) in geo_files.processed_data_files['output_file_name'].items()]
-    else:
-        processed_files = []
+        geo_files = GEOFiles(assay=OUTPUT.assay,
+                            design=OUTPUT.design_dataframe,
+                            sample_names=OUTPUT.sample_names,
+                            config=OUTPUT.config,
+                            processed_files=[str(p) for p in OUTPUT.files],
+                            )
 
 
-    return [*fastqs, *processed_files]
+
+        if not geo_files.processed_data_files.empty:
+            processed_files = [outdir / str(fn) for (index, fn) in geo_files.processed_data_files['output_file_name'].items()]
+        else:
+            processed_files = []
+
+
+        return [*fastqs, *processed_files]
+    
+    except AttributeError:
+        return []
 
 
 
