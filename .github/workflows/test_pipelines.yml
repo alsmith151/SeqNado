@@ -28,7 +28,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
-          miniforge-variant: Miniforge
+          miniforge-variant: Miniforge3
           miniforge-version: latest
           use-mamba: true
 
