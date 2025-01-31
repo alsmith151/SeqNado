@@ -61,7 +61,6 @@ jobs:
         shell: bash
         env:
           APPTAINER_UNSHARE_PID: "1"
-          APPTAINER_CACHE_DIR: "/tmp"
         run: |
           echo "Pulling singularity images from the remote repository..."
           mkdir -p tmp
@@ -76,6 +75,5 @@ jobs:
         shell: pwsh
         env:
           TMPDIR: /tmp
-          APPTAINER_CACHE_DIR: "/tmp"
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
