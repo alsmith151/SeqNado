@@ -57,6 +57,7 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
       - name: Check Apptainer installation
+        if: matrix.test == 'pipeline'
         shell: bash
         run: |
           apptainer --version
