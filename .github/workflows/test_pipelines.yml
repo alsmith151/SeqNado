@@ -56,12 +56,6 @@ jobs:
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
-      - name: Check Apptainer installation
-        if: matrix.test == 'pipeline'
-        shell: bash
-        run: |
-          apptainer --version
-          apptainer remote list
       - name: Pull singularity images
         if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
@@ -77,6 +71,8 @@ jobs:
           elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
             apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
           fi
+          SIMG_FILES=$(find . -name "*.simg")
+          echo "images are saved as $SIMG_FILES"
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         env:
