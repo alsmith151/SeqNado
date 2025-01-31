@@ -61,6 +61,7 @@ jobs:
         shell: bash
         env:
           APPTAINER_UNSHARE_PID: "1"
+          APPTAINER_CACHE_DIR: ".apptainer"
         run: |
           echo "Pulling singularity images from the remote repository..."
           mkdir -p tmp
@@ -71,11 +72,11 @@ jobs:
           elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
             apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
           fi
-          SIMG_FILES=$(find . -name "*.simg")
-          echo "images are saved as $SIMG_FILES"
+
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         env:
           TMPDIR: /tmp
+          APPTAINER_CACHE_DIR: ".apptainer"
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
