@@ -78,8 +78,9 @@ jobs:
             apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
           fi
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
-        shell: pwsh
+        shell: bash
         env:
+          APPTAINER_UNSHARE_PID: "1"
           TMPDIR: /tmp
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
