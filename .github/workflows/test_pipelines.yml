@@ -42,12 +42,11 @@ jobs:
           path: ~/.apptainer
           key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
           restore-keys: |
-            ${{ runner.os }}-singularity-
+            ${{ runner.os }}-singularity-    
       - uses: eWaterCycle/setup-apptainer@v2
         if: matrix.test == 'pipeline'
         with:
-          apptainer-version: 1.3.4 # CCB version is 1.3.4
-
+          apptainer-version: 1.3.4
       - name: Add singularity hub remote
         if: matrix.test == 'pipeline'
         shell: pwsh
