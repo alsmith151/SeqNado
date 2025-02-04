@@ -48,7 +48,6 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
     return [*fastqs, *processed_files]
 
 
-
 rule geo_symlink:
     input:
         files=get_files_for_symlink,
