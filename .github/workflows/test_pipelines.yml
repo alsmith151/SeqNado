@@ -29,7 +29,6 @@ jobs:
         with:
           environment-file: testing.yml
           miniforge-version: latest
-          use-mamba: true
 
       - name: Install package
         shell: pwsh
