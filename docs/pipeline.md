@@ -23,7 +23,7 @@ You should get something like this:
 $ seqnado-config chip
   What is your project name? [cchahrou_project]: TEST
   What is your genome name? [other]: hg38
-  Path to Bowtie2 genome indices: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38
+  Path to Bowtie2 genome index: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38
   Path to chromosome sizes file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes
   Path to GTF file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf
   Path to blacklist bed file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz

@@ -1,11 +1,11 @@
-import click
+import json
 import os
-import subprocess
-import re
-from loguru import logger
-import sys
 import pathlib
-import shlex
+import subprocess
+import sys
+
+import click
+from loguru import logger
 
 
 FILE = os.path.abspath(__file__)
@@ -13,36 +13,80 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
+@click.option("--preset", is_flag=True, default=False, help="Use preset genome config")
+def cli_init(preset):
+    """
+    Initializes the seqnado pipeline.
+    This function sets up the required environment variables and genome configuration.
+    """
+    conda_env = os.environ.get("CONDA_DEFAULT_ENV")
+    conda_env_ok = click.prompt(
+        f"Current conda environment is {conda_env}. Is this correct?",
+        type=click.Choice(["y", "n"], case_sensitive=False),
+        default="y",
+    )
+
+    if conda_env_ok != "y":
+        logger.error(
+            "Please activate the correct conda environment and re-run the command."
+        )
+        sys.exit(1)
+
+    logger.info("Initializing the correct environmental variables for the pipeline")
+    subprocess.run(["bash", f"{PACKAGE_DIR}/init.sh"], check=True)
+
+    seqnado_config_dir = pathlib.Path.home() / ".config" / "seqnado"
+    seqnado_config_dir.mkdir(parents=True, exist_ok=True)
+    genome_config = seqnado_config_dir / "genome_config.json"
+
+    if os.path.exists(genome_config):
+        logger.info(f"Genome config file found at {genome_config}")
+        with open(genome_config, "r") as f:
+            genome_data = json.load(f)
+        for genome in genome_data:
+            for key, value in genome_data[genome].items():
+                if "PATH" in value:
+                    if not os.path.exists(value):
+                        logger.error(
+                            f"Please update the genome config file {genome_config} with the correct paths."
+                        )
+                        break
+    else:
+        if preset:
+            preset_genome_path = f"{PACKAGE_DIR}/workflow/config/preset_genomes.json"
+            logger.info(
+                f"Template genome file created. Using shared preset genome config from {preset_genome_path}"
+            )
+            template = json.load(open(preset_genome_path, "r"))
+        else:
+            genome_template = f"{PACKAGE_DIR}/workflow/config/genomes_template.json"
+            logger.error(
+                f"Template genome file created. Please update the genome file {genome_config} with the correct paths."
+            )
+            template = json.load(open(genome_template, "r"))
+
+        with open(genome_config, "w") as f:
+            json.dump(template, f, indent=4)
+    logger.info("Initialization complete!")
+
+
+# Config
+@click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.option("-r", "--rerun", is_flag=True, help="Re-run the config")
-@click.option(
-    "-g",
-    "--genome",
-    default="other",
-    help="Genome to use",
-    type=click.Choice(
-        choices=[
-            "dm6",
-            "hg19",
-            "hg38",
-            "hg38_dm6",
-            "hg38_mm39",
-            "hg38_spikein",
-            "mm10",
-            "mm39",
-            "other",
-        ]
-    ),
-)
-def cli_config(method, help=False, genome="other", rerun=False):
+def cli_config(method, rerun=False):
     """
     Runs the config for the data processing pipeline.
     """
+    from importlib.metadata import version
     import seqnado.config as config
 
-    config.create_config(method, genome, rerun)
+    seqnado_version = version("seqnado")
+
+    config.create_config(method, rerun, seqnado_version=seqnado_version)
 
 
+# Design
 @click.command()
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.argument("files", nargs=-1)
@@ -52,8 +96,9 @@ def cli_design(method, files, output="design.csv"):
     Generates a SeqNado design file from a list of files.
     """
     import pathlib
-    from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
-    
+
+    from seqnado.design import Design, DesignIP
+
     if not files:
         potential_file_locations = [
             ".",
@@ -74,14 +119,11 @@ def cli_design(method, files, output="design.csv"):
                          Fastq files can be provided as arguments or found in the following directories:
                          {potential_file_locations}
                          """)
-            raise ValueError("No fastq files provided or found in current directory" )
-
-
+            raise ValueError("No fastq files provided or found in current directory")
 
     if not method == "chip":
         design = Design.from_fastq_files(files)
     else:
-
         design = DesignIP.from_fastq_files(files)
 
     (
@@ -92,6 +134,7 @@ def cli_design(method, files, output="design.csv"):
     )
 
 
+# Pipeline
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument(
     "method",
@@ -114,17 +157,24 @@ def cli_design(method, files, output="design.csv"):
     help="Remove symlinks created by previous runs. Useful for re-running pipeline after misconfiguration.",
 )
 @click.option(
-    '-s',
-    '--scale-resources',
+    "-s",
+    "--scale-resources",
     help="Scale factor the memory and time resources for the pipeline",
     default=1.0,
-    type=float
+    type=float,
 )
 @click.option(
     "-v",
     "--verbose",
     is_flag=True,
     help="Increase logging verbosity",
+)
+@click.option(
+    "-q",
+    "--queue",
+    default=None,
+    type=str,
+    help="Specify the Slurm queue/partition when using the `ss` preset",
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(
@@ -136,6 +186,7 @@ def cli_pipeline(
     verbose=False,
     clean_symlinks=False,
     scale_resources=1.0,
+    queue=None,
 ):
     """Runs the data processing pipeline"""
 
@@ -146,10 +197,9 @@ def cli_pipeline(
 
         _version = version("seqnado")
 
-        _version = version("seqnado")
         print(f"SeqNado version {_version}")
         sys.exit(0)
-    
+
     if verbose:
         logger.remove()
         logger.add(sys.stderr, level="DEBUG")
@@ -169,7 +219,7 @@ def cli_pipeline(
         for link in links:
             if link.is_symlink():
                 link.unlink()
-    
+
     cmd = [
         "snakemake",
         "-c",
@@ -182,16 +232,16 @@ def cli_pipeline(
         cmd.extend(pipeline_options)
 
     if preset == "ss":
-        cmd.extend(
-            [
-                "--profile",
-                os.path.abspath(
-                    os.path.join(
-                        PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity"
-                    )
-                ),
-            ]
+        slurm_profile_path = os.path.abspath(
+            os.path.join(
+                PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity"
+            )
         )
+        cmd.extend(["--profile", slurm_profile_path])
+        default_resources = [
+            f"slurm_partition={queue}" if queue else "slurm_partition=short",
+        ]
+        cmd.extend(["--default-resources"] + default_resources)
 
     elif preset == "ls":
         cmd.extend(
@@ -212,8 +262,6 @@ def cli_pipeline(
         logo = f.read()
 
     print(logo)
-
-
 
     # Home directory symlinks cause issues with singularity bind mounts
     # to avoid this will change directory to the full resolved path of the current directory

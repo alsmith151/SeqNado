@@ -38,7 +38,7 @@ dependencies = [
 seqnado = "seqnado.cli:cli_pipeline"
 seqnado-design = "seqnado.cli:cli_design"
 seqnado-config = "seqnado.cli:cli_config"
-
+seqnado-init = "seqnado.cli:cli_init"
 
 [project.optional-dependencies]
 #atac = ["rsbamtk @ git+https://github.com/alsmith151/rsbamtk.git"]

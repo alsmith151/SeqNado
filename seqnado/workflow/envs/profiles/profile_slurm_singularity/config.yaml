@@ -5,7 +5,6 @@ jobs: 100
 software-deployment-method: 
     - "apptainer"
 use-apptainer: true
-# apptainer-args: "-H $PWD"
 
 show-failed-logs: true
 printshellcmds: true
@@ -16,11 +15,3 @@ default-resources:
     slurm_partition: "short"
     runtime: "1h"
     mem: "3G"
-
-# local-storage-prefix: $TMPDIR
-# default-storage-provider: fs
-# shared-fs-usage:
-#   - persistence
-#   - software-deployment
-#   - sources
-#   - source-cache

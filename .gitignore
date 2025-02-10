@@ -15,6 +15,7 @@ test.json
 fastq_class_sandbox.ipynb
 2023*
 2024*
+2025*
 test_rna_size_factors.ipynb
 tests/data/*
 !tests/data/plotting_coordinates.bed
@@ -22,3 +23,5 @@ tests/data/*
 pytestdebug.log
 sps*
 seqnado.sif
+*.tar
+*.tar.gz

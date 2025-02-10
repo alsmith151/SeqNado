@@ -1,7 +1,7 @@
 use rule align_paired as align_paired_spikein with:
     params:
         options="--no-mixed --no-discordant",
-        index=config["genome"]["indices"],
+        index=config["genome"]["index"],
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
     resources:

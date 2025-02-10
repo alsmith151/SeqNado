@@ -1,58 +1,64 @@
 {
     "dm6": {
-        "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/dm6/UCSC/bt2_index/dm6",
-        "star_indices": "/ceph/project/milne_group/shared/seqnado_reference/dm6/UCSC/STAR_2.7.10b",
+        "bt2_index": "/ceph/project/milne_group/shared/seqnado_reference/dm6/UCSC/bt2_index/dm6",
+        "star_index": "/ceph/project/milne_group/shared/seqnado_reference/dm6/UCSC/STAR_2.7.10b",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/dm6/UCSC/sequence/dm6.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/dm6/UCSC/genes/dm6.ncbiRefSeq.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/dm6/dm6-blacklist.v2.bed.gz"
     },
     "hg19": {
-        "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg19/UCSC/bt2_index/hg19",
-        "star_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg19/UCSC/STAR_2.7.10b",
+        "bt2_index": "/ceph/project/milne_group/shared/seqnado_reference/hg19/UCSC/bt2_index/hg19",
+        "star_index": "/ceph/project/milne_group/shared/seqnado_reference/hg19/UCSC/STAR_2.7.10b",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg19/UCSC/sequence/hg19.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg19/UCSC/genes/hg19.ncbiRefSeq.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg19/hg19-blacklist.v2.bed.gz "
     },
     "hg38": {
-        "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38",
-        "star_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/STAR_2.7.10b",
+        "bt2_index": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38",
+        "star_index": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/STAR_2.7.10b",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz",
         "genes": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38_genes.bed"
-
     },
     "hg38_dm6": {
-        "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/UCSC/bt2_index/hg38_dm6",
-        "star_indices": "NA",
+        "bt2_index": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/UCSC/bt2_index/hg38_dm6",
+        "star_index": "NA",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/UCSC/sequence/hg38_dm6.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/UCSC/genes/hg38_dm6.ncbiRefSeq.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/hg38_dm6-blacklist.v2.bed.gz"
     },
+    "hg38_ecoli": {
+        "bt2_index": "/ceph/project/milne_group/shared/seqnado_reference/hg38_ecoli/bt2_index/hg38_ecoli",
+        "star_index": "NA",
+        "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38_ecoli/sequence/hg38_ecoli.fa.fai",
+        "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf",
+        "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz"
+    },
     "hg38_mm39": {
-        "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38_mm39/bt2_index/hg38_mm39",
-        "star_indices": "NA",
+        "bt2_index": "/ceph/project/milne_group/shared/seqnado_reference/hg38_mm39/bt2_index/hg38_mm39",
+        "star_index": "NA",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38_mm39/sequence/hg38_mm39.fa.fai",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38_mm39/genes/hg38_mm39.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38_mm39/hg38_mm39-blacklist.bed.gz"
     },
     "hg38_spikein": {
-        "bt2_indices": "NA",
-        "star_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38_spikein/UCSC/STAR_2.7.10b",
+        "bt2_index": "NA",
+        "star_index": "/ceph/project/milne_group/shared/seqnado_reference/hg38_spikein/UCSC/STAR_2.7.10b",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38_spikein/hg38_spikein.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38_spikein/UCSC/genes/hg38_spikein_transcripts.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz"
     },
     "mm10": {
-        "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/mm10/UCSC/bt2_index/mm10",
-        "star_indices": "/ceph/project/milne_group/shared/seqnado_reference/mm10/UCSC/STAR_2.7.10b",
+        "bt2_index": "/ceph/project/milne_group/shared/seqnado_reference/mm10/UCSC/bt2_index/mm10",
+        "star_index": "/ceph/project/milne_group/shared/seqnado_reference/mm10/UCSC/STAR_2.7.10b",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/mm10/UCSC/sequence/mm10.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/mm10/UCSC/genes/mm10.ncbiRefSeq.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/mm10/mm10-blacklist.v2.bed.gz"
     },
     "mm39": {
-        "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/mm39/UCSC/bt2_index/mm39",
-        "star_indices": "/ceph/project/milne_group/shared/seqnado_reference/mm39/UCSC/STAR_2.7.10b",
+        "bt2_index": "/ceph/project/milne_group/shared/seqnado_reference/mm39/UCSC/bt2_index/mm39",
+        "star_index": "/ceph/project/milne_group/shared/seqnado_reference/mm39/UCSC/STAR_2.7.10b",
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/mm39/UCSC/sequence/mm39.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/mm39/UCSC/genes/mm39.ncbiRefSeq.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/mm39/mm10-blacklist.v2.Liftover.mm39.bed.gz"
