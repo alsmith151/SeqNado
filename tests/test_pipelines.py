@@ -200,10 +200,15 @@ def run_directory(tmpdir_factory, assay):
 def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
     """
     Runs seqnado-init before each test inside the GitHub test directory.
+    Ensures genome_config.json is correctly written.
     """
     genome_config_path = run_directory / "genome_config.json"
-    cmd = ["seqnado-init"]
     
+    # Manually specify genome config location
+    os.environ["SEQNADO_CONFIG"] = str(genome_config_path)
+
+    cmd = ["seqnado-init"]
+
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
@@ -215,6 +220,9 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
 
     stdout, stderr = process.communicate(input="y")
 
+    # Debugging output
+    print("DEBUG: seqnado-init stdout:", stdout)
+    print("DEBUG: seqnado-init stderr:", stderr)
 
     genome_config_dict = {
         "hg38": {
@@ -225,19 +233,19 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
             "blacklist": str(blacklist),
         }
     }
+
+    # Ensure genome config is written
     with open(genome_config_path, "w") as f:
         json.dump(genome_config_dict, f)
 
+    # Verify written config
     with open(genome_config_path, "r") as f:
         data = json.load(f)
         print("DEBUG: genome_config.json content:", json.dumps(data, indent=2))
         assert "hg38" in data, "Genome config was not correctly written"
-    
-    if not genome_config_path.exists():
-        print("ERROR: genome_config.json not created.")
-        print("STDOUT:", stdout)
-        print("STDERR:", stderr)
-        assert False, "genome_config.json not created."
+
+    assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
+
 
 
 @pytest.fixture(scope="function")
