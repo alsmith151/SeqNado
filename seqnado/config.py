@@ -1,7 +1,12 @@
+import sys
 import os
+import pathlib
 import datetime
 from jinja2 import Environment, FileSystemLoader
 import json
+from loguru import logger
+
+logger.add(sys.stderr, level="INFO")
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(package_dir, "workflow/config")
@@ -24,6 +29,38 @@ def get_user_input(prompt, default=None, is_boolean=False, choices=None):
 def setup_configuration(assay, genome, template_data, seqnado_version):
     username = os.getenv("USER", "unknown_user")
     today = datetime.datetime.now().strftime("%Y-%m-%d")
+
+    seqnado_config_dir = pathlib.Path("~/.config/seqnado").expanduser()
+    genome_config_path = os.path.join(seqnado_config_dir, "genome_config.json")
+    if not os.path.exists(genome_config_path):
+        logger.info("Genome config file not found. Please run 'seqnado-init' to create the genome config file.")
+        sys.exit(1)
+    else:
+        with open(genome_config_path, "r") as f:
+            genome_values = json.load(f)
+            
+        if genome in genome_values:
+            genome_dict = {}
+            genome_dict[genome] = {
+                "indices": genome_values[genome].get(
+                    "star_indices" if assay in ["rna"] else "bt2_indices"
+                ),
+                "chromosome_sizes": genome_values[genome].get("chromosome_sizes", ""),
+                "gtf": genome_values[genome].get("gtf", ""),
+                "blacklist": genome_values[genome].get("blacklist", ""),
+            }
+
+            genome_config = {
+                "genome": genome,
+                "indices": genome_dict[genome]["indices"],
+                "chromosome_sizes": genome_dict[genome]["chromosome_sizes"],
+                "gtf": genome_dict[genome]["gtf"],
+            }
+            template_data.update(genome_config)
+        else:
+            logger.info(f"Genome not found in genome config file. Please edit {genome_config_path} to add the genome.")
+            sys.exit(1)
+
     project_name = get_user_input(
         "What is your project name?", default=f"{username}_project"
     )
@@ -38,44 +75,6 @@ def setup_configuration(assay, genome, template_data, seqnado_version):
     }
 
     template_data.update(common_config)
-
-    with open(os.path.join(template_dir, "preset_genomes.json"), "r") as f:
-        genome_values = json.load(f)
-
-    genome_dict = {}
-
-    if genome == "other":
-        genome = get_user_input("What is your genome name?", default="other")
-        genome_dict = {
-            genome: {
-                "indices": (
-                    get_user_input("Path to Bowtie2 genome indices:")
-                    if assay in ["chip", "atac"]
-                    else get_user_input("Path to STAR v2.7.10b genome indices:")
-                ),
-                "chromosome_sizes": get_user_input("Path to chromosome sizes file:"),
-                "gtf": get_user_input("Path to GTF file:"),
-                "blacklist": get_user_input("Path to blacklist bed file:"),
-            }
-        }
-    else:
-        if genome in genome_values:
-            genome_dict[genome] = {
-                "indices": genome_values[genome].get(
-                    "star_indices" if assay in ["rna"] else "bt2_indices"
-                ),
-                "chromosome_sizes": genome_values[genome].get("chromosome_sizes", ""),
-                "gtf": genome_values[genome].get("gtf", ""),
-                "blacklist": genome_values[genome].get("blacklist", ""),
-            }
-
-    genome_config = {
-        "genome": genome,
-        "indices": genome_dict[genome]["indices"],
-        "chromosome_sizes": genome_dict[genome]["chromosome_sizes"],
-        "gtf": genome_dict[genome]["gtf"],
-    }
-    template_data.update(genome_config)
 
     # Fastqscreen
     template_data["fastq_screen"] = get_user_input(

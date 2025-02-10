@@ -7,27 +7,25 @@ import sys
 
 import click
 from loguru import logger
-import sys
-import pathlib
-import shlex
-from seqnado.helpers import get_genomes
 
+from seqnado.helpers import get_genomes
 
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
 GENOMES = get_genomes()
 
 
-@click.command()
-def init():
+# Init
+@click.command(context_settings=dict(ignore_unknown_options=True))
+@click.option("--preset", is_flag=True, default=False, help="Use preset genome config")
+def cli_init(preset):
     """
     Initializes the seqnado pipeline
 
     """
-    import loguru.logger as logger
-    import os
     import json
-
+    from loguru import logger
+    
     # Get current conda environment
     conda_env = os.environ.get("CONDA_DEFAULT_ENV")
     conda_env_ok = input(
@@ -49,17 +47,21 @@ def init():
     genome_template = (
         pathlib.Path(PACKAGE_DIR) / "workflow" / "config" / "genomes_template.json"
     )
-    genome_config = seqnado_config_dir / "genomes.json"
+    genome_config = seqnado_config_dir / "genome_config.json"
     if not genome_config.exists():
         with open(genome_template, "r") as f:
             genome_template = json.load(f)
 
         with open(genome_config, "w") as f:
             json.dump(genome_template, f)
+    if preset:
+        logger.info("Using shared genome config")
+        os.system(f"cp {PACKAGE_DIR}/workflow/config/preset_genomes.json" f" {genome_config}")
 
     logger.info("Initialisation complete")
 
 
+# Config
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.option("-r", "--rerun", is_flag=True, help="Re-run the config")
@@ -68,19 +70,7 @@ def init():
     "--genome",
     default="other",
     help="Genome to use",
-    type=click.Choice(
-        choices=[
-            "dm6",
-            "hg19",
-            "hg38",
-            "hg38_dm6",
-            "hg38_mm39",
-            "hg38_spikein",
-            "mm10",
-            "mm39",
-            "other",
-        ]
-    ),
+    type=str,
 )
 def cli_config(method, help=False, genome="other", rerun=False):
     """
