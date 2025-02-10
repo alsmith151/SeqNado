@@ -1,17 +1,18 @@
-import click
 import os
-import subprocess
-import re
-from loguru import logger
-import sys
 import pathlib
+import re
 import shlex
+import subprocess
+import sys
 
+import click
+from loguru import logger
 
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
 
 
+# Config
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.option("-r", "--rerun", is_flag=True, help="Re-run the config")
@@ -38,14 +39,15 @@ def cli_config(method, help=False, genome="other", rerun=False):
     """
     Runs the config for the data processing pipeline.
     """
-    import seqnado.config as config
     from importlib.metadata import version
+    import seqnado.config as config
 
     seqnado_version = version("seqnado")
 
     config.create_config(method, genome, rerun, seqnado_version=seqnado_version)
 
 
+# Design
 @click.command()
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.argument("files", nargs=-1)
@@ -55,6 +57,7 @@ def cli_design(method, files, output="design.csv"):
     Generates a SeqNado design file from a list of files.
     """
     import pathlib
+
     from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
 
     if not files:
@@ -92,6 +95,7 @@ def cli_design(method, files, output="design.csv"):
     )
 
 
+# Pipeline
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument(
     "method",
@@ -126,6 +130,13 @@ def cli_design(method, files, output="design.csv"):
     is_flag=True,
     help="Increase logging verbosity",
 )
+@click.option(
+    "-q",
+    "--queue",
+    default=None,
+    type=str,
+    help="Specify the Slurm queue/partition when using the `ss` preset",
+)
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(
     method,
@@ -136,6 +147,7 @@ def cli_pipeline(
     verbose=False,
     clean_symlinks=False,
     scale_resources=1.0,
+    queue=None,
 ):
     """Runs the data processing pipeline"""
 
@@ -181,16 +193,19 @@ def cli_pipeline(
         cmd.extend(pipeline_options)
 
     if preset == "ss":
-        cmd.extend(
-            [
-                "--profile",
-                os.path.abspath(
-                    os.path.join(
-                        PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity"
-                    )
-                ),
-            ]
+        slurm_profile_path = os.path.abspath(
+            os.path.join(PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity")
         )
+        cmd.extend(["--profile", slurm_profile_path])
+
+        # Apply default resources with a dynamic queue (partition)
+        default_resources = [
+            f"slurm_partition={queue}" if queue else "slurm_partition=short",
+        ]
+        
+        cmd.extend(["--default-resources"] + default_resources)
+
+
 
     elif preset == "ls":
         cmd.extend(
