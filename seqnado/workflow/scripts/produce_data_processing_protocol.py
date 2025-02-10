@@ -62,7 +62,7 @@ def macs2_version():
 
 
 content = f"""
-FASTQ fils were quality checked using FastQC version {fastqc_version()}.
+FASTQ files were quality checked using FastQC version {fastqc_version()}.
 Adapter sequences were removed and low quality reads were trimmed using trim_galore {trim_galore_version()} using the following parameters: {config['trim_galore']['options']}.
 Reads were aligned to the reference genome {config['genome']['name']} using {'STAR' if assay == 'RNA' else 'bowtie2'} v{star_version() if assay == 'RNA' else bowtie2_version()} with the following parameters: {config['star' if assay == 'RNA' else 'bowtie2']['options']}.
 """

@@ -424,7 +424,6 @@ def apptainer_args(indicies, test_data_path):
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
     apptainer_cache_dir = pathlib.Path.home() / ".apptainer"
-    
     os.environ["APPTAINER_BINDPATH"] = (
         f"{wd}:{wd},"
         f"{test_data_path}:{test_data_path},"

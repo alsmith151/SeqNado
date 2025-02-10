@@ -1,7 +1,11 @@
-import click
 import os
-import subprocess
+import pathlib
 import re
+import shlex
+import subprocess
+import sys
+
+import click
 from loguru import logger
 import sys
 import pathlib
@@ -78,11 +82,15 @@ def cli_config(method, help=False, genome="other", rerun=False):
     """
     Runs the config for the data processing pipeline.
     """
+    from importlib.metadata import version
     import seqnado.config as config
 
-    config.create_config(method, genome, rerun)
+    seqnado_version = version("seqnado")
+
+    config.create_config(method, genome, rerun, seqnado_version=seqnado_version)
 
 
+# Design
 @click.command()
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.argument("files", nargs=-1)
@@ -92,8 +100,9 @@ def cli_design(method, files, output="design.csv"):
     Generates a SeqNado design file from a list of files.
     """
     import pathlib
+
     from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
-    
+
     if not files:
         potential_file_locations = [
             ".",
@@ -114,14 +123,11 @@ def cli_design(method, files, output="design.csv"):
                          Fastq files can be provided as arguments or found in the following directories:
                          {potential_file_locations}
                          """)
-            raise ValueError("No fastq files provided or found in current directory" )
-
-
+            raise ValueError("No fastq files provided or found in current directory")
 
     if not method == "chip":
         design = Design.from_fastq_files(files)
     else:
-
         design = DesignIP.from_fastq_files(files)
 
     (
@@ -132,6 +138,7 @@ def cli_design(method, files, output="design.csv"):
     )
 
 
+# Pipeline
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument(
     "method",
@@ -154,17 +161,24 @@ def cli_design(method, files, output="design.csv"):
     help="Remove symlinks created by previous runs. Useful for re-running pipeline after misconfiguration.",
 )
 @click.option(
-    '-s',
-    '--scale-resources',
+    "-s",
+    "--scale-resources",
     help="Scale factor the memory and time resources for the pipeline",
     default=1.0,
-    type=float
+    type=float,
 )
 @click.option(
     "-v",
     "--verbose",
     is_flag=True,
     help="Increase logging verbosity",
+)
+@click.option(
+    "-q",
+    "--queue",
+    default=None,
+    type=str,
+    help="Specify the Slurm queue/partition when using the `ss` preset",
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(
@@ -176,6 +190,7 @@ def cli_pipeline(
     verbose=False,
     clean_symlinks=False,
     scale_resources=1.0,
+    queue=None,
 ):
     """Runs the data processing pipeline"""
 
@@ -186,10 +201,9 @@ def cli_pipeline(
 
         _version = version("seqnado")
 
-        _version = version("seqnado")
         print(f"SeqNado version {_version}")
         sys.exit(0)
-    
+
     if verbose:
         logger.remove()
         logger.add(sys.stderr, level="DEBUG")
@@ -209,7 +223,7 @@ def cli_pipeline(
         for link in links:
             if link.is_symlink():
                 link.unlink()
-    
+
     cmd = [
         "snakemake",
         "-c",
@@ -222,16 +236,16 @@ def cli_pipeline(
         cmd.extend(pipeline_options)
 
     if preset == "ss":
-        cmd.extend(
-            [
-                "--profile",
-                os.path.abspath(
-                    os.path.join(
-                        PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity"
-                    )
-                ),
-            ]
+        slurm_profile_path = os.path.abspath(
+            os.path.join(
+                PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity"
+            )
         )
+        cmd.extend(["--profile", slurm_profile_path])
+        default_resources = [
+            f"slurm_partition={queue}" if queue else "slurm_partition=short",
+        ]
+        cmd.extend(["--default-resources"] + default_resources)
 
     elif preset == "ls":
         cmd.extend(
@@ -252,8 +266,6 @@ def cli_pipeline(
         logo = f.read()
 
     print(logo)
-
-
 
     # Home directory symlinks cause issues with singularity bind mounts
     # to avoid this will change directory to the full resolved path of the current directory
