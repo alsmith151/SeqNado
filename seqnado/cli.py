@@ -39,8 +39,11 @@ def cli_config(method, help=False, genome="other", rerun=False):
     Runs the config for the data processing pipeline.
     """
     import seqnado.config as config
+    from importlib.metadata import version
 
-    config.create_config(method, genome, rerun)
+    seqnado_version = version("seqnado")
+
+    config.create_config(method, genome, rerun, seqnado_version=seqnado_version)
 
 
 @click.command()
@@ -53,7 +56,7 @@ def cli_design(method, files, output="design.csv"):
     """
     import pathlib
     from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
-    
+
     if not files:
         potential_file_locations = [
             ".",
@@ -74,14 +77,11 @@ def cli_design(method, files, output="design.csv"):
                          Fastq files can be provided as arguments or found in the following directories:
                          {potential_file_locations}
                          """)
-            raise ValueError("No fastq files provided or found in current directory" )
-
-
+            raise ValueError("No fastq files provided or found in current directory")
 
     if not method == "chip":
         design = Design.from_fastq_files(files)
     else:
-
         design = DesignIP.from_fastq_files(files)
 
     (
@@ -114,11 +114,11 @@ def cli_design(method, files, output="design.csv"):
     help="Remove symlinks created by previous runs. Useful for re-running pipeline after misconfiguration.",
 )
 @click.option(
-    '-s',
-    '--scale-resources',
+    "-s",
+    "--scale-resources",
     help="Scale factor the memory and time resources for the pipeline",
     default=1.0,
-    type=float
+    type=float,
 )
 @click.option(
     "-v",
@@ -146,10 +146,9 @@ def cli_pipeline(
 
         _version = version("seqnado")
 
-        _version = version("seqnado")
         print(f"SeqNado version {_version}")
         sys.exit(0)
-    
+
     if verbose:
         logger.remove()
         logger.add(sys.stderr, level="DEBUG")
@@ -169,7 +168,7 @@ def cli_pipeline(
         for link in links:
             if link.is_symlink():
                 link.unlink()
-    
+
     cmd = [
         "snakemake",
         "-c",
@@ -212,8 +211,6 @@ def cli_pipeline(
         logo = f.read()
 
     print(logo)
-
-
 
     # Home directory symlinks cause issues with singularity bind mounts
     # to avoid this will change directory to the full resolved path of the current directory

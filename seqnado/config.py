@@ -21,7 +21,7 @@ def get_user_input(prompt, default=None, is_boolean=False, choices=None):
         return user_input
 
 
-def setup_configuration(assay, genome, template_data):
+def setup_configuration(assay, genome, template_data, seqnado_version):
     username = os.getenv("USER", "unknown_user")
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     project_name = get_user_input(
@@ -33,6 +33,7 @@ def setup_configuration(assay, genome, template_data):
         "username": username,
         "project_date": today,
         "project_name": project_name,
+        "seqnado_version": seqnado_version,
         "genome": genome,
     }
 
@@ -209,7 +210,6 @@ def setup_configuration(assay, genome, template_data):
         else "False"
     )
     if assay == "snp" and template_data["call_snps"]:
-
         template_data["snp_calling_method"] = get_user_input(
             "SNP caller:",
             default="bcftools",
@@ -261,32 +261,35 @@ def setup_configuration(assay, genome, template_data):
         else (
             TOOL_OPTIONS_RNA
             if assay == "rna"
-            else TOOL_OPTIONS_SNP if assay == "snp" else ""
+            else TOOL_OPTIONS_SNP
+            if assay == "snp"
+            else ""
         )
     )
 
-    template_data['geo_submission_files'] = get_user_input(
-        "Generate GEO submission files (MD5Sums, read count summaries...)? (yes/no)", default="no", is_boolean=True
+    template_data["geo_submission_files"] = get_user_input(
+        "Generate GEO submission files (MD5Sums, read count summaries...)? (yes/no)",
+        default="no",
+        is_boolean=True,
     )
 
-    template_data['perform_plotting'] = get_user_input(
+    template_data["perform_plotting"] = get_user_input(
         "Perform plotting? (yes/no)", default="no", is_boolean=True
     )
 
-    if template_data['perform_plotting']:
-        template_data['plotting_coordinates'] = get_user_input(
+    if template_data["perform_plotting"]:
+        template_data["plotting_coordinates"] = get_user_input(
             "Path to bed file with coordinates for plotting", default=None
         )
-        if genome in genome_values and genome_values.get('genes'):
-            template_data['plotting_genes'] = genome_values[genome].get('genes')
+        if genome in genome_values and genome_values.get("genes"):
+            template_data["plotting_genes"] = genome_values[genome].get("genes")
         else:
-            template_data['plotting_genes'] = get_user_input(
+            template_data["plotting_genes"] = get_user_input(
                 "Path to bed file with genes.", default=None
             )
     else:
-        template_data['plotting_coordinates'] = None
-        template_data['plotting_genes'] = None
-
+        template_data["plotting_coordinates"] = None
+        template_data["plotting_genes"] = None
 
 
 TOOL_OPTIONS = """
@@ -399,17 +402,17 @@ bcftools:
 """
 
 
-def create_config(assay, genome, rerun, debug=False):
+def create_config(assay, genome, rerun, seqnado_version, debug=False):
     env = Environment(loader=FileSystemLoader(template_dir), auto_reload=False)
 
     template = env.get_template("config.yaml.jinja")
     template_deseq2 = env.get_template("deseq2.qmd.jinja")
-
+    
     # Initialize template data
-    template_data = {"assay": assay, "genome": genome}
+    template_data = {"assay": assay, "genome": genome, "seqnado_version": seqnado_version}
 
     # Setup configuration
-    setup_configuration(assay, genome, template_data)
+    setup_configuration(assay, genome, template_data, seqnado_version)
 
     # Create directory and render template
     if rerun:
