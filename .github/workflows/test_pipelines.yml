@@ -70,5 +70,6 @@ jobs:
         shell: pwsh
         env:
           TMPDIR: /tmp
+          SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
