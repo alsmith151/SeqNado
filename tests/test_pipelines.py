@@ -215,6 +215,8 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
 
     stdout, stderr = process.communicate(input="y")
 
+    print("DEBUG: seqnado-init stdout:", stdout, "seqnado-init stderr:", stderr)
+    print("DEBUG: genome_config_path:", genome_config_path)
     genome_config_dict = {
         "hg38": {
             "genome": "hg38",
@@ -352,7 +354,7 @@ def config_yaml(run_directory, user_inputs, assay_type):
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
-
+    print("DEBUG: config_yaml stdout:", stdout, "config_yaml stderr:", stderr)
     project_name = "test"
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
