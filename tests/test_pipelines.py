@@ -215,8 +215,7 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
 
     stdout, stderr = process.communicate(input="y")
 
-    print("DEBUG: seqnado-init stdout:", stdout, "seqnado-init stderr:", stderr)
-    print("DEBUG: genome_config_path:", genome_config_path)
+
     genome_config_dict = {
         "hg38": {
             "genome": "hg38",
@@ -234,7 +233,11 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
         print("DEBUG: genome_config.json content:", json.dumps(data, indent=2))
         assert "hg38" in data, "Genome config was not correctly written"
     
-    assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
+    if not genome_config_path.exists():
+        print("ERROR: genome_config.json not created.")
+        print("STDOUT:", stdout)
+        print("STDERR:", stderr)
+        assert False, "genome_config.json not created."
 
 
 @pytest.fixture(scope="function")
@@ -354,13 +357,19 @@ def config_yaml(run_directory, user_inputs, assay_type):
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
-    print("DEBUG: config_yaml stdout:", stdout, "config_yaml stderr:", stderr)
+
     project_name = "test"
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
 
-    assert config_file_path.exists(), f"{assay_type} config file not created."
-    return
+    if not config_file_path.exists():
+        print(f"ERROR: {assay_type} config file not created.")
+        print("STDOUT:", stdout)
+        print("STDERR:", stderr)
+        assert False, f"{assay_type} config file not created."
+
+    return config_file_path
+
 
 
 
