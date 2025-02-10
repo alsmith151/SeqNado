@@ -22,3 +22,5 @@ tests/data/*
 pytestdebug.log
 sps*
 seqnado.sif
+*.tar
+*.tar.gz
