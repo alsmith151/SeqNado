@@ -199,12 +199,15 @@ def run_directory(tmpdir_factory, assay):
 @pytest.fixture(scope="function", autouse=True)
 def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
     """
-    Runs seqnado-init before each test inside the test directory.
+    Runs seqnado-init before each test inside the GitHub test directory.
     """
     genome_config_path = run_directory / "genome_config.json"
 
-    # Set the `SEQNADO_CONFIG` environment variable to override the default path
+    # Override `SEQNADO_CONFIG` so it uses the test folder instead of ~/.config
     os.environ["SEQNADO_CONFIG"] = str(genome_config_path)
+
+    print(f"Running seqnado-init in {run_directory}")
+    print(f"Setting SEQNADO_CONFIG={os.environ['SEQNADO_CONFIG']}")
 
     # Ensure the working directory is the test directory
     cmd = ["seqnado-init"]
@@ -214,7 +217,7 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        text=True,  
         cwd=run_directory,  # Run in the test directory
     )
 
@@ -246,6 +249,10 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
         data = json.load(f)
         print("DEBUG: genome_config.json content:", json.dumps(data, indent=2))
         assert "hg38" in data, "Genome config was not correctly written"
+
+    # Verify that SEQNADO_CONFIG is set correctly
+    assert os.environ["SEQNADO_CONFIG"] == str(genome_config_path), "SEQNADO_CONFIG environment variable not set correctly."
+
 
 
 @pytest.fixture(scope="function")
@@ -354,8 +361,6 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
 def config_yaml(run_directory, user_inputs, assay_type):
     user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
     cmd = ["seqnado-config", assay_type, "-g", "hg38"]
-
-    # Ensure `seqnado-config` uses the test-specific genome config
     os.environ["SEQNADO_CONFIG"] = str(run_directory / "genome_config.json")
 
     print("Running:", " ".join(cmd))
@@ -367,7 +372,7 @@ def config_yaml(run_directory, user_inputs, assay_type):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=run_directory,  # Run in test directory
+        cwd=run_directory,
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
@@ -377,12 +382,11 @@ def config_yaml(run_directory, user_inputs, assay_type):
 
     project_name = "test"
     date = datetime.now().strftime("%Y-%m-%d")
-    config_file_path = (
-        run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
-    )
+    config_file_path = run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
 
     assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
+
 
 
 @pytest.fixture(scope="function")
