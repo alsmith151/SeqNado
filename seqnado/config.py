@@ -34,6 +34,7 @@ def setup_configuration(assay, genome, template_data, seqnado_version):
     genome_config_path = os.path.join(seqnado_config_dir, "genome_config.json")
     if not os.path.exists(genome_config_path):
         logger.info("Genome config file not found. Please run 'seqnado-init' to create the genome config file.")
+
         sys.exit(1)
     else:
         with open(genome_config_path, "r") as f:

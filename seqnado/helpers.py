@@ -1,8 +1,8 @@
 import json
 import pathlib
-import shlex
+
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from loguru import logger
@@ -53,8 +53,6 @@ def extract_apptainer_args(options: List[str]) -> Tuple[List[str], str]:
     """
     Extract the apptainer arguments from the snakemake options.
     """
-    from loguru import logger
-
     try:
         apptainer_flag = options.index("--apptainer-args")
         apptainer_args = options[apptainer_flag + 1]

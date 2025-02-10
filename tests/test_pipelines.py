@@ -1,4 +1,4 @@
-import glob
+import json
 import os
 import pathlib
 import re
@@ -6,7 +6,6 @@ import shutil
 import subprocess
 import tarfile
 from datetime import datetime
-import shlex
 
 import pytest
 import requests
@@ -60,7 +59,6 @@ def genome_path(test_data_path):
 
 @pytest.fixture(scope="function")
 def genome_indices_path(genome_path, assay) -> pathlib.Path:
-
     if "rna" not in assay:
         return genome_path / "bt2_chr21_dm6_chr2L"
     else:
@@ -69,7 +67,6 @@ def genome_indices_path(genome_path, assay) -> pathlib.Path:
 
 @pytest.fixture(scope="function")
 def indicies(genome_indices_path, genome_path) -> pathlib.Path:
-
     download_indices = True if not genome_indices_path.exists() else False
     suffix = genome_indices_path.with_suffix(".tar.gz").name
     url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
@@ -80,7 +77,6 @@ def indicies(genome_indices_path, genome_path) -> pathlib.Path:
         indicies_path = genome_indices_path
 
     if download_indices:
-
         r = requests.get(url, stream=True)
 
         tar_index = genome_indices_path.with_suffix(".tar.gz")
@@ -106,7 +102,6 @@ def indicies(genome_indices_path, genome_path) -> pathlib.Path:
 
 @pytest.fixture(scope="function")
 def chromsizes(genome_path):
-
     suffix = "chr21.fa.fai"
 
     if not (genome_path / "chr21_rename.fa.fai").exists():
@@ -120,7 +115,6 @@ def chromsizes(genome_path):
 
 @pytest.fixture(scope="function")
 def gtf(genome_path, assay, indicies):
-
     if "rna" in assay:
         gtf_path = genome_path / "chr21_rna_spikein.gtf"
     else:
@@ -137,7 +131,6 @@ def gtf(genome_path, assay, indicies):
 
 @pytest.fixture(scope="function")
 def blacklist(genome_path):
-
     blacklist_path = genome_path / "hg38-blacklist.v2.bed.gz"
     if not blacklist_path.exists():
         url = "https://github.com/Boyle-Lab/Blacklist/raw/master/lists/hg38-blacklist.v2.bed.gz"
@@ -203,18 +196,62 @@ def run_directory(tmpdir_factory, assay):
     return fn
 
 
-@pytest.fixture(scope="function")
-def user_inputs(
-    test_data_path, indicies, chromsizes, assay, assay_type, gtf, blacklist, plot_bed
-):
+@pytest.fixture(scope="function", autouse=True)
+def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
+    """
+    Runs seqnado-init before each test inside the test directory.
+    """
+    genome_config_path = run_directory / "genome_config.json"
 
+    # Set the `SEQNADO_CONFIG` environment variable to override the default path
+    os.environ["SEQNADO_CONFIG"] = str(genome_config_path)
+
+    # Ensure the working directory is the test directory
+    cmd = ["seqnado-init"]
+
+    process = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=run_directory,  # Run in the test directory
+    )
+
+    stdout, stderr = process.communicate(input="y")  # Respond "y" to any prompt
+
+    print(f"SEQNADO-INIT STDOUT:\n{stdout}")
+    print(f"SEQNADO-INIT STDERR:\n{stderr}")
+
+    # Ensure process exits cleanly
+    assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
+
+    # Manually create genome config in the test directory
+    genome_config_dict = {
+        "hg38": {
+            "genome": "hg38",
+            "indices": str(indicies),
+            "chromsizes": str(chromsizes),
+            "gtf": str(gtf),
+            "blacklist": str(blacklist),
+        }
+    }
+
+    # Write genome config inside the test directory
+    with open(genome_config_path, "w") as f:
+        json.dump(genome_config_dict, f)
+
+    # Verify that the genome config was written correctly
+    with open(genome_config_path, "r") as f:
+        data = json.load(f)
+        print("DEBUG: genome_config.json content:", json.dumps(data, indent=2))
+        assert "hg38" in data, "Genome config was not correctly written"
+
+
+@pytest.fixture(scope="function")
+def user_inputs(test_data_path, assay, assay_type, plot_bed):
     defaults = {
         "project_name": "test",
-        "genome_name": "hg38",
-        "indices": str(indicies),
-        "chromsizes": str(chromsizes),
-        "gtf": str(gtf),
-        "blacklist": str(blacklist),
         "fastq_screen": "no",
         "remove_blacklist": "yes",
     }
@@ -292,52 +329,57 @@ def user_inputs(
         "geo_submission_files": "yes",
     }
 
-    plot  = {
-        'perform_plotting': 'yes' if not assay == "snp" else 'no',
-        'plotting_coordinates': str(plot_bed) if not assay == "snp" else None,
-        'plotting_genes': None,
+    plot = {
+        "perform_plotting": "yes" if not assay == "snp" else "no",
+        "plotting_coordinates": str(plot_bed) if not assay == "snp" else None,
+        "plotting_genes": None,
     }
 
     match assay:
         case "atac":
             return {**defaults, **defaults_atac, **hub, **geo, **plot}
         case "chip":
-            return {**defaults, **defaults_chip, **hub, **geo,  **plot}
+            return {**defaults, **defaults_chip, **hub, **geo, **plot}
         case "chip-rx":
-            return {**defaults, **defaults_chip_rx, **hub, **geo,  **plot}
+            return {**defaults, **defaults_chip_rx, **hub, **geo, **plot}
         case "rna":
-            return {**defaults, **defaults_rna, **hub, **geo,  **plot}
+            return {**defaults, **defaults_rna, **hub, **geo, **plot}
         case "rna-rx":
-            return {**defaults, **defaults_rna_rx, **hub, **geo,  **plot}
+            return {**defaults, **defaults_rna_rx, **hub, **geo, **plot}
         case "snp":
             return {**defaults, **defaults_snp, **hub, **geo, **plot}
 
 
 @pytest.fixture(scope="function")
 def config_yaml(run_directory, user_inputs, assay_type):
+    user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
+    cmd = ["seqnado-config", assay_type, "-g", "hg38"]
 
-    user_inputs = "\n".join([str(v) for v in user_inputs.values()])
-    cmd = ["seqnado-config", assay_type]
+    # Ensure `seqnado-config` uses the test-specific genome config
+    os.environ["SEQNADO_CONFIG"] = str(run_directory / "genome_config.json")
 
-    # Run the script with subprocess
+    print("Running:", " ".join(cmd))
+    print("Using SEQNADO_CONFIG:", os.environ["SEQNADO_CONFIG"])
+
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=run_directory,
+        cwd=run_directory,  # Run in test directory
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
+
+    print(f"SEQNADO-CONFIG STDOUT:\n{stdout}")
+    print(f"SEQNADO-CONFIG STDERR:\n{stderr}")
 
     project_name = "test"
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = (
         run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
     )
-    if not config_file_path.exists():
-        print("debug stdout", stdout)
 
     assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
@@ -351,7 +393,7 @@ def config_yaml_for_testing(config_yaml, assay):
         config = yaml.safe_load(f)
 
     if assay == "chip":
-        config['scale'] = "yes"
+        config["scale"] = "yes"
         config["library_complexity"] = False
     elif assay == "chip-rx":
         config["peak_calling_method"] = "seacr"
@@ -399,7 +441,6 @@ def design(seqnado_run_dir, assay_type, assay):
 
 @pytest.fixture(scope="function", autouse=True)
 def set_up(seqnado_run_dir, fastqs):
-
     cwd = pathlib.Path(os.getcwd())
     os.chdir(seqnado_run_dir)
 
@@ -415,8 +456,10 @@ def set_up(seqnado_run_dir, fastqs):
 def test_config(config_yaml, assay_type):
     assert os.path.exists(config_yaml), f"{assay_type} config file not created."
 
+
 def test_design(design, assay_type):
     assert os.path.exists(design), f"{assay_type} design file not created."
+
 
 @pytest.fixture(scope="function", autouse=True)
 def apptainer_args(indicies, test_data_path):
@@ -450,7 +493,6 @@ def test_pipeline(
     test_data_path,
     test_profile_path,
 ):
-
     subprocess.run(
         [
             "seqnado",

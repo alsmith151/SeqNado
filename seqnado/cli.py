@@ -1,7 +1,6 @@
 import os
 import pathlib
-import re
-import shlex
+
 import subprocess
 import sys
 
@@ -95,7 +94,7 @@ def cli_design(method, files, output="design.csv"):
     """
     import pathlib
 
-    from seqnado.design import Design, DesignIP, FastqFile, FastqFileIP
+    from seqnado.design import Design, DesignIP
 
     if not files:
         potential_file_locations = [
