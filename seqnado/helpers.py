@@ -1,6 +1,6 @@
 import json
+import logging
 import pathlib
-
 import sys
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -253,9 +253,9 @@ def has_bowtie2_index(prefix: str) -> bool:
     path_dir = path_prefix.parent
     path_prefix_stem = path_prefix.stem
 
-    bowtie2_indices = list(path_dir.glob(f"{path_prefix_stem}*.bt2"))
+    bowtie2_index = list(path_dir.glob(f"{path_prefix_stem}*.bt2"))
 
-    if len(bowtie2_indices) > 0:
+    if len(bowtie2_index) > 0:
         return True
 
 
@@ -322,24 +322,3 @@ def remove_unwanted_run_files():
             print(e)
 
 
-def get_genomes():
-    """
-    Get the genomes from the genome config file.
-    """
-    seqnado_config_dir = pathlib.Path("~/.config/seqnado").expanduser()
-    genome_config = seqnado_config_dir / "genome_config.json"
-    genome_values = {}
-
-    if genome_config.exists():
-        logger.info(f"Genome config found at {genome_config}")
-        with open(genome_config, "r") as f:
-            genome_values = json.load(f)
-
-        if genome_values.get("dm6"):
-            if "PATH" in genome_values["dm6"]["bt2_indices"]:
-                logger.error(
-                    f"Template genome file found. Please update the genome file {genome_config} with the correct paths."
-                )
-                sys.exit(1)
-
-    return genome_values

@@ -7,7 +7,7 @@ rule align_paired:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     params:
-        index=config["genome"]["indices"],
+        index=config["genome"]["index"],
         options=check_options(config["bowtie2"]["options"]),
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
@@ -29,7 +29,7 @@ rule align_single:
     input:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
     params:
-        index=config["genome"]["indices"],
+        index=config["genome"]["index"],
         options=check_options(config["bowtie2"]["options"]),
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),

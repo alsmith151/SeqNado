@@ -1,7 +1,7 @@
 {   
     "dm6": {
-        "bt2_indices": "PATH_TO_INDICIES/dm6",
-        "star_indices": "PATH_TO_STAR/dm6/UCSC/STAR_2.7.10b",
+        "bt2_index": "PATH_TO_INDICIES/dm6",
+        "star_index": "PATH_TO_STAR/dm6/UCSC/STAR_2.7.10b",
         "chromosome_sizes": "PATH/dm6/UCSC/sequence/dm6.chrom.sizes",
         "gtf": "PATH/dm6/UCSC/genes/dm6.ncbiRefSeq.gtf",
         "blacklist": "PATH/dm6/dm6-blacklist.v2.bed.gz"

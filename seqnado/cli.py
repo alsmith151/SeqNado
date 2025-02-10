@@ -1,77 +1,80 @@
+import json
 import os
 import pathlib
-
 import subprocess
 import sys
 
 import click
 from loguru import logger
 
-from seqnado.helpers import get_genomes
 
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
-GENOMES = get_genomes()
 
 
-# Init
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.option("--preset", is_flag=True, default=False, help="Use preset genome config")
 def cli_init(preset):
     """
-    Initializes the seqnado pipeline
-
+    Initializes the seqnado pipeline.
+    This function sets up the required environment variables and genome configuration.
     """
-    import json
-    from loguru import logger
-    
-    # Get current conda environment
     conda_env = os.environ.get("CONDA_DEFAULT_ENV")
-    conda_env_ok = input(
-        f"Current conda environment is {conda_env}. Is this correct? (y/n): "
+    conda_env_ok = click.prompt(
+        f"Current conda environment is {conda_env}. Is this correct?",
+        type=click.Choice(["y", "n"], case_sensitive=False),
+        default="y",
     )
-    if conda_env_ok.lower() != "y":
+
+    if conda_env_ok != "y":
         logger.error(
-            "Please activate the correct conda environment and re-run the command"
+            "Please activate the correct conda environment and re-run the command."
         )
         sys.exit(1)
 
-    logger.info("Initialising the correct environmental variables for the pipeline")
-    os.system(f"bash {PACKAGE_DIR}/init.sh")
+    logger.info("Initializing the correct environmental variables for the pipeline")
+    subprocess.run(["bash", f"{PACKAGE_DIR}/init.sh"], check=True)
 
-    logger.info("Initialising genome files")
-    seqnado_config_dir = pathlib.Path("~/.config/seqnado").expanduser()
+    seqnado_config_dir = pathlib.Path.home() / ".config" / "seqnado"
     seqnado_config_dir.mkdir(parents=True, exist_ok=True)
-
-    genome_template = (
-        pathlib.Path(PACKAGE_DIR) / "workflow" / "config" / "genomes_template.json"
-    )
     genome_config = seqnado_config_dir / "genome_config.json"
-    if not genome_config.exists():
-        with open(genome_template, "r") as f:
-            genome_template = json.load(f)
+
+    if os.path.exists(genome_config):
+        logger.info(f"Genome config file found at {genome_config}")
+        with open(genome_config, "r") as f:
+            genome_data = json.load(f)
+        for genome in genome_data:
+            for key, value in genome_data[genome].items():
+                if "PATH" in value:
+                    if not os.path.exists(value):
+                        logger.error(
+                            f"Please update the genome config file {genome_config} with the correct paths."
+                        )
+                        break
+    else:
+        if preset:
+            preset_genome_path = f"{PACKAGE_DIR}/workflow/config/preset_genomes.json"
+            logger.info(
+                f"Template genome file created. Using shared preset genome config from {preset_genome_path}"
+            )
+            template = json.load(open(preset_genome_path, "r"))
+        else:
+            genome_template = f"{PACKAGE_DIR}/workflow/config/genomes_template.json"
+            logger.error(
+                f"Template genome file created. Please update the genome file {genome_config} with the correct paths."
+            )
+            template = json.load(open(genome_template, "r"))
 
         with open(genome_config, "w") as f:
-            json.dump(genome_template, f)
-    if preset:
-        logger.info("Using shared genome config")
-        os.system(f"cp {PACKAGE_DIR}/workflow/config/preset_genomes.json" f" {genome_config}")
-
-    logger.info("Initialisation complete")
+            json.dump(template, f, indent=4)
+    logger.info("Initialization complete!")
 
 
 # Config
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
 @click.option("-r", "--rerun", is_flag=True, help="Re-run the config")
-@click.option(
-    "-g",
-    "--genome",
-    default="other",
-    help="Genome to use",
-    type=str,
-)
-def cli_config(method, help=False, genome="other", rerun=False):
+def cli_config(method, rerun=False):
     """
     Runs the config for the data processing pipeline.
     """
@@ -80,7 +83,7 @@ def cli_config(method, help=False, genome="other", rerun=False):
 
     seqnado_version = version("seqnado")
 
-    config.create_config(method, genome, rerun, seqnado_version=seqnado_version)
+    config.create_config(method, rerun, seqnado_version=seqnado_version)
 
 
 # Design

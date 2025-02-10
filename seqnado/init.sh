@@ -17,6 +17,6 @@ if [ -z "$APPTAINER_BINDPATH" ]; then
         export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank"
         echo 'export APPTAINER_BINDPATH="/ceph:/ceph, /project:/project, /databank:/databank"' >> ~/.bashrc
     else
-        echo "This is not a CCB node. Please set the APPTAINER_BINDPATH environment variable to bind the necessary directories."
+        echo "Please set the APPTAINER_BINDPATH environment variable to bind the necessary directories."
     fi
 fi

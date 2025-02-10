@@ -4,11 +4,15 @@ import pathlib
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 from datetime import datetime
 
 import pytest
 import requests
+from loguru import logger
+
+logger.add(sys.stderr, level="DEBUG")
 
 
 @pytest.fixture(
@@ -58,7 +62,7 @@ def genome_path(test_data_path):
 
 
 @pytest.fixture(scope="function")
-def genome_indices_path(genome_path, assay) -> pathlib.Path:
+def genome_index_path(genome_path, assay) -> pathlib.Path:
     if "rna" not in assay:
         return genome_path / "bt2_chr21_dm6_chr2L"
     else:
@@ -66,35 +70,27 @@ def genome_indices_path(genome_path, assay) -> pathlib.Path:
 
 
 @pytest.fixture(scope="function")
-def indicies(genome_indices_path, genome_path) -> pathlib.Path:
-    download_indices = True if not genome_indices_path.exists() else False
-    suffix = genome_indices_path.with_suffix(".tar.gz").name
+def index(genome_index_path, genome_path) -> pathlib.Path:
+    download_index = True if not genome_index_path.exists() else False
+    suffix = genome_index_path.with_suffix(".tar.gz").name
     url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
 
-    if "bt2" in str(genome_indices_path):
-        indicies_path = genome_indices_path / "bt2_chr21_dm6_chr2L"
+    if "bt2" in str(genome_index_path):
+        indicies_path = genome_index_path / "bt2_chr21_dm6_chr2L"
     else:
-        indicies_path = genome_indices_path
-
-    if download_indices:
+        indicies_path = genome_index_path
+    if download_index:
         r = requests.get(url, stream=True)
-
-        tar_index = genome_indices_path.with_suffix(".tar.gz")
-
+        tar_index = genome_index_path.with_suffix(".tar.gz")
         with open(tar_index, "wb") as f:
             f.write(r.content)
-
         tar = tarfile.open(tar_index)
-
-        if "bt2" in str(
-            genome_indices_path
-        ):  # These are individual files so need to extract to the indicies folder
-            genome_indices_path.mkdir(parents=True, exist_ok=True)
-            tar.extractall(path=genome_indices_path, filter="data")
+        if "bt2" in str(genome_index_path):
+            genome_index_path.mkdir(parents=True, exist_ok=True)
+            tar.extractall(path=genome_index_path, filter="data")
         else:
             tar.extractall(path=genome_path, filter="data")
         tar.close()
-
         os.remove(tar_index)
 
     return indicies_path
@@ -114,7 +110,7 @@ def chromsizes(genome_path):
 
 
 @pytest.fixture(scope="function")
-def gtf(genome_path, assay, indicies):
+def gtf(genome_path, assay, index):
     if "rna" in assay:
         gtf_path = genome_path / "chr21_rna_spikein.gtf"
     else:
@@ -156,7 +152,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     path = test_data_path / "fastq"
 
     if not path.exists():
-        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
         r = requests.get(url, stream=True)
 
         tar_path = path.with_suffix(".tar.gz")
@@ -172,7 +168,6 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             files = list(path.glob("atac*.fastq.gz"))
         case "chip":
             files = list(path.glob("chip-rx_*.fastq.gz"))
-            # files.append(path / "chip-rx-single_MLL.fastq.gz")
         case "chip-rx":
             files = list(path.glob("chip-rx_*.fastq.gz"))
         case "rna":
@@ -197,57 +192,60 @@ def run_directory(tmpdir_factory, assay):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
+def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatch):
     """
-    Runs seqnado-init before each test inside the GitHub test directory.
+    Runs seqnado-init before each test inside the test directory.
     Ensures genome_config.json is correctly written.
     """
-    genome_config_path = run_directory / "genome_config.json"
-    
-    # Manually specify genome config location
-    os.environ["SEQNADO_CONFIG"] = str(genome_config_path)
+    monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
+    monkeypatch.setenv("HOME", str(run_directory))
 
+    # Run seqnado-init
     cmd = ["seqnado-init"]
-
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,  
+        text=True,
         cwd=run_directory,
     )
-
     stdout, stderr = process.communicate(input="y")
 
+    genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
+    if "rna" in assay:
+        index_dict = {
+            "star_index": str(index),
+            "bt2_index": "NA",
+        }
+    else:
+        index_dict = {
+            "star_index": "NA",
+            "bt2_index": str(index),
+        }
     genome_config_dict = {
         "hg38": {
-            "genome": "hg38",
-            "indices": str(indicies),
-            "chromsizes": str(chromsizes),
+            "star_index": index_dict["star_index"],
+            "bt2_index": index_dict["bt2_index"],
+            "chromosome_sizes": str(chromsizes),
             "gtf": str(gtf),
             "blacklist": str(blacklist),
         }
     }
-    # Ensure genome config is written
-    with open(genome_config_path, "w") as f:
-        json.dump(genome_config_dict, f)
+    with open(genome_config_file, "w") as f:
+        json.dump(genome_config_dict, f, indent=4)
 
-    # Verify written config
-    with open(genome_config_path, "r") as f:
-        data = json.load(f)
-        assert "hg38" in data, "Genome config was not correctly written"
-        print("INIT ERR", stderr)
-        print("INIT OUT", stdout)
-        print("INIT genome_config contents", json.dumps(data, indent=4))
     assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
-
+    assert genome_config_file.exists(), (
+        "genome_config.json is still missing after seqnado-init!"
+    )
 
 
 @pytest.fixture(scope="function")
 def user_inputs(test_data_path, assay, assay_type, plot_bed):
     defaults = {
         "project_name": "test",
+        "genome": "hg38",
         "fastq_screen": "no",
         "remove_blacklist": "yes",
     }
@@ -283,8 +281,6 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "make_bigwigs": "yes",
         "pileup_method": "deeptools",
         "make_heatmaps": "no",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
     }
@@ -347,15 +343,13 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
 
 
 @pytest.fixture(scope="function")
-def config_yaml(run_directory, user_inputs, assay_type):
+def config_yaml(run_directory, user_inputs, assay_type, monkeypatch):
     user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
-    genome_config_path = run_directory / "genome_config.json"
-    
-    # Ensure SEQNADO_CONFIG points to the test genome config
-    os.environ["SEQNADO_CONFIG"] = str(genome_config_path)
 
-    cmd = ["seqnado-config", assay_type, "-g", "hg38"]
+    monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
+    monkeypatch.setenv("HOME", str(run_directory))
 
+    cmd = ["seqnado-config", assay_type]
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
@@ -367,19 +361,14 @@ def config_yaml(run_directory, user_inputs, assay_type):
 
     stdout, stderr = process.communicate(input=user_inputs)
 
-    project_name = "test"
     date = datetime.now().strftime("%Y-%m-%d")
-    config_file_path = run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
+    config_file_path = (
+        run_directory / f"{date}_{assay_type}_test/config_{assay_type}.yml"
+    )
 
-    if not config_file_path.exists():
-        print("CONFIG ERR", stderr)
-        print("CONFIG OUT", stdout)
-        print("CONFIG config_file_path", genome_config_path)
-        assert False, f"{assay_type} config file not created."
+    assert process.returncode == 0, f"seqnado-config failed with stderr: {stderr}"
 
     return config_file_path
-
-
 
 
 @pytest.fixture(scope="function")
@@ -459,8 +448,8 @@ def test_design(design, assay_type):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def apptainer_args(indicies, test_data_path):
-    indicies_mount = indicies.parent if not indicies.is_dir() else indicies
+def apptainer_args(index, test_data_path):
+    indicies_mount = index.parent if not index.is_dir() else index
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
     apptainer_cache_dir = pathlib.Path.home() / ".apptainer"
@@ -486,7 +475,7 @@ def test_pipeline(
     apptainer_args,
     cores,
     design,
-    indicies,
+    index,
     test_data_path,
     test_profile_path,
 ):
