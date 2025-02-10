@@ -220,10 +220,6 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
 
     stdout, stderr = process.communicate(input="y")
 
-    # Debugging output
-    print("DEBUG: seqnado-init stdout:", stdout)
-    print("DEBUG: seqnado-init stderr:", stderr)
-
     genome_config_dict = {
         "hg38": {
             "genome": "hg38",
@@ -233,7 +229,7 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
             "blacklist": str(blacklist),
         }
     }
-
+    print("INIT genome_config_path", genome_config_path)
     # Ensure genome config is written
     with open(genome_config_path, "w") as f:
         json.dump(genome_config_dict, f)
@@ -241,7 +237,6 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
     # Verify written config
     with open(genome_config_path, "r") as f:
         data = json.load(f)
-        print("DEBUG: genome_config.json content:", json.dumps(data, indent=2))
         assert "hg38" in data, "Genome config was not correctly written"
 
     assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
@@ -354,7 +349,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
 def config_yaml(run_directory, user_inputs, assay_type):
     user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
     genome_config_path = run_directory / "genome_config.json"
-
+    print("CONFIG genome_config_path", genome_config_path)
     # Ensure SEQNADO_CONFIG points to the test genome config
     os.environ["SEQNADO_CONFIG"] = str(genome_config_path)
 
@@ -376,9 +371,6 @@ def config_yaml(run_directory, user_inputs, assay_type):
     config_file_path = run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
 
     if not config_file_path.exists():
-        print(f"ERROR: {assay_type} config file not created.")
-        print("STDOUT:", stdout)
-        print("STDERR:", stderr)
         assert False, f"{assay_type} config file not created."
 
     return config_file_path
