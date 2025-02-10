@@ -194,18 +194,15 @@ def cli_pipeline(
 
     if preset == "ss":
         slurm_profile_path = os.path.abspath(
-            os.path.join(PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity")
+            os.path.join(
+                PACKAGE_DIR, "workflow/envs/profiles/profile_slurm_singularity"
+            )
         )
         cmd.extend(["--profile", slurm_profile_path])
-
-        # Apply default resources with a dynamic queue (partition)
         default_resources = [
             f"slurm_partition={queue}" if queue else "slurm_partition=short",
         ]
-        
         cmd.extend(["--default-resources"] + default_resources)
-
-
 
     elif preset == "ls":
         cmd.extend(
