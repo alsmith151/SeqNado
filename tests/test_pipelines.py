@@ -202,15 +202,6 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
     Runs seqnado-init before each test inside the GitHub test directory.
     """
     genome_config_path = run_directory / "genome_config.json"
-
-    # Ensure SEQNADO_CONFIG is set in the environment
-    env = os.environ.copy()
-    env["SEQNADO_CONFIG"] = str(genome_config_path)
-
-    print(f"Running seqnado-init in {run_directory}")
-    print(f"Setting SEQNADO_CONFIG={env['SEQNADO_CONFIG']}")
-
-    # Run seqnado-init inside the test directory
     cmd = ["seqnado-init"]
     
     process = subprocess.Popen(
@@ -219,18 +210,11 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,  
-        cwd=run_directory,  # Run in the test directory
-        env=env  # Pass updated environment
+        cwd=run_directory,
     )
 
-    stdout, stderr = process.communicate(input="y")  # Respond "y" to any prompt
+    stdout, stderr = process.communicate(input="y")
 
-    print(f"SEQNADO-INIT STDOUT:\n{stdout}")
-    print(f"SEQNADO-INIT STDERR:\n{stderr}")
-
-    assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
-
-    # Manually create genome config in the test directory
     genome_config_dict = {
         "hg38": {
             "genome": "hg38",
@@ -240,17 +224,15 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
             "blacklist": str(blacklist),
         }
     }
-
-    # Write genome config inside the test directory
     with open(genome_config_path, "w") as f:
         json.dump(genome_config_dict, f)
 
-    # Verify that the genome config was written correctly
     with open(genome_config_path, "r") as f:
         data = json.load(f)
         print("DEBUG: genome_config.json content:", json.dumps(data, indent=2))
         assert "hg38" in data, "Genome config was not correctly written"
-
+    
+    assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
 
 
 @pytest.fixture(scope="function")
@@ -360,27 +342,16 @@ def config_yaml(run_directory, user_inputs, assay_type):
     user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
     cmd = ["seqnado-config", assay_type, "-g", "hg38"]
 
-    # Set SEQNADO_CONFIG explicitly in the environment for subprocess
-    env = os.environ.copy()
-    env["SEQNADO_CONFIG"] = str(run_directory / "genome_config.json")
-
-    print("Running:", " ".join(cmd))
-    print("Using SEQNADO_CONFIG:", env["SEQNADO_CONFIG"])
-
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=run_directory,  # Run in test directory
-        env=env  # Pass updated environment
+        cwd=run_directory,
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
-
-    print(f"SEQNADO-CONFIG STDOUT:\n{stdout}")
-    print(f"SEQNADO-CONFIG STDERR:\n{stderr}")
 
     project_name = "test"
     date = datetime.now().strftime("%Y-%m-%d")
