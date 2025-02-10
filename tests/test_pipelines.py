@@ -203,15 +203,16 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
     """
     genome_config_path = run_directory / "genome_config.json"
 
-    # Override `SEQNADO_CONFIG` so it uses the test folder instead of ~/.config
-    os.environ["SEQNADO_CONFIG"] = str(genome_config_path)
+    # Ensure SEQNADO_CONFIG is set in the environment
+    env = os.environ.copy()
+    env["SEQNADO_CONFIG"] = str(genome_config_path)
 
     print(f"Running seqnado-init in {run_directory}")
-    print(f"Setting SEQNADO_CONFIG={os.environ['SEQNADO_CONFIG']}")
+    print(f"Setting SEQNADO_CONFIG={env['SEQNADO_CONFIG']}")
 
-    # Ensure the working directory is the test directory
+    # Run seqnado-init inside the test directory
     cmd = ["seqnado-init"]
-
+    
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
@@ -219,6 +220,7 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
         stderr=subprocess.PIPE,
         text=True,  
         cwd=run_directory,  # Run in the test directory
+        env=env  # Pass updated environment
     )
 
     stdout, stderr = process.communicate(input="y")  # Respond "y" to any prompt
@@ -226,7 +228,6 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
     print(f"SEQNADO-INIT STDOUT:\n{stdout}")
     print(f"SEQNADO-INIT STDERR:\n{stderr}")
 
-    # Ensure process exits cleanly
     assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
 
     # Manually create genome config in the test directory
@@ -249,9 +250,6 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
         data = json.load(f)
         print("DEBUG: genome_config.json content:", json.dumps(data, indent=2))
         assert "hg38" in data, "Genome config was not correctly written"
-
-    # Verify that SEQNADO_CONFIG is set correctly
-    assert os.environ["SEQNADO_CONFIG"] == str(genome_config_path), "SEQNADO_CONFIG environment variable not set correctly."
 
 
 
@@ -361,10 +359,13 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
 def config_yaml(run_directory, user_inputs, assay_type):
     user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
     cmd = ["seqnado-config", assay_type, "-g", "hg38"]
-    os.environ["SEQNADO_CONFIG"] = str(run_directory / "genome_config.json")
+
+    # Set SEQNADO_CONFIG explicitly in the environment for subprocess
+    env = os.environ.copy()
+    env["SEQNADO_CONFIG"] = str(run_directory / "genome_config.json")
 
     print("Running:", " ".join(cmd))
-    print("Using SEQNADO_CONFIG:", os.environ["SEQNADO_CONFIG"])
+    print("Using SEQNADO_CONFIG:", env["SEQNADO_CONFIG"])
 
     process = subprocess.Popen(
         cmd,
@@ -372,7 +373,8 @@ def config_yaml(run_directory, user_inputs, assay_type):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=run_directory,
+        cwd=run_directory,  # Run in test directory
+        env=env  # Pass updated environment
     )
 
     stdout, stderr = process.communicate(input=user_inputs)
@@ -385,7 +387,7 @@ def config_yaml(run_directory, user_inputs, assay_type):
     config_file_path = run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
 
     assert config_file_path.exists(), f"{assay_type} config file not created."
-    return config_file_path
+    return
 
 
 
