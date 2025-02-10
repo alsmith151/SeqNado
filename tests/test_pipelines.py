@@ -353,6 +353,11 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
 @pytest.fixture(scope="function")
 def config_yaml(run_directory, user_inputs, assay_type):
     user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
+    genome_config_path = run_directory / "genome_config.json"
+
+    # Ensure SEQNADO_CONFIG points to the test genome config
+    os.environ["SEQNADO_CONFIG"] = str(genome_config_path)
+
     cmd = ["seqnado-config", assay_type, "-g", "hg38"]
 
     process = subprocess.Popen(
