@@ -237,6 +237,9 @@ def run_init(indicies, chromsizes, gtf, blacklist, run_directory):
     with open(genome_config_path, "r") as f:
         data = json.load(f)
         assert "hg38" in data, "Genome config was not correctly written"
+        print("INIT ERR", stderr)
+        print("INIT OUT", stdout)
+        print("INIT genome_config contents", json.dumps(data, indent=4))
     assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
 
 
@@ -369,9 +372,9 @@ def config_yaml(run_directory, user_inputs, assay_type):
     config_file_path = run_directory / f"{date}_{assay_type}_{project_name}/config_{assay_type}.yml"
 
     if not config_file_path.exists():
-        print("CONFIG", stderr)
-        print("CONFIG", stdout)
-        print("CONFIG config_file_path", config_file_path)
+        print("CONFIG ERR", stderr)
+        print("CONFIG OUT", stdout)
+        print("CONFIG config_file_path", genome_config_path)
         assert False, f"{assay_type} config file not created."
 
     return config_file_path
