@@ -20,7 +20,6 @@
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz",
         "genes": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38_genes.bed"
-
     },
     "hg38_dm6": {
         "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/UCSC/bt2_index/hg38_dm6",
@@ -28,6 +27,13 @@
         "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/UCSC/sequence/hg38_dm6.chrom.sizes",
         "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/UCSC/genes/hg38_dm6.ncbiRefSeq.gtf",
         "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38_dm6/hg38_dm6-blacklist.v2.bed.gz"
+    },
+    "hg38_ecoli": {
+        "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38_ecoli/bt2_index/hg38_ecoli",
+        "star_indices": "NA",
+        "chromosome_sizes": "/ceph/project/milne_group/shared/seqnado_reference/hg38_ecoli/sequence/hg38_ecoli.fa.fai",
+        "gtf": "/ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf",
+        "blacklist": "/ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz"
     },
     "hg38_mm39": {
         "bt2_indices": "/ceph/project/milne_group/shared/seqnado_reference/hg38_mm39/bt2_index/hg38_mm39",
