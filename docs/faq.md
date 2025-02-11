@@ -6,7 +6,7 @@
 
 This error occurs when the pipeline is run without a config file present in the working directory. Ensure that seqnado-config has been run before starting the pipeline and that you are in the new directory created by seqnado-config.
 
-Follow the [Pipeline Setup](pipeline.md#create-a-design-file) instructions to create a config file.
+Follow the [Pipeline Setup](pipeline.md#configuration) instructions to create a config file.
 
 
 ## Singularity configuration
@@ -19,9 +19,14 @@ remote has no library client (see https://apptainer.org/docs/user/latest/endpoin
 
 Fix:
 
+re-run seqnado-init: [Here](installation.md#seqnado-init)
+
+or
+
+```bash
 apptainer remote add --no-login SylabsCloud cloud.sylabs.io  
 apptainer remote use SylabsCloud  
-
+```
 
 ## Optional configuration
 
