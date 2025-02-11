@@ -10,7 +10,7 @@ Pipeline based on snakemake to process ChIP-seq (with optional spike-in based no
 The [installation](installation.md) page has detailed instructions for installing SeqNado. For a very quick start, run the following command:
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/alsmith151/SeqNado/master/install_seqnado.sh)
+mamba install -c bioconda seqnado
 ```
 
 ### Set up the pipeline
@@ -23,31 +23,32 @@ Generate the config file and a working directory for the pipeline:
 seqnado-config [atac|chip|rna|snp]
 ```
 
-#### Design (optional)
-
-The design will be generated automatically if not provided and the samples follow the correct naming convention.
-
-```bash
-seqnado-design [atac|chip|rna|snp]
-```
-
 #### Ensure files are in the correct location
 
 Ensure that the fastq files, and design are in the correct location:
 
 ```bash
 # Fastq files
-ln -s /path/to/fastq_files/ /path/to/working-directory/made-by-seqnado-config/
+ln -s /path/to/fastq_files/* /path/to/working-directory/made-by-seqnado-config/fastq/
+```
 
-# Design
-mv /path/to/design.csv /path/to/working-directory/made-by-seqnado-config/
+#### Design (optional)
+
+The design will be generated automatically if not provided and the samples follow the correct naming convention.
+
+```bash
+cd /path/to/working-directory/made-by-seqnado-config/
+seqnado-design [atac|chip|rna|snp]
 ```
 
 ### Run the pipeline
 
 ```bash
 cd /path/to/working-directory/made-by-seqnado-config/
-seqnado [atac|chip|rna|snp] -c <number of cores> --preset [ss|ls] # ss = use cluster, ls = use local (not recommended)
+seqnado [atac|chip|rna|snp] -c <number of cores> --preset [ss|ls] 
+# ss = use cluster, ls = use local (not recommended)
+# additional options
+--queue/-q [short|long] --scale-resource/-s <factor to multiply resources> 
 
 # An actual example would be:
 seqnado rna -c 8 --preset ss

@@ -12,8 +12,7 @@ The following command will generate the working directory and configuration file
 seqnado-config chip
 
 # options 
--r, --rerun # Re-run the config
--g, --genome [dm6|hg19|hg38|hg38_dm6|hg38_mm39|hg38_spikein|mm10|mm39|other] # Genome to use if genome preset is configured
+-r, --rerun # Re-runs the config in existing seqnado directory
 
 ```
 
@@ -21,58 +20,73 @@ You should get something like this:
 
 ```bash
 $ seqnado-config chip
-  What is your project name? [cchahrou_project]: TEST
-  What is your genome name? [other]: hg38
-  Path to Bowtie2 genome index: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/bt2_index/hg38
-  Path to chromosome sizes file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/sequence/hg38.chrom.sizes
-  Path to GTF file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/UCSC/genes/hg38.ncbiRefSeq.gtf
-  Path to blacklist bed file: [None]: /ceph/project/milne_group/shared/seqnado_reference/hg38/hg38-blacklist.v2.bed.gz
+  What is your project name? [cchahrou_project]: cchahrou_project
+  What is the genome? [hg38]: hg38
+  Perform fastqscreen? (yes/no) [no]: yes
+  Path to fastqscreen config: [/PATH/TO/fastq_screen.conf]: /PATH/TO/fastq_screen.conf
   Do you want to remove blacklist regions? (yes/no) [yes]: yes
   Remove PCR duplicates? (yes/no) [yes]: yes
-  Remove PCR duplicates method: [picard]: picard
+  Remove PCR duplicates method: [picard/samtools]: picard
+  Calculate library complexity? (yes/no) [no]: yes
   Do you have spikein? (yes/no) [no]: yes
   Normalisation method: [orlando/with_input]: orlando
   Reference genome: [hg38]: hg38
   Spikein genome: [dm6]: dm6
-  Path to fastqscreen config: [/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf]: /ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf
   Do you want to make bigwigs? (yes/no) [no]: yes
   Pileup method: [deeptools/homer]: deeptools
   Do you want to make heatmaps? (yes/no) [no]: yes
   Do you want to call peaks? (yes/no) [no]: yes
-  Peak caller: [lanceotron/macs/homer]: lanceotron
+  Peak caller: [lanceotron/macs/homer/seacr]: lanceotron
   Do you want to make a UCSC hub? (yes/no) [no]: yes
-  UCSC hub directory: [/path/to/ucsc_hub/]: /project/milne_group/datashare/etc
-  What is your email address? [cchahrou@example.com]: email for UCSC
+  UCSC hub directory: [seqnado_output/hub/]: seqnado_output/hub/
+  What is your email address? [email@example.com]: email for UCSC
   Color by (for UCSC hub): [samplename]: samplename
-  Directory '2024-01-26_chip_TEST' has been created with the 'config_chip.yml' file.
+  Generate GEO submission files (MD5Sums, read count summaries...)? (yes/no) [no]: yes
+  Perform plotting? (yes/no) [no]: yes
+  Path to bed file with coordinates for plotting [None]: 
+  Path to bed file with genes. [None]: 
+  Directory '2025-02-11_chip_cchahrou_project/' has been created with the 'config_chip.yml' file.
 ```
 
 This will generate the following files:
 
 ```bash
-$ tree 2024-01-13_chip_test/
+$ tree 2025-02-11_chip_cchahrou_project/
 
-2024-01-13_chip_test/
+2025-02-11_chip_cchahrou_project/
 ├── config_chip.yml
-└── readme_test.md
+└── fastq/
 
-0 directories, 2 files
+1 directory, 1 file
 ```
+
+### Check the tool options
+
+In the newly created config yaml file, check the tool options **especially for rna quantification**!
 
 ### Edit the configuration file (if required)
 
 The configuration file can be edited manually if required e.g. using `nano` or the VS Code text editor. Use this if you have made an error in the configuration file or if you want to change it for any other reason.
 
 !!! Warning
-    If you edit the configuration file manually, you must ensure that it is valid YAML syntax (ensure that you do not delete any colons, commas, or change the indentation). You can check that the file is valid using the following command:
+    If you edit the configuration file manually, you must ensure that it is valid YAML syntax (ensure that you do not delete any colons, commas, or change the indentation). 
 
   ```bash
   nano config_chip.yml # Note to exit nano press ctrl+x and then "y" followed by "enter" to save
   ```
 
-### Create a design file (optional)
+## Organise your fastq files
 
-#### Infer sample names from fastq file names
+use symlinks from your raw_data:
+
+```bash
+cd 2025-02-11_chip_cchahrou_project/fastq
+
+ln -s /path/to/raw_data/SampleName_S1_L001_R1_001.fastq.gz samplename1_Antibody_R1.fastq.gz
+ln -s /path/to/raw_data/SampleName_S1_L001_R2_001.fastq.gz samplename1_Antibody_R2.fastq.gz
+```
+
+### Infer sample names from fastq file names
 
 If the fastq files are named in a way that seqnado can infer the sample names, then a design file will be generated automatically:
 
@@ -98,14 +112,15 @@ If the fastq files are named in a way that seqnado can infer the sample names, t
   * sample-name-1_2.fastq.gz
 
 
-#### Use `seqnado-design` to generate a design file
+## Design file
 
 If the fastq files are not named in a way that seqnado can infer the sample names, then a design file can be generated using the `seqnado-design` command. You'll need to enter the working directory and generate a design file:
 
 
 ```bash
-cd 2024-01-13_test/
-seqnado-design chip /path/to/fastq/files/* # Note that you can use tab completion to complete the path to the fastq files
+cd ..
+seqnado-design chip fastq/* 
+# Note that you can use tab completion to complete the path to the fastq files
 ```
 
 This will generate a design file called `design.csv` in the working directory.
@@ -117,14 +132,25 @@ This will generate a design file called `design.csv` in the working directory.
     seqnado-design chip *.fastq.gz
     ```
 
+### Merging replicates or samples
 
-#### ATAC|RNA-seq design file
+To merge samples for counting or bigwig/peak generation add a merge column to the design file
+
+```bash
+sample_name,r1,r2,scale_group,merge
+atac,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_1.fastq.gz,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_2.fastq.gz,all,merge_group
+atac2,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_1.fastq.gz,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_2.fastq.gz,all,merge_group
+```
+
+This will merge both to make a `merge_group` bigwig and peak file
+
+### ATAC|RNA-seq design file
 
 An ATAC-seq or RNA-seq design file should look something like this:
 
 ```bash
 sample,r1,r2
-rna,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_1.fastq.gz
+rna,/path/to/fastq/rna_2.fastq.gz,/path/to/fastq/rna_1.fastq.gz
 ```
 
 !!! Note
@@ -134,13 +160,13 @@ rna,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_2.fastq.gz,/tmp
       * `r2` - The path to the read 2 fastq file
 
 
-#### ChIP-seq design file
+### ChIP-seq design file
 
 A ChIP assay design file should look something like this:
 
 ```bash
-sample,ip_r1,ip_r2,control_r1,control_r2,ip,control
-CTCF,CTCF_CTCF_2.fastq.gz,CTCF_CTCF_1.fastq.gz,CTCF_input_2.fastq.gz,CTCF_input_1.fastq.gz,CTCF,input
+sample_name,ip,control,ip_r1,ip_r2,control_r1,control_r2,scale_group
+chip-rx,MLL,input,fastq/chip-rx_MLL_1.fastq.gz,fastq/chip-rx_MLL_2.fastq.gz,fastq/chip-rx_input_1.fastq.gz,fastq/chip-rx_input_2.fastq.gz,all
 ```
 
 !!! Note
@@ -154,27 +180,26 @@ CTCF,CTCF_CTCF_2.fastq.gz,CTCF_CTCF_1.fastq.gz,CTCF_input_2.fastq.gz,CTCF_input_
       * `control` - The name of the control sample
 
 
-#### RNA-seq design file
+### RNA-seq design file
 
 An RNA-seq design file should look something like this:
 
 ```bash
 sample,r1,r2
-rna,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna_1.fastq.gz
+rna,/path/to/fastq/rna_2.fastq.gz,/path/to/fastq/rna_1.fastq.gz
 ```
 
 If you want to run DeSeq2, then you will need to add an additional column to the design file to indicate which samples are in the control group:
 
 ```bash
 sample,r1,r2,deseq2
-rna1,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna1_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna1_1.fastq.gz,control
-rna2,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna2_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna2_1.fastq.gz,control
-rna3,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna3_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna3_1.fastq.gz,control
-rna4,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna4_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna4_1.fastq.gz,treated
-rna5,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna5_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna5_1.fastq.gz,treated
-rna6,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna6_2.fastq.gz,/tmp/pytest-of-asmith/pytest-7/data2/2024-01-13_rna_test/rna6_1.fastq.gz,treated
-```
-
+rna1,/path/to/fastq/rna1_2.fastq.gz,/path/to/fastq/rna1_1.fastq.gz,control
+rna2,/path/to/fastq/rna2_2.fastq.gz,/path/to/fastq/rna2_1.fastq.gz,control
+rna3,/path/to/fastq/rna3_2.fastq.gz,/path/to/fastq/rna3_1.fastq.gz,control
+rna4,/path/to/fastq/rna4_2.fastq.gz,/path/to/fastq/rna4_1.fastq.gz,treated
+rna5,/path/to/fastq/rna5_2.fastq.gz,/path/to/fastq/rna5_1.fastq.gz,treated
+rna6,/path/to/fastq/rna6_2.fastq.gz,/path/to/fastq/rna6_1.fastq.gz,treated
+``` 
 
 ## Running the pipeline
 
@@ -205,17 +230,19 @@ $ ls -l
 ### Ensure that the pipeline will not stop when you log out
 
 ```bash
-tmux new -s NAME_OF_SESSION
+
+screen -S NAME_OF_SESSION
+
+# to exit screen session
+  ctrl+a d 
 
 # or 
 
-screen -S NAME_OF_SESSION
+tmux new -s NAME_OF_SESSION
 
 # to detach from tmux session
   ctrl+b d
 
-# to exit screen session
-  ctrl+a d 
 ```
 
 ### Check you have activated the conda environment
@@ -229,13 +256,15 @@ conda activate seqnado
 The pipeline can be run using the following command:
 
 ```bash
-seqnado [atac|chip|rna|snp] -c <number of cores> --preset [ss|ls]
+seqnado [atac|chip|rna|snp] -c <number of cores> --preset [ss|ls] 
+# additional options
+--queue/-q [short|long] --scale-resource/-s <factor to multiply resources> 
 ```
 
 An actual example would be:
 
 ```bash
-seqnado rna -c 8 --preset ss
+seqnado rna -c 8 --preset ss -q short 
 ```
 
 !!! Note

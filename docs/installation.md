@@ -27,26 +27,30 @@ If mamba is not installed, install it using the following command:
 
 ```bash
 curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+
 bash Miniforge3-$(uname)-$(uname -m).sh
-```
-
-### Install from bioconda (recommended)
-
-```bash
-mamba install seqnado
 ```
 
 ## Quick installation
 
-Use the following command to install SeqNado and all dependencies:
-
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/alsmith151/SeqNado/master/install_seqnado.sh)
+mamba create seqnado -c bioconda seqnado
+mamba activate seqnado
 ```
 
-## Detailed installation for advanced users or troubleshooting
+## SeqNado init
 
-### Create a conda environment
+quickly initialise seqnado 
+
+```bash
+seqnado-init
+# options 
+--preset # will copy the genome paths used internally in the Milne group
+```
+
+# Detailed installation for advanced users or troubleshooting
+
+## Create a conda environment
 
 Create a basic conda environment (with pip to install python packages) and activate it.
 
@@ -55,15 +59,15 @@ mamba create -n seqnado pip "python>=3.12"
 conda activate seqnado
 ```
 
-### Install the pipeline
+## Install the pipeline
 
-#### Install the package from pip 
+### Install the package from pip 
 
 ```bash
 pip install seqnado
 ```
 
-#### Ensure that Environment variables are set
+### Ensure that Environment variables are set
 
 Ensure that the environment variables are set correctly. This can be done by adding the following to your `.bashrc` or `.bash_profile`. Run this command to add the environment variables to your `.bashrc`:
 
@@ -80,7 +84,7 @@ source ~/.bashrc
 Alternatively, start a new terminal session.
 
 
-#### Install from GitHub directly
+### Install from GitHub directly
 
 To install the latest version of the pipeline from GitHub (master branch), use the following command:
 
@@ -94,7 +98,7 @@ You can also install a specific branch e.g. `develop`:
 pip install git+https://github.com/alsmith151/SeqNado.git@develop
 ```
 
-#### Install from a local copy of the repository
+### Install from a local copy of the repository
 
 Clone the repositry and install directly.
 
@@ -104,7 +108,7 @@ cd SeqNado
 pip install .
 ```
 
-### Install the dependencies (if required)
+## Install the dependencies (if required)
 
 Assuming the conda environment is activated, install the dependencies using the following command:
 
@@ -112,3 +116,4 @@ Assuming the conda environment is activated, install the dependencies using the 
 wget https://raw.githubusercontent.com/alsmith151/SeqNado/master/environment.yml
 mamba env update -f environment.yml
 ```
+

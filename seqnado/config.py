@@ -99,7 +99,7 @@ def setup_configuration(assay, template_data, seqnado_version):
     )
     if template_data["remove_pcr_duplicates"]:
         template_data["remove_pcr_duplicates_method"] = get_user_input(
-            "Remove PCR duplicates method:", default="picard", choices=["picard"]
+            "Remove PCR duplicates method:", default="picard", choices=["picard", "samtools"]
         )
         # Library Complexity
         template_data["library_complexity"] = get_user_input(
