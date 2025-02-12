@@ -55,7 +55,7 @@ def cli_init(preset):
         if preset:
             preset_genome_path = f"{PACKAGE_DIR}/workflow/config/preset_genomes.json"
             logger.info(
-                f"Template genome file created. Using shared preset genome config from {preset_genome_path}"
+                "Template genome file created. Using shared preset genome config."
             )
             template = json.load(open(preset_genome_path, "r"))
         else:
