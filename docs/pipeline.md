@@ -126,8 +126,7 @@ seqnado-design chip fastq/*
 This will generate a design file called `design.csv` in the working directory.
 
 !!! Warning
-  You need to specify the fastq files in the command line to use for the design generation e.g. in the current working directory:
-  
+    You need to specify the fastq files in the command line to use for the design generation e.g. in the current working directory:  
     ```bash 
     seqnado-design chip *.fastq.gz
     ```
