@@ -34,7 +34,7 @@ bash Miniforge3-$(uname)-$(uname -m).sh
 ## Quick installation
 
 ```bash
-mamba create seqnado -c bioconda seqnado
+mamba create -n seqnado -c bioconda seqnado -y
 mamba activate seqnado
 ```
 
