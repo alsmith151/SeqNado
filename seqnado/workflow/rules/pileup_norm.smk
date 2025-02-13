@@ -188,6 +188,9 @@ rule deeptools_make_bigwigs_scale:
         ),
         options=lambda wc: format_deeptools_bamcoverage_options(wc)
     threads: config["deeptools"]["threads"]
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),    
     log:
         "seqnado_output/logs/pileups/deeptools/scaled/{sample}.log",
     shell:
