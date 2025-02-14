@@ -8,6 +8,7 @@ rule sort_bam:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     threads: config["samtools"]["threads"]
     log:
         "seqnado_output/logs/sorted/{sample}.log",
@@ -26,6 +27,7 @@ rule index_bam:
     threads: 1
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         "samtools index -@ {threads} -b {input.bam}"
 
@@ -71,6 +73,7 @@ else:
         threads: 1
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+            runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         log:
             "seqnado_output/logs/blacklist/{sample}.log",
         shell:
@@ -140,7 +143,8 @@ if config["shift_atac_reads"]:
                 "seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.tmp"
             ),
         resources:
-            mem="2.5GB",
+            mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
+            runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         threads: 1
         log:
             "seqnado_output/logs/atac_shift/{sample}.log",
@@ -184,7 +188,8 @@ rule filter_bam:
         bai="seqnado_output/aligned/filtered/{sample}.bam.bai",
     threads: config["samtools"]["threads"]
     resources:
-        mem="500MB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/filter/{sample}.log",
     params:
@@ -203,6 +208,9 @@ rule move_bam_to_final_location:
     output:
         bam="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam",
         bai="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam.bai",
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/move_bam/{sample}.log",
     shell:
@@ -231,6 +239,9 @@ rule merge_bams:
     output:
         temp("seqnado_output/aligned/merged/{group}.bam"),
     threads: config["samtools"]["threads"]
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/merge_bam/{group}.log",
     shell:

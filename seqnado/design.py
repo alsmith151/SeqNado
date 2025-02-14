@@ -1531,7 +1531,7 @@ class NonRNAOutput(Output):
             return []
         groups = self.design_dataframe["merge"].unique().tolist()
         return [
-            f"seqnado_output/readcounts/feature_counts_{group}/read_counts.tsv"
+            f"seqnado_output/readcounts/feature_counts/merged_{group}/read_counts.tsv"
             for group in groups
         ]
 
@@ -1565,7 +1565,7 @@ class NonRNAOutput(Output):
         )
 
         files.extend(self.geo_files.files)
-
+        files.extend(self.counts_consensus)
 
         for file_list in (
             self.bigwigs,
@@ -1574,7 +1574,7 @@ class NonRNAOutput(Output):
             self.peaks,
             self.design,
             self.plots,
-            self.counts_consensus,
+            
             
         ):
             if file_list:
