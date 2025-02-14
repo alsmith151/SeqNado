@@ -1,37 +1,42 @@
 from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
-rule create_consensus_saf:
-    input:
-        peaks="seqnado_output/peaks/merged/lanceotron/{group}.bed",
-    output:
-        consensus_saf="seqnado_output/readcounts/{group}.saf",
-    threads: 1
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/readcounts/{group}_saf.log",
-    shell:"""
-        awk 'BEGIN{OFS="\t"}{print $1":"$2"-"$3,$1,$2,$3,"+"}' {input.peaks} > {output.consensus_saf} > {log} 2>&1
-        """
+
+def get_bam_files_for_counts(wildcards):
+    print(f"Resolving BAM files for group: {wildcards.group}")  # Debug print
+    from seqnado.design import NormGroups
+    norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
+    sample_names = norm_groups.get_grouped_samples(wildcards.group)
+    bam_files = [f"seqnado_output/aligned/{sample}.bam" for sample in sample_names]
+    print(f"BAM files resolved: {bam_files}")
+    return bam_files
+
+
+def get_bai_files_for_counts(wildcards):
+    from seqnado.design import NormGroups
+    norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
+
+    sample_names = norm_groups.get_grouped_samples(wildcards.group)
+    bai_files = [
+        f"seqnado_output/aligned/{sample}.bam.bai" for sample in sample_names
+    ]
+    return bai_files
 
 
 rule feature_counts_consensus:
     input:
         peaks="seqnado_output/peaks/merged/lanceotron/{group}.bed",
-        bam=expand("seqnado_output/aligned/{sample}.bam", sample=SAMPLE_NAMES),
-        bai=expand("seqnado_output/aligned/{sample}.bam.bai", sample=SAMPLE_NAMES),
+        bam=get_bam_files_for_counts,
+        bai=get_bai_files_for_counts,
     output:
         saf=temp("seqnado_output/readcounts/{group}.saf"),
         counts="seqnado_output/readcounts/feature_counts/{group}_counts.tsv",
     params:
-        options="--primary --ignoreDup --maxMOp 20"
-    threads: config["featurecounts"]["threads"]
+        options=config["featurecounts"]["options"],
+    threads: config["featurecounts"]["threads"],
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
+    log:"seqnado_output/logs/readcounts/featurecounts/featurecounts_{group}.log",
     shell:
         """
         awk 'BEGIN{{OFS="\t"}}{{print $1":"$2"-"$3,$1,$2,$3,"+"}}' {input.peaks} > {output.saf} &&

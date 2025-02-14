@@ -2,16 +2,16 @@ import os
 import pathlib
 import re
 import sys
+from enum import Enum
 from typing import Any, Dict, List, Literal, LiteralString, Optional, Union
 
 import numpy as np
 import pandas as pd
+import pandera
 from loguru import logger
+from pandera.typing import DataFrame, Index, Series
 from pydantic import BaseModel, Field, computed_field, field_validator, validator
 from snakemake.io import expand
-import pandera
-from pandera.typing import Index, DataFrame, Series
-from enum import Enum
 
 
 def predict_organism(genome: str) -> str:
@@ -1525,12 +1525,15 @@ class NonRNAOutput(Output):
 
     @property
     def counts(self):
-        names = self.design_dataframe["merge"].unique().tolist()
-        files = f"seqnado_output/readcounts/feature_counts/{names}_counts.tsv",
-        if self.consensus_counts:
-            return files
-        else:
+        if not self.consensus_counts:
             return []
+        if "merge" not in self.design_dataframe.columns:
+            return []
+        groups = self.design_dataframe["merge"].unique().tolist()
+        return [
+            f"seqnado_output/readcounts/feature_counts/{group}_counts.tsv"
+            for group in groups
+        ]
 
     @property
     def peaks(self) -> List[str]:
@@ -1543,7 +1546,6 @@ class NonRNAOutput(Output):
 
         if self.merge_peaks:
             pcf_merged = self.merged_peaks
-
             files = pcf_samples.files + pcf_merged.files
         else:
             files = pcf_samples.files
@@ -1563,6 +1565,8 @@ class NonRNAOutput(Output):
         )
 
         files.extend(self.geo_files.files)
+        files.extend(self.counts)
+
 
         for file_list in (
             self.bigwigs,
@@ -1571,10 +1575,10 @@ class NonRNAOutput(Output):
             self.peaks,
             self.design,
             self.plots,
+            
         ):
             if file_list:
                 files.extend(file_list)
-
         return files
 
 

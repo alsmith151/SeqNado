@@ -322,6 +322,11 @@ seacr:
 heatmap:
     options: -b 1000 -m 5000 -a 1000
     colormap: RdYlBu_r 
+
+featurecounts:
+    threads: 16
+    options: --primary --ignoreDup
+    
 """
 
 TOOL_OPTIONS_RNA = """
