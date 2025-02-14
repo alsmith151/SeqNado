@@ -260,6 +260,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
+        "consensus_counts": "no",
     }
 
     defaults_chip = {
@@ -270,6 +271,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
+        "consensus_counts": "yes",
     }
 
     defaults_chip_rx = {
@@ -283,6 +285,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "make_heatmaps": "no",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
+        "consensus_counts": "no",
     }
 
     defaults_rna = {
