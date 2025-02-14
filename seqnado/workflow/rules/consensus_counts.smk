@@ -2,12 +2,13 @@ from seqnado.helpers import check_options, define_time_requested, define_memory_
 
 
 def get_bam_files_for_counts(wildcards):
-    print(f"Resolving BAM files for group: {wildcards.group}")  # Debug print
     from seqnado.design import NormGroups
     norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
     sample_names = norm_groups.get_grouped_samples(wildcards.group)
-    bam_files = [f"seqnado_output/aligned/{sample}.bam" for sample in sample_names]
-    print(f"BAM files resolved: {bam_files}")
+    print(f"Sample names: {sample_names}")
+    bam_files = [
+        f"seqnado_output/aligned/{sample}.bam" for sample in sample_names
+    ]
     return bam_files
 
 
@@ -29,7 +30,7 @@ rule feature_counts_consensus:
         bai=get_bai_files_for_counts,
     output:
         saf=temp("seqnado_output/readcounts/{group}.saf"),
-        counts="seqnado_output/readcounts/feature_counts/{group}_counts.tsv",
+        counts="seqnado_output/readcounts/feature_counts_{group}/read_counts.tsv",
     params:
         options=config["featurecounts"]["options"],
     threads: config["featurecounts"]["threads"],

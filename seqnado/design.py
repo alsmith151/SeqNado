@@ -1524,14 +1524,14 @@ class NonRNAOutput(Output):
         )
 
     @property
-    def counts(self):
+    def counts_consensus(self):
         if not self.consensus_counts:
             return []
         if "merge" not in self.design_dataframe.columns:
             return []
         groups = self.design_dataframe["merge"].unique().tolist()
         return [
-            f"seqnado_output/readcounts/feature_counts/{group}_counts.tsv"
+            f"seqnado_output/readcounts/feature_counts_{group}/read_counts.tsv"
             for group in groups
         ]
 
@@ -1565,7 +1565,6 @@ class NonRNAOutput(Output):
         )
 
         files.extend(self.geo_files.files)
-        files.extend(self.counts)
 
 
         for file_list in (
@@ -1575,6 +1574,7 @@ class NonRNAOutput(Output):
             self.peaks,
             self.design,
             self.plots,
+            self.counts_consensus,
             
         ):
             if file_list:
