@@ -99,7 +99,9 @@ def setup_configuration(assay, template_data, seqnado_version):
     )
     if template_data["remove_pcr_duplicates"]:
         template_data["remove_pcr_duplicates_method"] = get_user_input(
-            "Remove PCR duplicates method:", default="picard", choices=["picard", "samtools"]
+            "Remove PCR duplicates method:",
+            default="picard",
+            choices=["picard", "samtools"],
         )
         # Library Complexity
         template_data["library_complexity"] = get_user_input(
@@ -166,6 +168,12 @@ def setup_configuration(assay, template_data, seqnado_version):
                 default="lanceotron",
                 choices=["lanceotron", "macs", "homer", "seacr"],
             )
+    if assay in ["chip", "atac"]:
+        template_data["consenus_counts"] = get_user_input(
+            "Generate consensus counts from Design merge column? (yes/no)",
+            default="no",
+            is_boolean=True,
+        )
     # RNA options
     template_data["rna_quantification"] = (
         get_user_input(
@@ -314,6 +322,11 @@ seacr:
 heatmap:
     options: -b 1000 -m 5000 -a 1000
     colormap: RdYlBu_r 
+
+featurecounts:
+    threads: 16
+    options:  -p --countReadPairs
+    
 """
 
 TOOL_OPTIONS_RNA = """

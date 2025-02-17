@@ -2,16 +2,16 @@ import os
 import pathlib
 import re
 import sys
+from enum import Enum
 from typing import Any, Dict, List, Literal, LiteralString, Optional, Union
 
 import numpy as np
 import pandas as pd
+import pandera
 from loguru import logger
+from pandera.typing import DataFrame, Index, Series
 from pydantic import BaseModel, Field, computed_field, field_validator, validator
 from snakemake.io import expand
-import pandera
-from pandera.typing import Index, DataFrame, Series
-from enum import Enum
 
 
 def predict_organism(genome: str) -> str:
@@ -638,7 +638,7 @@ class DesignIP(BaseModel):
         experiments = []
         for base, group in df.groupby("sample_base"):
             name_without_ip = group["sample_base_without_ip"].iloc[0]
-            
+
             match group.shape[0]:
                 case 1:
                     # Single end experiment no control
@@ -666,7 +666,6 @@ class DesignIP(BaseModel):
                     # | r1      | r2           |
                     # | r2      | r1           |
                     # | r2      | r2           |
-
 
                     ip = FastqSetIP(
                         name=name_without_ip,
@@ -926,7 +925,9 @@ class NormGroups(BaseModel):
         return self.sample_groups[group]
 
 
-def generate_fastq_raw_names(sample_name: str, is_paired: bool = True) -> Dict[str, List[str]]:
+def generate_fastq_raw_names(
+    sample_name: str, is_paired: bool = True
+) -> Dict[str, List[str]]:
     """
     Get the fastq files for a sample.
     """
@@ -963,7 +964,6 @@ class GEOFiles(BaseModel):
 
     @property
     def processed_data_files(self) -> pd.DataFrame:
-        
         wanted_exts = self.extensions_allowed
         unwanted_files = [*self.md5sums]
 
@@ -998,7 +998,7 @@ class GEOFiles(BaseModel):
             ).str.replace("spikein", "reference-normalised")
         )
         df = df.sort_values(by=["name", "ext", "method", "normalisation"])
-        
+
         # Add the output file name and file type columns
         df = df.assign(
             output_file_name=lambda x: (
@@ -1008,10 +1008,10 @@ class GEOFiles(BaseModel):
                 [
                     df["ext"] == ".bigWig",
                     df["ext"] == ".bed",
-                    df['ext'] == ".tsv",
-                    df['ext'] == ".vcf.gz",
+                    df["ext"] == ".tsv",
+                    df["ext"] == ".vcf.gz",
                 ],
-                ["signal", "peaks", "counts", 'variants'],
+                ["signal", "peaks", "counts", "variants"],
                 default="other",
             ),
         )
@@ -1033,7 +1033,11 @@ class GEOFiles(BaseModel):
         fastq = dict()
 
         for row in self.design.itertuples():
-            sample_name = row.sample_name if self.assay not in ["ChIP", "CUT&TAG"] else f"{row.sample_name}_{row.ip}"
+            sample_name = (
+                row.sample_name
+                if self.assay not in ["ChIP", "CUT&TAG"]
+                else f"{row.sample_name}_{row.ip}"
+            )
 
             is_paired = False
             if hasattr(row, "r2") and row.r2:
@@ -1044,7 +1048,6 @@ class GEOFiles(BaseModel):
             fqs = generate_fastq_raw_names(sample_name, is_paired)
             fastq.update(fqs)
 
-    
         return fastq
 
     @property
@@ -1497,6 +1500,7 @@ class RNAOutput(Output):
 
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
+    consensus_counts: bool = False
     call_peaks: bool = False
     peak_calling_method: Optional[
         Union[
@@ -1530,12 +1534,24 @@ class NonRNAOutput(Output):
 
         if self.merge_peaks:
             pcf_merged = self.merged_peaks
-
             files = pcf_samples.files + pcf_merged.files
         else:
             files = pcf_samples.files
 
         return files or []
+    
+    @property
+    def merged_counts(self):
+        # Get the merged counts file if peaks are merged and consensus counts are requested
+        if self.merge_peaks and self.consensus_counts:
+            groups = self.merged_peaks.names 
+            count_files = [
+                f"seqnado_output/readcounts/featurecounts/{group}_counts.tsv"
+                for group in groups
+            ]
+            return count_files
+        else:
+            return []
 
     @computed_field
     @property
@@ -1558,10 +1574,10 @@ class NonRNAOutput(Output):
             self.peaks,
             self.design,
             self.plots,
+            self.merged_counts,
         ):
             if file_list:
                 files.extend(file_list)
-
         return files
 
 
@@ -1637,6 +1653,7 @@ class ChIPOutput(NonRNAOutput):
             self.spikeins,
             self.design,
             self.plots,
+            self.merged_counts,
         ):
             if file_list:
                 files.extend(file_list)
