@@ -325,7 +325,7 @@ heatmap:
 
 featurecounts:
     threads: 16
-    options: --primary --ignoreDup
+    options:  -p --countReadPairs
     
 """
 

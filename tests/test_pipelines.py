@@ -260,7 +260,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
-        "consensus_counts": "no",
+        "consensus_counts": "yes",
     }
 
     defaults_chip = {
@@ -271,7 +271,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "make_heatmaps": "yes",
         "call_peaks": "yes",
         "peak_calling_method": "lanceotron",
-        "consensus_counts": "yes",
+        "consensus_counts": "no",
     }
 
     defaults_chip_rx = {
@@ -409,7 +409,7 @@ def design(seqnado_run_dir, assay_type, assay):
     completed = subprocess.run(" ".join(cmd), shell=True, cwd=seqnado_run_dir)
     assert completed.returncode == 0
 
-    if assay == "chip":
+    if assay == "chip" or assay == "atac":
         # Add merge column to design file
         import pandas as pd
 
