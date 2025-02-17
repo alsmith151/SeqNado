@@ -93,8 +93,6 @@ else:
 # wildcard_constraints:
 #     treatment= "|".join(IP),
 
-
-
 rule all:
     input:
         OUTPUT.files

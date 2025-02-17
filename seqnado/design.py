@@ -1500,6 +1500,7 @@ class RNAOutput(Output):
 
 class NonRNAOutput(Output):
     assay: Union[Literal["ChIP"], Literal["ATAC"]]
+    consensus_counts: bool = False
     call_peaks: bool = False
     peak_calling_method: Optional[
         Union[
@@ -1507,7 +1508,6 @@ class NonRNAOutput(Output):
             List[Literal["macs", "homer", "lanceotron"]],
         ]
     ] = None
-    consensus_counts: bool = False
 
     @property
     def merge_peaks(self):
@@ -1522,18 +1522,6 @@ class NonRNAOutput(Output):
             peak_calling_method="lanceotron",
             prefix="seqnado_output/peaks/merged/",
         )
-
-    @property
-    def counts_consensus(self):
-        if not self.consensus_counts:
-            return []
-        if "merge" not in self.design_dataframe.columns:
-            return []
-        groups = self.design_dataframe["merge"].unique().tolist()
-        return [
-            f"seqnado_output/readcounts/feature_counts/merged_{group}/read_counts.tsv"
-            for group in groups
-        ]
 
     @property
     def peaks(self) -> List[str]:
@@ -1551,6 +1539,19 @@ class NonRNAOutput(Output):
             files = pcf_samples.files
 
         return files or []
+    
+    @property
+    def merged_counts(self):
+        # Get the merged counts file if peaks are merged and consensus counts are requested
+        if self.merge_peaks and self.consensus_counts:
+            groups = self.merged_peaks.names 
+            count_files = [
+                f"seqnado_output/readcounts/featurecounts/{group}_counts.tsv"
+                for group in groups
+            ]
+            return count_files
+        else:
+            return []
 
     @computed_field
     @property
@@ -1565,7 +1566,6 @@ class NonRNAOutput(Output):
         )
 
         files.extend(self.geo_files.files)
-        files.extend(self.counts_consensus)
 
         for file_list in (
             self.bigwigs,
@@ -1574,8 +1574,7 @@ class NonRNAOutput(Output):
             self.peaks,
             self.design,
             self.plots,
-            
-            
+            self.merged_counts,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1654,6 +1653,7 @@ class ChIPOutput(NonRNAOutput):
             self.spikeins,
             self.design,
             self.plots,
+            self.merged_counts,
         ):
             if file_list:
                 files.extend(file_list)
