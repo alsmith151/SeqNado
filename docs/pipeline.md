@@ -36,6 +36,7 @@ $ seqnado-config chip
   Pileup method: [deeptools/homer]: deeptools
   Do you want to make heatmaps? (yes/no) [no]: yes
   Do you want to call peaks? (yes/no) [no]: yes
+  Generate consensus counts from Design merge column? (yes/no) [no]: yes
   Peak caller: [lanceotron/macs/homer/seacr]: lanceotron
   Do you want to make a UCSC hub? (yes/no) [no]: yes
   UCSC hub directory: [seqnado_output/hub/]: seqnado_output/hub/
@@ -142,6 +143,8 @@ atac2,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahr
 ```
 
 This will merge both to make a `merge_group` bigwig and peak file
+
+Consensus counts can be made from the merged peaks when consensus_counts is True in config yaml for ATAC or ChIP
 
 ### ATAC|RNA-seq design file
 
