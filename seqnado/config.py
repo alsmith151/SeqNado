@@ -182,32 +182,24 @@ def build_workflow_config(assay: str, seqnado_version: str) -> WorkflowConfig:
         sys.exit(1)
     return workflow_config
 
-def get_conditional_features(assay: str, genome_config: GenomeConfig) -> dict:
+def get_conditional_features(assay: str, genome_config: dict) -> dict:
     features = {}
-    
+    username = os.getenv("USER", "unknown_user")
+
     # Fastq Screen
     features["fastq_screen"] = get_user_input("Perform fastqscreen?", default="no", is_boolean=True)
     if features["fastq_screen"]:
-        features["fastq_screen_config"] = get_user_input(
-            "Fastqscreen config path:",
-            default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf",
-        )
+        features["fastq_screen_config"] = get_user_input("Fastqscreen config path:", default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf")
     
     # Blacklist Handling
     features["remove_blacklist"] = get_user_input("Remove blacklist regions?", default="yes", is_boolean=True)
     
     # PCR Duplicates
-    default_duplicates = "yes" if assay in ["chip", "atac", 'cat'] else "no"
-    features["remove_pcr_duplicates"] = get_user_input(
-        "Remove PCR duplicates?", default=default_duplicates, is_boolean=True
-    )
+    default_duplicates = "yes" if assay in ["chip", "atac", "cat"] else "no"
+    features["remove_pcr_duplicates"] = get_user_input("Remove PCR duplicates?", default=default_duplicates, is_boolean=True)
     if features["remove_pcr_duplicates"]:
-        features["remove_pcr_duplicates_method"] = get_user_input(
-            "Duplicates removal method:", choices=["picard", "samtools"], default="picard"
-        )
-        features["library_complexity"] = get_user_input(
-            "Calculate library complexity?", default="no", is_boolean=True
-        )
+        features["remove_pcr_duplicates_method"] = get_user_input("Duplicates removal method:", choices=["picard", "samtools"], default="picard")
+        features["library_complexity"] = get_user_input("Calculate library complexity?", default="no", is_boolean=True)
     
     # Assay-Specific Logic
     if assay == "atac":
@@ -215,13 +207,50 @@ def get_conditional_features(assay: str, genome_config: GenomeConfig) -> dict:
     
     # RNA-Specific Features
     if assay == "rna":
-        features["rna_quantification"] = get_user_input(
-            "Quantification method:", choices=["feature_counts", "salmon"], default="feature_counts"
-        )
+        features["rna_quantification"] = get_user_input("Quantification method:", choices=["feature_counts", "salmon"], default="feature_counts")
         if features["rna_quantification"] == "salmon":
             features["salmon_index"] = get_user_input("Salmon index path:", default="path/to/salmon_index")
-        
         features["run_deseq2"] = get_user_input("Run DESeq2?", default="no", is_boolean=True)
+    
+    # Peak calling options
+    if assay in ["chip", "atac", "cat"]:
+        features["call_peaks"] = get_user_input("Call peaks?", default="yes", is_boolean=True)
+        if features["call_peaks"]:
+            features["peak_calling_method"] = get_user_input("Peak calling method:", choices=["lanceotron", "macs", "homer", "seacr"], default="lanceotron")
+    
+    # Pileup method
+    if assay != "snp":
+        features['make_pileups'] = get_user_input("Make pileups?", default="no", is_boolean=True)
+        if features['make_pileups']:
+            features['pileup_method'] = get_user_input("Pileup method:", choices=["deeptools", "homer"], default="deeptools")
+    
+    # Heatmaps
+    features["make_heatmaps"] = get_user_input("Make heatmaps?", default="no", is_boolean=True)
+    
+    # UCSC Hub
+    features["make_ucsc_hub"] = get_user_input("Make UCSC hub?", default="no", is_boolean=True)
+    if features["make_ucsc_hub"]:
+        features["UCSC_hub_directory"] = get_user_input("UCSC hub directory:", default="seqnado_output/hub/")
+        features["email"] = get_user_input("What is your email address?", default=f"{username}@example.com")
+        features["color_by"] = get_user_input("Color by (for UCSC hub):", default="samplename")
+    
+    # SNP Calling
+    if assay == "snp":
+        features["call_snps"] = get_user_input("Call SNPs?", default="no", is_boolean=True)
+        if features["call_snps"]:
+            features["snp_calling_method"] = get_user_input("SNP caller:", choices=["bcftools", "deepvariant"], default="bcftools")
+            features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta")
+            features["fasta_index"] = get_user_input("Path to reference fasta index:", default="path/to/reference.fasta.fai")
+            features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database")
+    
+    # GEO Submission
+    features["geo_submission_files"] = get_user_input("Generate GEO submission files?", default="no", is_boolean=True)
+    
+    # Plotting
+    features["perform_plotting"] = get_user_input("Perform plotting?", default="no", is_boolean=True)
+    if features["perform_plotting"]:
+        features["plotting_coordinates"] = get_user_input("Path to bed file with coordinates for plotting", default=None)
+        features["plotting_genes"] = genome_config.get("genes", get_user_input("Path to bed file with genes.", default=None))
     
     # Add tool options
     features["options"] = get_tool_options(assay)
