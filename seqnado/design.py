@@ -1561,8 +1561,7 @@ class NonRNAOutput(Output):
                 library_complexity=self.library_complexity,
             ).files
         )
-
-        breakpoint()
+        
         files.extend(self.geo_files.files)
 
         for file_list in (
