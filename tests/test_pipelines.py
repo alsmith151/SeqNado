@@ -252,130 +252,66 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
     )
 
 
-@pytest.fixture(scope="function")
-def user_inputs(test_data_path, assay, assay_type, plot_bed):
-    base_defaults = {
-        "project_name": "test",
-        "genome": "hg38",
-        "fastq_screen": "no",
-        "remove_blacklist": "yes",
-    }
-
-    assay_defaults = {
-        "atac": {
-            "remove_pcr_duplicates": "yes",
-            "remove_pcr_duplicates_method": "picard",
-            "library_complexity": "yes",
-            "shift_atac_reads": "yes",
-            "make_bigwigs": "yes",
-            "pileup_method": "deeptools",
-            "make_heatmaps": "yes",
-            "call_peaks": "yes",
-            "peak_calling_method": "lanceotron",
-            "consensus_counts": "yes",
-        },
-        "chip": {
-            "remove_pcr_duplicates": "no",
-            "spikein": "no",
-            "make_bigwigs": "yes",
-            "pileup_method": "deeptools",
-            "make_heatmaps": "yes",
-            "call_peaks": "yes",
-            "peak_calling_method": "lanceotron",
-            "consensus_counts": "no",
-        },
-        "chip-rx": {
-            "remove_pcr_duplicates": "no",
-            "spikein": "yes",
-            "normalisation_method": "orlando",
-            "reference_genome": "hg38",
-            "spikein_genome": "dm6",
-            "make_bigwigs": "yes",
-            "pileup_method": "deeptools",
-            "make_heatmaps": "no",
-            "call_peaks": "yes",
-            "peak_calling_method": "lanceotron",
-            "consensus_counts": "no",
-        },
-        "cat": {
-            "remove_pcr_duplicates": "no",
-            "spikein": "no",
-            "make_bigwigs": "yes",
-            "pileup_method": "deeptools",
-            "make_heatmaps": "yes",
-            "call_peaks": "yes",
-            "peak_calling_method": "seacr",
-            "consensus_counts": "no",
-        },
-        "rna": {
-            "remove_pcr_duplicates": "no",
-            "spikein": "no",
-            "make_bigwigs": "yes",
-            "pileup_method": "deeptools",
-            "make_heatmaps": "yes",
-            "rna_quantification": "feature_counts",
-            "run_deseq2": "no",
-        },
-        "rna-rx": {
-            "remove_pcr_duplicates": "no",
-            "spikein": "yes",
-            "make_bigwigs": "yes",
-            "pileup_method": "deeptools",
-            "make_heatmaps": "no",
-            "rna_quantification": "feature_counts",
-            "run_deseq2": "yes",
-        },
-        "snp": {
-            "remove_pcr_duplicates": "no",
-            "call_snps": "no",
-        },
-    }
-
-    common_configs = {
-        "hub": {
-            "make_ucsc_hub": "yes",
-            "UCSC_hub_directory": "test_hub",
-            "email": "test",
-            "color_by": "samplename",
-        },
-        "geo": {
-            "geo_submission_files": "yes" if assay in ['atac', 'chip-rx'] else 'no',
-        },
-        "plot": {
-            "perform_plotting": "yes" if assay != "snp" else "no",
-            "plotting_coordinates": str(plot_bed) if assay != "snp" else None,
-            "plotting_genes": None,
-        },
-    }
-
-    return {**base_defaults, **assay_defaults.get(assay, {}), **common_configs["hub"], **common_configs["geo"], **common_configs["plot"]}
 
 
 @pytest.fixture(scope="function")
-def config_yaml(run_directory, user_inputs, assay_type, monkeypatch):
-    user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
+def user_inputs(assay):
+    prompts = {
+        "Calculate library complexity?": 'no',
+        "Call peaks?": 'yes',
+        "Call SNPs?": 'no',
+        "Color by (for UCSC hub):": "samplename",
+        "Duplicates removal method:": "picard",
+        "Fastqscreen config path:": "/dummy/fastqscreen.conf",
+        "Generate consensus counts from Design merge column? (yes/no)": 'no',
+        "Generate GEO submission files?": 'no',
+        "Genome?": "hg38",
+        "Make heatmaps?": 'no',
+        "Make pileups?": 'no',
+        "Make UCSC hub?": 'no',
+        "Path to bed file with coordinates for plotting": '',
+        "Path to bed file with genes.": '',
+        "Path to reference fasta index:": "dummy_ref.fasta.fai",
+        "Path to reference fasta:": "dummy_ref.fasta",
+        "Path to SNP database:": "dummy_snp_db",
+        "Peak calling method:": "lanceotron",
+        "Perform fastqscreen?": 'no',
+        "Perform plotting?": 'no',
+        "Pileup method:": "deeptools",
+        "Project name?": "test_project",
+        "Quantification method:": "feature_counts",  # default RNA response
+        "Remove blacklist regions?": 'yes',
+        "Remove PCR duplicates?": 'yes',
+        "Run DESeq2?": 'no',
+        "Salmon index path:": "dummy_salmon_index",
+        "Shift ATAC reads?": 'yes',
+        "SNP caller:": "bcftools",
+        "UCSC hub directory:": "dummy_hub_dir",
+        "What is your email address?": "test@example.com",
+    }
+
+    return prompts
+
+
+@pytest.fixture(scope="function")
+def config_yaml(run_directory, assay_type, monkeypatch, user_inputs):
+    import pexpect
 
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    cmd = ["seqnado-config", assay_type]
-    process = subprocess.Popen(
-        cmd,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        cwd=run_directory,
-    )
-
-    stdout, stderr = process.communicate(input=user_inputs)
+    child = pexpect.spawn("seqnado-config atac", encoding='utf-8')
+    while True:
+        try:
+            index = child.expect_exact(user_inputs.keys())
+            child.sendline(list(user_inputs.values())[index])
+        except pexpect.EOF:
+            break
 
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = (
         run_directory / f"{date}_{assay_type}_test/config_{assay_type}.yml"
     )
-
-    assert process.returncode == 0, f"seqnado-config failed with stderr: {stderr}"
 
     return config_file_path
 
