@@ -122,17 +122,21 @@ def cli_design(method, files, output="design.csv"):
                          """)
             raise ValueError("No fastq files provided or found in current directory")
 
-    if not method == "chip":
-        design = Design.from_fastq_files(files)
-    else:
-        design = DesignIP.from_fastq_files(files)
 
-    (
+    if method in ['chip', 'cat']:
+        design = DesignIP.from_fastq_files(files)
+    else:
+        design = Design.from_fastq_files(files)
+
+    
+    df = (
         design.to_dataframe()
         .assign(scale_group="all")
         .sort_values("sample_name")
-        .to_csv(output, index=False)
     )
+
+    df.to_csv(output, index=False)
+    logger.sucess(f"Design file saved to {output}")
 
 
 # Pipeline
