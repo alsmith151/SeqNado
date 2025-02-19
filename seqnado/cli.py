@@ -13,8 +13,6 @@ PACKAGE_DIR = os.path.dirname(FILE)
 ASSAYS = ["atac", "chip", "rna", "snp", 'cat']
 
 
-
-
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.option("--preset", is_flag=True, default=False, help="Use preset genome config")
 def cli_init(preset):
