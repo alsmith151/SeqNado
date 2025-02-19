@@ -1107,7 +1107,7 @@ class GEOFiles(BaseModel):
 
 
 class QCFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
     fastq_screen: bool = False
     library_complexity: bool = False
 
@@ -1434,15 +1434,12 @@ class Output(BaseModel):
 
     @property
     def geo_files(self):
-        if self.geo_submission_files:
-            return GEOFiles(
-                assay=self.assay,
-                sample_names=self.sample_names,
-                design=self.design_dataframe,
-                config=self.config,
-            )
-        else:
-            return []
+        return GEOFiles(
+            assay=self.assay,
+            sample_names=self.sample_names,
+            design=self.design_dataframe,
+            config=self.config,
+        )
 
 
 class RNAOutput(Output):
@@ -1565,6 +1562,7 @@ class NonRNAOutput(Output):
             ).files
         )
 
+        breakpoint()
         files.extend(self.geo_files.files)
 
         for file_list in (
@@ -1578,6 +1576,7 @@ class NonRNAOutput(Output):
         ):
             if file_list:
                 files.extend(file_list)
+
         return files
 
 
