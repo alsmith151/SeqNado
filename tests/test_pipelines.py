@@ -26,7 +26,7 @@ logger.add(sys.stderr, level="DEBUG")
 
 @pytest.fixture(
     scope="function",
-    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp"],
+    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp", 'cat'],
     autouse=True,
 )
 def assay(request):
