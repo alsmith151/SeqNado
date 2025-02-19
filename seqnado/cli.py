@@ -136,7 +136,7 @@ def cli_design(method, files, output="design.csv"):
     )
 
     df.to_csv(output, index=False)
-    logger.sucess(f"Design file saved to {output}")
+    logger.success(f"Design file saved to {output}")
 
 
 # Pipeline
