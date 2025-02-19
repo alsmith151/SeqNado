@@ -230,9 +230,10 @@ def get_conditional_features(assay: str, genome_config: GenomeConfig) -> dict:
 def get_tool_options(assay: str) -> str:
     return {
         "chip": TOOL_OPTIONS,
+        'cat': TOOL_OPTIONS,
         "atac": TOOL_OPTIONS,
         "rna": TOOL_OPTIONS_RNA,
-        "snp": TOOL_OPTIONS_SNP
+        "snp": TOOL_OPTIONS_SNP,
     }.get(assay, "")
 
 # Template Rendering
