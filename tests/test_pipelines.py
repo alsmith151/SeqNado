@@ -337,7 +337,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
             "color_by": "samplename",
         },
         "geo": {
-            "geo_submission_files": "yes",
+            "geo_submission_files": "yes" if assay in ['atac', 'chip-rx'] else 'no',
         },
         "plot": {
             "perform_plotting": "yes" if assay != "snp" else "no",
