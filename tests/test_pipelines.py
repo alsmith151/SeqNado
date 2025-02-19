@@ -278,7 +278,7 @@ def user_inputs(assay):
         "Perform fastqscreen?": 'no',
         "Perform plotting?": 'no',
         "Pileup method:": "deeptools",
-        "Project name?": "test_project",
+        "Project name?": "test",
         "Quantification method:": "feature_counts",  # default RNA response
         "Remove blacklist regions?": 'yes',
         "Remove PCR duplicates?": 'yes',
@@ -300,7 +300,7 @@ def config_yaml(run_directory, assay_type, monkeypatch, user_inputs):
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    child = pexpect.spawn("seqnado-config atac", encoding='utf-8')
+    child = pexpect.spawn(f"seqnado-config {assay_type}", encoding='utf-8', cwd=run_directory)
     while True:
         try:
             index = child.expect_exact(user_inputs.keys())
