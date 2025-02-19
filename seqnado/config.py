@@ -9,8 +9,6 @@ from jinja2 import Environment, FileSystemLoader
 from loguru import logger
 from pydantic import BaseModel, field_validator, ValidationError
 
-logger.add(sys.stderr, level="INFO")
-
 package_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(package_dir, "workflow/config")
 
@@ -230,7 +228,6 @@ def get_conditional_features(assay: str, genome_config: GenomeConfig) -> dict:
     return features
 
 def get_tool_options(assay: str) -> str:
-    TOOL_OPTIONS = {...}  # Preserve original YAML strings
     return {
         "chip": TOOL_OPTIONS,
         "atac": TOOL_OPTIONS,
@@ -241,20 +238,20 @@ def get_tool_options(assay: str) -> str:
 # Template Rendering
 def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
     env = Environment(loader=FileSystemLoader(template_dir))
-    config = build_workflow_config(assay, seqnado_version)
+    workflow_config = build_workflow_config(assay, seqnado_version)
     
-    dir_name = os.getcwd() if rerun else f"{config.project_date}_{config.assay}_{config.project_name}"
+    dir_name = os.getcwd() if rerun else f"{workflow_config.project_date}_{workflow_config.assay}_{workflow_config.project_name}"
     os.makedirs(dir_name, exist_ok=True)
     
     # Render main config
     with open(f"{dir_name}/config_{assay}.yml", "w") as f:
-        f.write(env.get_template("config.yaml.jinja").render(config.model_dump()))
+        f.write(env.get_template("config.yaml.jinja").render(workflow_config.model_dump()))
     
     # Additional RNA template
     if assay == "rna":
-        with open(f"{dir_name}/deseq2_{config.project_name}.qmd", "w") as f:
-            f.write(env.get_template("deseq2.qmd.jinja").render(config.model_dump()))
-    
+        with open(f"{dir_name}/deseq2_{workflow_config.project_name}.qmd", "w") as f:
+            f.write(env.get_template("deseq2.qmd.jinja").render(workflow_config.model_dump()))
+
     logger.success(f"Created configuration in {dir_name}")
 
 # Preserve original tool option YAML strings
