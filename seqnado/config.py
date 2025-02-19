@@ -199,7 +199,7 @@ def get_conditional_features(assay: str, genome_config: GenomeConfig) -> dict:
     features["remove_blacklist"] = get_user_input("Remove blacklist regions?", default="yes", is_boolean=True)
     
     # PCR Duplicates
-    default_duplicates = "yes" if assay in ["chip", "atac"] else "no"
+    default_duplicates = "yes" if assay in ["chip", "atac", 'cat'] else "no"
     features["remove_pcr_duplicates"] = get_user_input(
         "Remove PCR duplicates?", default=default_duplicates, is_boolean=True
     )
