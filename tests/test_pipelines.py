@@ -7,10 +7,19 @@ import subprocess
 import sys
 import tarfile
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 import requests
 from loguru import logger
+
+from seqnado.config import (
+    GenomeConfig,
+    WorkflowConfig,
+    build_workflow_config,
+    create_config,
+    load_genome_config,
+)
 
 logger.add(sys.stderr, level="DEBUG")
 
@@ -243,106 +252,101 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
 
 @pytest.fixture(scope="function")
 def user_inputs(test_data_path, assay, assay_type, plot_bed):
-    defaults = {
+    base_defaults = {
         "project_name": "test",
         "genome": "hg38",
         "fastq_screen": "no",
         "remove_blacklist": "yes",
     }
 
-    defaults_atac = {
-        "remove_pcr_duplicates": "yes",
-        "remove_pcr_duplicates_method": "picard",
-        "library_complexity": "yes",
-        "shift_atac_reads": "yes",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "consensus_counts": "yes",
+    assay_defaults = {
+        "atac": {
+            "remove_pcr_duplicates": "yes",
+            "remove_pcr_duplicates_method": "picard",
+            "library_complexity": "yes",
+            "shift_atac_reads": "yes",
+            "make_bigwigs": "yes",
+            "pileup_method": "deeptools",
+            "make_heatmaps": "yes",
+            "call_peaks": "yes",
+            "peak_calling_method": "lanceotron",
+            "consensus_counts": "yes",
+        },
+        "chip": {
+            "remove_pcr_duplicates": "no",
+            "spikein": "no",
+            "make_bigwigs": "yes",
+            "pileup_method": "deeptools",
+            "make_heatmaps": "yes",
+            "call_peaks": "yes",
+            "peak_calling_method": "lanceotron",
+            "consensus_counts": "no",
+        },
+        "chip-rx": {
+            "remove_pcr_duplicates": "no",
+            "spikein": "yes",
+            "normalisation_method": "orlando",
+            "reference_genome": "hg38",
+            "spikein_genome": "dm6",
+            "make_bigwigs": "yes",
+            "pileup_method": "deeptools",
+            "make_heatmaps": "no",
+            "call_peaks": "yes",
+            "peak_calling_method": "lanceotron",
+            "consensus_counts": "no",
+        },
+        "cat": {
+            "remove_pcr_duplicates": "no",
+            "spikein": "no",
+            "make_bigwigs": "yes",
+            "pileup_method": "deeptools",
+            "make_heatmaps": "yes",
+            "call_peaks": "yes",
+            "peak_calling_method": "seacr",
+            "consensus_counts": "no",
+        },
+        "rna": {
+            "remove_pcr_duplicates": "no",
+            "spikein": "no",
+            "make_bigwigs": "yes",
+            "pileup_method": "deeptools",
+            "make_heatmaps": "yes",
+            "rna_quantification": "feature_counts",
+            "run_deseq2": "no",
+        },
+        "rna-rx": {
+            "remove_pcr_duplicates": "no",
+            "spikein": "yes",
+            "make_bigwigs": "yes",
+            "pileup_method": "deeptools",
+            "make_heatmaps": "no",
+            "rna_quantification": "feature_counts",
+            "run_deseq2": "yes",
+        },
+        "snp": {
+            "remove_pcr_duplicates": "no",
+            "call_snps": "no",
+        },
     }
 
-    defaults_chip = {
-        "remove_pcr_duplicates": "no",
-        "spikein": "no",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "consensus_counts": "no",
+    common_configs = {
+        "hub": {
+            "make_ucsc_hub": "yes",
+            "UCSC_hub_directory": "test_hub",
+            "email": "test",
+            "color_by": "samplename",
+        },
+        "geo": {
+            "geo_submission_files": "yes",
+        },
+        "plot": {
+            "perform_plotting": "yes" if assay != "snp" else "no",
+            "plotting_coordinates": str(plot_bed) if assay != "snp" else None,
+            "plotting_genes": None,
+        },
     }
 
-    defaults_chip_rx = {
-        "remove_pcr_duplicates": "no",
-        "spikein": "yes",
-        "normalisation_method": "orlando",
-        "reference_genome": "hg38",
-        "spikein_genome": "dm6",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "no",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "consensus_counts": "no",
-    }
-
-    defaults_rna = {
-        "remove_pcr_duplicates": "no",
-        "spikein": "no",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "rna_quantification": "feature_counts",
-        "run_deseq2": "no",
-    }
-
-    defaults_rna_rx = {
-        "remove_pcr_duplicates": "no",
-        "spikein": "yes",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "no",
-        "rna_quantification": "feature_counts",
-        "run_deseq2": "yes",
-    }
-
-    defaults_snp = {
-        "remove_pcr_duplicates": "no",
-        "call_snps": "no",
-    }
-
-    hub = {
-        "make_ucsc_hub": "yes",
-        "UCSC_hub_directory": "test_hub",
-        "email": "test",
-        "color_by": "samplename",
-    }
-
-    geo = {
-        "geo_submission_files": "yes",
-    }
-
-    plot = {
-        "perform_plotting": "yes" if not assay == "snp" else "no",
-        "plotting_coordinates": str(plot_bed) if not assay == "snp" else None,
-        "plotting_genes": None,
-    }
-
-    match assay:
-        case "atac":
-            return {**defaults, **defaults_atac, **hub, **geo, **plot}
-        case "chip":
-            return {**defaults, **defaults_chip, **hub, **geo, **plot}
-        case "chip-rx":
-            return {**defaults, **defaults_chip_rx, **hub, **geo, **plot}
-        case "rna":
-            return {**defaults, **defaults_rna, **hub, **geo, **plot}
-        case "rna-rx":
-            return {**defaults, **defaults_rna_rx, **hub, **geo, **plot}
-        case "snp":
-            return {**defaults, **defaults_snp, **hub, **geo, **plot}
+    return {**base_defaults, **assay_defaults.get(assay, {}), **common_configs["hub"], **common_configs["geo"], **common_configs["plot"]}
 
 
 @pytest.fixture(scope="function")
