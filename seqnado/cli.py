@@ -10,6 +10,7 @@ from loguru import logger
 
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
+ASSAYS = ["atac", "chip", "rna", "snp", 'cat']
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
@@ -72,7 +73,7 @@ def cli_init(preset):
 
 # Config
 @click.command(context_settings=dict(ignore_unknown_options=True))
-@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
+@click.argument("method", type=click.Choice(ASSAYS))
 @click.option("-r", "--rerun", is_flag=True, help="Re-run the config")
 def cli_config(method, rerun=False):
     """
@@ -88,7 +89,7 @@ def cli_config(method, rerun=False):
 
 # Design
 @click.command()
-@click.argument("method", type=click.Choice(["atac", "chip", "rna", "snp"]))
+@click.argument("method", type=click.Choice(ASSAYS))
 @click.argument("files", nargs=-1)
 @click.option("-o", "--output", default="design.csv", help="Output file name")
 def cli_design(method, files, output="design.csv"):
@@ -121,24 +122,28 @@ def cli_design(method, files, output="design.csv"):
                          """)
             raise ValueError("No fastq files provided or found in current directory")
 
-    if not method == "chip":
-        design = Design.from_fastq_files(files)
-    else:
-        design = DesignIP.from_fastq_files(files)
 
-    (
+    if method in ['chip', 'cat']:
+        design = DesignIP.from_fastq_files(files)
+    else:
+        design = Design.from_fastq_files(files)
+
+    
+    df = (
         design.to_dataframe()
         .assign(scale_group="all")
         .sort_values("sample_name")
-        .to_csv(output, index=False)
     )
+
+    df.to_csv(output, index=False)
+    logger.info(f"Design file saved to {output}")
 
 
 # Pipeline
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument(
     "method",
-    type=click.Choice(["atac", "chip", "rna", "snp"]),
+    type=click.Choice(ASSAYS),
 )
 @click.option("--version", help="Print version and exit", is_flag=True)
 @click.option(

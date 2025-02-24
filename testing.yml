@@ -10,6 +10,7 @@ dependencies:
   - pytest-xdist
   - python>=3.11
   - snakemake>8,<9
+  - pexpect
   - pip:
       - snakemake-executor-plugin-slurm
       - tracknado

@@ -7,17 +7,26 @@ import subprocess
 import sys
 import tarfile
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 import requests
 from loguru import logger
+
+from seqnado.config import (
+    GenomeConfig,
+    WorkflowConfig,
+    build_workflow_config,
+    create_config,
+    load_genome_config,
+)
 
 logger.add(sys.stderr, level="DEBUG")
 
 
 @pytest.fixture(
     scope="function",
-    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp"],
+    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp", 'cat'],
     autouse=True,
 )
 def assay(request):
@@ -106,6 +115,13 @@ def chromsizes(genome_path):
         with open(genome_path / suffix, "wb") as f:
             f.write(r.content)
 
+            # Add the dm6 chromsizes file to the genome path
+            url = "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
+            r = requests.get(url, stream=True)
+            
+            for line in r.iter_lines():
+                f.write(b'dm6_' + line + b"\n")
+                
     return genome_path / suffix
 
 
@@ -176,6 +192,8 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             files = list(path.glob("rna-spikein*.fastq.gz"))
         case "snp":
             files = list(path.glob("snp*.fastq.gz"))
+        case "cat":
+            files = list(path.glob("chip-rx_*.fastq.gz"))
 
     return files
 
@@ -241,136 +259,73 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
     )
 
 
+
+
 @pytest.fixture(scope="function")
 def user_inputs(test_data_path, assay, assay_type, plot_bed):
-    defaults = {
-        "project_name": "test",
-        "genome": "hg38",
-        "fastq_screen": "no",
-        "remove_blacklist": "yes",
+    prompts = {
+        "Calculate library complexity?": 'yes' if assay == 'atac' else 'no',
+        "Call peaks?": 'yes',
+        "Call SNPs?": 'no',
+        "Color by (for UCSC hub):": "samplename",
+        "Duplicates removal method:": "picard",
+        "Fastqscreen config path:": "/dummy/fastqscreen.conf",
+        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'atac' else 'no',
+        "Generate GEO submission files?": 'yes' if assay in ['chip', 'rna'] else 'no',
+        "Genome?": "hg38",
+        "Make heatmaps?": 'yes' if assay == 'atac' else 'no',
+        "Make pileups?": 'yes',
+        "Make UCSC hub?": 'yes',
+        "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else '',
+        "Path to bed file with genes.": '',
+        "Path to reference fasta index:": "dummy_ref.fasta.fai",
+        "Path to reference fasta:": "dummy_ref.fasta",
+        "Path to SNP database:": "dummy_snp_db",
+        "Peak calling method:": "lanceotron",
+        "Perform fastqscreen?": 'no',
+        "Perform plotting?": "yes" if not assay == "snp" else "no",
+        "Pileup method:": "deeptools",
+        "Project name?": "test",
+        "Quantification method:": "feature_counts",  # default RNA response
+        "Remove blacklist regions?": 'yes',
+        "Remove PCR duplicates?": 'yes',
+        "Run DESeq2?": 'no',
+        "Salmon index path:": "dummy_salmon_index",
+        "Shift ATAC reads?": 'yes',
+        "SNP caller:": "bcftools",
+        "UCSC hub directory:": "dummy_hub_dir",
+        "What is your email address?": "test@example.com",
     }
 
-    defaults_atac = {
-        "remove_pcr_duplicates": "yes",
-        "remove_pcr_duplicates_method": "picard",
-        "library_complexity": "yes",
-        "shift_atac_reads": "yes",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "consensus_counts": "yes",
-    }
-
-    defaults_chip = {
-        "remove_pcr_duplicates": "no",
-        "spikein": "no",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "consensus_counts": "no",
-    }
-
-    defaults_chip_rx = {
-        "remove_pcr_duplicates": "no",
-        "spikein": "yes",
-        "normalisation_method": "orlando",
-        "reference_genome": "hg38",
-        "spikein_genome": "dm6",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "no",
-        "call_peaks": "yes",
-        "peak_calling_method": "lanceotron",
-        "consensus_counts": "no",
-    }
-
-    defaults_rna = {
-        "remove_pcr_duplicates": "no",
-        "spikein": "no",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "yes",
-        "rna_quantification": "feature_counts",
-        "run_deseq2": "no",
-    }
-
-    defaults_rna_rx = {
-        "remove_pcr_duplicates": "no",
-        "spikein": "yes",
-        "make_bigwigs": "yes",
-        "pileup_method": "deeptools",
-        "make_heatmaps": "no",
-        "rna_quantification": "feature_counts",
-        "run_deseq2": "yes",
-    }
-
-    defaults_snp = {
-        "remove_pcr_duplicates": "no",
-        "call_snps": "no",
-    }
-
-    hub = {
-        "make_ucsc_hub": "yes",
-        "UCSC_hub_directory": "test_hub",
-        "email": "test",
-        "color_by": "samplename",
-    }
-
-    geo = {
-        "geo_submission_files": "yes",
-    }
-
-    plot = {
-        "perform_plotting": "yes" if not assay == "snp" else "no",
-        "plotting_coordinates": str(plot_bed) if not assay == "snp" else None,
-        "plotting_genes": None,
-    }
-
-    match assay:
-        case "atac":
-            return {**defaults, **defaults_atac, **hub, **geo, **plot}
-        case "chip":
-            return {**defaults, **defaults_chip, **hub, **geo, **plot}
-        case "chip-rx":
-            return {**defaults, **defaults_chip_rx, **hub, **geo, **plot}
-        case "rna":
-            return {**defaults, **defaults_rna, **hub, **geo, **plot}
-        case "rna-rx":
-            return {**defaults, **defaults_rna_rx, **hub, **geo, **plot}
-        case "snp":
-            return {**defaults, **defaults_snp, **hub, **geo, **plot}
+    return prompts
 
 
 @pytest.fixture(scope="function")
-def config_yaml(run_directory, user_inputs, assay_type, monkeypatch):
-    user_inputs = "\n".join(map(str, user_inputs.values())) + "\n"
+def config_yaml(run_directory, assay_type, monkeypatch, user_inputs):
+    import pexpect
 
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    cmd = ["seqnado-config", assay_type]
-    process = subprocess.Popen(
-        cmd,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        cwd=run_directory,
-    )
+    child = pexpect.spawn("seqnado-config", args=[assay_type], encoding='utf-8', cwd=run_directory)
+    child.logfile = sys.stdout
 
-    stdout, stderr = process.communicate(input=user_inputs)
+    input_keys, input_values = list(user_inputs.keys()), list(user_inputs.values())
+
+    while True:
+        try:
+            index = child.expect_exact(input_keys)
+            value = input_values[index]
+            child.sendline(value)
+        except pexpect.EOF:
+            break
 
     date = datetime.now().strftime("%Y-%m-%d")
     config_file_path = (
         run_directory / f"{date}_{assay_type}_test/config_{assay_type}.yml"
     )
 
-    assert process.returncode == 0, f"seqnado-config failed with stderr: {stderr}"
-
+    assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
 
 

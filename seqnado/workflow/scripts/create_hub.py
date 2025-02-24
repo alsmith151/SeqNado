@@ -41,6 +41,12 @@ elif snakemake.params.assay == "RNA":
     df["strand"] = np.where(df["fn"].str.contains("_plus.bigWig"), "plus", "minus")
     df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
 
+
+# Check that the dataframe is not empty i.e. no files were found
+if df.empty:
+    raise ValueError("No bigwigs or bigbeds found in the input directory. Please ensure that make_pileups has been set to True in the config file.")
+
+
 # Create hub design
 design = tracknado.TrackDesign.from_design(
     df,
@@ -51,6 +57,7 @@ design = tracknado.TrackDesign.from_design(
     supergroup_by=snakemake.params.supergroup_by,
     overlay_by=snakemake.params.overlay_by,
 )
+
 
 outdir = pathlib.Path(snakemake.output.hub).parent
 hub = tracknado.HubGenerator(
