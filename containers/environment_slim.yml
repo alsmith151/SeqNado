@@ -18,7 +18,7 @@ dependencies:
 - picard-slim
 - pip
 - pysam
-- python>=3.8
+- python>=3.10
 - samtools>1.7
 - star
 - salmon

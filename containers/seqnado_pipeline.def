@@ -15,13 +15,8 @@ From: mambaorg/micromamba:alpine
   micromamba install -y -n base -f /opt/environment_slim.yml
   export PATH="/opt/conda/bin:$PATH"
 
-  # Rust install
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-  export PATH="$HOME/.cargo/bin:$PATH"
-
   # Install using pip
-  /opt/conda/bin/python -m pip install wget git+https://github.com/alsmith151/rsbamtk.git tracknado
-  
+  /opt/conda/bin/python -m pip install wget tracknado
 
   # Clean
   apk del curl gcc git cmake make libtool g++ pkgconfig openssl-dev linux-headers
@@ -29,11 +24,6 @@ From: mambaorg/micromamba:alpine
   /opt/conda/bin/python -m pip cache purge
   find /opt/conda/ -follow -type f -name '*.a' -delete
   find /opt/conda/ -follow -type f -name '*.pyc' -delete
-  find /opt/conda/ -follow -type f -name '*.js.map' -delete
-  ~/.cargo/bin/rustup self uninstall -y
-
-
-
 
 
 %environment

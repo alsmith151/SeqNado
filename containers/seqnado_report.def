@@ -1,31 +1,20 @@
 BootStrap: docker
-From: mambaorg/micromamba:git-9051915-alpine
-
+From: mambaorg/micromamba:ubuntu
 %files
   environment_report.yml /opt/environment_report.yml
 
 %post
   
-  # # Pre set up
-  cd /opt/
-  apk --no-cache add curl
-
+  # Quarto
+  apt-get update
+  apt-get install -y fakeroot wget curl dpkg --no-install-recommends
+  wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.6.41/quarto-1.6.41-linux-amd64.deb --no-check-certificate
+  dpkg -i quarto-1.6.41-linux-amd64.deb
+  rm quarto-1.6.41-linux-amd64.deb
+  
   # Mamba packages
   micromamba install -y -n base -f /opt/environment_report.yml
-
-    # Quarto install
-  export QUARTO_VERSION="1.6.41"
-  mkdir -p /opt/quarto/${QUARTO_VERSION}
-  curl -o quarto.tar.gz -L \
-    "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.tar.gz"
-  tar -zxvf quarto.tar.gz \
-    -C "/opt/quarto/${QUARTO_VERSION}" \
-    --strip-components=1
   
-  ln -s /opt/quarto/${QUARTO_VERSION}/bin/quarto /usr/local/bin/quarto
-  /opt/quarto/"${QUARTO_VERSION}"/bin/quarto check
-  rm quarto.tar.gz
-
   # System cleanup
   rm -rf /var/cache/apk/* /tmp/* /root/.cache
 
@@ -35,7 +24,7 @@ From: mambaorg/micromamba:git-9051915-alpine
   find /opt/conda/ -follow -type f -name '*.a' -delete
   find /opt/conda/ -follow -type f -name '*.pyc' -delete
   find /opt/conda/ -follow -type f -name '*.js.map' -delete
-
+  apk del curl dpkg wget
 
 
 %environment
