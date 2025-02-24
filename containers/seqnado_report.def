@@ -15,9 +15,6 @@ From: mambaorg/micromamba:ubuntu
   # Mamba packages
   micromamba install -y -n base -f /opt/environment_report.yml
   
-  # System cleanup
-  micromamba clean -afy
-  
   # Conda environment cleanup
   micromamba clean -afy 
   /opt/conda/bin/python -m pip cache purge
@@ -26,7 +23,7 @@ From: mambaorg/micromamba:ubuntu
   find /opt/conda/ -follow -type f -name '*.js.map' -delete
   apt-get autoremove -y
   apt-get clean -y
-  apt-get remove -y dpkg wget curl
+  apt-get remove -y wget
 
 
 %environment
