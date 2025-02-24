@@ -45,7 +45,7 @@ rule geo_symlink:
     input:
         files=get_files_for_symlink,
     output:
-        files=get_symlinked_files(),
+        files=temp(get_symlinked_files()),
     params:
         output=OUTPUT,
     container: None
@@ -165,6 +165,28 @@ rule move_to_upload:
         done
         """
 
+rule remove_headers_for_security:
+    output:
+        validated="seqnado_output/geo_submission/.validated",
+    container: None
+    run:
+        import pathlib
+        import os
+
+        outdir = pathlib.Path("seqnado_output/geo_submission")
+        for f in outdir.iterdir():
+            if "_counts.tsv" in f.name:
+                with open(f, 'r') as f_in:
+                    with open(f.with_suffix('.noheaders.tsv'), 'w') as f_out:
+                        for i, line in enumerate(f_in):
+                            if line.startswith("#"):
+                                continue
+                            f_out.write(line)
+                
+                os.remove(f)
+                f.with_suffix('.noheaders.tsv').rename(f)
+        
+        pathlib.Path("seqnado_output/geo_submission/.validated").touch()
 
 localrules:
     geo_symlink,
