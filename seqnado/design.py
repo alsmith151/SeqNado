@@ -1012,6 +1012,10 @@ class GEOFiles(BaseModel):
     @property
     def upload_directory(self):
         return pathlib.Path("seqnado_output/geo_submission") / self.assay
+    
+    @property
+    def upload_instructions(self):
+        return pathlib.Path("seqnado_output/geo_submission") / "upload_instructions.txt"
 
     @property
     def processed_data_files(self) -> pd.DataFrame:
@@ -1124,49 +1128,107 @@ class GEOFiles(BaseModel):
         instrument_model = self.config.get("instrument_model", "Illumina NovaSeq X")
 
         for sample_row in self.design.itertuples():
-            library_name = (
-                sample_row.sample_name
-                if not self.assay in ["ChIP", "CUT&TAG"]
-                else f"{sample_row.sample_name}_{sample_row.ip}"
-            )
-            title = (
-                sample_row.sample_name
-                if not self.assay in ["ChIP", "CUT&TAG"]
-                else f"{sample_row.sample_name} {sample_row.ip}"
-            )
-            antibody = sample_row.ip if self.assay in ["ChIP", "CUT&TAG"] else None
-            is_paired_end = hasattr(sample_row, "r2") or hasattr(sample_row, "ip_r2")
+            if self.assay not in ["ChIP", "CUT&TAG"]:
+                sample_name = sample_row.sample_name
+                library_name = sample_name
+                title = sample_name
+                antibody = None
+                is_paired_end = hasattr(sample_row, "r2")
 
-            geo_sample = GEOSample(
-                assay=self.assay,
-                library_name=library_name,
-                title=title,
-                organism=organism,
-                cell_line=None,
-                cell_type=None,
-                antibody=antibody,
-                genotype=None,
-                treatment=sample_row.treatment
-                if hasattr(sample_row, "treatment")
-                else None,
-                time=sample_row.time if hasattr(sample_row, "time") else None,
-                single_or_paired="paired-end" if is_paired_end else "single",
-                instrument_model=instrument_model,
-                description=None,
-                raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
-                processed_data_file=[
-                    str(p) for p in self.processed_data_per_sample.get(library_name, [])
-                ],
-            )
+                geo_sample = GEOSample(
+                    assay=self.assay,
+                    library_name=library_name,
+                    title=title,
+                    organism=organism,
+                    cell_line=None,
+                    cell_type=None,
+                    antibody=antibody,
+                    genotype=None,
+                    treatment=sample_row.treatment
+                    if hasattr(sample_row, "treatment")
+                    else None,
+                    time=sample_row.time if hasattr(sample_row, "time") else None,
+                    single_or_paired="paired-end" if is_paired_end else "single",
+                    instrument_model=instrument_model,
+                    description=None,
+                    raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                    processed_data_file=[
+                        str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                    ],
+                )
 
-            geo_samples.append(geo_sample)
+                geo_samples.append(geo_sample)
+
+            elif self.assay in ["ChIP", "CUT&TAG"] and not sample_row.control:
+                sample_name = f"{sample_row.sample_name}_{sample_row.ip}"
+                library_name = sample_name
+                title = sample_name
+                is_paired_end = hasattr(sample_row, "ip_r2") and sample_row.ip_r2
+
+                geo_sample = GEOSample(
+                    assay=self.assay,
+                    library_name=library_name,
+                    title=title,
+                    organism=organism,
+                    cell_line=None,
+                    cell_type=None,
+                    antibody=antibody,
+                    genotype=None,
+                    treatment=sample_row.treatment
+                    if hasattr(sample_row, "treatment")
+                    else None,
+                    time=sample_row.time if hasattr(sample_row, "time") else None,
+                    single_or_paired="paired-end" if is_paired_end else "single",
+                    instrument_model=instrument_model,
+                    description=None,
+                    raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                    processed_data_file=[
+                        str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                    ],
+                )
+
+                geo_samples.append(geo_sample)
+
+            elif self.assay in ["ChIP", "CUT&TAG"] and sample_row.control:
+                for ip_type in ["ip", "control"]:
+                    sample_name = f"{sample_row.sample_name}_{getattr(sample_row, ip_type)}"
+                    library_name = sample_name
+                    title = sample_name
+                    antibody = getattr(sample_row, ip_type)
+                    is_paired_end = hasattr(sample_row, f"{ip_type}_r2") and getattr(
+                        sample_row, f"{ip_type}_r2"
+                    )
+
+                    geo_sample = GEOSample(
+                        assay=self.assay,
+                        library_name=library_name,
+                        title=title,
+                        organism=organism,
+                        cell_line=None,
+                        cell_type=None,
+                        antibody=antibody,
+                        genotype=None,
+                        treatment=sample_row.treatment
+                        if hasattr(sample_row, "treatment")
+                        else None,
+                        time=sample_row.time if hasattr(sample_row, "time") else None,
+                        single_or_paired="paired-end" if is_paired_end else "single",
+                        instrument_model=instrument_model,
+                        description=None,
+                        raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                        processed_data_file=[
+                            str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                        ],
+                    )
+
+                    geo_samples.append(geo_sample)
 
         df_samples = GEOSamples(samples=geo_samples).to_dataframe()
         return df_samples
 
     @property
     def files(self) -> List[str]:
-        return [*self.md5sums]
+        return [*self.md5sums, self.upload_directory, self.upload_instructions]
 
 
 class QCFiles(BaseModel):
