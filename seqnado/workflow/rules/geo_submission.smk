@@ -181,11 +181,12 @@ rule remove_headers_for_security:
                 dest = path.with_suffix('.no_headers.tsv')
                 
                 with open(path, 'r') as f:
-                    for line in f:
-                        if line.startswith('#'):
-                            continue
-                        dest.write_text(line)
-
+                    with open(dest, 'w') as dest:
+                        for line in f:
+                            if line.startswith('#'):
+                                continue
+                            
+                            dest.write(line)
                 path.unlink()
                 dest.rename(path)
         
