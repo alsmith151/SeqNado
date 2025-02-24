@@ -26,7 +26,7 @@ From: mambaorg/micromamba:ubuntu
   find /opt/conda/ -follow -type f -name '*.js.map' -delete
   apt-get autoremove -y
   apt-get clean -y
-  apt-get uninstall -y dpkg wget curl
+  apt-get remove -y dpkg wget curl
 
 
 %environment
