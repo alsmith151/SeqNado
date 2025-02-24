@@ -1,0 +1,12 @@
+name: base
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - pip
+  - python>=3.10
+  - numpy
+  - scipy
+  - pandas
+  - seacr

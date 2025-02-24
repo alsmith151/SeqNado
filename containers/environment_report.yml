@@ -1,0 +1,36 @@
+name: base
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+- bioconductor-annotationdbi
+- bioconductor-chipseeker
+- bioconductor-clusterprofiler
+- bioconductor-complexheatmap
+- bioconductor-deseq2
+- bioconductor-edaseq
+- bioconductor-edger
+- bioconductor-fgsea
+- bioconductor-genomeinfodb
+- bioconductor-genomicalignments
+- bioconductor-genomicfeatures
+- bioconductor-genomicranges
+- bioconductor-goseq
+- bioconductor-org.hs.eg.db
+- bioconductor-org.mm.eg.db
+- bioconductor-pcaexplorer
+- bioconductor-qvalue
+- bioconductor-rgreat
+- bioconductor-rtracklayer
+- bioconductor-ruvseq
+- qualimap
+- r-circlize
+- r-dt
+- r-ggrepel
+- r-knitr
+- r-msigdbr
+- r-rcolorbrewer
+- r-rjson
+- r-tidyverse
+- r-yaml
