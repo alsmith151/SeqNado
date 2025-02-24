@@ -250,7 +250,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     features["perform_plotting"] = get_user_input("Perform plotting?", default="no", is_boolean=True)
     if features["perform_plotting"]:
         features["plotting_coordinates"] = get_user_input("Path to bed file with coordinates for plotting", default=None)
-        features["plotting_genes"] = genome_config.get("genes", get_user_input("Path to bed file with genes.", default=None))
+        features["plotting_genes"] = genome_config.genes if genome_config.genes else get_user_input("Path to bed file with genes.", default='no')
     
     # Add tool options
     features["options"] = get_tool_options(assay)
