@@ -153,7 +153,8 @@ rule geo_upload_instructions:
 
 rule move_to_upload:
     input:
-        infiles = get_symlinked_files
+        infiles = get_symlinked_files,
+        validated="seqnado_output/geo_submission/.validated",
     output:
         outdir = directory(f"seqnado_output/geo_submission/{ASSAY}")
     shell:
