@@ -40,11 +40,12 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
     return [*fastqs, *processed_files]
 
 
+
 rule geo_symlink:
     input:
         files=get_files_for_symlink,
     output:
-        files=get_symlinked_files(),
+        files=temp(get_symlinked_files()),
     params:
         output=OUTPUT,
     container: None
@@ -129,7 +130,7 @@ rule samples_table:
         
         df.to_csv(output[0], sep="\t", index=False)
 
-rule protocol:
+rule geo_protocol:
     output:
         "seqnado_output/geo_submission/protocol.txt",
     params:
@@ -137,8 +138,63 @@ rule protocol:
     script:
         "../scripts/produce_data_processing_protocol.py"
 
+rule geo_upload_instructions:
+    output:
+        instructions="seqnado_output/geo_submission/upload_instructions.txt",
+    container: None
+    run:
+        import importlib.resources
+        import seqnado.data
+
+        source = importlib.resources.files(seqnado.data) / 'geo_upload_instructions.txt'
+        with open(source, 'r') as f:
+            with open(output.instructions, 'w') as f_out:
+                f_out.write(f.read())
+
+rule move_to_upload:
+    input:
+        infiles = get_symlinked_files,
+        validated="seqnado_output/geo_submission/.validated",
+    output:
+        outdir = directory(f"seqnado_output/geo_submission/{ASSAY}")
+    shell:
+        """
+        mkdir -p {output.outdir}
+        for f in {input.infiles}
+        do
+            cp $f {output.outdir}
+        done
+        """
+
+rule remove_headers_for_security:
+    input:
+        infiles = get_symlinked_files
+    output:
+        validated="seqnado_output/geo_submission/.validated",
+    container: None
+    run:
+        import pathlib
+
+        for fn in input.infiles:
+            path = pathlib.Path(fn)
+            if path.suffix == '.tsv':
+                dest = path.with_suffix('.no_headers.tsv')
+                
+                with open(path, 'r') as f:
+                    with open(dest, 'w') as f_out:
+                        for line in f:
+                            if line.startswith('#'):
+                                continue
+                            
+                            f_out.write(line)
+                path.unlink()
+                dest.rename(path)
+        
+        pathlib.Path("seqnado_output/geo_submission/.validated").touch()
+
+
+
 localrules:
     geo_symlink,
-    md5sum,
     geo_md5_table,
     samples_table
