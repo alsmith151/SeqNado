@@ -255,28 +255,28 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
 
 
 @pytest.fixture(scope="function")
-def user_inputs(assay):
+def user_inputs(test_data_path, assay, assay_type, plot_bed):
     prompts = {
-        "Calculate library complexity?": 'no',
+        "Calculate library complexity?": 'yes' if assay == 'atac' else 'no',
         "Call peaks?": 'yes',
         "Call SNPs?": 'no',
         "Color by (for UCSC hub):": "samplename",
         "Duplicates removal method:": "picard",
         "Fastqscreen config path:": "/dummy/fastqscreen.conf",
-        "Generate consensus counts from Design merge column? (yes/no)": 'no',
-        "Generate GEO submission files?": 'no',
+        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'atac' else 'no',
+        "Generate GEO submission files?": 'yes' if assay in ['chip', 'rna'] else 'no',
         "Genome?": "hg38",
-        "Make heatmaps?": 'no',
-        "Make pileups?": 'no',
-        "Make UCSC hub?": 'no',
-        "Path to bed file with coordinates for plotting": '',
+        "Make heatmaps?": 'yes' if assay == 'atac' else 'no',
+        "Make pileups?": 'yes',
+        "Make UCSC hub?": 'yes',
+        "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else '',
         "Path to bed file with genes.": '',
         "Path to reference fasta index:": "dummy_ref.fasta.fai",
         "Path to reference fasta:": "dummy_ref.fasta",
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": 'no',
-        "Perform plotting?": 'no',
+        "Perform plotting?": "yes" if not assay == "snp" else "no",
         "Pileup method:": "deeptools",
         "Project name?": "test",
         "Quantification method:": "feature_counts",  # default RNA response
@@ -300,11 +300,16 @@ def config_yaml(run_directory, assay_type, monkeypatch, user_inputs):
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    child = pexpect.spawn(f"seqnado-config {assay_type}", encoding='utf-8', cwd=run_directory)
+    child = pexpect.spawn("seqnado-config", args=[assay_type], encoding='utf-8', cwd=run_directory)
+    child.logfile = sys.stdout
+
+    input_keys, input_values = list(user_inputs.keys()), list(user_inputs.values())
+
     while True:
         try:
-            index = child.expect_exact(user_inputs.keys())
-            child.sendline(list(user_inputs.values())[index])
+            index = child.expect_exact(input_keys)
+            value = input_values[index]
+            child.sendline(value)
         except pexpect.EOF:
             break
 
@@ -313,6 +318,7 @@ def config_yaml(run_directory, assay_type, monkeypatch, user_inputs):
         run_directory / f"{date}_{assay_type}_test/config_{assay_type}.yml"
     )
 
+    assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
 
 
