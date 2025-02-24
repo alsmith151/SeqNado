@@ -48,7 +48,7 @@ write_to = "seqnado/_version.py"
 local_scheme = "no-local-version"
 
 [tool.setuptools]
-packages = { find = { where = ".", exclude = ["containers"] } }
+packages = ["seqnado"]
 
 [project.urls]
 Homepage = "https://github.com/alsmith151/seqnado"
