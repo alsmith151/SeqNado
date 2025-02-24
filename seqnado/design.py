@@ -473,6 +473,7 @@ class Design(BaseModel):
         for sample_row in self.to_dataframe().itertuples():
             if assay != "RNA":
                 processed_data_file = [f"{sample_row.sample_name}.bw"]
+            
             else:
                 processed_data_file = [
                     "read_counts.tsv",
@@ -724,6 +725,51 @@ class DesignIP(BaseModel):
         df = pd.DataFrame(data).sort_values("sample_name")
 
         return DataFrameDesignIP.validate(df)
+    
+
+    def to_geo_dataframe(
+        self, assay: Literal["ChIP", "CAT"], pipeline_config: dict
+    ) -> pd.DataFrame:
+        """
+        Create a pandas DataFrame with the GEO metadata.
+        """
+        geo_samples = []
+        for sample_row in self.to_dataframe().itertuples():
+            for ip_type in ["ip", "control"]:
+                processed_data_file = [f"{sample_row.sample_name}_{getattr(sample_row, ip_type)}.bigWig"]
+
+                raw_files = [
+                    pathlib.Path(getattr(sample_row, f"{ip_type}_r1")).name,
+                    pathlib.Path(getattr(sample_row, f"{ip_type}_r2")).name,
+                ]
+
+                sample = GEOSample(
+                    assay=assay,
+                    library_name=f"{sample_row.sample_name}",
+                    title=f"{sample_row.sample_name}",
+                    organism=predict_organism(pipeline_config["genome"]["name"]),
+                    cell_line=None,
+                    cell_type=None,
+                    antibody=None,
+                    genotype=None,
+                    treatment=sample_row.treatment
+                    if hasattr(sample_row, "treatment")
+                    else None,
+                    time=sample_row.time if hasattr(sample_row, "time") else None,
+                    single_or_paired="paired-end" if sample_row.r2 else "single",
+                    instrument_model=pipeline_config.get(
+                        "instrument_model", "Illumina NovaSeq X"
+                    ),
+                    description=None,
+                    processed_data_file=processed_data_file,
+                    raw_file=raw_files,
+                )
+
+                geo_samples.append(sample)
+
+        df_samples = GEOSamples(samples=geo_samples).to_dataframe()
+        return df_samples
+
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame, **kwargs):
@@ -801,6 +847,7 @@ class DesignIP(BaseModel):
             if experiment.control:
                 paths.extend(experiment.control.fastq_paths)
         return paths
+    
 
 
 class NormGroup(BaseModel):
