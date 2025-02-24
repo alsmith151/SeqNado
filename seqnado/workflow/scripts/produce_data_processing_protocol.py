@@ -80,7 +80,7 @@ if assay == 'RNA':
     content += f"""Alignments were quantified using featureCounts v{featureCounts_version()} with the following parameters: {config['featurecounts']['options']}"""
 
 
-if assay in ['ChIP', 'ATAC', 'CUT&TAG']:
+if assay in ['ChIP', 'ATAC', 'CUT&TAG'] and config['call_peaks']:
     if "lanceotron" in  config['peak_calling_method']:
         content += f"""Peak calling was performed using lanceotron v1.2.6 with the following parameters: {config['lanceotron']['callpeak']}"""
     
