@@ -1,0 +1,41 @@
+BootStrap: docker
+From: mambaorg/micromamba:git-9051915-alpine
+
+%files
+  environment_report.yml /opt/environment_report.yml
+
+%post
+  
+  # # Pre set up
+  cd /opt/
+  apk --no-cache add curl
+
+
+  # Quarto install
+  export QUARTO_VERSION="1.2.262"
+  mkdir -p /opt/quarto/${QUARTO_VERSION}
+  curl -o quarto.tar.gz -L \
+    "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.tar.gz"
+  tar -zxvf quarto.tar.gz \
+    -C "/opt/quarto/${QUARTO_VERSION}" \
+    --strip-components=1
+  
+  ln -s /opt/quarto/${QUARTO_VERSION}/bin/quarto /usr/local/bin/quarto
+  /opt/quarto/"${QUARTO_VERSION}"/bin/quarto check
+  rm quarto.tar.gz
+
+  # Mamba packages
+  micromamba install -y -n base -f /opt/environment_report.yml
+
+  # Clean
+  micromamba clean -afy 
+  /opt/conda/bin/python -m pip cache purge
+  find /opt/conda/ -follow -type f -name '*.a' -delete
+  find /opt/conda/ -follow -type f -name '*.pyc' -delete
+  find /opt/conda/ -follow -type f -name '*.js.map' -delete
+
+
+%environment
+  export PATH=/opt/conda/bin:$PATH
+
+  
