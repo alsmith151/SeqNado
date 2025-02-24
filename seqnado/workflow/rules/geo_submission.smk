@@ -40,6 +40,7 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
     return [*fastqs, *processed_files]
 
 
+
 rule geo_symlink:
     input:
         files=get_files_for_symlink,
@@ -136,6 +137,22 @@ rule protocol:
         assay=ASSAY,
     script:
         "../scripts/produce_data_processing_protocol.py"
+
+
+rule move_to_upload:
+    input:
+        infiles = get_symlinked_files
+    output:
+        directory = f"seqnado_output/geo_submission/{ASSAY}"
+    shell:
+        """
+        mkdir -p {output.directory}
+        for f in {input.infiles}
+        do
+            cp $f {output.directory}
+        done
+        """
+
 
 localrules:
     geo_symlink,
