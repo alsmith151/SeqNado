@@ -47,5 +47,8 @@ seqnado-init = "seqnado.cli:cli_init"
 write_to = "seqnado/_version.py"
 local_scheme = "no-local-version"
 
+[tool.setuptools]
+packages = { find = { where = ".", exclude = ["containers"] } }
+
 [project.urls]
 Homepage = "https://github.com/alsmith151/seqnado"
