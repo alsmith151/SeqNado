@@ -130,7 +130,7 @@ rule samples_table:
         
         df.to_csv(output[0], sep="\t", index=False)
 
-rule protocol:
+rule geo_protocol:
     output:
         "seqnado_output/geo_submission/protocol.txt",
     params:
@@ -138,18 +138,25 @@ rule protocol:
     script:
         "../scripts/produce_data_processing_protocol.py"
 
+rule geo_upload_instructions:
+    output:
+        instructions="seqnado_output/geo_submission/upload_instructions.txt",
+    shell:
+        """
+        cp ../config/geo_upload_instructions.txt {output.instructions}
+        """
 
 rule move_to_upload:
     input:
         infiles = get_symlinked_files
     output:
-        directory = f"seqnado_output/geo_submission/{ASSAY}"
+        outdir = directory(f"seqnado_output/geo_submission/{ASSAY}")
     shell:
         """
-        mkdir -p {output.directory}
+        mkdir -p {output.outdir}
         for f in {input.infiles}
         do
-            cp $f {output.directory}
+            cp $f {output.outdir}
         done
         """
 
