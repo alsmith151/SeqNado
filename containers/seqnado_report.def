@@ -16,15 +16,17 @@ From: mambaorg/micromamba:ubuntu
   micromamba install -y -n base -f /opt/environment_report.yml
   
   # System cleanup
-  rm -rf /var/cache/apk/* /tmp/* /root/.cache
-
+  micromamba clean -afy
+  
   # Conda environment cleanup
   micromamba clean -afy 
   /opt/conda/bin/python -m pip cache purge
   find /opt/conda/ -follow -type f -name '*.a' -delete
   find /opt/conda/ -follow -type f -name '*.pyc' -delete
   find /opt/conda/ -follow -type f -name '*.js.map' -delete
-  apk del curl dpkg wget
+  apt-get autoremove -y
+  apt-get clean -y
+  apt-get uninstall -y dpkg wget curl
 
 
 %environment
