@@ -89,33 +89,37 @@ class WorkflowConfig(BaseModel):
         return v
 
 # Helper Functions
-
 def get_user_input(
     prompt: str,
     default: Optional[str] = None,
     is_boolean: bool = False,
     choices: Optional[List[str]] = None,
+    is_path: bool = False,
 ) -> str:
     """
-    Prompt the user for input while validating against allowed choices or boolean values.
+    Prompt the user for input with validation for choices, boolean values, or path existence.
     Re-prompts until valid input is provided.
     """
     while True:
+        # Construct the prompt suffix based on choices or default
         if choices:
             prompt_suffix = f"({'/'.join(choices)})"
         elif default is not None:
             prompt_suffix = f"(default: {default})"
         else:
             prompt_suffix = ""
+        
         user_input = input(f"{prompt} {prompt_suffix}: ").strip()
 
-        if user_input == "":
+        # Handle empty input and apply default if available
+        if not user_input:
             if default is not None:
                 user_input = default
             else:
                 print("Input cannot be empty. Please try again.")
                 continue
 
+        # Validate boolean input
         if is_boolean:
             if user_input.lower() in {"yes", "y", "true", "1"}:
                 return True
@@ -125,8 +129,14 @@ def get_user_input(
                 print("Invalid boolean value. Please enter yes/no, y/n, true/false, or 1/0.")
                 continue
 
+        # Validate against allowed choices
         if choices and user_input not in choices:
             print(f"Invalid choice. Please choose from: {', '.join(choices)}")
+            continue
+
+        # Validate path existence if required
+        if is_path and not os.path.exists(user_input):
+            print(f"The path '{user_input}' does not exist. Please try again.")
             continue
 
         return user_input
@@ -189,7 +199,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     # Fastq Screen
     features["fastq_screen"] = get_user_input("Perform fastqscreen?", default="no", is_boolean=True)
     if features["fastq_screen"]:
-        features["fastq_screen_config"] = get_user_input("Fastqscreen config path:", default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf")
+        features["fastq_screen_config"] = get_user_input("Fastqscreen config path:", default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf", is_path=True)
     
     # Blacklist Handling
     features["remove_blacklist"] = get_user_input("Remove blacklist regions?", default="yes", is_boolean=True)
@@ -239,9 +249,9 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
         features["call_snps"] = get_user_input("Call SNPs?", default="no", is_boolean=True)
         if features["call_snps"]:
             features["snp_calling_method"] = get_user_input("SNP caller:", choices=["bcftools", "deepvariant"], default="bcftools")
-            features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta")
-            features["fasta_index"] = get_user_input("Path to reference fasta index:", default="path/to/reference.fasta.fai")
-            features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database")
+            features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=True)
+            features["fasta_index"] = get_user_input("Path to reference fasta index:", default="path/to/reference.fasta.fai", is_path=True)
+            features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database", is_path=True)
     
     # GEO Submission
     features["geo_submission_files"] = get_user_input("Generate GEO submission files?", default="no", is_boolean=True)
