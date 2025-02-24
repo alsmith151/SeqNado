@@ -144,6 +144,8 @@ rule geo_upload_instructions:
     container: None
     run:
         import importlib.resources
+        import seqnado.data
+
         source = importlib.resources.files(seqnado.data) / 'geo_upload_instructions.txt'
         with open(source, 'r') as f:
             with open(output.instructions, 'w') as f_out:
