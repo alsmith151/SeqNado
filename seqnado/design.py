@@ -988,7 +988,7 @@ def generate_fastq_raw_names(
 
 
 class GEOFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CAT']
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
@@ -1008,6 +1008,10 @@ class GEOFiles(BaseModel):
             "seqnado_output/geo_submission/samples_table.txt",
             "seqnado_output/geo_submission/protocol.txt",
         ]
+    
+    @property
+    def upload_directory(self):
+        return pathlib.Path("seqnado_output/geo_submission") / self.assay
 
     @property
     def processed_data_files(self) -> pd.DataFrame:
@@ -1078,23 +1082,35 @@ class GEOFiles(BaseModel):
     @property
     def raw_files(self) -> Dict[str, List[str]]:
         fastq = dict()
-
         for row in self.design.itertuples():
-            sample_name = (
-                row.sample_name
-                if self.assay not in ["ChIP", "CUT&TAG"]
-                else f"{row.sample_name}_{row.ip}"
-            )
+            if not self.assay in ["ChIP", "CUT&TAG"]:
+                sample_name = (
+                    row.sample_name
+                    # if self.assay not in ["ChIP", "CUT&TAG"]
+                    # else f"{row.sample_name}_{row.ip}"
+                )
 
-            is_paired = False
-            if hasattr(row, "r2") and row.r2:
-                is_paired = True
-            elif hasattr(row, "ip_r2") and row.ip_r2:
-                is_paired = True
+                is_paired = False
+                if hasattr(row, "r2") and row.r2:
+                    is_paired = True
+                # elif hasattr(row, "ip_r2") and row.ip_r2:
+                #     is_paired = True
 
-            fqs = generate_fastq_raw_names(sample_name, is_paired)
-            fastq.update(fqs)
+                fqs = generate_fastq_raw_names(sample_name, is_paired)
+                fastq.update(fqs)
+            
+            else:
+                has_control = hasattr(row, "control") and row.control
+                sample_name = f"{row.sample_name}_{row.ip}"
+                is_paired = hasattr(row, "ip_r2") and row.ip_r2
+                fqs = generate_fastq_raw_names(sample_name, is_paired)
+                fastq.update(fqs)
 
+                if has_control:
+                    control_name = f"{row.sample_name}_{row.control}"
+                    is_paired = hasattr(row, "control_r2") and row.control_r2
+                    fqs = generate_fastq_raw_names(control_name, is_paired)
+                    fastq.update(fqs)
         return fastq
 
     @property
