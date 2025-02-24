@@ -115,6 +115,13 @@ def chromsizes(genome_path):
         with open(genome_path / suffix, "wb") as f:
             f.write(r.content)
 
+            # Add the dm6 chromsizes file to the genome path
+            url = "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
+            r = requests.get(url, stream=True)
+            
+            for line in r.iter_lines():
+                f.write(b'dm6_' + line + b"\n")
+                
     return genome_path / suffix
 
 
