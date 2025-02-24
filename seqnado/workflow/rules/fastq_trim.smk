@@ -9,7 +9,7 @@ rule trimgalore_paired:
     output:
         trimmed1=temp("seqnado_output/trimmed/{sample}_1.fastq.gz"),
         trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
-    threads: 4
+    threads: config["trim_galore"]["threads"]
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -32,7 +32,7 @@ rule trimgalore_single:
         fq="seqnado_output/fastqs/{sample}.fastq.gz",
     output:
         trimmed=temp("seqnado_output/trimmed/{sample}.fastq.gz"),
-    threads: 4
+    threads: config["trim_galore"]["threads"]
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
