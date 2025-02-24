@@ -1228,7 +1228,7 @@ class GEOFiles(BaseModel):
 
     @property
     def files(self) -> List[str]:
-        return [*self.md5sums, self.upload_directory, self.upload_instructions]
+        return [*self.md5sums, self.upload_directory, self.upload_instructions, 'seqnado_output/geo_submission/.validated']
 
 
 class QCFiles(BaseModel):
