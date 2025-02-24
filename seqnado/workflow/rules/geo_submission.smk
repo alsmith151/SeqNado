@@ -141,10 +141,13 @@ rule geo_protocol:
 rule geo_upload_instructions:
     output:
         instructions="seqnado_output/geo_submission/upload_instructions.txt",
-    shell:
-        """
-        cp ../config/geo_upload_instructions.txt {output.instructions}
-        """
+    container: None
+    run:
+        import importlib.resources
+        source = importlib.resources.files(seqnado.data) / 'geo_upload_instructions.txt'
+        with open(source, 'r') as f:
+            with open(output.instructions, 'w') as f_out:
+                f_out.write(f.read())
 
 rule move_to_upload:
     input:
