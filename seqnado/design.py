@@ -750,7 +750,7 @@ class DesignIP(BaseModel):
                     organism=predict_organism(pipeline_config["genome"]["name"]),
                     cell_line=None,
                     cell_type=None,
-                    antibody=None,
+                    antibody=getattr(sample_row, ip_type),
                     genotype=None,
                     treatment=sample_row.treatment
                     if hasattr(sample_row, "treatment")
