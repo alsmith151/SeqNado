@@ -1164,6 +1164,7 @@ class GEOFiles(BaseModel):
                 library_name = sample_name
                 title = sample_name
                 is_paired_end = hasattr(sample_row, "ip_r2") and sample_row.ip_r2
+                antibody = sample_row.ip
 
                 geo_sample = GEOSample(
                     assay=self.assay,
