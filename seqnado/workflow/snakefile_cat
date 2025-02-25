@@ -48,7 +48,7 @@ CONTROL = DESIGN.controls_performed
 
 
 # Define output files
-OUTPUT = ChIPOutput(
+OUTPUT = IPOutput(
     assay=ASSAY,
     config=config,
     run_design=DESIGN,
