@@ -1708,8 +1708,8 @@ class ATACOutput(NonRNAOutput):
     assay: Literal["ATAC"]
 
 
-class ChIPOutput(NonRNAOutput):
-    assay: Literal["ChIP"]
+class IPOutput(NonRNAOutput):
+    assay: Literal["ChIP", 'CUT&TAG']
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
