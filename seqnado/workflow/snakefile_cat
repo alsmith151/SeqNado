@@ -15,9 +15,9 @@ from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_m
 # Hardcoded config #
 ####################
 
-ASSAY = "ChIP"
+ASSAY = "CUT&TAG"
 SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
-configfile: "config_chip.yml"
+configfile: "config_cat.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
 ####################
