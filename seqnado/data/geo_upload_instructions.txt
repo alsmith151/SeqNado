@@ -1,0 +1,19 @@
+Log in to https://www.ncbi.nlm.nih.gov/geo/info/submissionftp.html
+ftp personalised space from step 1 and password from step 2f 
+Transfer data to GEO:
+cd seqnado_output/geo_submission
+screen -S geo
+
+sftp geoftp@sftp-private.ncbi.nlm.nih.gov
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+geoftp@sftp-private.ncbi.nlm.nih.gov's password: <from geo>
+Connected to sftp-private.ncbi.nlm.nih.gov.
+sftp> cd <uploads/your personalised space> 
+sftp> mkdir new_geo_submission
+sftp> cd new_geo_submission
+sftp> put <file_name>
+
+When uploaded, cancel screen and upload metadata to geo in step 3
+Set Submission release date date at least a year from current date
+GEO approval can take a few days (within 5 business days)
+Once approved reviewer key can be requested (“reviewer access” top right of  Accession Display page)

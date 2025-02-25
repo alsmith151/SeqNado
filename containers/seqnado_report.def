@@ -1,0 +1,32 @@
+BootStrap: docker
+From: mambaorg/micromamba:ubuntu
+%files
+  environment_report.yml /opt/environment_report.yml
+
+%post
+  
+  # Quarto
+  apt-get update
+  apt-get install -y fakeroot wget curl dpkg --no-install-recommends
+  wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.6.41/quarto-1.6.41-linux-amd64.deb --no-check-certificate
+  dpkg -i quarto-1.6.41-linux-amd64.deb
+  rm quarto-1.6.41-linux-amd64.deb
+  
+  # Mamba packages
+  micromamba install -y -n base -f /opt/environment_report.yml
+  
+  # Conda environment cleanup
+  micromamba clean -afy 
+  /opt/conda/bin/python -m pip cache purge
+  find /opt/conda/ -follow -type f -name '*.a' -delete
+  find /opt/conda/ -follow -type f -name '*.pyc' -delete
+  find /opt/conda/ -follow -type f -name '*.js.map' -delete
+  apt-get autoremove -y
+  apt-get clean -y
+  apt-get remove -y wget
+
+
+%environment
+  export PATH=/opt/conda/bin:$PATH
+
+  

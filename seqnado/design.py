@@ -473,6 +473,7 @@ class Design(BaseModel):
         for sample_row in self.to_dataframe().itertuples():
             if assay != "RNA":
                 processed_data_file = [f"{sample_row.sample_name}.bw"]
+            
             else:
                 processed_data_file = [
                     "read_counts.tsv",
@@ -724,6 +725,51 @@ class DesignIP(BaseModel):
         df = pd.DataFrame(data).sort_values("sample_name")
 
         return DataFrameDesignIP.validate(df)
+    
+
+    def to_geo_dataframe(
+        self, assay: Literal["ChIP", "CAT"], pipeline_config: dict
+    ) -> pd.DataFrame:
+        """
+        Create a pandas DataFrame with the GEO metadata.
+        """
+        geo_samples = []
+        for sample_row in self.to_dataframe().itertuples():
+            for ip_type in ["ip", "control"]:
+                processed_data_file = [f"{sample_row.sample_name}_{getattr(sample_row, ip_type)}.bigWig"]
+
+                raw_files = [
+                    pathlib.Path(getattr(sample_row, f"{ip_type}_r1")).name,
+                    pathlib.Path(getattr(sample_row, f"{ip_type}_r2")).name,
+                ]
+
+                sample = GEOSample(
+                    assay=assay,
+                    library_name=f"{sample_row.sample_name}",
+                    title=f"{sample_row.sample_name}",
+                    organism=predict_organism(pipeline_config["genome"]["name"]),
+                    cell_line=None,
+                    cell_type=None,
+                    antibody=getattr(sample_row, ip_type),
+                    genotype=None,
+                    treatment=sample_row.treatment
+                    if hasattr(sample_row, "treatment")
+                    else None,
+                    time=sample_row.time if hasattr(sample_row, "time") else None,
+                    single_or_paired="paired-end" if sample_row.r2 else "single",
+                    instrument_model=pipeline_config.get(
+                        "instrument_model", "Illumina NovaSeq X"
+                    ),
+                    description=None,
+                    processed_data_file=processed_data_file,
+                    raw_file=raw_files,
+                )
+
+                geo_samples.append(sample)
+
+        df_samples = GEOSamples(samples=geo_samples).to_dataframe()
+        return df_samples
+
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame, **kwargs):
@@ -801,6 +847,7 @@ class DesignIP(BaseModel):
             if experiment.control:
                 paths.extend(experiment.control.fastq_paths)
         return paths
+    
 
 
 class NormGroup(BaseModel):
@@ -941,7 +988,7 @@ def generate_fastq_raw_names(
 
 
 class GEOFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CAT']
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
@@ -961,6 +1008,14 @@ class GEOFiles(BaseModel):
             "seqnado_output/geo_submission/samples_table.txt",
             "seqnado_output/geo_submission/protocol.txt",
         ]
+    
+    @property
+    def upload_directory(self):
+        return pathlib.Path("seqnado_output/geo_submission") / self.assay
+    
+    @property
+    def upload_instructions(self):
+        return pathlib.Path("seqnado_output/geo_submission") / "upload_instructions.txt"
 
     @property
     def processed_data_files(self) -> pd.DataFrame:
@@ -1031,23 +1086,35 @@ class GEOFiles(BaseModel):
     @property
     def raw_files(self) -> Dict[str, List[str]]:
         fastq = dict()
-
         for row in self.design.itertuples():
-            sample_name = (
-                row.sample_name
-                if self.assay not in ["ChIP", "CUT&TAG"]
-                else f"{row.sample_name}_{row.ip}"
-            )
+            if not self.assay in ["ChIP", "CUT&TAG"]:
+                sample_name = (
+                    row.sample_name
+                    # if self.assay not in ["ChIP", "CUT&TAG"]
+                    # else f"{row.sample_name}_{row.ip}"
+                )
 
-            is_paired = False
-            if hasattr(row, "r2") and row.r2:
-                is_paired = True
-            elif hasattr(row, "ip_r2") and row.ip_r2:
-                is_paired = True
+                is_paired = False
+                if hasattr(row, "r2") and row.r2:
+                    is_paired = True
+                # elif hasattr(row, "ip_r2") and row.ip_r2:
+                #     is_paired = True
 
-            fqs = generate_fastq_raw_names(sample_name, is_paired)
-            fastq.update(fqs)
+                fqs = generate_fastq_raw_names(sample_name, is_paired)
+                fastq.update(fqs)
+            
+            else:
+                has_control = hasattr(row, "control") and row.control
+                sample_name = f"{row.sample_name}_{row.ip}"
+                is_paired = hasattr(row, "ip_r2") and row.ip_r2
+                fqs = generate_fastq_raw_names(sample_name, is_paired)
+                fastq.update(fqs)
 
+                if has_control:
+                    control_name = f"{row.sample_name}_{row.control}"
+                    is_paired = hasattr(row, "control_r2") and row.control_r2
+                    fqs = generate_fastq_raw_names(control_name, is_paired)
+                    fastq.update(fqs)
         return fastq
 
     @property
@@ -1061,49 +1128,107 @@ class GEOFiles(BaseModel):
         instrument_model = self.config.get("instrument_model", "Illumina NovaSeq X")
 
         for sample_row in self.design.itertuples():
-            library_name = (
-                sample_row.sample_name
-                if not self.assay in ["ChIP", "CUT&TAG"]
-                else f"{sample_row.sample_name}_{sample_row.ip}"
-            )
-            title = (
-                sample_row.sample_name
-                if not self.assay in ["ChIP", "CUT&TAG"]
-                else f"{sample_row.sample_name} {sample_row.ip}"
-            )
-            antibody = sample_row.ip if self.assay in ["ChIP", "CUT&TAG"] else None
-            is_paired_end = hasattr(sample_row, "r2") or hasattr(sample_row, "ip_r2")
+            if self.assay not in ["ChIP", "CUT&TAG"]:
+                sample_name = sample_row.sample_name
+                library_name = sample_name
+                title = sample_name
+                antibody = None
+                is_paired_end = hasattr(sample_row, "r2")
 
-            geo_sample = GEOSample(
-                assay=self.assay,
-                library_name=library_name,
-                title=title,
-                organism=organism,
-                cell_line=None,
-                cell_type=None,
-                antibody=antibody,
-                genotype=None,
-                treatment=sample_row.treatment
-                if hasattr(sample_row, "treatment")
-                else None,
-                time=sample_row.time if hasattr(sample_row, "time") else None,
-                single_or_paired="paired-end" if is_paired_end else "single",
-                instrument_model=instrument_model,
-                description=None,
-                raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
-                processed_data_file=[
-                    str(p) for p in self.processed_data_per_sample.get(library_name, [])
-                ],
-            )
+                geo_sample = GEOSample(
+                    assay=self.assay,
+                    library_name=library_name,
+                    title=title,
+                    organism=organism,
+                    cell_line=None,
+                    cell_type=None,
+                    antibody=antibody,
+                    genotype=None,
+                    treatment=sample_row.treatment
+                    if hasattr(sample_row, "treatment")
+                    else None,
+                    time=sample_row.time if hasattr(sample_row, "time") else None,
+                    single_or_paired="paired-end" if is_paired_end else "single",
+                    instrument_model=instrument_model,
+                    description=None,
+                    raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                    processed_data_file=[
+                        str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                    ],
+                )
 
-            geo_samples.append(geo_sample)
+                geo_samples.append(geo_sample)
+
+            elif self.assay in ["ChIP", "CUT&TAG"] and not sample_row.control:
+                sample_name = f"{sample_row.sample_name}_{sample_row.ip}"
+                library_name = sample_name
+                title = sample_name
+                is_paired_end = hasattr(sample_row, "ip_r2") and sample_row.ip_r2
+
+                geo_sample = GEOSample(
+                    assay=self.assay,
+                    library_name=library_name,
+                    title=title,
+                    organism=organism,
+                    cell_line=None,
+                    cell_type=None,
+                    antibody=antibody,
+                    genotype=None,
+                    treatment=sample_row.treatment
+                    if hasattr(sample_row, "treatment")
+                    else None,
+                    time=sample_row.time if hasattr(sample_row, "time") else None,
+                    single_or_paired="paired-end" if is_paired_end else "single",
+                    instrument_model=instrument_model,
+                    description=None,
+                    raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                    processed_data_file=[
+                        str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                    ],
+                )
+
+                geo_samples.append(geo_sample)
+
+            elif self.assay in ["ChIP", "CUT&TAG"] and sample_row.control:
+                for ip_type in ["ip", "control"]:
+                    sample_name = f"{sample_row.sample_name}_{getattr(sample_row, ip_type)}"
+                    library_name = sample_name
+                    title = sample_name
+                    antibody = getattr(sample_row, ip_type)
+                    is_paired_end = hasattr(sample_row, f"{ip_type}_r2") and getattr(
+                        sample_row, f"{ip_type}_r2"
+                    )
+
+                    geo_sample = GEOSample(
+                        assay=self.assay,
+                        library_name=library_name,
+                        title=title,
+                        organism=organism,
+                        cell_line=None,
+                        cell_type=None,
+                        antibody=antibody,
+                        genotype=None,
+                        treatment=sample_row.treatment
+                        if hasattr(sample_row, "treatment")
+                        else None,
+                        time=sample_row.time if hasattr(sample_row, "time") else None,
+                        single_or_paired="paired-end" if is_paired_end else "single",
+                        instrument_model=instrument_model,
+                        description=None,
+                        raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                        processed_data_file=[
+                            str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                        ],
+                    )
+
+                    geo_samples.append(geo_sample)
 
         df_samples = GEOSamples(samples=geo_samples).to_dataframe()
         return df_samples
 
     @property
     def files(self) -> List[str]:
-        return [*self.md5sums]
+        return [*self.md5sums, self.upload_directory, self.upload_instructions, 'seqnado_output/geo_submission/.validated']
 
 
 class QCFiles(BaseModel):
