@@ -295,6 +295,11 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "SNP caller:": "bcftools",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
+        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'chip-rx',
+        "Do you have spikein? (yes/no)": 'yes' if 'rx' in assay else 'no',
+        "Normalisation method:": 'orlando',
+        "Reference genome:": "hg38",
+        "Spikein genome:": "dm6",
     }
 
     return prompts
