@@ -1334,7 +1334,7 @@ class BigWigFiles(BaseModel):
 
 
 class PeakCallingFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", 'CUT&TAG']
     names: List[str]
     peak_calling_method: Union[
         Literal["macs", "homer", "lanceotron", "seacr", False],
@@ -1361,7 +1361,7 @@ class PeakCallingFiles(BaseModel):
 
 
 class HeatmapFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", "CUT&TAG"]
     make_heatmaps: bool = False
     make_heatmaps: bool = False
 
@@ -1409,7 +1409,7 @@ class HubFiles(BaseModel):
 
 
 class SpikeInFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", 'CUT&TAG']
     sample_names: List[str]
     chip_spikein_normalisation: bool = False
 
@@ -1455,7 +1455,7 @@ class PlotFiles(BaseModel):
 
 
 class Output(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CUT&TAG']
     config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
@@ -1621,7 +1621,7 @@ class RNAOutput(Output):
 
 
 class NonRNAOutput(Output):
-    assay: Union[Literal["ChIP"], Literal["ATAC"]]
+    assay: Literal["ChIP", "ATAC", 'CUT&TAG']
     consensus_counts: bool = False
     call_peaks: bool = False
     peak_calling_method: Optional[
