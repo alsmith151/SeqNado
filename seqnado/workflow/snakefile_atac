@@ -90,7 +90,13 @@ onerror:
     print(
         f"An error occurred. Please check the log file {log_out} for more information."
     )
-    remove_unwanted_run_files()
 
-    if config['ucsc_hub_details'].get('email', None) and subprocess.run(["which", 'sbatch']).returncode == 0:
-        run_batch_job_on_error(config['ucsc_hub_details']['email'])
+    # # Check we can send an error email
+    # can_email = subprocess.run(["which", 'sbatch'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    # can_email = can_email and config['ucsc_hub_details'].get('email', None)
+
+    # if can_email:
+    #     run_batch_job_on_error(config['ucsc_hub_details']['email'])
+    
+    
+    remove_unwanted_run_files()
