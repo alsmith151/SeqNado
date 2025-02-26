@@ -211,9 +211,27 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
         features["remove_pcr_duplicates_method"] = get_user_input("Duplicates removal method:", choices=["picard", "samtools"], default="picard")
         features["library_complexity"] = get_user_input("Calculate library complexity?", default="no", is_boolean=True)
     
-    # Assay-Specific Logic
+    # ATAC-Specific Logic
     if assay == "atac":
         features["shift_atac_reads"] = get_user_input("Shift ATAC reads?", default="yes", is_boolean=True)
+    
+    # Spike-in Normalisation
+    if assay in ["chip", "rna", 'cat']:
+        features["spikein"] = get_user_input(
+            "Do you have spikein? (yes/no)", default="no", is_boolean=True
+        )
+        if features["spikein"] and not assay == "rna":
+            features["normalisation_method"] = get_user_input(
+                "Normalisation method:",
+                default="orlando",
+                choices=["orlando", "with_input"],
+            )
+            features["reference_genome"] = get_user_input(
+                "Reference genome:", default="hg38"
+            )
+            features["spikein_genome"] = get_user_input(
+                "Spikein genome:", default="dm6"
+            )
     
     # RNA-Specific Features
     if assay == "rna":
@@ -252,6 +270,14 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
             features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=True)
             features["fasta_index"] = get_user_input("Path to reference fasta index:", default="path/to/reference.fasta.fai", is_path=True)
             features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database", is_path=True)
+    
+    # Consensus Counts
+    if not assay == 'rna':
+        features["consenus_counts"] = get_user_input(
+            "Generate consensus counts from Design merge column? (yes/no)",
+            default="no",
+            is_boolean=True,
+        )
     
     # GEO Submission
     features["geo_submission_files"] = get_user_input("Generate GEO submission files?", default="no", is_boolean=True)
