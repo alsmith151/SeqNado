@@ -23,7 +23,7 @@ df = pd.DataFrame(
 # Use the TrackFiles class to deduplicate files and add metadata
 df = tracknado.TrackFiles(files=df, deduplicate=True).files
 
-if snakemake.params.assay == "ChIP":
+if snakemake.params.assay in ["ChIP", 'CUT&TAG']:
     df[["samplename", "antibody"]] = df["fn"].str.extract(
         r".*/(.*)_(.*)\.(?:bigBed|bigWig)"
     )
