@@ -92,7 +92,8 @@ def cli_config(method, rerun=False):
 @click.argument("method", type=click.Choice(ASSAYS))
 @click.argument("files", nargs=-1)
 @click.option("-o", "--output", default="design.csv", help="Output file name")
-def cli_design(method, files, output="design.csv"):
+@click.option("--merge", is_flag=True, help="Generate a 'merge' column in the design file")
+def cli_design(method, files, output="design.csv", merge=False):
     """
     Generates a SeqNado design file from a list of files.
     """
@@ -134,6 +135,12 @@ def cli_design(method, files, output="design.csv"):
         .assign(scale_group="all")
         .sort_values("sample_name")
     )
+
+    if merge:
+        if 'antibody' in df.columns:
+            df['merge'] = df['antibody']
+        else:
+            df['merge'] = 'consensus'
 
     df.to_csv(output, index=False)
     logger.info(f"Design file saved to {output}")
