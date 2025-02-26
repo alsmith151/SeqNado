@@ -8,16 +8,16 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import DesignIP, ChIPOutput, NormGroups
+from seqnado.design import DesignIP, IPOutput, NormGroups
 from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_method, remove_unwanted_run_files
 
 ####################
 # Hardcoded config #
 ####################
 
-ASSAY = "ChIP"
+ASSAY = "CUT&TAG"
 SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
-configfile: "config_chip.yml"
+configfile: "config_cat.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
 ####################
@@ -48,7 +48,7 @@ CONTROL = DESIGN.controls_performed
 
 
 # Define output files
-OUTPUT = ChIPOutput(
+OUTPUT = IPOutput(
     assay=ASSAY,
     config=config,
     run_design=DESIGN,

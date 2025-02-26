@@ -988,7 +988,7 @@ def generate_fastq_raw_names(
 
 
 class GEOFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CAT']
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CUT&TAG']
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
@@ -1011,7 +1011,7 @@ class GEOFiles(BaseModel):
     
     @property
     def upload_directory(self):
-        return pathlib.Path("seqnado_output/geo_submission") / self.assay
+        return pathlib.Path("seqnado_output/geo_submission") / self.assay.replace('&', '_and_') # Fix for CUT&TAG
     
     @property
     def upload_instructions(self):
@@ -1267,7 +1267,7 @@ class QCFiles(BaseModel):
 
 
 class BigWigFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
     names: List[str]
     pileup_method: Union[
         Literal["deeptools", "homer", False],
@@ -1335,7 +1335,7 @@ class BigWigFiles(BaseModel):
 
 
 class PeakCallingFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", 'CUT&TAG']
     names: List[str]
     peak_calling_method: Union[
         Literal["macs", "homer", "lanceotron", "seacr", False],
@@ -1362,7 +1362,7 @@ class PeakCallingFiles(BaseModel):
 
 
 class HeatmapFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", "CUT&TAG"]
     make_heatmaps: bool = False
     make_heatmaps: bool = False
 
@@ -1410,7 +1410,7 @@ class HubFiles(BaseModel):
 
 
 class SpikeInFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", 'CUT&TAG']
     sample_names: List[str]
     chip_spikein_normalisation: bool = False
 
@@ -1456,7 +1456,7 @@ class PlotFiles(BaseModel):
 
 
 class Output(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CUT&TAG']
     config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
@@ -1622,7 +1622,7 @@ class RNAOutput(Output):
 
 
 class NonRNAOutput(Output):
-    assay: Union[Literal["ChIP"], Literal["ATAC"]]
+    assay: Literal["ChIP", "ATAC", 'CUT&TAG']
     consensus_counts: bool = False
     call_peaks: bool = False
     peak_calling_method: Optional[
@@ -1709,8 +1709,8 @@ class ATACOutput(NonRNAOutput):
     assay: Literal["ATAC"]
 
 
-class ChIPOutput(NonRNAOutput):
-    assay: Literal["ChIP"]
+class IPOutput(NonRNAOutput):
+    assay: Literal["ChIP", 'CUT&TAG']
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
