@@ -1011,7 +1011,7 @@ class GEOFiles(BaseModel):
     
     @property
     def upload_directory(self):
-        return pathlib.Path("seqnado_output/geo_submission") / self.assay
+        return pathlib.Path("seqnado_output/geo_submission") / self.assay.replace('&', '_and_') # Fix for CUT&TAG
     
     @property
     def upload_instructions(self):
