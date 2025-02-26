@@ -377,7 +377,7 @@ seacr:
     stringency: stringent
 
 heatmap:
-    options: -b 1000 -m 5000 -a 1000
+    options: -b 1000 -m 5000 -a 1000 --binSize 50
     colormap: RdYlBu_r 
 
 featurecounts:
@@ -421,7 +421,7 @@ deeptools:
     bamcoverage: -bs 1 --normalizeUsing CPM
 
 heatmap:
-    options: -b 1000 -m 5000 -a 1000
+    options: -b 1000 -m 5000 -a 1000 --binSize 50
     colormap: RdYlBu_r 
 """
 
