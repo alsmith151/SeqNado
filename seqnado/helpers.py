@@ -160,18 +160,18 @@ def symlink_fastq_files(
                     symlink_file(
                         output_dir,
                         experiment.control.r1.path,
-                        f"{experiment.control.r1.sample_base_without_ip}_{experiment.control_performed}_1.fastq.gz",
+                        f"{experiment.control.name}_{experiment.control_performed}_1.fastq.gz",
                     )
                     symlink_file(
                         output_dir,
                         experiment.control.r2.path,
-                        f"{experiment.control.r1.sample_base_without_ip}_{experiment.control_performed}_2.fastq.gz",
+                        f"{experiment.control.name}_{experiment.control_performed}_2.fastq.gz",
                     )
                 else:
                     symlink_file(
                         output_dir,
                         experiment.control.r1.path,
-                        f"{experiment.control.r1.sample_base_without_ip}_{experiment.control_performed}.fastq.gz",
+                        f"{experiment.control.name}_{experiment.control_performed}.fastq.gz",
                     )
 
 
