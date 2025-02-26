@@ -322,3 +322,25 @@ def remove_unwanted_run_files():
             print(e)
 
 
+def run_batch_job_on_error(email: str):
+    """
+    Run a batch job with slurm to send an email on error.
+    """
+
+    import subprocess
+
+    slurm_script = f"""#!/bin/bash
+    #SBATCH --job-name=seqnado_error_notification
+    #SBATCH --mail-type=END
+    #SBATCH --mail-user={email}
+
+    echo "An error occurred in the job. Please check the logs for more details."
+    """
+
+    with open("error_notification.sh", "w") as f:
+        f.write(slurm_script)
+
+    try:
+        subprocess.run(["sbatch", "error_notification.sh"], check=True)
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to submit slurm job: {e}")
