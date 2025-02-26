@@ -136,7 +136,7 @@ def cli_design(method, files, output="design.csv", merge=False):
         .sort_values("sample_name")
     )
 
-    if merge:
+    if merge and not method == 'rna':
         if 'antibody' in df.columns:
             df['merge'] = df['antibody']
         else:
