@@ -244,13 +244,24 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     if assay in ["chip", "atac", "cat"]:
         features["call_peaks"] = get_user_input("Call peaks?", default="yes", is_boolean=True)
         if features["call_peaks"]:
-            features["peak_calling_method"] = get_user_input("Peak calling method:", choices=["lanceotron", "macs", "homer", "seacr"], default="lanceotron")
+            
+            match assay:
+                case "chip":
+                    default = "lanceotron"
+                case "atac":
+                    default = "lanceotron"
+                case "cat":
+                    default = 'seacr'
+                case _:
+                    default = "lanceotron"
+
+            features["peak_calling_method"] = get_user_input("Peak calling method:", choices=["lanceotron", "macs", "homer", "seacr"], default=default)
     
     # Pileup method
     if assay != "snp":
-        features['make_bigwigs'] = get_user_input("Make pileups?", default="no", is_boolean=True)
+        features['make_bigwigs'] = get_user_input("Make Bigwigs?", default="no", is_boolean=True)
         if features['make_bigwigs']:
-            features['pileup_method'] = get_user_input("Pileup method:", choices=["deeptools", "homer"], default="deeptools")
+            features['pileup_method'] = get_user_input("Bigwig method:", choices=["deeptools", "homer"], default="deeptools")
     
     # Heatmaps
     features["make_heatmaps"] = get_user_input("Make heatmaps?", default="no", is_boolean=True)
@@ -308,7 +319,10 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
     
     dir_name = os.getcwd() if rerun else f"{workflow_config.project_date}_{workflow_config.assay}_{workflow_config.project_name}"
     os.makedirs(dir_name, exist_ok=True)
-    
+
+    fastq_dir = pathlib.Path(dir_name) / "fastq"
+    fastq_dir.mkdir(exist_ok=True)
+
     # Render main config
     with open(f"{dir_name}/config_{assay}.yml", "w") as f:
         f.write(env.get_template("config.yaml.jinja").render(workflow_config.model_dump()))
@@ -363,7 +377,7 @@ seacr:
     stringency: stringent
 
 heatmap:
-    options: -b 1000 -m 5000 -a 1000
+    options: -b 1000 -m 5000 -a 1000 --binSize 50
     colormap: RdYlBu_r 
 
 featurecounts:
@@ -407,7 +421,7 @@ deeptools:
     bamcoverage: -bs 1 --normalizeUsing CPM
 
 heatmap:
-    options: -b 1000 -m 5000 -a 1000
+    options: -b 1000 -m 5000 -a 1000 --binSize 50
     colormap: RdYlBu_r 
 """
 

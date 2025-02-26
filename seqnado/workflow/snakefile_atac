@@ -3,13 +3,14 @@ import glob
 import os
 import shutil
 import sys
+import subprocess
 
 import pandas as pd
 from snakemake.utils import min_version
 
 
 from seqnado.design import Design, ATACOutput, NormGroups
-from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files
+from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files, run_batch_job_on_error
 
 
 ####################
@@ -89,4 +90,13 @@ onerror:
     print(
         f"An error occurred. Please check the log file {log_out} for more information."
     )
+
+    # # Check we can send an error email
+    # can_email = subprocess.run(["which", 'sbatch'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    # can_email = can_email and config['ucsc_hub_details'].get('email', None)
+
+    # if can_email:
+    #     run_batch_job_on_error(config['ucsc_hub_details']['email'])
+    
+    
     remove_unwanted_run_files()
