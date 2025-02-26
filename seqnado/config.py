@@ -308,7 +308,10 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
     
     dir_name = os.getcwd() if rerun else f"{workflow_config.project_date}_{workflow_config.assay}_{workflow_config.project_name}"
     os.makedirs(dir_name, exist_ok=True)
-    
+
+    fastq_dir = pathlib.Path(dir_name) / "fastq"
+    fastq_dir.mkdir(exist_ok=True)
+
     # Render main config
     with open(f"{dir_name}/config_{assay}.yml", "w") as f:
         f.write(env.get_template("config.yaml.jinja").render(workflow_config.model_dump()))
