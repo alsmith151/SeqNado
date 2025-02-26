@@ -244,7 +244,18 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     if assay in ["chip", "atac", "cat"]:
         features["call_peaks"] = get_user_input("Call peaks?", default="yes", is_boolean=True)
         if features["call_peaks"]:
-            features["peak_calling_method"] = get_user_input("Peak calling method:", choices=["lanceotron", "macs", "homer", "seacr"], default="lanceotron")
+            
+            match assay:
+                case "chip":
+                    default = "lanceotron"
+                case "atac":
+                    default = "lanceotron"
+                case "cat":
+                    default = 'seacr'
+                case _:
+                    default = "lanceotron"
+
+            features["peak_calling_method"] = get_user_input("Peak calling method:", choices=["lanceotron", "macs", "homer", "seacr"], default=default)
     
     # Pileup method
     if assay != "snp":
