@@ -6,7 +6,8 @@ def get_files_for_symlink(wc: Any = None) -> List[str]:
     Get all files that need to be symlinked for GEO submission
     """
     from seqnado.design import GEOFiles
-    geo_files = GEOFiles(assay=OUTPUT.assay,
+    geo_files = GEOFiles(make_geo_submission_files=True,
+                         assay=OUTPUT.assay,
                          design=OUTPUT.design_dataframe,
                          sample_names=OUTPUT.sample_names,
                          config=OUTPUT.config,
@@ -24,7 +25,8 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
     from seqnado.design import GEOFiles
     outdir = pathlib.Path("seqnado_output/geo_submission")
 
-    geo_files = GEOFiles(assay=OUTPUT.assay,
+    geo_files = GEOFiles(make_geo_submission_files=True,
+                         assay=OUTPUT.assay,
                          design=OUTPUT.design_dataframe,
                          sample_names=OUTPUT.sample_names,
                          config=OUTPUT.config,
@@ -53,7 +55,8 @@ rule geo_symlink:
         import pathlib
         from seqnado.design import GEOFiles
 
-        geo_files = GEOFiles(assay=OUTPUT.assay,
+        geo_files = GEOFiles(make_geo_submission_files=True,
+                             assay=OUTPUT.assay,
                              design=OUTPUT.design_dataframe,
                              sample_names=OUTPUT.sample_names,
                              config=OUTPUT.config,
@@ -121,7 +124,8 @@ rule samples_table:
     container: None
     run:
         from seqnado.design import GEOFiles
-        df = GEOFiles(assay=OUTPUT.assay,
+        df = GEOFiles(make_geo_submission_files=True,
+                      assay=OUTPUT.assay,
                       design=OUTPUT.design_dataframe,
                       sample_names=OUTPUT.sample_names,
                       config=OUTPUT.config,
