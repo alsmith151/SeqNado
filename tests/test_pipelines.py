@@ -274,7 +274,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "Generate GEO submission files?": 'yes' if assay in ['chip', 'rna'] else 'no',
         "Genome?": "hg38",
         "Make heatmaps?": 'yes' if assay == 'atac' else 'no',
-        "Make pileups?": 'yes',
+        "Make Bigwigs?": 'yes',
         "Make UCSC hub?": 'yes',
         "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else '',
         "Path to bed file with genes.": '',
@@ -284,7 +284,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": 'no',
         "Perform plotting?": "yes" if not assay == "snp" else "no",
-        "Pileup method:": "deeptools",
+        "Bigwig method:": "deeptools",
         "Project name?": "test",
         "Quantification method:": "feature_counts",  # default RNA response
         "Remove blacklist regions?": 'yes',

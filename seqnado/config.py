@@ -248,9 +248,9 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     
     # Pileup method
     if assay != "snp":
-        features['make_bigwigs'] = get_user_input("Make pileups?", default="no", is_boolean=True)
+        features['make_bigwigs'] = get_user_input("Make Bigwigs?", default="no", is_boolean=True)
         if features['make_bigwigs']:
-            features['pileup_method'] = get_user_input("Pileup method:", choices=["deeptools", "homer"], default="deeptools")
+            features['pileup_method'] = get_user_input("Bigwig method:", choices=["deeptools", "homer"], default="deeptools")
     
     # Heatmaps
     features["make_heatmaps"] = get_user_input("Make heatmaps?", default="no", is_boolean=True)
