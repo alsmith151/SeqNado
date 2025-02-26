@@ -143,7 +143,7 @@ def cli_design(method, files, output="design.csv", merge=False):
             df['merge'] = 'consensus'
 
     df.to_csv(output, index=False)
-    logger.info(f"Design file saved to {output}")
+    logger.success(f"Design file saved to {output}")
 
 
 # Pipeline
