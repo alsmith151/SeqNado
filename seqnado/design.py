@@ -988,12 +988,14 @@ def generate_fastq_raw_names(
 
 
 class GEOFiles(BaseModel):
+
+    make_geo_submission_files: bool
+
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CUT&TAG']
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
     extensions_allowed: List[str] = [".txt", ".bigWig", ".bed", ".tsv", ".vcf.gz"]
-
     processed_files: Optional[List[Union[str, pathlib.Path]]] = None
 
     class Config:
@@ -1229,8 +1231,10 @@ class GEOFiles(BaseModel):
 
     @property
     def files(self) -> List[str]:
-        return [*self.md5sums, self.upload_directory, self.upload_instructions, 'seqnado_output/geo_submission/.validated']
-
+        if self.make_geo_submission_files:
+            return [*self.md5sums, self.upload_directory, self.upload_instructions, 'seqnado_output/geo_submission/.validated']
+        else:
+            return []
 
 class QCFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
@@ -1561,6 +1565,7 @@ class Output(BaseModel):
     @property
     def geo_files(self):
         return GEOFiles(
+            make_geo_submission_files=self.geo_submission_files,
             assay=self.assay,
             sample_names=self.sample_names,
             design=self.design_dataframe,
