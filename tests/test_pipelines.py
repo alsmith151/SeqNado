@@ -365,21 +365,21 @@ def seqnado_run_dir(config_yaml_for_testing):
 
 @pytest.fixture(scope="function")
 def design(seqnado_run_dir, assay_type, assay):
-    cmd = ["seqnado-design", assay_type]
+
+    import pandas as pd
+
+    cmd = ["seqnado-design", assay_type, '--merge']
     completed = subprocess.run(" ".join(cmd), shell=True, cwd=seqnado_run_dir)
     assert completed.returncode == 0
 
-    if assay == "chip" or assay == "atac":
+    if assay == "chip":
         # Add merge column to design file
-        import pandas as pd
-
         df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
         df["merge"] = "MLL-MERGED-TOGETHER"
         df.to_csv(seqnado_run_dir / "design.csv")
 
     elif assay == "rna-rx":
         # Add deseq2 column to design file
-        import pandas as pd
 
         df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
         df["deseq2"] = df.index.str.split("-").str[-2]
