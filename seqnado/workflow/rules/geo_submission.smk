@@ -156,7 +156,7 @@ rule move_to_upload:
         infiles = get_symlinked_files,
         validated="seqnado_output/geo_submission/.validated",
     output:
-        outdir = directory(f"seqnado_output/geo_submission/{ASSAY}")
+        outdir = directory(f"seqnado_output/geo_submission/{ASSAY.replace('&', '_and_')}")
     shell:
         """
         mkdir -p {output.outdir}
