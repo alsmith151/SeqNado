@@ -1432,6 +1432,7 @@ class SpikeInFiles(BaseModel):
 
 
 class PlotFiles(BaseModel):
+    perform_plotting: bool = False
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
     plotting_format: Literal["svg", "png", "pdf"] = "svg"
 
@@ -1483,7 +1484,7 @@ class Output(BaseModel):
 
     geo_submission_files: bool = False
 
-    make_plots: bool = False
+    perform_plotting: bool = False
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
 
     # Correct plotting_coordinates type as it may be False
@@ -1554,7 +1555,7 @@ class Output(BaseModel):
 
     @property
     def plots(self):
-        if self.make_plots:
+        if self.perform_plotting:
             pf = PlotFiles(
                 plotting_coordinates=self.plotting_coordinates, plotting_format="svg"
             )
