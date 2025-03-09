@@ -1485,6 +1485,7 @@ class Output(BaseModel):
     geo_submission_files: bool = False
 
     perform_plotting: bool = False
+    plotting_format: Literal["svg", "png", "pdf"] = "svg"
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
 
     # Correct plotting_coordinates type as it may be False
@@ -1557,7 +1558,7 @@ class Output(BaseModel):
     def plots(self):
         if self.perform_plotting:
             pf = PlotFiles(
-                plotting_coordinates=self.plotting_coordinates, plotting_format="svg"
+                plotting_coordinates=self.plotting_coordinates, plotting_format=self.plotting_format
             )
             return pf.files
         else:

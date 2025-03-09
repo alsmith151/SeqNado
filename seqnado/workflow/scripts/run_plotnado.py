@@ -17,6 +17,7 @@ ASSAY = snakemake.params.assay
 df = pd.DataFrame([pathlib.Path(p) for p in snakemake.input.data], columns=["path"])
 df["name"] = df["path"].apply(lambda x: x.stem)
 df["type"] = df["path"].apply(lambda x: x.suffix)
+df["type"] = pd.Categorical(df["type"], categories=[".bigWig", ".bed"], ordered=True)
 df["normalisation"] = np.where(
     df["type"] != ".bed", df["path"].apply(lambda x: x.parts[-2]), ""
 )
@@ -28,7 +29,7 @@ df["method"] = np.where(
 df = df.sort_values(by=["name", "type", "method", "normalisation"])
 
 df["track_name"] = (
-    df["name"] + "-" + df["method"] + "-" + df["normalisation"] + df["type"]
+    df["name"] + "-" + df["method"] + "-" + df["normalisation"] + df["type"].astype(str)
 )
 df["track_name"] = df["track_name"].str.replace("-.", ".")
 
