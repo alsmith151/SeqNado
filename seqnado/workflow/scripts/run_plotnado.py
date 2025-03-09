@@ -1,20 +1,16 @@
-# %%
 import pathlib
-import re
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import plotnado.api as pn
 import pyranges as pr
 import seaborn as sns
-import numpy as np
 
 plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams["svg.fonttype"] = "none"
 
-# %%
 ASSAY = snakemake.params.assay
-
 
 
 # Load the tracks into a DataFrame
@@ -40,17 +36,15 @@ if ASSAY == "ChIP":
     df["antibody"] = df["name"].str.split("_").str[-1]
 
 
-
 # Load the regions
 coords = pr.read_bed(snakemake.params.regions)
-
+plotting_format = snakemake.params.plotting_format
 # Generate the figure
-# %%
 fig = pn.Figure(
     autospacing=True,
 )
 
-fig.add_track('scale')
+fig.add_track("scale")
 
 if snakemake.params.genes:
     fig.add_track(
@@ -97,18 +91,15 @@ for track in df.itertuples():
     )
     fig.add_track(t)
 
-# %%
 
 outdir = pathlib.Path(snakemake.params.outdir)
 for region in coords.df.itertuples():
-
-    fig_name = f"{region.Chromosome}-{region.Start}-{region.End}" if not hasattr(region, "Name") and not region.Name else region.Name
+    fig_name = (
+        f"{region.Chromosome}-{region.Start}-{region.End}"
+        if not hasattr(region, "Name") and not region.Name
+        else region.Name
+    )
     region_coords = f"{region.Chromosome}:{region.Start}-{region.End}"
-    fig.save(output=outdir / f"{fig_name}.svg", gr=region_coords)
-    
-# %%
+    fig.save(output=outdir / f"{fig_name}.{plotting_format}", gr=region_coords)
+
 fig.to_toml(snakemake.output.template)
-
-
-
-

@@ -14,6 +14,7 @@ rule generate_plotnado_visualisation:
         genes=config['plotting_genes'],
         outdir="seqnado_output/genome_browser_plots/",
         regions=config['plotting_coordinates'],
+        plotting_format=config['plotting_format'],
     container:
         "library://asmith151/plotnado/plotnado:latest"
     script:
