@@ -1836,6 +1836,60 @@ class SNPOutput(Output):
         return files
 
 
+class METHOutput(Output):
+    assay: Literal["METH"]
+    call_meth: bool = False
+    sample_names: List[str]
+    make_ucsc_hub: bool = False
+    meth_calling_method: Optional[
+        Union[
+            Literal["methyldackel", "bismark", False],
+            List[Literal["methyldackel", "bismark"]],
+        ]
+    ] = None
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @property
+    def meth_files(self) -> List[str]:
+        if self.call_meth:
+            return expand(
+                "seqnado_output/methylation/{sample}_CpG.bedGraph",
+                sample=self.sample_names,
+            )
+        else:
+            return []
+
+    @property
+    def peaks(self):
+        return []
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.meth_files,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        if self.call_meth:
+            files.append(self.meth_files)
+
+        return files
+    
 class Molecule(Enum):
     rna_total = "total RNA"
     rna_polya = "polyA RNA"
