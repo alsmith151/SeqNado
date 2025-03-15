@@ -41,13 +41,37 @@ assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directo
 symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
+def get_meth_spikein_genomes(config) -> List[str]:
+    faidx = config["fasta"] + ".fai"
+    if not os.path.exists(faidx):
+        raise FileNotFoundError(
+            f"Could not find the fasta index file {faidx}. Please create it using samtools faidx."
+        )
+    chroms = []
+    with open(faidx, "r") as f:
+        for line in f:
+            chroms.append(line.split("\t")[0])
+
+    meth_spikein_genomes = [
+        chrom for chrom in chroms if not chrom.startswith("chr")
+    ]
+    genome_names = config["genome"]["name"]
+    if isinstance(genome_names, str):
+        genome_names = [genome_names]
+    meth_spikein_genomes.extend(genome_names)
+    return meth_spikein_genomes
+
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
+SPIKEIN_GENOMES=get_meth_spikein_genomes(config)
+
+
 OUTPUT = METHOutput(
     assay=ASSAY,
     config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
+    genomes=SPIKEIN_GENOMES,
     **config
 )
 
