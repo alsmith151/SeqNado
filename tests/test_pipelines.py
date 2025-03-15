@@ -156,6 +156,21 @@ def blacklist(genome_path):
 
     return blacklist_path
 
+@pytest.fixture(scope="function")
+def meth_genome(genome_path):
+    meth_genome_path = genome_path / "hg38_taps_spikein"
+    if not meth_genome_path.exists():
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/hg38_taps_spikein.tar.gz"
+        r = requests.get(url, stream=True)
+        tar_path = meth_genome_path.with_suffix(".tar.gz")
+        with open(tar_path, "wb") as f:
+            f.write(r.content)
+        with tarfile.open(tar_path) as tar:
+            tar.extractall(path=meth_genome_path.parent, filter="data")
+        os.remove(tar_path)
+
+    return meth_genome_path
+
 
 @pytest.fixture(scope="function")
 def assay_type(assay):
