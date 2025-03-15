@@ -10,7 +10,7 @@ from loguru import logger
 
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
-ASSAYS = ["atac", "chip", "rna", "snp", 'cat']
+ASSAYS = ["atac", "chip", "rna", "snp", 'cat', 'meth']
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))

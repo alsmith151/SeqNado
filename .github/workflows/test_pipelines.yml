@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         test: ["config", "design", "pipeline"]
-        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat']
+        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth']
 
     steps:
       - uses: actions/checkout@v3
@@ -65,6 +65,8 @@ jobs:
             apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
           elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
             apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
+          elif [[ "${{ matrix.assay }}" == "meth" ]]; then
+            apptainer pull --force library://cchahrou/seqnado/seqnado_meth.sif:latest
           fi
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
