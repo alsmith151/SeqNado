@@ -89,7 +89,7 @@ def index(genome_index_path, genome_path) -> pathlib.Path:
     if "STAR" in str(genome_index_path):
         indicies_path = genome_index_path
     elif "meth" in str(genome_index_path):
-        indicies_path = genome_index_path / "bt2_chr21_meth"
+        indicies_path = genome_index_path / "chr21_meth"
     else:
         indicies_path = genome_index_path / "bt2_chr21_dm6_chr2L"
     if download_index:
