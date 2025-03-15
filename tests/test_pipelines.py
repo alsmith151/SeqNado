@@ -89,7 +89,7 @@ def index(genome_index_path, genome_path) -> pathlib.Path:
     if "bt2" in str(genome_index_path):
         indicies_path = genome_index_path / "bt2_chr21_dm6_chr2L"
     elif "taps" in str(genome_index_path):
-        indicies_path = genome_index_path / "hg38_taps_spikein/bt2_index"
+        indicies_path = genome_index_path / "bt2_chr21_meth"
     else:
         indicies_path = genome_index_path
     if download_index:
@@ -158,16 +158,16 @@ def blacklist(genome_path):
 
 @pytest.fixture(scope="function")
 def meth_genome(genome_path):
-    meth_genome_path = genome_path / "hg38_taps_spikein"
+    meth_genome_path = genome_path 
     if not meth_genome_path.exists():
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/hg38_taps_spikein.tar.gz"
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
         r = requests.get(url, stream=True)
-        tar_path = meth_genome_path.with_suffix(".tar.gz")
-        with open(tar_path, "wb") as f:
+        with open(meth_genome_path.with_suffix(".fa"), "wb") as f:
             f.write(r.content)
-        with tarfile.open(tar_path) as tar:
-            tar.extractall(path=meth_genome_path.parent, filter="data")
-        os.remove(tar_path)
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
+        r = requests.get(url, stream=True)
+        with open(meth_genome_path.with_suffix(".fa.fai"), "wb") as f:
+            f.write(r.content)
 
     return meth_genome_path
 
@@ -257,6 +257,11 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
             "star_index": str(index),
             "bt2_index": "NA",
         }
+    elif "meth" in assay:
+        index_dict = {
+            "star_index": "NA",
+            "bt2_index": str(meth_genome),
+        }
     else:
         index_dict = {
             "star_index": "NA",
@@ -284,6 +289,11 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
 
 @pytest.fixture(scope="function")
 def user_inputs(test_data_path, assay, assay_type, plot_bed):
+    if assay == "meth":
+        meth_fasta = str(pathlib.Path(test_data_path / "genome" / "chr21_meth.fa"))
+        meth_fai = str(pathlib.Path(test_data_path / "genome" / "chr21_meth.fa.fai"))
+        print(meth_fasta)
+        print(meth_fai)
     prompts = {
         "Bigwig method:": "deeptools",
         "Calculate library complexity?": 'yes' if assay == 'atac' else 'no',
@@ -304,8 +314,8 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "Normalisation method:": 'orlando',
         "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else '',
         "Path to bed file with genes.": '',
-        "Path to reference fasta index:": "dummy_ref.fasta.fai",
-        "Path to reference fasta:": "dummy_ref.fasta" if not assay == "meth" else "hg38_taps_spikein/hg38_taps_spikein.fa",
+        "Path to reference fasta:": "dummy_ref.fasta" if not assay == "meth" else meth_fasta,
+        "Path to reference fasta index:": "dummy_ref.fasta.fai" if not assay == "meth" else meth_fai,
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": 'no',
