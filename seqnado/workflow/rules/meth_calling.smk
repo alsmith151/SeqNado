@@ -34,8 +34,6 @@ rule methyldackel_bias:
         bam=get_split_bam
     output:
         bias="seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",
-        OB_svg="seqnado_output/methylation/methyldackel/bias/{sample}_{genome}_OB.svg",
-        OT_svg="seqnado_output/methylation/methyldackel/bias/{sample}_{genome}_OT.svg"
     params:
         fasta=config["fasta"],
         prefix="seqnado_output/methylation/methyldackel/bias/{sample}_{genome}"

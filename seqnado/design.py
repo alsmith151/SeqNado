@@ -1885,7 +1885,7 @@ class METHOutput(Output):
     
     @property
     def meth_files(self) -> List[str]:
-        if self.call_methylation:
+        if self.call_methylation and "taps" not in self.methylation_assay:
             return expand(
                 "seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph",
                 sample=self.sample_names,

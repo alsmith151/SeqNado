@@ -26,7 +26,7 @@ logger.add(sys.stderr, level="DEBUG")
 
 @pytest.fixture(
     scope="function",
-    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp", 'cat'],
+    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp", 'cat', 'meth'],
     autouse=True,
 )
 def assay(request):
@@ -194,6 +194,8 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             files = list(path.glob("snp*.fastq.gz"))
         case "cat":
             files = list(path.glob("chip-rx_*.fastq.gz"))
+        case "meth":
+            files = list(path.glob("meth*.fastq.gz"))
 
     return files
 
@@ -264,18 +266,23 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
 @pytest.fixture(scope="function")
 def user_inputs(test_data_path, assay, assay_type, plot_bed):
     prompts = {
+        "Bigwig method:": "deeptools",
         "Calculate library complexity?": 'yes' if assay == 'atac' else 'no',
+        "Call methylation?": 'yes',
         "Call peaks?": 'yes',
         "Call SNPs?": 'no',
         "Color by (for UCSC hub):": "samplename",
+        "Do you have spikein? (yes/no)": 'yes' if 'rx' in assay else 'no',
         "Duplicates removal method:": "picard",
         "Fastqscreen config path:": "/dummy/fastqscreen.conf",
-        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'atac' else 'no',
+        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == ['chip-rx', 'atac'] else 'no',
         "Generate GEO submission files?": 'yes' if assay in ['chip', 'rna'] else 'no',
         "Genome?": "hg38",
-        "Make heatmaps?": 'yes' if assay == 'atac' else 'no',
         "Make Bigwigs?": 'yes',
+        "Make heatmaps?": 'yes' if assay == 'atac' else 'no',
         "Make UCSC hub?": 'yes',
+        "Methylation assay": "taps",   
+        "Normalisation method:": 'orlando',
         "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else '',
         "Path to bed file with genes.": '',
         "Path to reference fasta index:": "dummy_ref.fasta.fai",
@@ -284,22 +291,18 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": 'no',
         "Perform plotting?": "yes" if not assay == "snp" else "no",
-        "Bigwig method:": "deeptools",
         "Project name?": "test",
         "Quantification method:": "feature_counts",  # default RNA response
+        "Reference genome:": "hg38",
         "Remove blacklist regions?": 'yes',
         "Remove PCR duplicates?": 'yes',
         "Run DESeq2?": 'no',
         "Salmon index path:": "dummy_salmon_index",
         "Shift ATAC reads?": 'yes',
         "SNP caller:": "bcftools",
+        "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
-        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'chip-rx' else 'no',
-        "Do you have spikein? (yes/no)": 'yes' if 'rx' in assay else 'no',
-        "Normalisation method:": 'orlando',
-        "Reference genome:": "hg38",
-        "Spikein genome:": "dm6",
     }
 
     return prompts
