@@ -57,6 +57,7 @@ class WorkflowConfig(BaseModel):
     peak_calling_method: Literal["lanceotron", "macs", "homer", "seacr", "False"] = "False"
     consensus_counts: bool = False
     call_methylation: bool = False
+    methylation_assay: Literal["bisulfite", "taps", "False"] = "False"
     
     # RNA-Specific
     rna_quantification: Literal["feature_counts", "salmon", "False"] = "False"
@@ -288,6 +289,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
         features["call_methylation"] = get_user_input("Call methylation?", default="no", is_boolean=True)
         if features["call_methylation"]:
             features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=True)
+            features["methylation_assay"] = get_user_input("Methylation assay:", choices=["taps", "bisulfite"], default="taps")
 
     # Consensus Counts
     if not assay == 'rna':

@@ -1841,10 +1841,10 @@ class METHOutput(Output):
     call_methylation: bool = False
     sample_names: List[str]
     make_ucsc_hub: bool = False
-    meth_calling_method: Optional[
+    methylation_assay: Optional[
         Union[
-            Literal["methyldackel", "bismark", False],
-            List[Literal["methyldackel", "bismark"]],
+            Literal["bisulfite", "taps"],
+            List[Literal["bisulfite", "taps"]],
         ]
     ] = None
 
@@ -1861,10 +1861,23 @@ class METHOutput(Output):
             )
         else:
             return []
-
+        
     @property
-    def peaks(self):
+    def taps_files(self) -> List[str]:
+        if self.methylation_assay == "taps":
+            return expand(
+                "seqnado_output/methylation/{sample}_CpG_inverted.bedGraph",
+                sample=self.sample_names,
+            )
         return []
+    
+    @property
+    def methylation_bias(self) -> List[str]:
+        return expand(
+            "seqnado_output/methylation/bias/{sample}.txt",
+            sample=self.sample_names,
+        )
+
 
     @computed_field
     @property
@@ -1880,6 +1893,8 @@ class METHOutput(Output):
 
         for file_list in (
             self.meth_files,
+            self.taps_files,
+            self.methylation_bias,
             self.design,
         ):
             if file_list:
