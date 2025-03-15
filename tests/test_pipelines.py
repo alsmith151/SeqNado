@@ -231,8 +231,25 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
         case "meth":
             files = list(path.glob("meth*.fastq.gz"))
 
+    if not files:
+        pytest.fail(f"No Fastq files found for assay {assay} in {path}")
     return files
 
+@pytest.fixture(scope="function", autouse=True)
+def set_up(seqnado_run_dir, fastqs):
+    cwd = pathlib.Path(os.getcwd())
+    os.chdir(seqnado_run_dir)
+
+    # Move fastqs to run directory
+    for fq in fastqs:
+        shutil.copy(fq, seqnado_run_dir)
+        logger.debug(f"Copied {fq} to {seqnado_run_dir}")
+
+    logger.debug(f"Files in run directory: {list(seqnado_run_dir.glob('*'))}")
+
+    yield
+
+    os.chdir(cwd)
 
 @pytest.fixture(scope="function")
 def plot_bed(test_data_path):
