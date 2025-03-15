@@ -72,10 +72,12 @@ def genome_path(test_data_path):
 
 @pytest.fixture(scope="function")
 def genome_index_path(genome_path, assay) -> pathlib.Path:
-    if "rna" not in assay:
-        return genome_path / "bt2_chr21_dm6_chr2L"
-    else:
+    if "rna" in assay:
         return genome_path / "STAR_chr21_rna_spikein"
+    elif "meth" not in assay:
+        return genome_path / "bt2_chr21_meth"
+    else:
+        return genome_path / "bt2_chr21_dm6_chr2L"
 
 
 @pytest.fixture(scope="function")
@@ -84,10 +86,12 @@ def index(genome_index_path, genome_path) -> pathlib.Path:
     suffix = genome_index_path.with_suffix(".tar.gz").name
     url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
 
-    if "bt2" in str(genome_index_path):
-        indicies_path = genome_index_path / "bt2_chr21_dm6_chr2L"
-    else:
+    if "STAR" in str(genome_index_path):
         indicies_path = genome_index_path
+    elif "meth" in str(genome_index_path):
+        indicies_path = genome_index_path / "bt2_chr21_meth"
+    else:
+        indicies_path = genome_index_path / "bt2_chr21_dm6_chr2L"
     if download_index:
         r = requests.get(url, stream=True)
         tar_index = genome_index_path.with_suffix(".tar.gz")
