@@ -991,7 +991,7 @@ class GEOFiles(BaseModel):
 
     make_geo_submission_files: bool
 
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CUT&TAG']
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CUT&TAG', 'METH']
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
@@ -1237,7 +1237,7 @@ class GEOFiles(BaseModel):
             return []
 
 class QCFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
     fastq_screen: bool = False
     library_complexity: bool = False
 
@@ -1271,7 +1271,7 @@ class QCFiles(BaseModel):
 
 
 class BigWigFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
     names: List[str]
     pileup_method: Union[
         Literal["deeptools", "homer", False],
@@ -1838,7 +1838,7 @@ class SNPOutput(Output):
 
 class METHOutput(Output):
     assay: Literal["METH"]
-    call_meth: bool = False
+    call_methylation: bool = False
     sample_names: List[str]
     make_ucsc_hub: bool = False
     meth_calling_method: Optional[
@@ -1854,7 +1854,7 @@ class METHOutput(Output):
 
     @property
     def meth_files(self) -> List[str]:
-        if self.call_meth:
+        if self.call_methylation:
             return expand(
                 "seqnado_output/methylation/{sample}_CpG.bedGraph",
                 sample=self.sample_names,
@@ -1885,7 +1885,7 @@ class METHOutput(Output):
             if file_list:
                 files.extend(file_list)
 
-        if self.call_meth:
+        if self.call_methylation:
             files.append(self.meth_files)
 
         return files

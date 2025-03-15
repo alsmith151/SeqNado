@@ -65,7 +65,7 @@ include: "rules/fastq_trim.smk"
 include: "rules/qc.smk"
 include: "rules/variant.smk"
 include: "rules/geo_submission.smk"
-
+include: "rules/meth_calling.smk"
 
 rule all:
     input:

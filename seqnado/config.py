@@ -23,7 +23,7 @@ class GenomeConfig(BaseModel):
 
 class WorkflowConfig(BaseModel):
     # Core Configuration
-    assay: Literal["rna", "chip", "atac", "snp", "cat"]
+    assay: Literal["rna", "chip", "atac", "snp", "cat", "meth"]
     username: str
     project_date: str
     project_name: str
@@ -55,7 +55,8 @@ class WorkflowConfig(BaseModel):
     make_heatmaps: bool = False
     call_peaks: bool = False
     peak_calling_method: Literal["lanceotron", "macs", "homer", "seacr", "False"] = "False"
-    consenus_counts: bool = False  # Typo preserved for compatibility
+    consensus_counts: bool = False
+    call_methylation: bool = False
     
     # RNA-Specific
     rna_quantification: Literal["feature_counts", "salmon", "False"] = "False"
@@ -205,7 +206,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     features["remove_blacklist"] = get_user_input("Remove blacklist regions?", default="yes", is_boolean=True)
     
     # PCR Duplicates
-    default_duplicates = "yes" if assay in ["chip", "atac", "cat"] else "no"
+    default_duplicates = "yes" if assay in ["chip", "atac", "cat", "meth"] else "no"
     features["remove_pcr_duplicates"] = get_user_input("Remove PCR duplicates?", default=default_duplicates, is_boolean=True)
     if features["remove_pcr_duplicates"]:
         features["remove_pcr_duplicates_method"] = get_user_input("Duplicates removal method:", choices=["picard", "samtools"], default="picard")
@@ -282,14 +283,20 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
             features["fasta_index"] = get_user_input("Path to reference fasta index:", default="path/to/reference.fasta.fai", is_path=True)
             features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database", is_path=True)
     
+    # Methylation Calling
+    if assay == "meth":
+        features["call_methylation"] = get_user_input("Call methylation?", default="no", is_boolean=True)
+        if features["call_methylation"]:
+            features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=True)
+
     # Consensus Counts
     if not assay == 'rna':
-        features["consenus_counts"] = get_user_input(
+        features["consensus_counts"] = get_user_input(
             "Generate consensus counts from Design merge column? (yes/no)",
             default="no",
             is_boolean=True,
         )
-    
+
     # GEO Submission
     features["geo_submission_files"] = get_user_input("Generate GEO submission files?", default="no", is_boolean=True)
     
@@ -310,6 +317,7 @@ def get_tool_options(assay: str) -> str:
         "atac": TOOL_OPTIONS,
         "rna": TOOL_OPTIONS_RNA,
         "snp": TOOL_OPTIONS_SNP,
+        "meth": TOOL_OPTIONS_METH,
     }.get(assay, "")
 
 # Template Rendering
@@ -443,6 +451,29 @@ picard:
     options:
 
 bcftools:
+    threads: 16
+    options:
+    
+"""
+
+TOOL_OPTIONS_METH = """
+trim_galore:
+    threads: 8
+    options: --2colour 20 
+
+bowtie2:
+    threads: 8
+    options:
+
+samtools:
+    threads: 16
+    filter_options: -f 2
+    
+picard:
+    threads: 8
+    options:
+
+methyldackel:
     threads: 16
     options:
     
