@@ -198,7 +198,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             f.write(r.content)
 
         with tarfile.open(tar_path) as tar:
-            tar.extractall(path=path.parent, filter="data")
+            tar.extractall(path=path.parent)
 
     match assay:
         case "atac":
