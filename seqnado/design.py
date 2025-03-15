@@ -1887,7 +1887,7 @@ class METHOutput(Output):
     def meth_files(self) -> List[str]:
         if self.call_methylation:
             return expand(
-                "seqnado_output/methylation/{sample}_{genome}_CpG.bedGraph",
+                "seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph",
                 sample=self.sample_names,
                 genome=self.genomes,
             )
@@ -1895,9 +1895,9 @@ class METHOutput(Output):
 
     @property
     def taps_files(self) -> List[str]:
-        if self.methylation_assay and "taps" in self.methylation_assay:
+        if self.call_methylation and "taps" in self.methylation_assay:
             return expand(
-                "seqnado_output/methylation/{sample}_{genome}_CpG_inverted.bedGraph",
+                "seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG_TAPS.bedGraph",
                 sample=self.sample_names,
                 genome=self.genomes,
             )
@@ -1905,11 +1905,17 @@ class METHOutput(Output):
 
     @property
     def methylation_bias(self) -> List[str]:
-        return expand(
-            "seqnado_output/methylation/bias/{sample}_{genome}.txt",
-            sample=self.sample_names,
-            genome=self.genomes,
-        )
+        """
+        Get the methylation bias files. and seqnado_output/methylation/methylation_conversion.tsv"""
+        if self.call_methylation:
+            return expand(
+                "seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",
+                sample=self.sample_names,
+                genome=self.genomes,
+            ), "seqnado_output/methylation/methylation_conversion.tsv"
+
+        return []
+
 
     @computed_field
     @property
