@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tarfile
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 import requests
@@ -71,10 +72,8 @@ def genome_path(test_data_path):
 
 @pytest.fixture(scope="function")
 def genome_index_path(genome_path, assay) -> pathlib.Path:
-    if "rna" or "meth" not in assay:
+    if "rna" not in assay:
         return genome_path / "bt2_chr21_dm6_chr2L"
-    elif "meth" in assay:
-        return genome_path / "hg38_taps_spikein"
     else:
         return genome_path / "STAR_chr21_rna_spikein"
 
@@ -87,8 +86,6 @@ def index(genome_index_path, genome_path) -> pathlib.Path:
 
     if "bt2" in str(genome_index_path):
         indicies_path = genome_index_path / "bt2_chr21_dm6_chr2L"
-    elif "taps" in str(genome_index_path):
-        indicies_path = genome_index_path / "bt2_chr21_meth"
     else:
         indicies_path = genome_index_path
     if download_index:
@@ -119,14 +116,12 @@ def chromsizes(genome_path):
             f.write(r.content)
 
             # Add the dm6 chromsizes file to the genome path
-            url = (
-                "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
-            )
+            url = "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
             r = requests.get(url, stream=True)
-
+            
             for line in r.iter_lines():
-                f.write(b"dm6_" + line + b"\n")
-
+                f.write(b'dm6_' + line + b"\n")
+                
     return genome_path / suffix
 
 
@@ -159,35 +154,6 @@ def blacklist(genome_path):
 
 
 @pytest.fixture(scope="function")
-def meth_genome(genome_path):
-    meth_genome_path = genome_path / "chr21_meth"
-    meth_genome_path.mkdir(parents=True, exist_ok=True)
-
-    fasta_file = meth_genome_path / "chr21_meth.fa"
-    fai_file = meth_genome_path / "chr21_meth.fa.fai"
-
-    if not fasta_file.exists():
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
-            with open(fasta_file, "wb") as f:
-                f.write(r.content)
-        else:
-            pytest.fail(f"Failed to download {url}: {r.status_code}")
-
-    if not fai_file.exists():
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
-            with open(fai_file, "wb") as f:
-                f.write(r.content)
-        else:
-            pytest.fail(f"Failed to download {url}: {r.status_code}")
-
-    return meth_genome_path
-
-
-@pytest.fixture(scope="function")
 def assay_type(assay):
     return re.sub(r"(.*)\-.*", r"\1", assay)
 
@@ -201,50 +167,33 @@ def snakefile_path(package_path, assay_type):
 def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     path = test_data_path / "fastq"
 
-    # Ensure the directory exists
-    path.mkdir(parents=True, exist_ok=True)
-
-    tar_path = path.with_suffix(".tar.gz")
-    if not path.exists() or not list(path.glob("*.fastq.gz")):
-        # Download the Fastq tar file
+    if not path.exists():
         url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
         r = requests.get(url, stream=True)
-        if r.status_code != 200:
-            pytest.fail(f"Failed to download Fastq files from {url}")
 
-        # Save tar file
+        tar_path = path.with_suffix(".tar.gz")
+
         with open(tar_path, "wb") as f:
             f.write(r.content)
 
-        # Extract Fastq files
         with tarfile.open(tar_path) as tar:
-            tar.extractall(path=path)  # Extract in correct directory
-        os.remove(tar_path)  # Clean up tar file
+            tar.extractall(path=path.parent, filter="data")
 
-    logger.debug(f"Fastq directory: {path}")
-    logger.debug(f"Extracted files: {list(path.glob('*'))}")
-
-    # Match files based on assay type
     match assay:
         case "atac":
             files = list(path.glob("atac*.fastq.gz"))
         case "chip":
-            files = list(path.glob("chip-rx_input_*.fastq.gz"))
+            files = list(path.glob("chip-rx_*.fastq.gz"))
         case "chip-rx":
             files = list(path.glob("chip-rx_*.fastq.gz"))
         case "rna":
             files = list(path.glob("rna_*.fastq.gz"))
         case "rna-rx":
-            files = list(path.glob("rna-spikein-*.fastq.gz"))
+            files = list(path.glob("rna-spikein*.fastq.gz"))
         case "snp":
             files = list(path.glob("snp*.fastq.gz"))
-        case "meth":
-            files = list(path.glob("meth-*.fastq.gz"))
-
-    logger.debug(f"Matched Fastq files: {files}")
-
-    if not files:
-        pytest.fail(f"No Fastq files found for assay {assay} in {path}")
+        case "cat":
+            files = list(path.glob("chip-rx_*.fastq.gz"))
 
     return files
 
@@ -261,12 +210,15 @@ def run_directory(tmpdir_factory, assay):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def run_init(
-    index, chromsizes, gtf, blacklist, run_directory, assay, meth_genome, monkeypatch
-):
+def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatch):
+    """
+    Runs seqnado-init before each test inside the test directory.
+    Ensures genome_config.json is correctly written.
+    """
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
+    # Run seqnado-init
     cmd = ["seqnado-init"]
     process = subprocess.Popen(
         cmd,
@@ -279,12 +231,16 @@ def run_init(
     stdout, stderr = process.communicate(input="y")
 
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
-
-    index_dict = {
-        "star_index": "NA",
-        "bt2_index": str(meth_genome) if "meth" in assay else str(index),
-    }
-
+    if "rna" in assay:
+        index_dict = {
+            "star_index": str(index),
+            "bt2_index": "NA",
+        }
+    else:
+        index_dict = {
+            "star_index": "NA",
+            "bt2_index": str(index),
+        }
     genome_config_dict = {
         "hg38": {
             "star_index": index_dict["star_index"],
@@ -294,66 +250,56 @@ def run_init(
             "blacklist": str(blacklist),
         }
     }
-
-    with open(genome_config_file, "w", encoding="utf-8") as f:
+    with open(genome_config_file, "w") as f:
         json.dump(genome_config_dict, f, indent=4)
 
     assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
-    assert genome_config_file.exists(), "genome_config.json missing after seqnado-init!"
+    assert genome_config_file.exists(), (
+        "genome_config.json is still missing after seqnado-init!"
+    )
+
+
 
 
 @pytest.fixture(scope="function")
 def user_inputs(test_data_path, assay, assay_type, plot_bed):
-    if assay == "meth":
-        meth_fasta = str(pathlib.Path(test_data_path / "genome" / "chr21_meth.fa"))
-        meth_fai = str(pathlib.Path(test_data_path / "genome" / "chr21_meth.fa.fai"))
-
     prompts = {
-        "Bigwig method:": "deeptools",
-        "Calculate library complexity?": "yes" if assay == "atac" else "no",
-        "Call methylation?": "yes",
-        "Call peaks?": "yes",
-        "Call SNPs?": "no",
+        "Calculate library complexity?": 'yes' if assay == 'atac' else 'no',
+        "Call peaks?": 'yes',
+        "Call SNPs?": 'no',
         "Color by (for UCSC hub):": "samplename",
-        "Do you have spikein? (yes/no)": "yes" if "rx" in assay else "no",
         "Duplicates removal method:": "picard",
         "Fastqscreen config path:": "/dummy/fastqscreen.conf",
-        "Generate consensus counts from Design merge column? (yes/no)": "yes"
-        if assay == ["chip-rx", "atac"]
-        else "no",
-        "Generate GEO submission files?": "yes" if assay in ["chip", "rna"] else "no",
+        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'atac' else 'no',
+        "Generate GEO submission files?": 'yes' if assay in ['chip', 'rna'] else 'no',
         "Genome?": "hg38",
-        "Make Bigwigs?": "yes",
-        "Make heatmaps?": "yes" if assay == "atac" else "no",
-        "Make UCSC hub?": "yes",
-        "Methylation assay": "taps",
-        "Normalisation method:": "orlando",
-        "Path to bed file with coordinates for plotting": str(plot_bed)
-        if not assay == "snp"
-        else "",
-        "Path to bed file with genes.": "",
-        "Path to reference fasta:": "dummy_ref.fasta"
-        if not assay == "meth"
-        else meth_fasta,
-        "Path to reference fasta index:": "dummy_ref.fasta.fai"
-        if not assay == "meth"
-        else meth_fai,
+        "Make heatmaps?": 'yes' if assay == 'atac' else 'no',
+        "Make Bigwigs?": 'yes',
+        "Make UCSC hub?": 'yes',
+        "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else '',
+        "Path to bed file with genes.": '',
+        "Path to reference fasta index:": "dummy_ref.fasta.fai",
+        "Path to reference fasta:": "dummy_ref.fasta",
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
-        "Perform fastqscreen?": "no",
+        "Perform fastqscreen?": 'no',
         "Perform plotting?": "yes" if not assay == "snp" else "no",
+        "Bigwig method:": "deeptools",
         "Project name?": "test",
         "Quantification method:": "feature_counts",  # default RNA response
-        "Reference genome:": "hg38",
-        "Remove blacklist regions?": "yes",
-        "Remove PCR duplicates?": "yes",
-        "Run DESeq2?": "no",
+        "Remove blacklist regions?": 'yes',
+        "Remove PCR duplicates?": 'yes',
+        "Run DESeq2?": 'no',
         "Salmon index path:": "dummy_salmon_index",
-        "Shift ATAC reads?": "yes",
+        "Shift ATAC reads?": 'yes',
         "SNP caller:": "bcftools",
-        "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
+        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'chip-rx' else 'no',
+        "Do you have spikein? (yes/no)": 'yes' if 'rx' in assay else 'no',
+        "Normalisation method:": 'orlando',
+        "Reference genome:": "hg38",
+        "Spikein genome:": "dm6",
     }
 
     return prompts
@@ -366,9 +312,7 @@ def config_yaml(run_directory, assay_type, monkeypatch, user_inputs):
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    child = pexpect.spawn(
-        "seqnado-config", args=[assay_type], encoding="utf-8", cwd=run_directory
-    )
+    child = pexpect.spawn("seqnado-config", args=[assay_type], encoding='utf-8', cwd=run_directory)
     child.logfile = sys.stdout
 
     input_keys, input_values = list(user_inputs.keys()), list(user_inputs.values())
@@ -419,15 +363,12 @@ def seqnado_run_dir(config_yaml_for_testing):
     return pathlib.Path(config_yaml_for_testing).parent
 
 
-def test_config(config_yaml, assay_type):
-    assert os.path.exists(config_yaml), f"{assay_type} config file not created."
-
-
 @pytest.fixture(scope="function")
 def design(seqnado_run_dir, assay_type, assay):
+
     import pandas as pd
 
-    cmd = ["seqnado-design", assay_type, "--merge"]
+    cmd = ["seqnado-design", assay_type, '--merge']
     completed = subprocess.run(" ".join(cmd), shell=True, cwd=seqnado_run_dir)
     assert completed.returncode == 0
 
@@ -447,23 +388,23 @@ def design(seqnado_run_dir, assay_type, assay):
     return seqnado_run_dir / "design.csv"
 
 
-
-
 @pytest.fixture(scope="function", autouse=True)
-def copy_fastq_files(seqnado_run_dir, fastqs):
+def set_up(seqnado_run_dir, fastqs):
     cwd = pathlib.Path(os.getcwd())
     os.chdir(seqnado_run_dir)
 
     # Move fastqs to run directory
     for fq in fastqs:
         shutil.copy(fq, seqnado_run_dir)
-        logger.debug(f"Copied {fq} to {seqnado_run_dir}")
-
-    logger.debug(f"Files in run directory: {list(seqnado_run_dir.glob('*'))}")
 
     yield
 
     os.chdir(cwd)
+
+
+def test_config(config_yaml, assay_type):
+    assert os.path.exists(config_yaml), f"{assay_type} config file not created."
+
 
 def test_design(design, assay_type):
     assert os.path.exists(design), f"{assay_type} design file not created."
