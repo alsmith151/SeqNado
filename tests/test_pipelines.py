@@ -249,22 +249,6 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     return files
 
 
-@pytest.fixture(scope="function", autouse=True)
-def set_up(seqnado_run_dir, fastqs):
-    cwd = pathlib.Path(os.getcwd())
-    os.chdir(seqnado_run_dir)
-
-    # Move fastqs to run directory
-    for fq in fastqs:
-        shutil.copy(fq, seqnado_run_dir)
-        logger.debug(f"Copied {fq} to {seqnado_run_dir}")
-
-    logger.debug(f"Files in run directory: {list(seqnado_run_dir.glob('*'))}")
-
-    yield
-
-    os.chdir(cwd)
-
 @pytest.fixture(scope="function")
 def plot_bed(test_data_path):
     return test_data_path / "plotting_coordinates.bed"
@@ -435,6 +419,10 @@ def seqnado_run_dir(config_yaml_for_testing):
     return pathlib.Path(config_yaml_for_testing).parent
 
 
+def test_config(config_yaml, assay_type):
+    assert os.path.exists(config_yaml), f"{assay_type} config file not created."
+
+
 @pytest.fixture(scope="function")
 def design(seqnado_run_dir, assay_type, assay):
     import pandas as pd
@@ -459,23 +447,23 @@ def design(seqnado_run_dir, assay_type, assay):
     return seqnado_run_dir / "design.csv"
 
 
+
+
 @pytest.fixture(scope="function", autouse=True)
-def set_up(seqnado_run_dir, fastqs):
+def copy_fastq_files(seqnado_run_dir, fastqs):
     cwd = pathlib.Path(os.getcwd())
     os.chdir(seqnado_run_dir)
 
     # Move fastqs to run directory
     for fq in fastqs:
         shutil.copy(fq, seqnado_run_dir)
+        logger.debug(f"Copied {fq} to {seqnado_run_dir}")
+
+    logger.debug(f"Files in run directory: {list(seqnado_run_dir.glob('*'))}")
 
     yield
 
     os.chdir(cwd)
-
-
-def test_config(config_yaml, assay_type):
-    assert os.path.exists(config_yaml), f"{assay_type} config file not created."
-
 
 def test_design(design, assay_type):
     assert os.path.exists(design), f"{assay_type} design file not created."
