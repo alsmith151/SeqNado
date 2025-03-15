@@ -37,30 +37,15 @@ rule methyldackel_bias:
     params:
         fasta=config["fasta"],
         prefix="seqnado_output/methylation/methyldackel/bias/{sample}_{genome}"
-        prefix="seqnado_output/methylation/methyldackel/bias/{sample}_{genome}"
     threads: config["methyldackel"]["threads"]
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container:"library://cchahrou/seqnado/seqnado_meth.sif:latest"
     log:"seqnado_output/logs/methylation/methyldackel/bias/{sample}_{genome}.log"
-    log:"seqnado_output/logs/methylation/methyldackel/bias/{sample}_{genome}.log"
     shell: """
         MethylDackel mbias -@ {threads} --txt {params.fasta} {input.bam} {params.prefix} > {output.bias} 2> {log}
     """
-
-rule calculate_conversion:
-    input:
-        bias=expand("seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt", sample=SAMPLE_NAMES, genome=SPIKEIN_GENOMES)
-    output:
-        conversion="seqnado_output/methylation/methylation_conversion.tsv",
-        plot="seqnado_output/methylation/methylation_conversion.png"
-    params:
-        assay=config["methylation_assay"],
-    log:
-        "seqnado_output/logs/methylation/conversion.log"
-    script: "../scripts/methylation_conversion.py"
-    
 
 rule calculate_conversion:
     input:
@@ -80,11 +65,9 @@ rule methyldackel_extract:
         bam=get_split_bam
     output:
         bdg="seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
-        bdg="seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
     params:
         fasta=config["fasta"],
         options=check_options(config["methyldackel"]["options"]),
-        prefix="seqnado_output/methylation/methyldackel/{sample}_{genome}"
         prefix="seqnado_output/methylation/methyldackel/{sample}_{genome}"
     threads: config["methyldackel"]["threads"]
     resources:
@@ -101,9 +84,7 @@ rule methyldackel_extract:
 rule taps_inverted:
     input:
         bdg="seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
-        bdg="seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
     output:
-        taps="seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG_TAPS.bedGraph"
         taps="seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG_TAPS.bedGraph"
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -113,10 +94,7 @@ rule taps_inverted:
     shell: """
         awk -v OFS="\t" '{{print $1, $2, $3, (100-$4), $5, $6}}' {input.bdg} > {output.taps} 2> {log}
         rm {input.bdg}
-        rm {input.bdg}
     """
 
-localrules:
-    calculate_conversion
 localrules:
     calculate_conversion
