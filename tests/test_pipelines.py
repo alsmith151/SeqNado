@@ -116,12 +116,14 @@ def chromsizes(genome_path):
             f.write(r.content)
 
             # Add the dm6 chromsizes file to the genome path
-            url = "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
+            url = (
+                "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
+            )
             r = requests.get(url, stream=True)
-            
+
             for line in r.iter_lines():
-                f.write(b'dm6_' + line + b"\n")
-                
+                f.write(b"dm6_" + line + b"\n")
+
     return genome_path / suffix
 
 
@@ -163,7 +165,7 @@ def snakefile_path(package_path, assay_type):
     return package_path / "workflow" / f"snakefile_{assay_type}"
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="function", autouse=True)
 def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     path = test_data_path / "fastq"
 
@@ -259,45 +261,49 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
     )
 
 
-
-
 @pytest.fixture(scope="function")
 def user_inputs(test_data_path, assay, assay_type, plot_bed):
     prompts = {
-        "Calculate library complexity?": 'yes' if assay == 'atac' else 'no',
-        "Call peaks?": 'yes',
-        "Call SNPs?": 'no',
+        "Calculate library complexity?": "yes" if assay == "atac" else "no",
+        "Call peaks?": "yes",
+        "Call SNPs?": "no",
         "Color by (for UCSC hub):": "samplename",
         "Duplicates removal method:": "picard",
         "Fastqscreen config path:": "/dummy/fastqscreen.conf",
-        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'atac' else 'no',
-        "Generate GEO submission files?": 'yes' if assay in ['chip', 'rna'] else 'no',
+        "Generate consensus counts from Design merge column? (yes/no)": "yes"
+        if assay == "atac"
+        else "no",
+        "Generate GEO submission files?": "yes" if assay in ["chip", "rna"] else "no",
         "Genome?": "hg38",
-        "Make heatmaps?": 'yes' if assay == 'atac' else 'no',
-        "Make Bigwigs?": 'yes',
-        "Make UCSC hub?": 'yes',
-        "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else '',
-        "Path to bed file with genes.": '',
+        "Make heatmaps?": "yes" if assay == "atac" else "no",
+        "Make Bigwigs?": "yes",
+        "Make UCSC hub?": "yes",
+        "Path to bed file with coordinates for plotting": str(plot_bed)
+        if not assay == "snp"
+        else "",
+        "Path to bed file with genes.": "",
         "Path to reference fasta index:": "dummy_ref.fasta.fai",
         "Path to reference fasta:": "dummy_ref.fasta",
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
-        "Perform fastqscreen?": 'no',
+        "Perform fastqscreen?": "no",
         "Perform plotting?": "yes" if not assay == "snp" else "no",
         "Bigwig method:": "deeptools",
         "Project name?": "test",
         "Quantification method:": "feature_counts",  # default RNA response
-        "Remove blacklist regions?": 'yes',
-        "Remove PCR duplicates?": 'yes',
-        "Run DESeq2?": 'no',
+        "Remove blacklist regions?": "yes",
+        "Remove PCR duplicates?": "yes",
+        "Run DESeq2?": "no",
         "Salmon index path:": "dummy_salmon_index",
-        "Shift ATAC reads?": 'yes',
+        "Shift ATAC reads?": "yes",
         "SNP caller:": "bcftools",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
-        "Generate consensus counts from Design merge column? (yes/no)": 'yes' if assay == 'chip-rx' else 'no',
-        "Do you have spikein? (yes/no)": 'yes' if 'rx' in assay else 'no',
-        "Normalisation method:": 'orlando',
+        "Generate consensus counts from Design merge column? (yes/no)": "yes"
+        if assay == "chip-rx"
+        else "no",
+        "Do you have spikein? (yes/no)": "yes" if "rx" in assay else "no",
+        "Normalisation method:": "orlando",
         "Reference genome:": "hg38",
         "Spikein genome:": "dm6",
     }
@@ -312,7 +318,9 @@ def config_yaml(run_directory, assay_type, monkeypatch, user_inputs):
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    child = pexpect.spawn("seqnado-config", args=[assay_type], encoding='utf-8', cwd=run_directory)
+    child = pexpect.spawn(
+        "seqnado-config", args=[assay_type], encoding="utf-8", cwd=run_directory
+    )
     child.logfile = sys.stdout
 
     input_keys, input_values = list(user_inputs.keys()), list(user_inputs.values())
@@ -365,10 +373,9 @@ def seqnado_run_dir(config_yaml_for_testing):
 
 @pytest.fixture(scope="function")
 def design(seqnado_run_dir, assay_type, assay):
-
     import pandas as pd
 
-    cmd = ["seqnado-design", assay_type, '--merge']
+    cmd = ["seqnado-design", assay_type, "--merge"]
     completed = subprocess.run(" ".join(cmd), shell=True, cwd=seqnado_run_dir)
     assert completed.returncode == 0
 
