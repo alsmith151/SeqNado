@@ -154,6 +154,25 @@ def blacklist(genome_path):
 
     return blacklist_path
 
+@pytest.fixture(scope="function")
+def meth_files(genome_path):
+    meth_fasta = genome_path / "chr21_meth.fa"
+    meth_fasta_fai = genome_path / "chr21_meth.fa.fai"
+
+    if not meth_fasta.exists():
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
+        r = requests.get(url, stream=True)
+        with open(meth_fasta, "wb") as f:
+            f.write(r.content)
+
+    if not meth_fasta_fai.exists():
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
+        r = requests.get(url, stream=True)
+        with open(meth_fasta_fai, "wb") as f:
+            f.write(r.content)
+
+    return meth_fasta, meth_fasta_fai
+
 
 @pytest.fixture(scope="function")
 def assay_type(assay):
@@ -264,10 +283,12 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
 
 
 @pytest.fixture(scope="function")
-def user_inputs(test_data_path, assay, assay_type, plot_bed):
+def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
+    meth_fasta, meth_fasta_fai = meth_files
     prompts = {
         "Bigwig method:": "deeptools",
         "Calculate library complexity?": "yes" if assay == "atac" else "no",
+        "Call methylation?": "yes",
         "Call peaks?": "yes",
         "Call SNPs?": "no",
         "Color by (for UCSC hub):": "samplename",
@@ -280,11 +301,12 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "Make Bigwigs?": "yes",
         "Make heatmaps?": "yes" if assay == "atac" else "no",
         "Make UCSC hub?": "yes",
+        "Methylation assay:": "taps",
         "Normalisation method:": "orlando",
         "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else "",
         "Path to bed file with genes.": "",
-        "Path to reference fasta index:": "dummy_ref.fasta.fai",
-        "Path to reference fasta:": "dummy_ref.fasta",
+        "Path to reference fasta index:": "dummy_ref.fasta.fai" if not assay == "meth" else str(meth_fasta_fai),
+        "Path to reference fasta:": "dummy_ref.fasta" if not assay == "meth" else str(meth_fasta),
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": "no",
