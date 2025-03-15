@@ -74,7 +74,7 @@ def genome_path(test_data_path):
 def genome_index_path(genome_path, assay) -> pathlib.Path:
     if "rna" in assay:
         return genome_path / "STAR_chr21_rna_spikein"
-    elif "meth" not in assay:
+    elif "meth" in assay:
         return genome_path / "bt2_chr21_meth"
     else:
         return genome_path / "bt2_chr21_dm6_chr2L"
