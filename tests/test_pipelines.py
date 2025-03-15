@@ -201,39 +201,53 @@ def snakefile_path(package_path, assay_type):
 def fastqs(test_data_path, assay) -> list[pathlib.Path]:
     path = test_data_path / "fastq"
 
-    if not path.exists():
+    # Ensure the directory exists
+    path.mkdir(parents=True, exist_ok=True)
+
+    tar_path = path.with_suffix(".tar.gz")
+    if not path.exists() or not list(path.glob("*.fastq.gz")):
+        # Download the Fastq tar file
         url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
         r = requests.get(url, stream=True)
+        if r.status_code != 200:
+            pytest.fail(f"Failed to download Fastq files from {url}")
 
-        tar_path = path.with_suffix(".tar.gz")
-
+        # Save tar file
         with open(tar_path, "wb") as f:
             f.write(r.content)
 
+        # Extract Fastq files
         with tarfile.open(tar_path) as tar:
-            tar.extractall(path=path.parent, filter="data")
+            tar.extractall(path=path)  # Extract in correct directory
+        os.remove(tar_path)  # Clean up tar file
 
+    logger.debug(f"Fastq directory: {path}")
+    logger.debug(f"Extracted files: {list(path.glob('*'))}")
+
+    # Match files based on assay type
     match assay:
         case "atac":
             files = list(path.glob("atac*.fastq.gz"))
         case "chip":
-            files = list(path.glob("chip-rx_*.fastq.gz"))
+            files = list(path.glob("chip-rx_input_*.fastq.gz"))
         case "chip-rx":
             files = list(path.glob("chip-rx_*.fastq.gz"))
         case "rna":
             files = list(path.glob("rna_*.fastq.gz"))
         case "rna-rx":
-            files = list(path.glob("rna-spikein*.fastq.gz"))
+            files = list(path.glob("rna-spikein-*.fastq.gz"))
         case "snp":
             files = list(path.glob("snp*.fastq.gz"))
-        case "cat":
-            files = list(path.glob("chip-rx_*.fastq.gz"))
         case "meth":
-            files = list(path.glob("meth*.fastq.gz"))
+            files = list(path.glob("meth-*.fastq.gz"))
+
+    logger.debug(f"Matched Fastq files: {files}")
 
     if not files:
         pytest.fail(f"No Fastq files found for assay {assay} in {path}")
+
     return files
+
 
 @pytest.fixture(scope="function", autouse=True)
 def set_up(seqnado_run_dir, fastqs):
