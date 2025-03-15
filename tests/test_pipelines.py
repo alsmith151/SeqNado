@@ -186,37 +186,53 @@ def snakefile_path(package_path, assay_type):
 
 @pytest.fixture(scope="function", autouse=True)
 def fastqs(test_data_path, assay) -> list[pathlib.Path]:
-    path = test_data_path / "fastq"
+    target_dir = test_data_path / "fastq"
 
-    if not path.exists():
+    if not target_dir.exists():
+        # Create target directory where fastq files will reside.
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        # Download the tarball.
         url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
         r = requests.get(url, stream=True)
-
-        tar_path = path.with_suffix(".tar.gz")
-
+        tar_path = target_dir.parent / "fastq.tar.gz"
         with open(tar_path, "wb") as f:
             f.write(r.content)
 
-        with tarfile.open(tar_path) as tar:
-            tar.extractall(path=path.parent)
+        # Extract the tarball to a temporary directory.
+        temp_extract_dir = target_dir.parent / "temp_fastq_extracted"
+        temp_extract_dir.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(tar_path, "r:gz") as tar:
+            tar.extractall(path=temp_extract_dir)
 
+        # Move all extracted fastq files into the target directory.
+        for fastq_file in temp_extract_dir.rglob("*.fastq.gz"):
+            shutil.move(str(fastq_file), target_dir / fastq_file.name)
+
+        # Clean up temporary directory and tarball.
+        shutil.rmtree(temp_extract_dir)
+        tar_path.unlink()
+
+    # Select fastq files based on the assay type.
     match assay:
         case "atac":
-            files = list(path.glob("atac*.fastq.gz"))
+            files = list(target_dir.glob("atac*.fastq.gz"))
         case "chip":
-            files = list(path.glob("chip-rx_*.fastq.gz"))
+            files = list(target_dir.glob("chip-rx_*.fastq.gz"))
         case "chip-rx":
-            files = list(path.glob("chip-rx_*.fastq.gz"))
+            files = list(target_dir.glob("chip-rx_*.fastq.gz"))
         case "rna":
-            files = list(path.glob("rna_*.fastq.gz"))
+            files = list(target_dir.glob("rna_*.fastq.gz"))
         case "rna-rx":
-            files = list(path.glob("rna-spikein*.fastq.gz"))
+            files = list(target_dir.glob("rna-spikein*.fastq.gz"))
         case "snp":
-            files = list(path.glob("snp*.fastq.gz"))
+            files = list(target_dir.glob("snp*.fastq.gz"))
         case "cat":
-            files = list(path.glob("chip-rx_*.fastq.gz"))
+            files = list(target_dir.glob("chip-rx_*.fastq.gz"))
         case "meth":
-            files = list(path.glob("meth*.fastq.gz"))
+            files = list(target_dir.glob("meth*.fastq.gz"))
+        case _:
+            raise ValueError(f"Unsupported assay: {assay}")
 
     return files
 
