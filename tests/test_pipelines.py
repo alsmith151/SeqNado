@@ -72,8 +72,10 @@ def genome_path(test_data_path):
 
 @pytest.fixture(scope="function")
 def genome_index_path(genome_path, assay) -> pathlib.Path:
-    if "rna" not in assay:
+    if "rna" or "meth" not in assay:
         return genome_path / "bt2_chr21_dm6_chr2L"
+    elif "meth" in assay:
+        return genome_path / "hg38_taps_spikein"
     else:
         return genome_path / "STAR_chr21_rna_spikein"
 
@@ -86,6 +88,8 @@ def index(genome_index_path, genome_path) -> pathlib.Path:
 
     if "bt2" in str(genome_index_path):
         indicies_path = genome_index_path / "bt2_chr21_dm6_chr2L"
+    elif "taps" in str(genome_index_path):
+        indicies_path = genome_index_path / "hg38_taps_spikein/bt2_index"
     else:
         indicies_path = genome_index_path
     if download_index:
@@ -286,7 +290,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed):
         "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else '',
         "Path to bed file with genes.": '',
         "Path to reference fasta index:": "dummy_ref.fasta.fai",
-        "Path to reference fasta:": "dummy_ref.fasta",
+        "Path to reference fasta:": "dummy_ref.fasta" if not assay == "meth" else "hg38_taps_spikein/hg38_taps_spikein.fa",
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": 'no',
