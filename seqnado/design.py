@@ -1256,7 +1256,7 @@ class GEOFiles(BaseModel):
 
 
 class QCFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
     fastq_screen: bool = False
     library_complexity: bool = False
 
