@@ -8,8 +8,8 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, METHOutput, NormGroups
-from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files
+from seqnado.design import Design, NormGroups
+from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files, extract_viewpoints, viewpoint_to_grouped_viewpoint
 
 
 ####################
@@ -43,4 +43,11 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
+VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
+GROUPED_VIEWPOINT_OLIGOS = list(set(viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS).values()))
+
+
+####################
+# Workflow         #
+####################
 
