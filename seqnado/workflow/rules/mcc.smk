@@ -46,7 +46,7 @@ rule viewpoints_to_fasta:
     
     shell:
         """
-        bedtools getfasta -fi {input.genome} -bed {input.bed} -fo {output.fasta} -nameOnly 2> {log} &&
+        bedtools getfasta -fi {input.genome} -bed {input.bed} -fo {output.fasta} -name 2> {log} &&
         cat {output.fasta} | sed -E 's/:+/-/g' > {output.fasta}.tmp &&
         mv {output.fasta}.tmp {output.fasta}
         """
