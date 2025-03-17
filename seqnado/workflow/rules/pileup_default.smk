@@ -4,7 +4,7 @@ from seqnado.helpers import check_options, define_time_requested, define_memory_
 def format_deeptools_options(wildcards, options):
     is_paired = DESIGN.query(wildcards.sample).is_paired
 
-    if not is_paired:
+    if not is_paired or ASSAY == "MCC":
         options = re.sub(r"--extendReads", "", options)
         options = re.sub(r"-e", "", options)
         options = re.sub(r"--samFlagInclude 3", "", options)
