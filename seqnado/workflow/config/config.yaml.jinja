@@ -66,9 +66,12 @@ methylation_assay: "{{methylation_assay}}"
 {% if assay == "snp" %}
 call_snps: "{{call_snps}}"
 snp_calling_method: "{{snp_calling_method}}"
+snp_database: "{{snp_database}}"
+{% endif %}
+
+{% if assay in ["meth", "snp"] %}
 fasta: "{{fasta}}"
 fasta_index: "{{fasta_index}}"
-snp_database: "{{snp_database}}"
 {% endif %}
 
 make_ucsc_hub: "{{make_ucsc_hub}}"
