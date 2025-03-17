@@ -38,7 +38,7 @@ def redefine_viewpoints(samples):
 rule viewpoints_to_fasta:
     input:
         bed=config["viewpoints"],
-        genome=config["genome"]["fasta"],
+        genome=config["fasta"],
     output:
         fasta="seqnado_output/resources/viewpoints.fa",
     log:
@@ -138,7 +138,7 @@ rule align_unmapped_reads_to_genome:
     log:
         "seqnado_output/logs/realign/{sample}.log",
     params:
-        index=config["genome"]["indices"],
+        index=config["genome"]["index"],
         options=check_options(config["bowtie2"]["options"]),
 
     shell:
@@ -153,7 +153,7 @@ rule align_unmapped_reads_to_genome:
 rule combine_genome_mapped_reads:
     input:
         bam1=rules.align_mcc_reads_to_genome.output.bam,
-        bam2=rules.align_unmapped_reads.output.bam,
+        bam2=rules.align_unmapped_reads_to_genome.output.bam,
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     threads: config["samtools"]["threads"]
