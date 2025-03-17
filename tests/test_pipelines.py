@@ -352,7 +352,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
-        "Path to viewpoints file:": mcc_files['viewpoints'] if assay == "mcc" else "",
+        "Path to viewpoints file:": str(mcc_files['viewpoints']) if assay == "mcc" else "",
         "Resolution for MCC cooler files:": "100",
     }
 
