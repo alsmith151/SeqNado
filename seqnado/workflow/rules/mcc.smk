@@ -238,13 +238,19 @@ rule identify_ligation_junctions:
     resources:
         mem="1GB",
     container: None
+    params:
+        outdir="seqnado_output/mcc/{sample}/ligation_junctions/raw/",
     run:
         from mcc import mcc
         import pathlib
-
-        outdir = pathlib.Path(output.pairs)
+        # import logging
+        # FORMAT = '%(levelname)s %(name)s %(asctime)-15s %(filename)s:%(lineno)d %(message)s'
+        # logging.basicConfig(format=FORMAT)
+        # logging.getLogger().setLevel(logging.INFO)
+        
+        outdir = pathlib.Path(params.outdir)
         outdir.mkdir(exist_ok=True, parents=True)
-        mcc.identify_ligation_junctions(input.bam, output.pairs)
+        mcc.identify_ligation_junctions(str(input.bam), str(outdir))
 
 
 rule sort_ligation_junctions:
