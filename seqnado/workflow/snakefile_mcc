@@ -53,8 +53,8 @@ OUTPUT = MCCOutput(
     config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
-    viewpoints=VIEWPOINT_OLIGOS,
-    grouped_viewpoints=GROUPED_VIEWPOINT_OLIGOS,
+    viewpoint_oligos=VIEWPOINT_OLIGOS,
+    viewpoints_grouped=GROUPED_VIEWPOINT_OLIGOS,
     **config
 )
 
