@@ -332,6 +332,9 @@ rule zoomify_cooler:
 
 
 
+ruleorder:
+    combine_genome_mapped_reads > align_paired
+
 
 
 
