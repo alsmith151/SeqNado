@@ -198,6 +198,8 @@ use rule sort_bam as sort_bam_viewpoints with:
         bam="seqnado_output/mcc/{sample}/reporters/raw/{sample}.{viewpoint}.bam",
     output:
         bam=temp("seqnado_output/mcc/{sample}/reporters/sorted/{sample}.{viewpoint}.bam"),
+    log:
+        "seqnado_output/logs/sort_bam/{sample}_{viewpoint}.log",
 
 use rule index_bam as index_bam_viewpoints with:
     input:
@@ -211,6 +213,8 @@ use rule move_bam_to_final_location as move_bam_viewpoints with:
     output:
         bam="seqnado_output/mcc/{sample}/reporters/{sample}.{viewpoint}.bam",
         bai="seqnado_output/mcc/{sample}/reporters/{sample}.{viewpoint}.bam.bai",
+    log:
+        "seqnado_output/logs/move_bam/{sample}_{viewpoint}.log",
 
 use rule deeptools_make_bigwigs as deeptools_make_bigwigs_mcc_replicates with:
     input:
@@ -218,6 +222,8 @@ use rule deeptools_make_bigwigs as deeptools_make_bigwigs_mcc_replicates with:
         bai="seqnado_output/mcc/{sample}/reporters/{sample}.{viewpoint}.bam.bai",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
+    log:
+        "seqnado_output/logs/deeptools_bigwig/{sample}_{viewpoint}.log",
 
 
 checkpoint identify_ligation_junctions:
@@ -272,7 +278,7 @@ rule make_genomic_bins:
     input:
         chrom_sizes=config["genome"]["chromosome_sizes"],
     params:
-        bin_size=config["bin_size"],
+        bin_size=config["resolution"],
     output:
         bed="seqnado_output/resources/genomic_bins.bed",
     log:
