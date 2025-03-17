@@ -61,7 +61,7 @@ OUTPUT = RNAOutput(
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
     run_deseq2=RUN_DESEQ2,
-    scale_method="spikein" if config["spikein"] else None,
+    scale_method="spikein" if config.get("spikein") else None,
     **config
 )
 
