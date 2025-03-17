@@ -344,3 +344,35 @@ def run_batch_job_on_error(email: str):
         subprocess.run(["sbatch", "error_notification.sh"], check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to submit slurm job: {e}")
+
+
+def extract_viewpoints(config: Dict) -> List[str]:
+    """
+    Extracts the viewpoints from the config.
+    """
+    import pyranges as pr
+    
+    bed = config['viewpoints']
+    viewpoints = pr.read_bed(bed)
+    viewpoints = set(viewpoints.df['Name'].tolist())
+    return viewpoints
+
+
+def viewpoint_to_grouped_viewpoint(viewpoints: List[str]) -> Dict[str, str]:
+    """
+    Groups the viewpoints that consist of multiple oligos into a dictionary.
+    """
+    import re
+
+    regex = re.compile(r"(.*?)-chr([0-9]+|X|Y|M|MT)-\d+-\d+$")
+    viewpoint_to_grouped_mapping = {}
+
+    for viewpoint in viewpoints:
+        match = regex.match(viewpoint)
+        if match:
+            viewpoint_name = match.group(1)
+            viewpoint_to_grouped_mapping[viewpoint] = viewpoint_name
+    
+    return viewpoint_to_grouped_mapping
+
+
