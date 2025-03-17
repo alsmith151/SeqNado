@@ -1290,7 +1290,7 @@ class QCFiles(BaseModel):
 
 
 class BigWigFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", 'MCC']
     names: List[str]
     pileup_method: Union[
         Literal["deeptools", "homer", False],
