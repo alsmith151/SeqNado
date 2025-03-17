@@ -1943,6 +1943,54 @@ class METHOutput(Output):
         return files
 
 
+class MCCOutput(Output):
+    assay: Literal["MCC"]
+    sample_names: List[str]
+    
+    viewpoint_oligos: List[str]
+    viewpoints_grouped: List[str]
+
+    config: dict
+    genomes: List[str]
+    make_ucsc_hub: bool = False
+
+    resolutions: List[int] = [100]
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @property
+    def cooler_files(self) -> List[str]:
+        return expand(
+            "seqnado_output/mcc/{sample}/{viewpoint}.mcool",
+            sample=self.sample_names,
+            viewpoint=self.viewpoints_grouped,
+        )
+
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.cooler_files,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        return files
+
+
 
 class Molecule(Enum):
     rna_total = "total RNA"
