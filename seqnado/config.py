@@ -23,7 +23,7 @@ class GenomeConfig(BaseModel):
 
 class WorkflowConfig(BaseModel):
     # Core Configuration
-    assay: Literal["rna", "chip", "atac", "snp", "cat", "meth"]
+    assay: Literal["rna", "chip", "atac", "snp", "cat", "meth", 'mcc']
     username: str
     project_date: str
     project_name: str
@@ -217,6 +217,13 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     if assay == "atac":
         features["shift_atac_reads"] = get_user_input("Shift ATAC reads?", default="yes", is_boolean=True)
     
+    # MCC-Specific Logic
+    if assay == "mcc":
+        features['viewpoints'] = get_user_input("Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=True)
+        features['resolution'] = get_user_input("Resolution for MCC cooler files:", default="100")
+
+
+    
     # Spike-in Normalisation
     if assay in ["chip", "rna", 'cat']:
         features["spikein"] = get_user_input(
@@ -320,6 +327,7 @@ def get_tool_options(assay: str) -> str:
         "rna": TOOL_OPTIONS_RNA,
         "snp": TOOL_OPTIONS_SNP,
         "meth": TOOL_OPTIONS_METH,
+        "mcc": TOOL_OPTIONS
     }.get(assay, "")
 
 # Template Rendering
