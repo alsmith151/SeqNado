@@ -1958,7 +1958,6 @@ class MCCOutput(Output):
     viewpoints_grouped: List[str]
 
     config: dict
-    genomes: List[str]
     make_ucsc_hub: bool = False
 
     resolutions: List[int] = [100]
