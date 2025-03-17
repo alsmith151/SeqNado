@@ -20,6 +20,7 @@ class GenomeConfig(BaseModel):
     gtf: str
     blacklist: Optional[str] = None
     genes: Optional[str] = None
+    fasta: Optional[str] = None
 
 class WorkflowConfig(BaseModel):
     # Core Configuration
@@ -71,6 +72,10 @@ class WorkflowConfig(BaseModel):
     fasta_index: Optional[str] = None
     snp_database: Optional[str] = None
     
+    # Methylation-Specific
+    call_methylation: bool = False
+    methylation_assay: Literal["taps", "bisulfite", "False"] = "False"
+
     # UCSC Hub
     make_ucsc_hub: bool = False
     UCSC_hub_directory: str = "seqnado_output/hub/"
@@ -280,7 +285,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
         features["call_snps"] = get_user_input("Call SNPs?", default="no", is_boolean=True)
         if features["call_snps"]:
             features["snp_calling_method"] = get_user_input("SNP caller:", choices=["bcftools", "deepvariant"], default="bcftools")
-            features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=True)
+            features["fasta"] = genome_config.fasta if genome_config.fasta else get_user_input("Path to reference fasta:", default='no')
             features["fasta_index"] = get_user_input("Path to reference fasta index:", default="path/to/reference.fasta.fai", is_path=True)
             features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database", is_path=True)
     
@@ -288,7 +293,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     if assay == "meth":
         features["call_methylation"] = get_user_input("Call methylation?", default="no", is_boolean=True)
         if features["call_methylation"]:
-            features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=True)
+            features["fasta"] = genome_config.fasta if genome_config.fasta else get_user_input("Path to reference fasta:", default='no')
             features["methylation_assay"] = get_user_input("Methylation assay:", choices=["taps", "bisulfite"], default="taps")
 
     # Consensus Counts
