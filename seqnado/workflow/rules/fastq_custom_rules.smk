@@ -23,8 +23,8 @@ rule deduplicate_fastq_raw:
 
 rule flash:
     input:
-        fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
-        fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
+        fq1="seqnado_output/deduplicated/{sample}/{sample}_1.fastq.gz",
+        fq2="seqnado_output/deduplicated/{sample}/{sample}_2.fastq.gz",
     output:
         flashed=temp("seqnado_output/flashed/{sample}/{sample}.extendedFrags.fastq.gz"),
         pe1=temp("seqnado_output/flashed/{sample}/{sample}.notCombined_1.fastq.gz"),
