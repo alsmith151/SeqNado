@@ -226,12 +226,12 @@ use rule deeptools_make_bigwigs as deeptools_make_bigwigs_mcc_replicates with:
         "seqnado_output/logs/deeptools_bigwig/{sample}_{viewpoint}.log",
 
 
-checkpoint identify_ligation_junctions:
+rule identify_ligation_junctions:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
     output:
-        pairs=directory("seqnado_output/mcc/{sample}/ligation_junctions/raw/"),
+        pairs=expand("seqnado_output/mcc/{{sample}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=VIEWPOINT_OLIGOS),
     log:
         "seqnado_output/logs/ligation_junctions/{sample}.log",
     threads: 1
