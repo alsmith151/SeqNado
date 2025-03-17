@@ -351,9 +351,27 @@ def extract_viewpoints(viewpoints_path: str) -> List[str]:
     Extracts the viewpoints from the config.
     """
     import pyranges as pr
-    
+    import numpy as np
+
     viewpoints = pr.read_bed(viewpoints_path)
-    viewpoints = set(viewpoints.df['Name'].tolist())
+
+    df = viewpoints.df
+
+    df = df.assign(
+        viewpoint=lambda df: np.where(
+            df["Name"].str.contains(r"-chr.*?-\d+-d+$"),
+            df["Name"],
+            df["Name"]
+            + "-"
+            + df["Chromosome"].astype(str)
+            + "-"
+            + df["Start"].astype(str)
+            + "-"
+            + df["End"].astype(str),
+        )
+    )
+
+    viewpoints = set(df["viewpoint"].tolist())
     return viewpoints
 
 
@@ -363,15 +381,13 @@ def viewpoint_to_grouped_viewpoint(viewpoints: List[str]) -> Dict[str, str]:
     """
     import re
 
-    regex = re.compile(r"(.*?)-chr([0-9]+|X|Y|M|MT)-\d+-\d+$")
+    has_coordinate = re.compile(r"(.*?)-chr([0-9]+|X|Y|M|MT)-\d+-\d+$")
     viewpoint_to_grouped_mapping = {}
 
     for viewpoint in viewpoints:
-        match = regex.match(viewpoint)
-        if match:
-            viewpoint_name = match.group(1)
+        has_coordinate_match = has_coordinate.match(viewpoint)
+        if has_coordinate_match:
+            viewpoint_name = has_coordinate_match.group(1)
             viewpoint_to_grouped_mapping[viewpoint] = viewpoint_name
-    
+
     return viewpoint_to_grouped_mapping
-
-
