@@ -26,7 +26,7 @@ logger.add(sys.stderr, level="DEBUG")
 
 @pytest.fixture(
     scope="function",
-    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp", "cat", "meth"],
+    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp", "cat", "meth", "mcc"],
     autouse=True,
 )
 def assay(request):
@@ -179,6 +179,13 @@ def meth_files(genome_path):
 
 
 @pytest.fixture(scope="function")
+def mcc_files(genome_path):
+    files = dict()
+    files['viewpoints'] = genome_path / "mcc_viewpoints.bed"
+
+    return files
+
+@pytest.fixture(scope="function")
 def assay_type(assay):
     return re.sub(r"(.*)\-.*", r"\1", assay)
 
@@ -235,6 +242,8 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             files = list(target_dir.glob("chip-rx_*.fastq.gz"))
         case "meth":
             files = list(target_dir.glob("meth*.fastq.gz"))
+        case "mcc":
+            files = list(target_dir.glob("mcc*.fastq.gz"))
         case _:
             raise ValueError(f"Unsupported assay: {assay}")
 
@@ -303,7 +312,7 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
 
 
 @pytest.fixture(scope="function")
-def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
+def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_files):
     meth_fasta, meth_fasta_fai = meth_files
     prompts = {
         "Bigwig method:": "deeptools",
@@ -343,6 +352,8 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
         "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
+        "Path to viewpoints file:": mcc_files['viewpoints'] if assay == "mcc" else "",
+        "Resolution for MCC cooler files:": "100",
     }
 
     return prompts
