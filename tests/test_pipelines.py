@@ -343,7 +343,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else "",
         "Path to bed file with genes.": "",
         "Path to reference fasta index:": "dummy_ref.fasta.fai" if not assay == "meth" else str(meth_fasta_fai),
-        "Path to reference fasta:": "dummy_ref.fasta" if not assay == "meth" else str(meth_fasta),
+        "Path to reference fasta:": "dummy_ref.fasta" if assay not in ["meth", 'mcc'] else str(meth_fasta),
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": "no",
