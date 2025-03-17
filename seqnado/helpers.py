@@ -346,14 +346,13 @@ def run_batch_job_on_error(email: str):
         logger.error(f"Failed to submit slurm job: {e}")
 
 
-def extract_viewpoints(config: Dict) -> List[str]:
+def extract_viewpoints(viewpoints_path: str) -> List[str]:
     """
     Extracts the viewpoints from the config.
     """
     import pyranges as pr
     
-    bed = config['viewpoints']
-    viewpoints = pr.read_bed(bed)
+    viewpoints = pr.read_bed(viewpoints_path)
     viewpoints = set(viewpoints.df['Name'].tolist())
     return viewpoints
 
