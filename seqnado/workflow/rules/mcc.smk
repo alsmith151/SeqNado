@@ -170,14 +170,14 @@ rule combine_genome_mapped_reads:
         mv {output.bam}_sorted {output.bam}
         """
 
-checkpoint identify_viewpoint_reads:
+rule identify_viewpoint_reads:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
     output:
-        bams=directory("seqnado_output/mcc/{sample}/reporters/raw/"),
+        bams=expand("seqnado_output/mcc/{{sample}}/reporters/raw/{viewpoint}.bam", viewpoint=VIEWPOINT_OLIGOS),
     params:
-        output_dir=lambda wc, output: str(pathlib.Path(output.bams).parent.absolute()),
+        output_dir="seqnado_output/mcc/{sample}/reporters/raw/",
     threads: 1
     resources:
         mem="1GB",
@@ -195,31 +195,32 @@ checkpoint identify_viewpoint_reads:
 
 use rule sort_bam as sort_bam_viewpoints with:
     input:
-        bam="seqnado_output/mcc/{sample}/reporters/raw/{sample}.{viewpoint}.bam",
+        bam="seqnado_output/mcc/{sample}/reporters/raw/{viewpoint}.bam",
     output:
-        bam=temp("seqnado_output/mcc/{sample}/reporters/sorted/{sample}.{viewpoint}.bam"),
+        bam=temp("seqnado_output/mcc/{sample}/reporters/sorted/{viewpoint}.bam"),
     log:
         "seqnado_output/logs/sort_bam/{sample}_{viewpoint}.log",
 
 use rule index_bam as index_bam_viewpoints with:
     input:
-        bam="seqnado_output/mcc/{sample}/reporters/sorted/{sample}.{viewpoint}.bam",
+        bam="seqnado_output/mcc/{sample}/reporters/sorted/{viewpoint}.bam",
     output:
-        bai=temp("seqnado_output/mcc/{sample}/reporters/sorted/{sample}.{viewpoint}.bam.bai"),
+        bai=temp("seqnado_output/mcc/{sample}/reporters/sorted/{viewpoint}.bam.bai"),
 
 use rule move_bam_to_final_location as move_bam_viewpoints with:
     input:
-        bam="seqnado_output/mcc/{sample}/reporters/sorted/{sample}.{viewpoint}.bam",
+        bam="seqnado_output/mcc/{sample}/reporters/sorted/{viewpoint}.bam",
+        bai="seqnado_output/mcc/{sample}/reporters/sorted/{viewpoint}.bam.bai",
     output:
-        bam="seqnado_output/mcc/{sample}/reporters/{sample}.{viewpoint}.bam",
-        bai="seqnado_output/mcc/{sample}/reporters/{sample}.{viewpoint}.bam.bai",
+        bam="seqnado_output/mcc/{sample}/reporters/{viewpoint}.bam",
+        bai="seqnado_output/mcc/{sample}/reporters/{viewpoint}.bam.bai",
     log:
         "seqnado_output/logs/move_bam/{sample}_{viewpoint}.log",
 
 use rule deeptools_make_bigwigs as deeptools_make_bigwigs_mcc_replicates with:
     input:
-        bam="seqnado_output/mcc/{sample}/reporters/{sample}.{viewpoint}.bam",
-        bai="seqnado_output/mcc/{sample}/reporters/{sample}.{viewpoint}.bam.bai",
+        bam="seqnado_output/mcc/{sample}/reporters/{viewpoint}.bam",
+        bai="seqnado_output/mcc/{sample}/reporters/{viewpoint}.bam.bai",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
     log:
