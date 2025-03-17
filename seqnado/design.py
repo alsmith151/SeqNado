@@ -1487,7 +1487,7 @@ class PlotFiles(BaseModel):
 
 
 class Output(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "MCC"]
     config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
@@ -1974,6 +1974,9 @@ class MCCOutput(Output):
             viewpoint=self.viewpoints_grouped,
         )
 
+    @property
+    def peaks(self):
+        return []
 
     @computed_field
     @property
