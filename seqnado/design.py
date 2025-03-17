@@ -1971,7 +1971,7 @@ class MCCOutput(Output):
         return expand(
             "seqnado_output/mcc/{sample}/{viewpoint}.mcool",
             sample=self.sample_names,
-            viewpoint=self.viewpoints_grouped,
+            viewpoint=self.viewpoint_oligos,
         )
 
     @property
