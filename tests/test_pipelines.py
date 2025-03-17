@@ -360,7 +360,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
-        "Path to viewpoints file:": str(mcc_files['viewpoints']) if assay == "mcc" else "",
+        "Path to viewpoints file: (default: path/to/viewpoints.bed):": str(mcc_files['viewpoints']) if assay == "mcc" else "",
         "Resolution for MCC cooler files:": "100",
     }
 
@@ -377,7 +377,7 @@ def config_yaml(run_directory, assay_type, monkeypatch, user_inputs):
     child = pexpect.spawn(
         "seqnado-config", args=[assay_type], encoding="utf-8", cwd=run_directory
     )
-    child.logfile = sys.stdout
+    # child.logfile = sys.stdout
 
     input_keys, input_values = list(user_inputs.keys()), list(user_inputs.values())
 
