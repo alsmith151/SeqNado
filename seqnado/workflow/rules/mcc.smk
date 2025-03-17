@@ -293,7 +293,7 @@ rule make_genomic_bins:
         None
     shell:
         """
-        cooler makebins {input.chrom_sizes} {params.bin_size} > {output.bed}
+        cooler makebins {input.chrom_sizes} {params.bin_size} > {output.bed} 2> {log}
         """
 
 
@@ -316,7 +316,7 @@ rule make_cooler:
         {input.pairs} \
         {output.cooler} \
         --assembly {params.genome} \
-        -c1 2 -p1 3 -c2 4 -p2 5  > 2>$1 {log}
+        -c1 2 -p1 3 -c2 4 -p2 5 > {log} 2>&1
         """
 
 rule zoomify_cooler:
@@ -327,11 +327,11 @@ rule zoomify_cooler:
     log:
         "seqnado_output/logs/zoomify_cooler/{sample}_{viewpoint}.log",
     params:
-        resolutions=config.get("resolutions", [100, 1000, 10000]),
+        resolutions=",".join([str(r) for r in config.get("resolutions", [100, 1000, 10000])]),
     container: None
     shell:
         """
-        cooler zoomify {input.cooler} {output.cooler} {params.resolutions} > {log}
+        cooler zoomify {input.cooler} -r {params.resolutions} -o {output.cooler} > {log} 2>&1
         """
 
 
