@@ -158,6 +158,7 @@ def blacklist(genome_path):
 
     return blacklist_path
 
+
 @pytest.fixture(scope="function")
 def meth_files(genome_path):
     meth_fasta = genome_path / "chr21_meth.fa"
@@ -253,7 +254,9 @@ def run_directory(tmpdir_factory, assay):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatch):
+def run_init(
+    index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatch, meth_files
+):
     """
     Runs seqnado-init before each test inside the test directory.
     Ensures genome_config.json is correctly written.
@@ -284,6 +287,8 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
             "star_index": "NA",
             "bt2_index": str(index),
         }
+
+    meth_fasta, _ = meth_files
     genome_config_dict = {
         "hg38": {
             "star_index": index_dict["star_index"],
@@ -291,6 +296,8 @@ def run_init(index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatc
             "chromosome_sizes": str(chromsizes),
             "gtf": str(gtf),
             "blacklist": str(blacklist),
+            "genes": "",
+            "fasta": str(meth_fasta) if assay == "meth" else "",
         }
     }
     with open(genome_config_file, "w") as f:
@@ -315,7 +322,9 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
         "Do you have spikein? (yes/no)": "yes" if "rx" in assay else "no",
         "Duplicates removal method:": "picard",
         "Fastqscreen config path:": "/dummy/fastqscreen.conf",
-        "Generate consensus counts from Design merge column? (yes/no)": "yes" if assay in ["atac", "chip-rx"] else "no",
+        "Generate consensus counts from Design merge column? (yes/no)": "yes"
+        if assay in ["atac", "chip-rx"]
+        else "no",
         "Generate GEO submission files?": "yes" if assay in ["chip", "rna"] else "no",
         "Genome?": "hg38",
         "Make Bigwigs?": "yes",
@@ -323,10 +332,16 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
         "Make UCSC hub?": "yes",
         "Methylation assay:": "taps",
         "Normalisation method:": "orlando",
-        "Path to bed file with coordinates for plotting": str(plot_bed) if not assay == "snp" else "",
+        "Path to bed file with coordinates for plotting": str(plot_bed)
+        if not assay == "snp"
+        else "",
         "Path to bed file with genes.": "",
-        "Path to reference fasta index:": "dummy_ref.fasta.fai" if not assay == "meth" else str(meth_fasta_fai),
-        "Path to reference fasta:": "dummy_ref.fasta" if not assay == "meth" else str(meth_fasta),
+        "Path to reference fasta index:": "dummy_ref.fasta.fai"
+        if not assay == "meth"
+        else str(meth_fasta_fai),
+        "Path to reference fasta:": "dummy_ref.fasta"
+        if not assay == "meth"
+        else str(meth_fasta),
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": "no",
