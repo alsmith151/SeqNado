@@ -219,7 +219,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     
     # MCC-Specific Logic
     if assay == "mcc":
-        features['viewpoints'] = get_user_input("Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=True)
+        features['viewpoints'] = get_user_input("Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=False)
         features['resolution'] = get_user_input("Resolution for MCC cooler files:", default="100")
 
 
