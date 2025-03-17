@@ -67,13 +67,15 @@ class WorkflowConfig(BaseModel):
     # SNP-Specific
     call_snps: bool = False
     snp_calling_method: Literal["bcftools", "deepvariant", "False"] = "False"
-    fasta: Optional[str] = None
-    fasta_index: Optional[str] = None
     snp_database: Optional[str] = None
 
     # MCC-Specific
     viewpoints: Optional[str] = None
     resolution: Optional[int] = 100
+
+    # For MCC and SNP
+    fasta: Optional[str] = None
+    fasta_index: Optional[str] = None
     
     # UCSC Hub
     make_ucsc_hub: bool = False
@@ -224,6 +226,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     # MCC-Specific Logic
     if assay == "mcc":
         features['viewpoints'] = get_user_input("Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=False)
+        features['fasta'] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=False)
         features['resolution'] = get_user_input("Resolution for MCC cooler files:", default="100")
     
     # Spike-in Normalisation
