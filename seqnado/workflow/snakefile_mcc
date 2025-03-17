@@ -46,8 +46,6 @@ SAMPLE_NAMES = DESIGN.sample_names
 VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
 GROUPED_VIEWPOINT_OLIGOS = list(set(viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS).values()))
 
-
-
 OUTPUT = MCCOutput(
     assay=ASSAY,
     config=config,
@@ -57,6 +55,14 @@ OUTPUT = MCCOutput(
     viewpoints_grouped=GROUPED_VIEWPOINT_OLIGOS,
     **config
 )
+
+
+# Wilcard constraints
+wildcard_constraints:
+    sample="|".join(SAMPLE_NAMES),
+    viewpoint="|".join([*VIEWPOINT_OLIGOS,  *GROUPED_VIEWPOINT_OLIGOS]),
+
+
 
 ###################
 # Pipeline config #
