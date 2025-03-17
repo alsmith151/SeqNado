@@ -14,44 +14,62 @@ genome:
     chromosome_sizes: "{{chromosome_sizes}}"
     gtf: "{{gtf}}"
 
+
 fastq_screen: "{{fastq_screen}}"
 fastq_screen_config: "{{fastq_screen_config}}"
 library_complexity: "{{library_complexity}}"
 remove_blacklist: "{{remove_blacklist}}"
 blacklist: "{{blacklist}}"
-
 remove_pcr_duplicates_method: "{{remove_pcr_duplicates_method}}"
 
-shift_atac_reads: "{{shift_atac_reads}}"
+{% if assay == "mcc" %}
+viewpoints: "{{viewpoints}}"
+resolution: "{{resolution}}"
+{% endif %}
 
+{% if assay in ["atac", "cat"] %}
+shift_atac_reads: "{{shift_atac_reads}}"
+{% endif %}
+
+
+{% if spikein %}
 spikein: "{{spikein}}"
 spikein_options:
     normalisation_method: "{{normalisation_method}}"
     reference_genome: "{{reference_genome}}"
     spikein_genome: "{{spikein_genome}}"
+{% endif %}
 
 make_bigwigs: "{{make_bigwigs}}"  
 scale: "{{scale}}"
 pileup_method: "{{pileup_method}}"
 make_heatmaps: "{{make_heatmaps}}"
 
+{% if assay != "rna" %}
 call_peaks: "{{call_peaks}}"
 peak_calling_method: "{{peak_calling_method}}"
+{% endif %}
 
 consensus_counts: "{{consensus_counts}}"
+
+{% if assay == "rna" %}
 rna_quantification: "{{rna_quantification}}"
 salmon_index: "{{salmon_index}}"
-
 run_deseq2: "{{run_deseq2}}"
+{% endif %}
 
+{% if assay == "meth" %}
 call_methylation: "{{call_methylation}}"
 methylation_assay: "{{methylation_assay}}"
+{% endif %}
 
+{% if assay == "snp" %}
 call_snps: "{{call_snps}}"
 snp_calling_method: "{{snp_calling_method}}"
 fasta: "{{fasta}}"
 fasta_index: "{{fasta_index}}"
 snp_database: "{{snp_database}}"
+{% endif %}
 
 make_ucsc_hub: "{{make_ucsc_hub}}"
 ucsc_hub_details:
@@ -61,6 +79,7 @@ ucsc_hub_details:
     long: "{{project_name}}"
     email: "{{email}}"
     color_by: "{{color_by}}"
+
 
 geo_submission_files: "{{geo_submission_files}}"
 
