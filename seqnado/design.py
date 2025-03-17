@@ -1978,6 +1978,14 @@ class MCCOutput(Output):
     def peaks(self):
         return []
 
+    @property
+    def bigwigs(self):
+        return expand(
+            "seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
+            sample=self.sample_names,
+            viewpoint=self.viewpoint_oligos,
+        )
+
     @computed_field
     @property
     def files(self) -> List[str]:
@@ -1992,6 +2000,7 @@ class MCCOutput(Output):
 
         for file_list in (
             self.cooler_files,
+            self.bigwigs,
             self.design,
         ):
             if file_list:
