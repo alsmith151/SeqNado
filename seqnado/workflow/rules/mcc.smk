@@ -128,7 +128,7 @@ use rule align_single as align_mcc_reads_to_genome with:
 
 rule align_unmapped_reads_to_genome:
     input:
-        bam="seqnado_output/aligned/raw/{sample}.bam",
+        bam="seqnado_output/aligned/initial_alignment/{sample}.bam",
     output:
         bam=temp("seqnado_output/aligned/second_alignment/{sample}.bam"),
         bai=temp("seqnado_output/aligned/second_alignment/{sample}.bam.bai"),
