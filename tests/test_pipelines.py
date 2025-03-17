@@ -181,6 +181,14 @@ def meth_files(genome_path):
 @pytest.fixture(scope="function")
 def mcc_files(genome_path):
     files = dict()
+    
+    
+    url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/test_viewpoints.bed"
+    r = requests.get(url, stream=True)
+    mcc_viewpoints = genome_path / "mcc_viewpoints.bed"
+    with open(mcc_viewpoints, "wb") as f:
+        f.write(r.content)
+    
     files['viewpoints'] = genome_path / "mcc_viewpoints.bed"
 
     return files
@@ -204,7 +212,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
         target_dir.mkdir(parents=True, exist_ok=True)
 
         # Download the tarball.
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/fastq.tar.gz"
         r = requests.get(url, stream=True)
         tar_path = target_dir.parent / "fastq.tar.gz"
         with open(tar_path, "wb") as f:
