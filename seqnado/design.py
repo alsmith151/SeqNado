@@ -1459,15 +1459,22 @@ class PlotFiles(BaseModel):
         import pyranges as pr
 
         plots = []
-        coords = pr.read_bed(str(self.plotting_coordinates))
-        outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
-        for region in coords.df.itertuples():
-            fig_name = (
-                f"{region.Chromosome}-{region.Start}-{region.End}"
-                if not hasattr(region, "Name") and not region.Name
-                else region.Name
+
+        try:
+            coords = pr.read_bed(str(self.plotting_coordinates))
+            outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
+            for region in coords.df.itertuples():
+                fig_name = (
+                    f"{region.Chromosome}-{region.Start}-{region.End}"
+                    if not hasattr(region, "Name") and not region.Name
+                    else region.Name
+                )
+                plots.append(outdir / f"{fig_name}.{self.plotting_format}")
+        
+        except FileNotFoundError:
+            logger.warning(
+                f"Could not find plotting coordinates file: {self.plotting_coordinates}"
             )
-            plots.append(outdir / f"{fig_name}.{self.plotting_format}")
 
         return plots
 
