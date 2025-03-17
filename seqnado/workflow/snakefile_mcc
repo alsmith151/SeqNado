@@ -8,7 +8,7 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, NormGroups
+from seqnado.design import Design, NormGroups, MCCOutput
 from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files, extract_viewpoints, viewpoint_to_grouped_viewpoint
 
 
@@ -47,7 +47,45 @@ VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
 GROUPED_VIEWPOINT_OLIGOS = list(set(viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS).values()))
 
 
-####################
-# Workflow         #
-####################
+
+OUTPUT = MCCOutput(
+    assay=ASSAY,
+    config=config,
+    run_design=DESIGN,
+    sample_names=SAMPLE_NAMES,
+    viewpoints=VIEWPOINT_OLIGOS,
+    grouped_viewpoints=GROUPED_VIEWPOINT_OLIGOS,
+    **config
+)
+
+###################
+# Pipeline config #
+###################
+
+include: "rules/common.smk"
+include: "rules/fastq_trim.smk"
+include: "rules/fastq_custom_rules.smk"
+include: "rules/align.smk"
+include: "rules/alignment_post_processing.smk"
+include: "rules/qc.smk"
+include: "rules/hub.smk"
+include: "rules/mcc.smk"
+
+
+
+rule all:
+    input:
+        OUTPUT.files
+
+onsuccess:
+    remove_unwanted_run_files()
+
+onerror:
+    log_out = "seqnado_error.log"
+    shutil.copyfile(log, log_out)
+    print(
+        f"An error occurred. Please check the log file {log_out} for more information."
+    )
+    remove_unwanted_run_files()
+
 
