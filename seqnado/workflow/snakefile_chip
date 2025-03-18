@@ -83,7 +83,7 @@ include: "rules/visualisation.smk"
 include: "rules/consensus_counts.smk"
 
 
-if config["spikein"]:
+if config.get("spikein"):
     ruleorder: move_ref_bam > align_paired > align_single
     ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
 else:

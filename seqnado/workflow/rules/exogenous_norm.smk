@@ -71,8 +71,8 @@ rule split_bam:
         exo_bam=temp("seqnado_output/aligned/spikein/{sample}_exo.bam"),
         stats="seqnado_output/aligned/spikein/{sample}_stats.tsv",
     params:
-        genome_prefix=config["spikein_options"]["reference_genome"],
-        exo_prefix=config["spikein_options"]["spikein_genome"],
+        genome_prefix=config.get("spikein_options", {}).get("reference_genome"),
+        exo_prefix=config.get("spikein_options", {}).get("spikein_genome"),
         prefix="seqnado_output/aligned/spikein/{sample}",
         map_qual=30,
     log:
@@ -97,7 +97,7 @@ rule move_ref_bam:
     """
 
 
-if config["spikein_options"]["normalisation_method"] == "orlando":
+if config.get("spikein_options", {}).get("normalisation_method") == "orlando":
 
     rule calculate_normalisation_factors:
         input:
@@ -113,7 +113,7 @@ if config["spikein_options"]["normalisation_method"] == "orlando":
         script:
             "../scripts/calculate_spikein_norm_orlando.py"
 
-elif config["spikein_options"]["normalisation_method"] == "with_input":
+elif config.get("spikein_options", {}).get("normalisation_method") == "with_input":
 
     rule calculate_normalisation_factors:
         input:

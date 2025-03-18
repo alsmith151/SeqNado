@@ -6,3 +6,4 @@ rule save_design:
         None
     run:
         DESIGN.to_dataframe().to_csv("seqnado_output/design.csv", index=False)
+
