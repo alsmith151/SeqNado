@@ -33,7 +33,7 @@ jobs:
       - name: Install package
         shell: pwsh
         run: |
-          pip install .[mcc]
+          pip install .
       - name: Cache singularity
         if: matrix.test == 'pipeline'
         id: cache-singularity
