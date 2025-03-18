@@ -1,0 +1,42 @@
+BootStrap: docker
+From: python:3.12.9-alpine
+
+
+%files
+    MCCNado
+
+%post
+
+    # Install required packages
+    apk add --update --no-cache curl git musl-dev gcc pkgconfig hdf5-dev
+
+    # # Install Rust
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    . "$HOME/.cargo/env"
+
+    cargo --help
+
+    # Install packages required
+    pip install uv
+    uv pip install maturin --system
+
+
+    # Use uv to install required packages
+    # git clone https://github.com/alsmith151/MCCNado.git
+    cd MCCNado
+    uv pip install . cooler --system
+
+    # Cleanup
+    uv cache clean
+    rustup self uninstall -y
+
+    # Remove packages
+    apk del --no-cache curl git musl-dev gcc pkgconfig 
+
+
+    
+
+
+
+
+
