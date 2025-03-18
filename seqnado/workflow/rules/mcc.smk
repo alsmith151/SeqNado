@@ -89,7 +89,7 @@ rule minimap2_to_viewpoints:
     threads: 4
     resources:
         mem="4GB",
-    container: None
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
     log:
         "seqnado_output/logs/aligned/{sample}.log",
     shell:
@@ -112,7 +112,7 @@ rule split_reads_aligned_to_viewpoints:
         mem="1GB",
     log:
         "seqnado_output/logs/split_reads/{sample}.log",
-    container: None
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
     run:
         from mcc import mcc        
         
@@ -183,7 +183,7 @@ rule identify_viewpoint_reads:
         mem="1GB",
     log:
         "seqnado_output/logs/split_genomic_reads/{sample}.log",
-    container: None
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
     run:
         from mcc import mcc
         import pathlib
@@ -294,7 +294,7 @@ rule identify_ligation_junctions:
     threads: 1
     resources:
         mem="1GB",
-    container: None
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
     params:
         outdir="seqnado_output/mcc/{sample}/ligation_junctions/raw/",
     run:
@@ -347,7 +347,7 @@ rule make_genomic_bins:
     log:
         "seqnado_output/logs/genomic_bins.log",
     container:
-        None
+        "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
         cooler makebins {input.chrom_sizes} {params.bin_size} > {output.bed} 2> {log}
