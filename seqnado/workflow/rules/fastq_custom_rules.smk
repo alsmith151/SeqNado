@@ -40,7 +40,7 @@ rule flash:
     threads: 16
     resources:
         mem_mb=1000,
-    container:  "docker://pegi3s/flash"
+    container:  "library://asmith151/seqnado/seqnado_mcc:latest"
     log:
         "seqnado_output/logs/flash/{sample}.log",
     shell:
