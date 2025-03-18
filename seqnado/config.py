@@ -20,10 +20,11 @@ class GenomeConfig(BaseModel):
     gtf: str
     blacklist: Optional[str] = None
     genes: Optional[str] = None
+    fasta: Optional[str] = None
 
 class WorkflowConfig(BaseModel):
     # Core Configuration
-    assay: Literal["rna", "chip", "atac", "snp", "cat"]
+    assay: Literal["rna", "chip", "atac", "snp", "cat", "meth", 'mcc']
     username: str
     project_date: str
     project_name: str
@@ -55,7 +56,9 @@ class WorkflowConfig(BaseModel):
     make_heatmaps: bool = False
     call_peaks: bool = False
     peak_calling_method: Literal["lanceotron", "macs", "homer", "seacr", "False"] = "False"
-    consenus_counts: bool = False  # Typo preserved for compatibility
+    consensus_counts: bool = False
+    call_methylation: bool = False
+    methylation_assay: Literal["bisulfite", "taps", "False"] = "False"
     
     # RNA-Specific
     rna_quantification: Literal["feature_counts", "salmon", "False"] = "False"
@@ -65,10 +68,20 @@ class WorkflowConfig(BaseModel):
     # SNP-Specific
     call_snps: bool = False
     snp_calling_method: Literal["bcftools", "deepvariant", "False"] = "False"
+    snp_database: Optional[str] = None
+
+    # MCC-Specific
+    viewpoints: Optional[str] = None
+    resolution: Optional[int] = 100
+
+    # For MCC and SNP
     fasta: Optional[str] = None
     fasta_index: Optional[str] = None
-    snp_database: Optional[str] = None
     
+    # Methylation-Specific
+    call_methylation: bool = False
+    methylation_assay: Literal["taps", "bisulfite", "False"] = "False"
+
     # UCSC Hub
     make_ucsc_hub: bool = False
     UCSC_hub_directory: str = "seqnado_output/hub/"
@@ -205,7 +218,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     features["remove_blacklist"] = get_user_input("Remove blacklist regions?", default="yes", is_boolean=True)
     
     # PCR Duplicates
-    default_duplicates = "yes" if assay in ["chip", "atac", "cat"] else "no"
+    default_duplicates = "yes" if assay in ["chip", "atac", "cat", "meth"] else "no"
     features["remove_pcr_duplicates"] = get_user_input("Remove PCR duplicates?", default=default_duplicates, is_boolean=True)
     if features["remove_pcr_duplicates"]:
         features["remove_pcr_duplicates_method"] = get_user_input("Duplicates removal method:", choices=["picard", "samtools"], default="picard")
@@ -214,6 +227,12 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     # ATAC-Specific Logic
     if assay == "atac":
         features["shift_atac_reads"] = get_user_input("Shift ATAC reads?", default="yes", is_boolean=True)
+    
+    # MCC-Specific Logic
+    if assay == "mcc":
+        features['viewpoints'] = get_user_input("Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=False)
+        features['fasta'] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=False)
+        features['resolution'] = get_user_input("Resolution for MCC cooler files:", default="100")
     
     # Spike-in Normalisation
     if assay in ["chip", "rna", 'cat']:
@@ -278,18 +297,25 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
         features["call_snps"] = get_user_input("Call SNPs?", default="no", is_boolean=True)
         if features["call_snps"]:
             features["snp_calling_method"] = get_user_input("SNP caller:", choices=["bcftools", "deepvariant"], default="bcftools")
-            features["fasta"] = get_user_input("Path to reference fasta:", default="path/to/reference.fasta", is_path=True)
+            features["fasta"] = genome_config.fasta if genome_config.fasta else get_user_input("Path to reference fasta:", default='no')
             features["fasta_index"] = get_user_input("Path to reference fasta index:", default="path/to/reference.fasta.fai", is_path=True)
             features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database", is_path=True)
     
+    # Methylation Calling
+    if assay == "meth":
+        features["call_methylation"] = get_user_input("Call methylation?", default="no", is_boolean=True)
+        if features["call_methylation"]:
+            features["fasta"] = genome_config.fasta if genome_config.fasta else get_user_input("Path to reference fasta:", default='no')
+            features["methylation_assay"] = get_user_input("Methylation assay:", choices=["taps", "bisulfite"], default="taps")
+
     # Consensus Counts
     if not assay == 'rna':
-        features["consenus_counts"] = get_user_input(
+        features["consensus_counts"] = get_user_input(
             "Generate consensus counts from Design merge column? (yes/no)",
             default="no",
             is_boolean=True,
         )
-    
+
     # GEO Submission
     features["geo_submission_files"] = get_user_input("Generate GEO submission files?", default="no", is_boolean=True)
     
@@ -304,13 +330,44 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     return features
 
 def get_tool_options(assay: str) -> str:
-    return {
-        "chip": TOOL_OPTIONS,
-        'cat': TOOL_OPTIONS,
-        "atac": TOOL_OPTIONS,
-        "rna": TOOL_OPTIONS_RNA,
-        "snp": TOOL_OPTIONS_SNP,
-    }.get(assay, "")
+    """
+    Return the tool options YAML string for the given assay.
+
+    Args:
+        assay (str): The assay type, used to determine the correct tool options.
+    
+    Returns:
+        str: The YAML string with tool options for the given
+    """
+
+    import importlib.resources
+    import yaml
+    import seqnado.workflow.config
+
+    match assay:
+        case "rna":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_rna.yml'
+        case "snp":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_snp.yml'
+        case "meth":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_meth.yml'
+        case _:
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_base.yml'
+    
+
+    with open(tool_file) as f:
+        tool_options = yaml.safe_load(f)
+
+
+    # Make assay specific changes
+    if assay == "mcc":
+        tool_options['samtools']['filter_options'] = ''
+        tool_options['deeptools']['bamcoverage'] = ''
+
+
+    return yaml.dump(tool_options)
+
+
 
 # Template Rendering
 def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
@@ -334,116 +391,139 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
 
     logger.success(f"Created configuration in {dir_name}")
 
-# Preserve original tool option YAML strings
-TOOL_OPTIONS = """
-trim_galore:
-    threads: 4
-    options: --2colour 20 
+# # Preserve original tool option YAML strings
+# TOOL_OPTIONS = """
+# trim_galore:
+#     threads: 4
+#     options: --2colour 20 
 
-bowtie2:
-    threads: 8
-    options:
+# bowtie2:
+#     threads: 8
+#     options:
 
-samtools:
-    threads: 16
-    filter_options: -f 2
+# samtools:
+#     threads: 16
+#     filter_options: -f 2
 
-picard:
-    threads: 8
-    options:
+# picard:
+#     threads: 8
+#     options:
 
-homer:
-    use_input: true
-    maketagdirectory:
-    makebigwig:
-    findpeaks:
+# homer:
+#     use_input: true
+#     maketagdirectory:
+#     makebigwig:
+#     findpeaks:
 
-deeptools:
-    threads: 8
-    alignmentsieve: --minMappingQuality 30 
-    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
+# deeptools:
+#     threads: 8
+#     alignmentsieve: --minMappingQuality 30 
+#     bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
 
-macs:
-    version: 2
-    callpeak: -f BAMPE
+# macs:
+#     version: 2
+#     callpeak: -f BAMPE
 
-lanceotron:
-    use_input: True
-    callpeak: -c 0.5
+# lanceotron:
+#     use_input: True
+#     callpeak: -c 0.5
 
-seacr:
-    threshold: 0.01
-    norm: non
-    stringency: stringent
+# seacr:
+#     threshold: 0.01
+#     norm: non
+#     stringency: stringent
 
-heatmap:
-    options: -b 1000 -m 5000 -a 1000 --binSize 50
-    colormap: RdYlBu_r 
+# heatmap:
+#     options: -b 1000 -m 5000 -a 1000 --binSize 50
+#     colormap: RdYlBu_r 
 
-featurecounts:
-    threads: 16
-    options:  -p --countReadPairs
+# featurecounts:
+#     threads: 16
+#     options:  -p --countReadPairs
     
-"""
+# """
 
-TOOL_OPTIONS_RNA = """
-trim_galore:
-    threads: 4
-    options: --2colour 20 
+# TOOL_OPTIONS_RNA = """
+# trim_galore:
+#     threads: 4
+#     options: --2colour 20 
 
-star:
-    threads: 16
-    options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
+# star:
+#     threads: 16
+#     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
 
-samtools:
-    threads: 16
-    filter_options: -f 2
+# samtools:
+#     threads: 16
+#     filter_options: -f 2
 
-picard:
-    threads: 8
-    options:
+# picard:
+#     threads: 8
+#     options:
 
-featurecounts:
-    threads: 16
-    options: -s 0 -p --countReadPairs -t exon -g gene_id
+# featurecounts:
+#     threads: 16
+#     options: -s 0 -p --countReadPairs -t exon -g gene_id
 
-salmon:
-    threads: 16
-    options: --libType A
+# salmon:
+#     threads: 16
+#     options: --libType A
     
-homer:
-    maketagdirectory:
-    makebigwig:
+# homer:
+#     maketagdirectory:
+#     makebigwig:
 
-deeptools:
-    threads: 16
-    alignmentsieve: --minMappingQuality 30 
-    bamcoverage: -bs 1 --normalizeUsing CPM
+# deeptools:
+#     threads: 16
+#     alignmentsieve: --minMappingQuality 30 
+#     bamcoverage: -bs 1 --normalizeUsing CPM
 
-heatmap:
-    options: -b 1000 -m 5000 -a 1000 --binSize 50
-    colormap: RdYlBu_r 
-"""
+# heatmap:
+#     options: -b 1000 -m 5000 -a 1000 --binSize 50
+#     colormap: RdYlBu_r 
+# """
 
-TOOL_OPTIONS_SNP = """
-trim_galore:
-    threads: 8
-    options: --2colour 20 
+# TOOL_OPTIONS_SNP = """
+# trim_galore:
+#     threads: 8
+#     options: --2colour 20 
 
-bowtie2:
-    threads: 8
-    options:
+# bowtie2:
+#     threads: 8
+#     options:
 
-samtools:
-    threads: 16
-    filter_options: -f 2
+# samtools:
+#     threads: 16
+#     filter_options: -f 2
     
-picard:
-    threads: 8
-    options:
+# picard:
+#     threads: 8
+#     options:
 
-bcftools:
-    threads: 16
-    options:
+# bcftools:
+#     threads: 16
+#     options:
     
-"""
+# """
+
+# TOOL_OPTIONS_METH = """
+# trim_galore:
+#     threads: 8
+#     options: --2colour 20 
+
+# bowtie2:
+#     threads: 8
+#     options:
+
+# samtools:
+#     threads: 16
+#     filter_options: -f 2
+    
+# picard:
+#     threads: 8
+#     options:
+
+# methyldackel:
+#     threads: 16
+#     options:
+    
+# """

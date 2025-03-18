@@ -8,17 +8,19 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import DesignIP, IPOutput, NormGroups
-from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_method, remove_unwanted_run_files
+from seqnado.design import Design, METHOutput, NormGroups
+from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files
+
 
 ####################
 # Hardcoded config #
 ####################
 
-ASSAY = "CUT&TAG"
+ASSAY = "METH"
 SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
-configfile: "config_cat.yml"
+configfile: "config_meth.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+
 
 ####################
 # Experiment config #
@@ -30,72 +32,71 @@ format_config_dict(config)
 # Generate design
 if os.path.exists(config["design"]):
     df = pd.read_csv(config["design"], sep=r"\s+|,|\t", engine="python").fillna("")
-    DESIGN = DesignIP.from_dataframe(df)
+    DESIGN = Design.from_dataframe(df)
 else:
-    DESIGN = DesignIP.from_directory(".")
+    DESIGN = Design.from_directory(".")
 
 # Attempt to symlink the fastq files
 assert len(DESIGN.fastq_paths) > 0, "No fastq files found in the working directory or no design file provided."
 symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 
+def get_meth_spikein_genomes(config) -> List[str]:
+    faidx = config["fasta"] + ".fai"
+    if not os.path.exists(faidx):
+        raise FileNotFoundError(
+            f"Could not find the fasta index file {faidx}. Please create it using samtools faidx."
+        )
+    chroms = []
+    with open(faidx, "r") as f:
+        for line in f:
+            chroms.append(line.split("\t")[0])
+
+    meth_spikein_genomes = [
+        chrom for chrom in chroms if not chrom.startswith("chr")
+    ]
+    genome_names = config["genome"]["name"]
+    if isinstance(genome_names, str):
+        genome_names = [genome_names]
+    meth_spikein_genomes.extend(genome_names)
+    return meth_spikein_genomes
+
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
-SAMPLE_NAMES_IP = DESIGN.sample_names_ip
-SAMPLE_NAMES_CONTROL = DESIGN.sample_names_control
-IP = DESIGN.ips_performed
-CONTROL = DESIGN.controls_performed
+SPIKEIN_GENOMES=get_meth_spikein_genomes(config)
 
 
-# Define output files
-OUTPUT = IPOutput(
+OUTPUT = METHOutput(
     assay=ASSAY,
     config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
-    ip_names=IP,
-    control_names=CONTROL,
-    scale_method=get_scale_method(config),
-    **config    
+    genomes=SPIKEIN_GENOMES,
+    **config
 )
 
 NORMALISATION_SCALING = NormGroups.from_design(DESIGN, subset_column="scale_group", include_controls=True)
 NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", include_controls=True)
 
-
-# Load required rules
+###################
+# Pipeline config #
+###################
 include: "rules/common.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
 include: "rules/fastq_screen.smk"
 include: "rules/fastq_trim.smk"
-include: "rules/exogenous_norm.smk"
-include: "rules/peak_call_chip.smk"
-include: "rules/peak_call_grouped.smk"
-include: "rules/pileup_default.smk"
-include: "rules/pileup_norm.smk"
-include: "rules/pileup_grouped.smk"
 include: "rules/qc.smk"
-include: "rules/heatmap.smk"
-include: "rules/hub.smk"
+include: "rules/variant.smk"
 include: "rules/geo_submission.smk"
-include: "rules/visualisation.smk"
-include: "rules/consensus_counts.smk"
-
-
-if config.get("spikein"):
-    ruleorder: move_ref_bam > align_paired > align_single
-    ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
-else:
-    ruleorder: align_paired > align_single > move_ref_bam
+include: "rules/meth_calling.smk"
 
 rule all:
     input:
         OUTPUT.files
 
-
 onsuccess:
-   remove_unwanted_run_files()
+    remove_unwanted_run_files()
 
 onerror:
     log_out = "seqnado_error.log"
@@ -104,3 +105,4 @@ onerror:
         f"An error occurred. Please check the log file {log_out} for more information."
     )
     remove_unwanted_run_files()
+

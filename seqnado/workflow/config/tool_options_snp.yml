@@ -1,0 +1,20 @@
+trim_galore:
+    threads: 8
+    options: --2colour 20 
+
+bowtie2:
+    threads: 8
+    options:
+
+samtools:
+    threads: 16
+    filter_options: -f 2
+    
+picard:
+    threads: 8
+    options:
+
+bcftools:
+    threads: 16
+    options:
+    

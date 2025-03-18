@@ -128,7 +128,7 @@ else:
             "../scripts/remove_duplicates.py"
 
 
-if config["shift_atac_reads"]:
+if config.get("shift_atac_reads"):
 
     rule shift_atac_alignments:
         input:

@@ -473,7 +473,7 @@ class Design(BaseModel):
         for sample_row in self.to_dataframe().itertuples():
             if assay != "RNA":
                 processed_data_file = [f"{sample_row.sample_name}.bw"]
-            
+
             else:
                 processed_data_file = [
                     "read_counts.tsv",
@@ -725,7 +725,6 @@ class DesignIP(BaseModel):
         df = pd.DataFrame(data).sort_values("sample_name")
 
         return DataFrameDesignIP.validate(df)
-    
 
     def to_geo_dataframe(
         self, assay: Literal["ChIP", "CAT"], pipeline_config: dict
@@ -736,7 +735,9 @@ class DesignIP(BaseModel):
         geo_samples = []
         for sample_row in self.to_dataframe().itertuples():
             for ip_type in ["ip", "control"]:
-                processed_data_file = [f"{sample_row.sample_name}_{getattr(sample_row, ip_type)}.bigWig"]
+                processed_data_file = [
+                    f"{sample_row.sample_name}_{getattr(sample_row, ip_type)}.bigWig"
+                ]
 
                 raw_files = [
                     pathlib.Path(getattr(sample_row, f"{ip_type}_r1")).name,
@@ -769,7 +770,6 @@ class DesignIP(BaseModel):
 
         df_samples = GEOSamples(samples=geo_samples).to_dataframe()
         return df_samples
-
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame, **kwargs):
@@ -847,7 +847,6 @@ class DesignIP(BaseModel):
             if experiment.control:
                 paths.extend(experiment.control.fastq_paths)
         return paths
-    
 
 
 class NormGroup(BaseModel):
@@ -988,10 +987,9 @@ def generate_fastq_raw_names(
 
 
 class GEOFiles(BaseModel):
-
     make_geo_submission_files: bool
 
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CUT&TAG']
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
@@ -1010,11 +1008,13 @@ class GEOFiles(BaseModel):
             "seqnado_output/geo_submission/samples_table.txt",
             "seqnado_output/geo_submission/protocol.txt",
         ]
-    
+
     @property
     def upload_directory(self):
-        return pathlib.Path("seqnado_output/geo_submission") / self.assay.replace('&', '_and_') # Fix for CUT&TAG
-    
+        return pathlib.Path("seqnado_output/geo_submission") / self.assay.replace(
+            "&", "_and_"
+        )  # Fix for CUT&TAG
+
     @property
     def upload_instructions(self):
         return pathlib.Path("seqnado_output/geo_submission") / "upload_instructions.txt"
@@ -1104,7 +1104,7 @@ class GEOFiles(BaseModel):
 
                 fqs = generate_fastq_raw_names(sample_name, is_paired)
                 fastq.update(fqs)
-            
+
             else:
                 has_control = hasattr(row, "control") and row.control
                 sample_name = f"{row.sample_name}_{row.ip}"
@@ -1153,9 +1153,12 @@ class GEOFiles(BaseModel):
                     single_or_paired="paired-end" if is_paired_end else "single",
                     instrument_model=instrument_model,
                     description=None,
-                    raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                    raw_file=[
+                        pathlib.Path(p).name for p in self.raw_files[library_name]
+                    ],
                     processed_data_file=[
-                        str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                        str(p)
+                        for p in self.processed_data_per_sample.get(library_name, [])
                     ],
                 )
 
@@ -1184,9 +1187,12 @@ class GEOFiles(BaseModel):
                     single_or_paired="paired-end" if is_paired_end else "single",
                     instrument_model=instrument_model,
                     description=None,
-                    raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                    raw_file=[
+                        pathlib.Path(p).name for p in self.raw_files[library_name]
+                    ],
                     processed_data_file=[
-                        str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                        str(p)
+                        for p in self.processed_data_per_sample.get(library_name, [])
                     ],
                 )
 
@@ -1194,7 +1200,9 @@ class GEOFiles(BaseModel):
 
             elif self.assay in ["ChIP", "CUT&TAG"] and sample_row.control:
                 for ip_type in ["ip", "control"]:
-                    sample_name = f"{sample_row.sample_name}_{getattr(sample_row, ip_type)}"
+                    sample_name = (
+                        f"{sample_row.sample_name}_{getattr(sample_row, ip_type)}"
+                    )
                     library_name = sample_name
                     title = sample_name
                     antibody = getattr(sample_row, ip_type)
@@ -1218,9 +1226,14 @@ class GEOFiles(BaseModel):
                         single_or_paired="paired-end" if is_paired_end else "single",
                         instrument_model=instrument_model,
                         description=None,
-                        raw_file=[pathlib.Path(p).name for p in self.raw_files[library_name]],
+                        raw_file=[
+                            pathlib.Path(p).name for p in self.raw_files[library_name]
+                        ],
                         processed_data_file=[
-                            str(p) for p in self.processed_data_per_sample.get(library_name, [])
+                            str(p)
+                            for p in self.processed_data_per_sample.get(
+                                library_name, []
+                            )
                         ],
                     )
 
@@ -1232,12 +1245,18 @@ class GEOFiles(BaseModel):
     @property
     def files(self) -> List[str]:
         if self.make_geo_submission_files:
-            return [*self.md5sums, self.upload_directory, self.upload_instructions, 'seqnado_output/geo_submission/.validated']
+            return [
+                *self.md5sums,
+                self.upload_directory,
+                self.upload_instructions,
+                "seqnado_output/geo_submission/.validated",
+            ]
         else:
             return []
 
+
 class QCFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
     fastq_screen: bool = False
     library_complexity: bool = False
 
@@ -1271,7 +1290,7 @@ class QCFiles(BaseModel):
 
 
 class BigWigFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", 'MCC']
     names: List[str]
     pileup_method: Union[
         Literal["deeptools", "homer", False],
@@ -1339,7 +1358,7 @@ class BigWigFiles(BaseModel):
 
 
 class PeakCallingFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", 'CUT&TAG']
+    assay: Literal["ChIP", "ATAC", "CUT&TAG"]
     names: List[str]
     peak_calling_method: Union[
         Literal["macs", "homer", "lanceotron", "seacr", False],
@@ -1414,7 +1433,7 @@ class HubFiles(BaseModel):
 
 
 class SpikeInFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", 'CUT&TAG']
+    assay: Literal["ChIP", "ATAC", "RNA", "CUT&TAG"]
     sample_names: List[str]
     chip_spikein_normalisation: bool = False
 
@@ -1432,6 +1451,7 @@ class SpikeInFiles(BaseModel):
 
 
 class PlotFiles(BaseModel):
+    perform_plotting: bool = False
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
     plotting_format: Literal["svg", "png", "pdf"] = "svg"
 
@@ -1439,15 +1459,22 @@ class PlotFiles(BaseModel):
         import pyranges as pr
 
         plots = []
-        coords = pr.read_bed(str(self.plotting_coordinates))
-        outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
-        for region in coords.df.itertuples():
-            fig_name = (
-                f"{region.Chromosome}-{region.Start}-{region.End}"
-                if not hasattr(region, "Name") and not region.Name
-                else region.Name
+
+        try:
+            coords = pr.read_bed(str(self.plotting_coordinates))
+            outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
+            for region in coords.df.itertuples():
+                fig_name = (
+                    f"{region.Chromosome}-{region.Start}-{region.End}"
+                    if not hasattr(region, "Name") and not region.Name
+                    else region.Name
+                )
+                plots.append(outdir / f"{fig_name}.{self.plotting_format}")
+        
+        except FileNotFoundError:
+            logger.warning(
+                f"Could not find plotting coordinates file: {self.plotting_coordinates}"
             )
-            plots.append(outdir / f"{fig_name}.{self.plotting_format}")
 
         return plots
 
@@ -1460,7 +1487,7 @@ class PlotFiles(BaseModel):
 
 
 class Output(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", 'CUT&TAG']
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "MCC"]
     config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
@@ -1483,7 +1510,8 @@ class Output(BaseModel):
 
     geo_submission_files: bool = False
 
-    make_plots: bool = False
+    perform_plotting: bool = False
+    plotting_format: Literal["svg", "png", "pdf"] = "svg"
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
 
     # Correct plotting_coordinates type as it may be False
@@ -1554,9 +1582,9 @@ class Output(BaseModel):
 
     @property
     def plots(self):
-        if self.make_plots:
+        if self.perform_plotting:
             pf = PlotFiles(
-                plotting_coordinates=self.plotting_coordinates, plotting_format="svg"
+                plotting_coordinates=self.plotting_coordinates, plotting_format=self.plotting_format
             )
             return pf.files
         else:
@@ -1627,7 +1655,7 @@ class RNAOutput(Output):
 
 
 class NonRNAOutput(Output):
-    assay: Literal["ChIP", "ATAC", 'CUT&TAG']
+    assay: Literal["ChIP", "ATAC", "CUT&TAG"]
     consensus_counts: bool = False
     call_peaks: bool = False
     peak_calling_method: Optional[
@@ -1667,12 +1695,12 @@ class NonRNAOutput(Output):
             files = pcf_samples.files
 
         return files or []
-    
+
     @property
     def merged_counts(self):
         # Get the merged counts file if peaks are merged and consensus counts are requested
         if self.merge_peaks and self.consensus_counts:
-            groups = self.merged_peaks.names 
+            groups = self.merged_peaks.names
             count_files = [
                 f"seqnado_output/readcounts/featurecounts/{group}_counts.tsv"
                 for group in groups
@@ -1715,7 +1743,7 @@ class ATACOutput(NonRNAOutput):
 
 
 class IPOutput(NonRNAOutput):
-    assay: Literal["ChIP", 'CUT&TAG']
+    assay: Literal["ChIP", "CUT&TAG"]
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
@@ -1834,6 +1862,173 @@ class SNPOutput(Output):
             files.append(self.snp_files)
 
         return files
+
+
+class METHOutput(Output):
+    assay: Literal["METH"]
+    call_methylation: bool = False
+    sample_names: List[str]
+    config: dict
+    genomes: List[str]
+    make_ucsc_hub: bool = False
+    methylation_assay: Optional[
+        Union[
+            Literal["bisulfite", "taps"],
+            List[Literal["bisulfite", "taps"]],
+        ]
+    ] = None
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @property
+    def meth_split_bams(self) -> List[str]:
+        if self.call_methylation:
+            return expand(
+                "seqnado_output/aligned/spikein/{sample}_{genome}.bam",
+                sample=self.sample_names,
+                genome=self.genomes,
+            )
+        return []
+    
+    @property
+    def meth_files(self) -> List[str]:
+        if self.call_methylation and "taps" not in self.methylation_assay:
+            return expand(
+                "seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph",
+                sample=self.sample_names,
+                genome=self.genomes,
+            )
+        return []
+
+    @property
+    def taps_files(self) -> List[str]:
+        if self.call_methylation and "taps" in self.methylation_assay:
+            return expand(
+                "seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG_TAPS.bedGraph",
+                sample=self.sample_names,
+                genome=self.genomes,
+            )
+        return []
+
+    @property
+    def methylation_bias(self) -> List[str]:
+        """
+        Get the methylation bias files. and seqnado_output/methylation/methylation_conversion.tsv"""
+        if self.call_methylation:
+            return expand(
+                "seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",
+                sample=self.sample_names,
+                genome=self.genomes,
+            ), "seqnado_output/methylation/methylation_conversion.tsv"
+
+        return []
+
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.meth_files,
+            self.taps_files,
+            self.methylation_bias,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        return files
+
+
+class MCCOutput(Output):
+    assay: Literal["MCC"]
+    sample_names: List[str]
+    
+    viewpoint_oligos: List[str]
+    viewpoints_grouped: List[str]
+
+    config: dict
+    make_ucsc_hub: bool = False
+
+    resolutions: List[int] = [100]
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @property
+    def cooler_files(self) -> List[str]:
+        return expand(
+            "seqnado_output/mcc/{sample}/{viewpoint}.mcool",
+            sample=self.sample_names,
+            viewpoint=self.viewpoint_oligos,
+        )
+
+    @property
+    def peaks(self):
+        return []
+
+    @property
+    def bigwigs(self):
+        replicate_bigwigs =  expand(
+            "seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
+            sample=self.sample_names,
+            viewpoint=self.viewpoint_oligos,
+        )
+
+        viewpoint_group_bigwigs = expand(
+            "seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
+            sample=self.sample_names,
+            viewpoint_group=self.viewpoints_grouped,
+        )
+
+        sample_group_bigwigs = expand(
+            "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
+            group=self.design_dataframe['merge'].unique().tolist(),
+            viewpoint_group=self.viewpoints_grouped,
+        )
+
+        return [
+            *replicate_bigwigs,
+            *viewpoint_group_bigwigs,
+            *sample_group_bigwigs,
+        ]
+            
+
+
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.cooler_files,
+            self.bigwigs,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        return files
+
 
 
 class Molecule(Enum):
