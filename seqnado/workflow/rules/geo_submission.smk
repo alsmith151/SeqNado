@@ -93,7 +93,7 @@ rule md5sum:
     shell:
         """
         cd seqnado_output/geo_submission
-        md5sum *.txt *.bed *.bigWig *.tsv *.fastq.gz > md5sums.txt
+        md5sum {input.files} > md5sums.txt
         cd ../..
         """
 
