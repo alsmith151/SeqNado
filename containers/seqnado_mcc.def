@@ -11,6 +11,14 @@ From: python:3.12.9-alpine
     apk update
     apk add --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make bash zlib-dev ncurses libbz2 curl-dev libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
 
+    # Install FLASh
+    git clone https://github.com/ebiggers/flash.git
+    cd flash
+    make -j 16
+    cp flash /usr/local/bin
+    cd ..
+    rm -rf flash
+
     # Install HTSlib
     git clone --recursive https://github.com/samtools/htslib.git
     cd htslib
