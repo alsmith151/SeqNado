@@ -25,6 +25,4 @@ sps*
 seqnado.sif
 *.tar
 *.tar.gz
-containers/seqnado_extra.sif
-containers/seqnado_pipeline.sif
-containers/seqnado_report.sif
+containers/*.sif
