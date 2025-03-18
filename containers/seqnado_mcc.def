@@ -60,7 +60,7 @@ From: python:3.12.9-alpine
     rustup self uninstall -y
 
     # Remove packages
-    apk del --no-cache git musl-dev gcc pkgconfig hdf5-dev make zlib-dev ncurses libbz2 libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
+    apk del --no-cache git musl-dev gcc pkgconfig make zlib-dev ncurses libbz2 libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
 
     
 
