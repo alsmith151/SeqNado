@@ -26,7 +26,7 @@ logger.add(sys.stderr, level="DEBUG")
 
 @pytest.fixture(
     scope="function",
-    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp", "cat", "meth"],
+    params=["atac", "chip", "chip-rx", "rna", "rna-rx", "snp", "cat", "meth", "mcc"],
     autouse=True,
 )
 def assay(request):
@@ -180,6 +180,21 @@ def meth_files(genome_path):
 
 
 @pytest.fixture(scope="function")
+def mcc_files(genome_path):
+    files = dict()
+    
+    
+    url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/test_viewpoints.bed"
+    r = requests.get(url, stream=True)
+    mcc_viewpoints = genome_path / "mcc_viewpoints.bed"
+    with open(mcc_viewpoints, "wb") as f:
+        f.write(r.content)
+    
+    files['viewpoints'] = genome_path / "mcc_viewpoints.bed"
+
+    return files
+
+@pytest.fixture(scope="function")
 def assay_type(assay):
     return re.sub(r"(.*)\-.*", r"\1", assay)
 
@@ -198,7 +213,7 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
         target_dir.mkdir(parents=True, exist_ok=True)
 
         # Download the tarball.
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/fastq.tar.gz"
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/fastq.tar.gz"
         r = requests.get(url, stream=True)
         tar_path = target_dir.parent / "fastq.tar.gz"
         with open(tar_path, "wb") as f:
@@ -236,6 +251,8 @@ def fastqs(test_data_path, assay) -> list[pathlib.Path]:
             files = list(target_dir.glob("chip-rx_*.fastq.gz"))
         case "meth":
             files = list(target_dir.glob("meth*.fastq.gz"))
+        case "mcc":
+            files = list(target_dir.glob("mcc*.fastq.gz"))
         case _:
             raise ValueError(f"Unsupported assay: {assay}")
 
@@ -310,7 +327,7 @@ def run_init(
 
 
 @pytest.fixture(scope="function")
-def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
+def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_files):
     meth_fasta, meth_fasta_fai = meth_files
     prompts = {
         "Bigwig method:": "deeptools",
@@ -325,7 +342,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
         "Generate consensus counts from Design merge column? (yes/no)": "yes"
         if assay in ["atac", "chip-rx"]
         else "no",
-        "Generate GEO submission files?": "yes" if assay in ["chip", "rna"] else "no",
+        "Generate GEO submission files?": "yes" if assay in ["chip", "rna", 'cat'] else "no",
         "Genome?": "hg38",
         "Make Bigwigs?": "yes",
         "Make heatmaps?": "yes" if assay == "atac" else "no",
@@ -336,12 +353,8 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
         if not assay == "snp"
         else "",
         "Path to bed file with genes.": "",
-        "Path to reference fasta index:": "dummy_ref.fasta.fai"
-        if not assay == "meth"
-        else str(meth_fasta_fai),
-        "Path to reference fasta:": "dummy_ref.fasta"
-        if not assay == "meth"
-        else str(meth_fasta),
+        "Path to reference fasta index:": "dummy_ref.fasta.fai" if not assay == "meth" else str(meth_fasta_fai),
+        "Path to reference fasta:": "dummy_ref.fasta" if assay not in ["meth", 'mcc'] else str(meth_fasta),
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": "no",
@@ -358,6 +371,8 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files):
         "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
+        "Path to viewpoints file: (default: path/to/viewpoints.bed):": str(mcc_files['viewpoints']) if assay == "mcc" else "",
+        "Resolution for MCC cooler files:": "100",
     }
 
     return prompts

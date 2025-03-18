@@ -1,4 +1,4 @@
-if config["call_snps"]:
+if config.get("call_snps"):
 
     rule bcftools_call_snp:
         input:

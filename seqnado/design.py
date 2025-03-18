@@ -1256,7 +1256,7 @@ class GEOFiles(BaseModel):
 
 
 class QCFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
     fastq_screen: bool = False
     library_complexity: bool = False
 
@@ -1290,7 +1290,7 @@ class QCFiles(BaseModel):
 
 
 class BigWigFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", 'MCC']
     names: List[str]
     pileup_method: Union[
         Literal["deeptools", "homer", False],
@@ -1459,15 +1459,22 @@ class PlotFiles(BaseModel):
         import pyranges as pr
 
         plots = []
-        coords = pr.read_bed(str(self.plotting_coordinates))
-        outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
-        for region in coords.df.itertuples():
-            fig_name = (
-                f"{region.Chromosome}-{region.Start}-{region.End}"
-                if not hasattr(region, "Name") and not region.Name
-                else region.Name
+
+        try:
+            coords = pr.read_bed(str(self.plotting_coordinates))
+            outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
+            for region in coords.df.itertuples():
+                fig_name = (
+                    f"{region.Chromosome}-{region.Start}-{region.End}"
+                    if not hasattr(region, "Name") and not region.Name
+                    else region.Name
+                )
+                plots.append(outdir / f"{fig_name}.{self.plotting_format}")
+        
+        except FileNotFoundError:
+            logger.warning(
+                f"Could not find plotting coordinates file: {self.plotting_coordinates}"
             )
-            plots.append(outdir / f"{fig_name}.{self.plotting_format}")
 
         return plots
 
@@ -1480,7 +1487,7 @@ class PlotFiles(BaseModel):
 
 
 class Output(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "MCC"]
     config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
@@ -1935,6 +1942,86 @@ class METHOutput(Output):
             self.meth_files,
             self.taps_files,
             self.methylation_bias,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        return files
+
+
+class MCCOutput(Output):
+    assay: Literal["MCC"]
+    sample_names: List[str]
+    
+    viewpoint_oligos: List[str]
+    viewpoints_grouped: List[str]
+
+    config: dict
+    make_ucsc_hub: bool = False
+
+    resolutions: List[int] = [100]
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @property
+    def cooler_files(self) -> List[str]:
+        return expand(
+            "seqnado_output/mcc/{sample}/{viewpoint}.mcool",
+            sample=self.sample_names,
+            viewpoint=self.viewpoint_oligos,
+        )
+
+    @property
+    def peaks(self):
+        return []
+
+    @property
+    def bigwigs(self):
+        replicate_bigwigs =  expand(
+            "seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
+            sample=self.sample_names,
+            viewpoint=self.viewpoint_oligos,
+        )
+
+        viewpoint_group_bigwigs = expand(
+            "seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
+            sample=self.sample_names,
+            viewpoint_group=self.viewpoints_grouped,
+        )
+
+        sample_group_bigwigs = expand(
+            "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
+            group=self.design_dataframe['merge'].unique().tolist(),
+            viewpoint_group=self.viewpoints_grouped,
+        )
+
+        return [
+            *replicate_bigwigs,
+            *viewpoint_group_bigwigs,
+            *sample_group_bigwigs,
+        ]
+            
+
+
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                fastq_screen=self.fastq_screen,
+                library_complexity=self.library_complexity,
+            ).files
+        )
+
+        for file_list in (
+            self.cooler_files,
+            self.bigwigs,
             self.design,
         ):
             if file_list:

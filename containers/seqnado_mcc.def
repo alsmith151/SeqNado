@@ -1,0 +1,78 @@
+BootStrap: docker
+From: python:3.12.9-alpine
+
+
+%files
+    MCCNado
+
+%post
+
+    # Install required packages
+    apk update
+    apk add --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make bash zlib-dev ncurses libbz2 curl-dev libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
+
+    # Install FLASh
+    git clone https://github.com/ebiggers/flash.git
+    cd flash
+    make -j 16
+    cp flash /usr/local/bin
+    cd ..
+    rm -rf flash
+
+    # Install HTSlib
+    git clone --recursive https://github.com/samtools/htslib.git
+    cd htslib
+    autoreconf -i  # Build the configure script and install files it uses
+    ./configure    # Optional but recommended, for choosing extra functionality
+    make -j 16
+    make install
+    cd ..
+    rm -rf htslib
+
+    # Install samtools
+    git clone https://github.com/samtools/samtools.git
+    cd  samtools
+    autoheader
+    autoconf -Wno-syntax  # Generate the configure script
+    ./configure           # Needed for choosing optional functionality
+    make -j 16
+    make install
+    cd ..
+    rm -rf samtools
+
+    # Install minimap2
+    git clone --recursive https://github.com/lh3/minimap2
+    cd minimap2 && make -j 16
+    cp minimap2 /usr/local/bin
+    cd ..
+    rm -rf minimap2
+
+
+    # Install Rust
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    . "$HOME/.cargo/env"
+
+
+
+    # Install packages required
+    pip install uv
+    uv pip install maturin --system
+
+    # Use uv to install required packages
+    # git clone https://github.com/alsmith151/MCCNado.git
+    cd MCCNado
+    uv pip install . cooler --system
+
+    # Cleanup
+    uv cache clean
+    rustup self uninstall -y
+
+    # Remove packages
+    apk del --no-cache git musl-dev gcc pkgconfig make zlib-dev ncurses libbz2 libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
+
+    
+
+
+
+
+

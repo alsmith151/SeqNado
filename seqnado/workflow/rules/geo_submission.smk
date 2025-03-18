@@ -93,7 +93,15 @@ rule md5sum:
     shell:
         """
         cd seqnado_output/geo_submission
-        md5sum * > md5sums.txt
+        
+        # Get the basename of the files and store in the infiles variable
+        infiles=""
+        for f in {input.files}
+        do
+            infiles="$infiles $(basename $f)"
+        done
+
+        md5sum $infiles > md5sums.txt
         cd ../..
         """
 
