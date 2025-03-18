@@ -330,15 +330,44 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     return features
 
 def get_tool_options(assay: str) -> str:
-    return {
-        "chip": TOOL_OPTIONS,
-        'cat': TOOL_OPTIONS,
-        "atac": TOOL_OPTIONS,
-        "rna": TOOL_OPTIONS_RNA,
-        "snp": TOOL_OPTIONS_SNP,
-        "meth": TOOL_OPTIONS_METH,
-        "mcc": TOOL_OPTIONS
-    }.get(assay, "")
+    """
+    Return the tool options YAML string for the given assay.
+
+    Args:
+        assay (str): The assay type, used to determine the correct tool options.
+    
+    Returns:
+        str: The YAML string with tool options for the given
+    """
+
+    import importlib.resources
+    import yaml
+    import seqnado.workflow.config
+
+    match assay:
+        case "rna":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_rna.yml'
+        case "snp":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_snp.yml'
+        case "meth":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_meth.yml'
+        case _:
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_base.yml'
+    
+
+    with open(tool_file) as f:
+        tool_options = yaml.safe_load(f)
+
+
+    # Make assay specific changes
+    if assay == "mcc":
+        tool_options['samtools']['filter_options'] = ''
+        tool_options['deeptools']['bamcoverage'] = ''
+
+
+    return yaml.dump(tool_options)
+
+
 
 # Template Rendering
 def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
@@ -362,139 +391,139 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
 
     logger.success(f"Created configuration in {dir_name}")
 
-# Preserve original tool option YAML strings
-TOOL_OPTIONS = """
-trim_galore:
-    threads: 4
-    options: --2colour 20 
+# # Preserve original tool option YAML strings
+# TOOL_OPTIONS = """
+# trim_galore:
+#     threads: 4
+#     options: --2colour 20 
 
-bowtie2:
-    threads: 8
-    options:
+# bowtie2:
+#     threads: 8
+#     options:
 
-samtools:
-    threads: 16
-    filter_options: -f 2
+# samtools:
+#     threads: 16
+#     filter_options: -f 2
 
-picard:
-    threads: 8
-    options:
+# picard:
+#     threads: 8
+#     options:
 
-homer:
-    use_input: true
-    maketagdirectory:
-    makebigwig:
-    findpeaks:
+# homer:
+#     use_input: true
+#     maketagdirectory:
+#     makebigwig:
+#     findpeaks:
 
-deeptools:
-    threads: 8
-    alignmentsieve: --minMappingQuality 30 
-    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
+# deeptools:
+#     threads: 8
+#     alignmentsieve: --minMappingQuality 30 
+#     bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
 
-macs:
-    version: 2
-    callpeak: -f BAMPE
+# macs:
+#     version: 2
+#     callpeak: -f BAMPE
 
-lanceotron:
-    use_input: True
-    callpeak: -c 0.5
+# lanceotron:
+#     use_input: True
+#     callpeak: -c 0.5
 
-seacr:
-    threshold: 0.01
-    norm: non
-    stringency: stringent
+# seacr:
+#     threshold: 0.01
+#     norm: non
+#     stringency: stringent
 
-heatmap:
-    options: -b 1000 -m 5000 -a 1000 --binSize 50
-    colormap: RdYlBu_r 
+# heatmap:
+#     options: -b 1000 -m 5000 -a 1000 --binSize 50
+#     colormap: RdYlBu_r 
 
-featurecounts:
-    threads: 16
-    options:  -p --countReadPairs
+# featurecounts:
+#     threads: 16
+#     options:  -p --countReadPairs
     
-"""
+# """
 
-TOOL_OPTIONS_RNA = """
-trim_galore:
-    threads: 4
-    options: --2colour 20 
+# TOOL_OPTIONS_RNA = """
+# trim_galore:
+#     threads: 4
+#     options: --2colour 20 
 
-star:
-    threads: 16
-    options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
+# star:
+#     threads: 16
+#     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
 
-samtools:
-    threads: 16
-    filter_options: -f 2
+# samtools:
+#     threads: 16
+#     filter_options: -f 2
 
-picard:
-    threads: 8
-    options:
+# picard:
+#     threads: 8
+#     options:
 
-featurecounts:
-    threads: 16
-    options: -s 0 -p --countReadPairs -t exon -g gene_id
+# featurecounts:
+#     threads: 16
+#     options: -s 0 -p --countReadPairs -t exon -g gene_id
 
-salmon:
-    threads: 16
-    options: --libType A
+# salmon:
+#     threads: 16
+#     options: --libType A
     
-homer:
-    maketagdirectory:
-    makebigwig:
+# homer:
+#     maketagdirectory:
+#     makebigwig:
 
-deeptools:
-    threads: 16
-    alignmentsieve: --minMappingQuality 30 
-    bamcoverage: -bs 1 --normalizeUsing CPM
+# deeptools:
+#     threads: 16
+#     alignmentsieve: --minMappingQuality 30 
+#     bamcoverage: -bs 1 --normalizeUsing CPM
 
-heatmap:
-    options: -b 1000 -m 5000 -a 1000 --binSize 50
-    colormap: RdYlBu_r 
-"""
+# heatmap:
+#     options: -b 1000 -m 5000 -a 1000 --binSize 50
+#     colormap: RdYlBu_r 
+# """
 
-TOOL_OPTIONS_SNP = """
-trim_galore:
-    threads: 8
-    options: --2colour 20 
+# TOOL_OPTIONS_SNP = """
+# trim_galore:
+#     threads: 8
+#     options: --2colour 20 
 
-bowtie2:
-    threads: 8
-    options:
+# bowtie2:
+#     threads: 8
+#     options:
 
-samtools:
-    threads: 16
-    filter_options: -f 2
+# samtools:
+#     threads: 16
+#     filter_options: -f 2
     
-picard:
-    threads: 8
-    options:
+# picard:
+#     threads: 8
+#     options:
 
-bcftools:
-    threads: 16
-    options:
+# bcftools:
+#     threads: 16
+#     options:
     
-"""
+# """
 
-TOOL_OPTIONS_METH = """
-trim_galore:
-    threads: 8
-    options: --2colour 20 
+# TOOL_OPTIONS_METH = """
+# trim_galore:
+#     threads: 8
+#     options: --2colour 20 
 
-bowtie2:
-    threads: 8
-    options:
+# bowtie2:
+#     threads: 8
+#     options:
 
-samtools:
-    threads: 16
-    filter_options: -f 2
+# samtools:
+#     threads: 16
+#     filter_options: -f 2
     
-picard:
-    threads: 8
-    options:
+# picard:
+#     threads: 8
+#     options:
 
-methyldackel:
-    threads: 16
-    options:
+# methyldackel:
+#     threads: 16
+#     options:
     
-"""
+# """
