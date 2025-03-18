@@ -334,7 +334,7 @@ rule make_genomic_bins:
         "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
-        cooler makebins {input.chrom_sizes} {params.bin_size} > {output.bed} 2> {log}
+        cooler makebins {input.chrom_sizes} {params.bin_size} -o {output.bed} > {log} 2>&1
         """
 
 
