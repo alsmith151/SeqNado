@@ -11,15 +11,9 @@ rule deduplicate_fastq_raw:
         mem="1GB",
     log:
         "seqnado_output/logs/deduplication/{sample}.log",
-    run:
-        from mcc import mcc
-        import json
-
-        stats = mcc.deduplicate_fastq(input.fq1, output.fq1, input.fq2, output.fq2)
-
-        with open(log[0], "w") as f:
-            json.dump(stats, f)
-
+    container:  "library://asmith151/seqnado/seqnado_mcc:latest"
+    script:
+        "../scripts/deduplicate_fastq.py"
 
 rule flash:
     input:
