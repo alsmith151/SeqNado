@@ -37,7 +37,7 @@ rule flash:
         ),
     params:
         outdir="seqnado_output/flashed/{sample}/{sample}",
-    threads: 4
+    threads: 16
     resources:
         mem_mb=1000,
     container: None #alternative == "docker://pegi3s/flash"
