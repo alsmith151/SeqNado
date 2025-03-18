@@ -227,6 +227,62 @@ use rule deeptools_make_bigwigs as deeptools_make_bigwigs_mcc_replicates with:
         "seqnado_output/logs/deeptools_bigwig/{sample}_{viewpoint}.log",
 
 
+def define_bigwigs(wc):
+    """
+    Define the bigwig files to be created for each viewpoint group.
+    """
+    from collections import defaultdict
+    viewpoints_required = defaultdict(list)
+    
+    # Have a mapping that goes from viewpoint to viewpoint group. Want to collate all the viewpoints in a group.
+    for viewpoint, viewpoint_group in VIEWPOINT_TO_GROUPED_VIEWPOINT.items():
+        viewpoints_required[viewpoint_group].append(viewpoint)
+
+    # Select the viewpoint group to be used
+    viewpoint_group = wc.viewpoint_group
+    viewpoints = viewpoints_required[viewpoint_group]
+
+    return expand("seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig", sample=wc.sample, viewpoint=viewpoints)
+
+
+rule merge_viewpoint_bigwigs:
+    input:
+        bigwigs=define_bigwigs,
+    output:
+        bigwig="seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
+    log:
+        "seqnado_output/logs/merge_bigwigs/{sample}_{viewpoint_group}.log",
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    threads:
+        config["deeptools"]["threads"],
+    params:
+        options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
+    shell:
+        """
+        bigwigAverage -b {input.bws} -o {output.bw} -p {threads} {params.options} 2> {log}
+        """
+
+
+
+def get_bigwigs_to_merge(wc):
+    from seqnado.design import NormGroups
+    norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
+
+    sample_names = norm_groups.get_grouped_samples(wc.group)
+
+    return expand("seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig", sample=sample_names, viewpoint_group=wc.viewpoint_group)
+
+use rule merge_viewpoint_bigwigs as merge_samples_bigwigs with:
+    input:
+        bws=get_bigwigs_to_merge,
+    output:
+        bw="seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
+    log:
+        "seqnado_output/logs/merge_samples_bigwigs/{group}_{viewpoint_group}.log",
+
+
 rule identify_ligation_junctions:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
