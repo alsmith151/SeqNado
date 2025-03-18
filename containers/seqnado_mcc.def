@@ -8,7 +8,7 @@ From: python:3.12.9-alpine
 %post
 
     # Install required packages
-    apk add --update --no-cache curl git musl-dev gcc pkgconfig hdf5-dev
+    apk add --update --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make
 
     # # Install Rust
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -20,6 +20,12 @@ From: python:3.12.9-alpine
     pip install uv
     uv pip install maturin --system
 
+    # Install minimap2
+    git clone --recursive https://github.com/lh3/minimap2
+    cd minimap2 && make
+    cp minimap2 /usr/local/bin
+    cd ..
+    rm -rf minimap2
 
     # Use uv to install required packages
     # git clone https://github.com/alsmith151/MCCNado.git
@@ -31,7 +37,7 @@ From: python:3.12.9-alpine
     rustup self uninstall -y
 
     # Remove packages
-    apk del --no-cache curl git musl-dev gcc pkgconfig 
+    apk del --no-cache curl git musl-dev gcc pkgconfig
 
 
     
