@@ -44,7 +44,8 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
 VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
-GROUPED_VIEWPOINT_OLIGOS = list(set(viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS).values()))
+VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
+GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))
 
 OUTPUT = MCCOutput(
     assay=ASSAY,
