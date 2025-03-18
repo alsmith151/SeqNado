@@ -1980,11 +1980,32 @@ class MCCOutput(Output):
 
     @property
     def bigwigs(self):
-        return expand(
+        replicate_bigwigs =  expand(
             "seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
             sample=self.sample_names,
             viewpoint=self.viewpoint_oligos,
         )
+
+        viewpoint_group_bigwigs = expand(
+            "seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
+            sample=self.sample_names,
+            viewpoint_group=self.viewpoints_grouped,
+        )
+
+        sample_group_bigwigs = expand(
+            "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
+            group=self.design_dataframe['merge'].unique().tolist(),
+            viewpoint_group=self.viewpoints_grouped,
+        )
+
+        return [
+            *replicate_bigwigs,
+            *viewpoint_group_bigwigs,
+            *sample_group_bigwigs,
+        ]
+            
+
+
 
     @computed_field
     @property
