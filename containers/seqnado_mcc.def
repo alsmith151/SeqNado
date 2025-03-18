@@ -8,7 +8,7 @@ From: python:3.12.9-alpine
 %post
 
     # Install required packages
-    apk add --update --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make
+    apk add --update --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make bash
 
     # # Install Rust
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -38,7 +38,6 @@ From: python:3.12.9-alpine
 
     # Remove packages
     apk del --no-cache curl git musl-dev gcc pkgconfig
-
 
     
 
