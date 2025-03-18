@@ -342,7 +342,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Generate consensus counts from Design merge column? (yes/no)": "yes"
         if assay in ["atac", "chip-rx"]
         else "no",
-        "Generate GEO submission files?": "yes" if assay in ["chip", "rna"] else "no",
+        "Generate GEO submission files?": "yes" if assay in ["chip", "rna", 'cat'] else "no",
         "Genome?": "hg38",
         "Make Bigwigs?": "yes",
         "Make heatmaps?": "yes" if assay == "atac" else "no",
