@@ -258,10 +258,10 @@ rule merge_viewpoint_bigwigs:
     threads:
         config["deeptools"]["threads"],
     params:
-        options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
+        options=lambda wildcards: check_options(config["deeptools"]["bamcoverage"]),
     shell:
         """
-        bigwigAverage -b {input.bws} -o {output.bw} -p {threads} {params.options} 2> {log}
+        bigwigAverage -b {input.bigwigs} -o {output.bigwig} -p {threads} {params.options} 2> {log}
         """
 
 
@@ -276,9 +276,9 @@ def get_bigwigs_to_merge(wc):
 
 use rule merge_viewpoint_bigwigs as merge_samples_bigwigs with:
     input:
-        bws=get_bigwigs_to_merge,
+        bigwigs=get_bigwigs_to_merge,
     output:
-        bw="seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
+        bigwig="seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
     log:
         "seqnado_output/logs/merge_samples_bigwigs/{group}_{viewpoint_group}.log",
 
