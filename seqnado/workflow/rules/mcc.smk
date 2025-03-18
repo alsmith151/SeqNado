@@ -113,10 +113,8 @@ rule split_reads_aligned_to_viewpoints:
     log:
         "seqnado_output/logs/split_reads/{sample}.log",
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
-    run:
-        from mcc import mcc        
-        
-        mcc.split_viewpoint_reads(input.bam, output.fq)
+    script:
+        "../scripts/mcc_split_reads_aligned_to_viewpoints.py"
 
 
 use rule align_single as align_mcc_reads_to_genome with:
@@ -184,13 +182,8 @@ rule identify_viewpoint_reads:
     log:
         "seqnado_output/logs/split_genomic_reads/{sample}.log",
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
-    run:
-        from mcc import mcc
-        import pathlib
-
-        outdir = pathlib.Path(params.output_dir)
-        outdir.mkdir(exist_ok=True, parents=True)
-        mcc.split_genomic_reads(input.bam, params.output_dir)
+    script:
+        "../scripts/mcc_identify_viewpoint_reads.py"
 
 
 use rule sort_bam as sort_bam_viewpoints with:
@@ -297,17 +290,8 @@ rule identify_ligation_junctions:
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
     params:
         outdir="seqnado_output/mcc/{sample}/ligation_junctions/raw/",
-    run:
-        from mcc import mcc
-        import pathlib
-        # import logging
-        # FORMAT = '%(levelname)s %(name)s %(asctime)-15s %(filename)s:%(lineno)d %(message)s'
-        # logging.basicConfig(format=FORMAT)
-        # logging.getLogger().setLevel(logging.INFO)
-        
-        outdir = pathlib.Path(params.outdir)
-        outdir.mkdir(exist_ok=True, parents=True)
-        mcc.identify_ligation_junctions(str(input.bam), str(outdir))
+    script:
+        "../scripts/mcc_identify_ligation_junctions.py"
 
 
 rule sort_ligation_junctions:
@@ -365,7 +349,7 @@ rule make_cooler:
     params:
         resolution=config.get("resolution", 100),
         genome=config["genome"]["name"],
-    container: None
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
         cooler cload pairs \
@@ -385,7 +369,7 @@ rule zoomify_cooler:
         "seqnado_output/logs/zoomify_cooler/{sample}_{viewpoint}.log",
     params:
         resolutions=",".join([str(r) for r in config.get("resolutions", [100, 1000, 10000])]),
-    container: None
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
         cooler zoomify {input.cooler} -r {params.resolutions} -o {output.cooler} > {log} 2>&1
