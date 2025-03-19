@@ -1992,11 +1992,15 @@ class MCCOutput(Output):
             viewpoint_group=self.viewpoints_grouped,
         )
 
-        sample_group_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
-            group=self.design_dataframe['merge'].unique().tolist(),
-            viewpoint_group=self.viewpoints_grouped,
-        )
+
+        if "merge" in self.design_dataframe.columns:
+            sample_group_bigwigs = expand(
+                "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
+                group=self.design_dataframe['merge'].unique().tolist(),
+                viewpoint_group=self.viewpoints_grouped,
+            )
+        else:
+            sample_group_bigwigs = []
 
         return [
             *replicate_bigwigs,
