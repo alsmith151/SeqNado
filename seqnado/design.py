@@ -1325,15 +1325,48 @@ class BigWigFiles(BaseModel):
             self.scale_method = ["unscaled", self.scale_method]
         else:
             self.scale_method = [self.scale_method]
+    
+    def _filter_bigwigs(self, bigwigs: List[str]) -> List[str]:
+        """
+        Filter the bigwigs based on the scale method.
+
+        Some combinations of scale methods and pileup methods are not
+        compatible. For example, the csaw scale method is not compatible
+        with the homer pileup method.
+        """
+
+        pileup_to_scale_method_not_compatible = {
+            "homer": ["csaw"],
+        }
+
+        # Iterate over the bigwigs and filter out the incompatible ones
+        filtered_bigwigs = []
+        for bigwig in bigwigs:
+            bw = pathlib.Path(bigwig)
+            scale_method = bw.parts[-2]
+            pileup_method = bw.parts[-3]
+
+            if (
+                pileup_method in pileup_to_scale_method_not_compatible
+                and scale_method in pileup_to_scale_method_not_compatible[pileup_method]
+            ):
+                continue
+            else:
+                filtered_bigwigs.append(bigwig)
+
+        return filtered_bigwigs
+
 
     @property
     def bigwigs_non_rna(self):
-        return expand(
+        bws = expand(
             self.prefix + "{method}/{scale}/{sample}.bigWig",
             sample=self.names,
             scale=self.scale_method,
             method=self.pileup_method,
         )
+
+        return self._filter_bigwigs(bws)
 
     @property
     def bigwigs_rna(self):
