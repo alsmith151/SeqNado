@@ -1275,7 +1275,7 @@ class QCFiles(BaseModel):
     def qualimap_files(self) -> List[str]:
         if self.assay == "RNA":
             return expand(
-                "seqnado_output/qc/qualimap/rnaseq_{sample}.html",
+                "seqnado_output/qc/qualimap/rnaseq_{sample}/qualimapReport.html",
                 sample=self.sample_names,
             )
         else:

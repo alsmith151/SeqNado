@@ -514,6 +514,7 @@ def test_pipeline(
     design,
     index,
     test_data_path,
+    package_path,
     test_profile_path,
 ):
     subprocess.run(

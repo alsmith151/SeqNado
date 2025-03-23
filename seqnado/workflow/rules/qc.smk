@@ -213,16 +213,19 @@ rule qualimap_bamqc:
     output:
         html="seqnado_output/qc/qualimap/bamqc_{sample}/qualimapReport.html",
     params:
-        extra="--quiet",
         output_dir="seqnado_output/qc/qualimap/bamqc_{sample}/",
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: 16
     container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
     log:"seqnado_output/logs/qualimap/bamqc_{sample}.log",
     shell:"""
-    qualimap bamqc -nt {threads} -bam {input.bam} -outdir {params.output_dir} > {log} 2>&1
+    qualimap --java-mem-size={resources.mem} bamqc \
+    -nt {threads} \
+    -bam {input.bam} \
+    -outdir {params.output_dir} \
+    > {log} 2>&1
     """
 
 
@@ -230,21 +233,24 @@ rule qualimap_rnaseq:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
     output:
-        html="seqnado_output/qc/qualimap/rnaseq_{sample}.html",
-        zip="seqnado_output/qc/qualimap/rnaseq_{sample}.zip",
+        html="seqnado_output/qc/qualimap/rnaseq_{sample}/qualimapReport.html",
     params:
-        extra="--quiet",
-        output_dir="seqnado_output/qc/qualimap/",
+        output_dir="seqnado_output/qc/qualimap/rnaseq_{sample}/",
         annotation=config["genome"]["gtf"],
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: 16
     container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
     log:
         "seqnado_output/logs/qualimap/rnaseq_{sample}.log",
     shell:"""
-    qualimap rnaseq -bam {input.bam} -gtf {params.annotation} -outdir {params.output_dir} > {log} 2>&1
+    qualimap --java-mem-size={resources.mem} rnaseq \
+    -s \
+    -bam {input.bam} \
+    -gtf {params.annotation} \
+    -outdir {params.output_dir} \
+    > {log} 2>&1    
     """
 
 

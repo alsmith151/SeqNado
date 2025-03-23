@@ -61,6 +61,7 @@ jobs:
           mkdir -p tmp
           if [[ "${{ matrix.test }}" == "pipeline" ]]; then
             apptainer pull --force library://asmith151/seqnado/seqnado_pipeline:latest
+            apptainer pull --force library://cchahrou/seqnado/seqnado_qc.sif:latest
           elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
             apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
           elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
