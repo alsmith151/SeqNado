@@ -112,6 +112,11 @@ def get_count_files(wildcards):
             except TypeError:
                 pass
     
+    elif ASSAY == 'ATAC':
+        df = DESIGN.to_dataframe()
+        files = expand("seqnado_output/aligned/{sample}.bam", sample=df.sample_name)
+
+    
     return files
         
 
