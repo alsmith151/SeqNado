@@ -284,14 +284,25 @@ def get_fastqc_files_all(wildcards):
     return all_qc_files
 
 
+def get_qualimap_files(wildcards):
+    if ASSAY == "RNA":
+        return expand(
+            "seqnado_output/qc/qualimap/rnaseq_{sample}/qualimapReport.html",
+            sample=SAMPLE_NAMES,
+        )
+    else:
+        return expand(
+            "seqnado_output/qc/qualimap/bamqc_{sample}/qualimapReport.html",
+            sample=SAMPLE_NAMES,
+        )
+
+
 rule seqnado_report:
     input:
         get_fastqc_files_all,
         expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
-        expand(
-            "seqnado_output/qc/alignment_filtered/{sample}.txt",
-            sample=SAMPLE_NAMES,
-        ),
+        expand("seqnado_output/qc/alignment_filtered/{sample}.txt", sample=SAMPLE_NAMES),
+        get_qualimap_files,
     output:
         report = "seqnado_output/seqnado_report.html",
         out_dir = temp(directory("seqnado_output/seqnado_report_data")),
