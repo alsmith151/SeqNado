@@ -20,9 +20,11 @@ jobs:
         with:
           path: |
             ~/.conda
-          key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
+            ~/.cache/pip
+          key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}-new
           restore-keys: |
             ${{ runner.os }}-env-
+
       - name: Setup conda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -33,6 +35,7 @@ jobs:
         shell: pwsh
         run: |
           pip install .
+
       - name: Cache singularity
         if: matrix.test == 'pipeline'
         id: cache-singularity
@@ -46,6 +49,7 @@ jobs:
         if: matrix.test == 'pipeline'
         with:
           apptainer-version: 1.3.4
+
       - name: Add singularity hub remote
         if: matrix.test == 'pipeline'
         shell: pwsh
