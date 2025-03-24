@@ -20,7 +20,6 @@ jobs:
         with:
           path: |
             ~/.conda
-            ~/.cache/pip
           key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
             ${{ runner.os }}-env-
