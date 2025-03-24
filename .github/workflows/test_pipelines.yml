@@ -16,7 +16,6 @@ jobs:
         with:
           submodules: true
 
-
       - name: Setup conda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -55,6 +54,7 @@ jobs:
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
+
       - name: Pull singularity images
         if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
@@ -71,6 +71,7 @@ jobs:
           elif [[ "${{ matrix.assay }}" == "meth" ]]; then
             apptainer pull --force library://cchahrou/seqnado/seqnado_meth.sif:latest
           fi
+
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         env:
