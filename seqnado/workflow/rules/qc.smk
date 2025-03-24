@@ -297,6 +297,17 @@ def get_qualimap_files(wildcards):
         )
 
 
+
+def get_seqnado_report_config(wc):
+    """Return the config file."""
+    import seqnado.data
+    import importlib.resources
+
+    return str(importlib.resources.files(seqnado.data) / 'multiqc_config.yaml')
+
+
+
+
 rule seqnado_report:
     input:
         get_fastqc_files_all,
@@ -307,7 +318,7 @@ rule seqnado_report:
         report = "seqnado_output/seqnado_report.html",
         out_dir = temp(directory("seqnado_output/seqnado_report_data")),
     params:
-        multiqc_config = importlib.resources.files(seqnado.data) / 'multiqc_config.yaml',
+        multiqc_config = get_seqnado_report_config,
     log:
         "seqnado_output/logs/multiqc.log",
     resources:
