@@ -14,16 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache dependencies
-        id: cache-env
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.conda
-            ~/.cache/pip
-          key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}-new
-          restore-keys: |
-            ${{ runner.os }}-env-
 
       - name: Setup conda
         uses: conda-incubator/setup-miniconda@v3
