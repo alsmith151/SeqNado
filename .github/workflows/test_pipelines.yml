@@ -13,6 +13,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+            with:
+              submodules: true
 
 
       - name: Setup conda
@@ -26,6 +28,13 @@ jobs:
         run: |
           pip install .
 
+      - name: Verify MultiQC Config Path
+        run: |
+          if [ ! -f /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/seqnado/data/multiqc_config.yaml ]; then
+            echo "MultiQC config file not found!"
+            exit 1
+          fi
+          
       - name: Cache singularity
         if: matrix.test == 'pipeline'
         id: cache-singularity
