@@ -1,6 +1,4 @@
 import os
-import importlib.resources
-import seqnado.data
 from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
 rule fastqc_raw_paired:
@@ -296,6 +294,11 @@ def get_qualimap_files(wildcards):
             sample=SAMPLE_NAMES,
         )
 
+def get_multiqc_config():
+    import importlib.resources
+    import seqnado.data
+
+    return importlib.resources.files(seqnado.data) / "multiqc_config.yaml"
 
 rule seqnado_report:
     input:
@@ -307,7 +310,7 @@ rule seqnado_report:
         report = "seqnado_output/seqnado_report.html",
         out_dir = temp(directory("seqnado_output/seqnado_report_data")),
     params:
-        multiqc_config = "seqnado/workflow/config/multiqc_config.yaml",
+        multiqc_config = get_multiqc_config(),
     log:
         "seqnado_output/logs/multiqc.log",
     resources:
