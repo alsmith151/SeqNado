@@ -488,7 +488,8 @@ def test_design(design, assay_type):
 def apptainer_args(index, test_data_path):
     import importlib.resources
     import seqnado.data
-
+    import pathlib
+    
     indicies_mount = index.parent if not index.is_dir() else index
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()

@@ -297,6 +297,7 @@ def get_qualimap_files(wildcards):
 def get_multiqc_config():
     import importlib.resources
     import seqnado.data
+    import pathlib
 
     return pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml").absolute().resolve()
 
