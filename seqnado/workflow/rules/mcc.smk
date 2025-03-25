@@ -382,6 +382,19 @@ rule zoomify_cooler:
         """
 
 
+rule aggregate_coolers:
+    input:
+        mcools=expand("seqnado_output/mcc/{{sample}}/{viewpoint}.mcool", viewpoint=VIEWPOINT_OLIGOS),
+    output:
+        mcool="seqnado_output/mcc/{sample}.mcool",
+    log:
+        "seqnado_output/logs/{sample}_aggregate_coolers.log",
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+    container: None
+    script:
+        "../scripts/mcc_combine_coolers.py"
 
 
 
