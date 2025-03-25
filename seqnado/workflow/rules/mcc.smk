@@ -350,6 +350,9 @@ rule make_cooler:
         resolution=config.get("resolution", 100),
         genome=config["genome"]["name"],
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         cooler cload pairs \
@@ -369,6 +372,9 @@ rule zoomify_cooler:
         "seqnado_output/logs/zoomify_cooler/{sample}_{viewpoint}.log",
     params:
         resolutions=",".join([str(r) for r in config.get("resolutions", [100, 1000, 10000])]),
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
@@ -376,6 +382,19 @@ rule zoomify_cooler:
         """
 
 
+rule aggregate_coolers:
+    input:
+        mcools=expand("seqnado_output/mcc/{{sample}}/{viewpoint}.mcool", viewpoint=VIEWPOINT_OLIGOS),
+    output:
+        mcool="seqnado_output/mcc/{sample}.mcool",
+    log:
+        "seqnado_output/logs/{sample}_aggregate_coolers.log",
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+    container: None
+    script:
+        "../scripts/mcc_combine_coolers.py"
 
 
 
