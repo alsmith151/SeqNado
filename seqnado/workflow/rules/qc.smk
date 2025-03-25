@@ -298,7 +298,7 @@ def get_multiqc_config():
     import importlib.resources
     import seqnado.data
 
-    return importlib.resources.files(seqnado.data) / "multiqc_config.yaml"
+    return pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml").absolute().resolve()
 
 rule seqnado_report:
     input:
@@ -309,10 +309,8 @@ rule seqnado_report:
     output:
         report = "seqnado_output/seqnado_report.html",
         out_dir = temp(directory("seqnado_output/seqnado_report_data")),
-    params:
-        multiqc_config = get_multiqc_config(),
-    log:
-        "seqnado_output/logs/multiqc.log",
+    params:multiqc_config = get_multiqc_config(),
+    log:"seqnado_output/logs/multiqc.log",
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
