@@ -182,17 +182,17 @@ def meth_files(genome_path):
 @pytest.fixture(scope="function")
 def mcc_files(genome_path):
     files = dict()
-    
-    
+
     url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/test_viewpoints.bed"
     r = requests.get(url, stream=True)
     mcc_viewpoints = genome_path / "mcc_viewpoints.bed"
     with open(mcc_viewpoints, "wb") as f:
         f.write(r.content)
-    
-    files['viewpoints'] = genome_path / "mcc_viewpoints.bed"
+
+    files["viewpoints"] = genome_path / "mcc_viewpoints.bed"
 
     return files
+
 
 @pytest.fixture(scope="function")
 def assay_type(assay):
@@ -342,7 +342,9 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Generate consensus counts from Design merge column? (yes/no)": "yes"
         if assay in ["atac", "chip-rx"]
         else "no",
-        "Generate GEO submission files?": "yes" if assay in ["chip", "rna", 'cat'] else "no",
+        "Generate GEO submission files?": "yes"
+        if assay in ["chip", "rna", "cat"]
+        else "no",
         "Genome?": "hg38",
         "Make Bigwigs?": "yes",
         "Make heatmaps?": "yes" if assay == "atac" else "no",
@@ -353,8 +355,12 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         if not assay == "snp"
         else "",
         "Path to bed file with genes.": "",
-        "Path to reference fasta index:": "dummy_ref.fasta.fai" if not assay == "meth" else str(meth_fasta_fai),
-        "Path to reference fasta:": "dummy_ref.fasta" if assay not in ["meth", 'mcc'] else str(meth_fasta),
+        "Path to reference fasta index:": "dummy_ref.fasta.fai"
+        if not assay == "meth"
+        else str(meth_fasta_fai),
+        "Path to reference fasta:": "dummy_ref.fasta"
+        if assay not in ["meth", "mcc"]
+        else str(meth_fasta),
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": "no",
@@ -371,7 +377,11 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
-        "Path to viewpoints file: (default: path/to/viewpoints.bed):": str(mcc_files['viewpoints']) if assay == "mcc" else "",
+        "Path to viewpoints file: (default: path/to/viewpoints.bed):": str(
+            mcc_files["viewpoints"]
+        )
+        if assay == "mcc"
+        else "",
         "Resolution for MCC cooler files:": "100",
     }
 
@@ -489,18 +499,25 @@ def apptainer_args(index, test_data_path):
     import importlib.resources
     import seqnado.data
     import pathlib
-    
+    import os
+
     indicies_mount = index.parent if not index.is_dir() else index
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
     apptainer_cache_dir = pathlib.Path.home() / ".apptainer"
-    multiqc_config = pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml").absolute().resolve()
+    multiqc_config = (
+        pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml")
+        .absolute()
+        .resolve()
+    )
+    multiqc_config_parent = multiqc_config.parent
+
     os.environ["APPTAINER_BINDPATH"] = (
         f"{wd}:{wd},"
         f"{test_data_path}:{test_data_path},"
         f"{indicies_mount}:{indicies_mount},"
-        f"{tmpdir}:{tmpdir}"
-        f"{multiqc_config}:{multiqc_config}"
+        f"{tmpdir}:{tmpdir},"
+        f"{multiqc_config_parent}:{multiqc_config_parent}"
     )
 
     if not os.environ.get("APPTAINER_CACHEDIR"):
