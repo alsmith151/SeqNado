@@ -486,15 +486,20 @@ def test_design(design, assay_type):
 
 @pytest.fixture(scope="function", autouse=True)
 def apptainer_args(index, test_data_path):
+    import importlib.resources
+    import seqnado.data
+
     indicies_mount = index.parent if not index.is_dir() else index
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
     apptainer_cache_dir = pathlib.Path.home() / ".apptainer"
+    multiqc_config = pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml").absolute().resolve()
     os.environ["APPTAINER_BINDPATH"] = (
         f"{wd}:{wd},"
         f"{test_data_path}:{test_data_path},"
         f"{indicies_mount}:{indicies_mount},"
         f"{tmpdir}:{tmpdir}"
+        f"{multiqc_config}:{multiqc_config}"
     )
 
     if not os.environ.get("APPTAINER_CACHEDIR"):
