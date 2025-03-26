@@ -331,13 +331,13 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
     meth_fasta, meth_fasta_fai = meth_files
     prompts = {
         "Bigwig method:": "deeptools",
-        "Calculate library complexity?": "yes" if assay == "atac" else "no",
+        "Calculate library complexity?": "yes" if assay == "cat" else "no",
         "Call methylation?": "yes",
         "Call peaks?": "yes",
         "Call SNPs?": "no",
         "Color by (for UCSC hub):": "samplename",
         "Do you have spikein? (yes/no)": "yes" if "rx" in assay else "no",
-        "Duplicates removal method:": "picard",
+        "Duplicates removal method:": "samtools" if assay == "atac" else "picard",
         "Fastqscreen config path:": "/dummy/fastqscreen.conf",
         "Generate consensus counts from Design merge column? (yes/no)": "yes"
         if assay in ["atac", "chip-rx"]
@@ -369,7 +369,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Quantification method:": "feature_counts",  # default RNA response
         "Reference genome:": "hg38",
         "Remove blacklist regions?": "yes",
-        "Remove PCR duplicates?": "yes",
+        "Remove PCR duplicates?": "no" if assay in ["rna", "rna-rx"] else "yes",
         "Run DESeq2?": "no",
         "Salmon index path:": "dummy_salmon_index",
         "Shift ATAC reads?": "yes",

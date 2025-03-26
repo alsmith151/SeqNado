@@ -6,3 +6,16 @@ intro_text: >
 custom_logo: "seqnado.png"
 custom_logo_url: "https://alsmith151.github.io/SeqNado/"
 custom_logo_title: "SeqNado"
+
+custom_data:
+  alignment_read_counts:
+    name: "Alignment Read Counts"
+    section_name: "Alignment Pipeline Read Stats"
+    description: "Reads remaining after each post-processing step"
+    file_format: "tsv"
+    fn: "alignment_stats.tsv"
+    plot_type: "bargraph"
+    x: "sample"
+    extra_series: true
+    bargraph_options:
+      stacked: false

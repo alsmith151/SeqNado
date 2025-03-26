@@ -1264,13 +1264,16 @@ class QCFiles(BaseModel):
     @property
     def default_files(self) -> List[str]:
         return [
-            "seqnado_output/qc/fastq_raw_qc.html",
-            "seqnado_output/qc/fastq_trimmed_qc.html",
-            "seqnado_output/qc/alignment_raw_qc.html",
-            "seqnado_output/qc/alignment_filtered_qc.html",
             "seqnado_output/seqnado_report.html",
         ]
     
+    @property
+    def alignment_stats_files(self) -> List[str]:
+        return expand(
+            "seqnado_output/qc/alignment_post_process/alignment_stats_{sample}.tsv",
+            sample=self.sample_names,
+        )
+
     @property
     def qualimap_files(self) -> List[str]:
         if self.assay == "RNA":
@@ -1292,12 +1295,11 @@ class QCFiles(BaseModel):
     def library_complexity_files(self) -> List[str]:
         return ["seqnado_output/qc/library_complexity_qc.html"]
 
-    
-
     @computed_field
     @property
     def files(self) -> List[str]:
         files = self.default_files
+        files.extend(self.alignment_stats_files)
         files.extend(self.qualimap_files)
         if self.fastq_screen:
             files.extend(self.fastq_screen_files)
