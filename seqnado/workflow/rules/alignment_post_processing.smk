@@ -6,12 +6,12 @@ rule sort_bam:
         bam="seqnado_output/aligned/raw/{sample}.bam",
     output:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
-        read_log=temp("seqnado_output/qc/alignment_post_process/sort_{sample}.tsv"),
+        read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_sort.tsv"),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     threads: config["samtools"]["threads"]
-    log: "seqnado_output/logs/alignment_post_process/sort/{sample}.log",
+    log: "seqnado_output/logs/alignment_post_process/{sample}_sort.log",
     shell:"""
     samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M &&
     echo 'Step\tRead Count' > {output.read_log} &&
@@ -43,14 +43,14 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
             bai=temp(
                 "seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai"
             ),
-            read_log=temp("seqnado_output/qc/alignment_post_process/blacklist_{sample}.tsv"),
+            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_blacklist.tsv"),
         threads: 1
         params:
             blacklist=check_options(config["blacklist"]),
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        log: "seqnado_output/logs/alignment_post_process/blacklist/{sample}.log",
+        log: "seqnado_output/logs/alignment_post_process/{sample}_blacklist.log",
         shell:"""
         bedtools intersect -v -b {params.blacklist} -a {input.bam} > {output.bam} &&
         samtools index -b {output.bam} -o {output.bai} &&
@@ -68,12 +68,12 @@ else:
             bai=temp(
                 "seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai"
             ),
-            read_log=temp("seqnado_output/qc/alignment_post_process/blacklist_{sample}.tsv"),
+            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_blacklist.tsv"),
         threads: 1
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-        log: "seqnado_output/logs/alignment_post_process/blacklist/{sample}.log",
+        log: "seqnado_output/logs/alignment_post_process/{sample}_blacklist.log",
         shell:"""
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
@@ -90,14 +90,14 @@ if config["remove_pcr_duplicates_method"] == "picard":
             bam=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam"),
             bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
             metrics=temp("seqnado_output/aligned/duplicates_removed/{sample}.metrics"),
-            read_log=temp("seqnado_output/qc/alignment_post_process/remove_duplicates_{sample}.tsv"),
+            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_remove_duplicates.tsv"),
         threads: 8
         params:
             options=check_options(config["picard"]["options"]),
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        log: "seqnado_output/logs/alignment_post_process/remove_duplicates/{sample}.log",
+        log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
         shell:"""
         picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} &&
         mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
@@ -111,12 +111,12 @@ elif config["remove_pcr_duplicates_method"] == "samtools":
         output:
             bam=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam"),
             bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
-            read_log=temp("seqnado_output/qc/alignment_post_process/remove_duplicates_{sample}.tsv"),
+            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_remove_duplicates.tsv"),
         threads: config["samtools"]["threads"]
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        log: "seqnado_output/logs/alignment_post_process/remove_duplicates/{sample}.log",
+        log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
         shell:"""
         samtools rmdup -@ {threads} {input.bam} {output.bam} &&
         samtools index {output.bam} &&
@@ -130,11 +130,11 @@ else:
         output:
             bam=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam"),
             bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
-            read_log=temp("seqnado_output/qc/alignment_post_process/remove_duplicates_{sample}.tsv"),
+            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_remove_duplicates.tsv"),
         threads: 8
         resources:
             mem="500MB",
-        log: "seqnado_output/logs/alignment_post_process/remove_duplicates/{sample}.log",
+        log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
         shell: """
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
@@ -155,12 +155,12 @@ if config.get("shift_atac_reads"):
             tmp=temp(
                 "seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.tmp"
             ),
-            read_log=temp("seqnado_output/qc/alignment_post_process/atac_shift_{sample}.tsv"),
+            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv"),
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         threads: 1
-        log: "seqnado_output/logs/alignment_post_process/atac_shift/{sample}.log",
+        log: "seqnado_output/logs/alignment_post_process/{sample}_atac_shift.log",
         shell:"""
         rsbamtk shift -b {input.bam} -o {output.tmp} &&
         samtools sort {output.tmp} -@ {threads} -o {output.bam} &&
@@ -178,7 +178,7 @@ else:
             bai=temp(
                 "seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai"
             ),
-            read_log=temp("seqnado_output/qc/alignment_post_process/atac_shift_{sample}.tsv"),
+            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv"),
         threads: 1
         shell:"""
         mv {input.bam} {output.bam} &&
@@ -194,12 +194,12 @@ rule filter_bam:
     output:
         bam="seqnado_output/aligned/filtered/{sample}.bam",
         bai="seqnado_output/aligned/filtered/{sample}.bam.bai",
-        read_log=temp("seqnado_output/qc/alignment_post_process/filter_{sample}.tsv"),
+        read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_filter.tsv"),
     threads: config["samtools"]["threads"]
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log: "seqnado_output/logs/alignment_post_process/filter/{sample}.log",
+    log: "seqnado_output/logs/alignment_post_process/{sample}_filter.log",
     params:
         options=check_options(config["samtools"]["filter_options"]),
     shell:"""
@@ -215,11 +215,11 @@ rule move_bam_to_final_location:
     output:
         bam="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam",
         bai="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam.bai",
-        read_log=temp("seqnado_output/qc/alignment_post_process/final_{sample}.tsv"),
+        read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_final.tsv"),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    log: "seqnado_output/logs/alignment_post_process/final/{sample}.log",
+    log: "seqnado_output/logs/alignment_post_process/{sample}_final.log",
     shell:"""
     mv {input.bam} {output.bam} &&
     mv {input.bai} {output.bai} &&
@@ -229,13 +229,13 @@ rule move_bam_to_final_location:
 
 rule bam_stats:
     input: 
-        sort="seqnado_output/qc/alignment_post_process/sort_{sample}.tsv",
-        blacklist="seqnado_output/qc/alignment_post_process/blacklist_{sample}.tsv",
-        remove_duplicates="seqnado_output/qc/alignment_post_process/remove_duplicates_{sample}.tsv",
-        atac_shift="seqnado_output/qc/alignment_post_process/atac_shift_{sample}.tsv",
-        filtered="seqnado_output/qc/alignment_post_process/filter_{sample}.tsv",
-        final="seqnado_output/qc/alignment_post_process/final_{sample}.tsv",
-    output: "seqnado_output/qc/alignment_post_process/alignment_stats_{sample}.tsv"
+        sort="seqnado_output/qc/alignment_post_process/{sample}_sort.tsv",
+        blacklist="seqnado_output/qc/alignment_post_process/{sample}_blacklist.tsv",
+        remove_duplicates="seqnado_output/qc/alignment_post_process/{sample}_remove_duplicates.tsv",
+        atac_shift="seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv",
+        filtered="seqnado_output/qc/alignment_post_process/{sample}_filter.tsv",
+        final="seqnado_output/qc/alignment_post_process/{sample}_final.tsv",
+    output: "seqnado_output/qc/alignment_post_process/{sample}_alignment_stats.tsv"
     shell: """
         cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
     """

@@ -1257,54 +1257,34 @@ class GEOFiles(BaseModel):
 
 class QCFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
-    fastq_screen: bool = False
-    library_complexity: bool = False
     sample_names: List[str]
 
     @property
     def default_files(self) -> List[str]:
         return [
             "seqnado_output/seqnado_report.html",
+            "seqnado_output/qc/alignment_post_process/alignment_stats.tsv",
         ]
-    
-    @property
-    def alignment_stats_files(self) -> List[str]:
-        return expand(
-            "seqnado_output/qc/alignment_post_process/alignment_stats_{sample}.tsv",
-            sample=self.sample_names,
-        )
 
     @property
     def qualimap_files(self) -> List[str]:
         if self.assay == "RNA":
             return expand(
-                "seqnado_output/qc/qualimap/rnaseq_{sample}/qualimapReport.html",
+                "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
                 sample=self.sample_names,
             )
         else:
             return expand(
-                "seqnado_output/qc/qualimap/bamqc_{sample}/qualimapReport.html",
+                "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
                 sample=self.sample_names,
             )
 
-    @property
-    def fastq_screen_files(self) -> List[str]:
-        return ["seqnado_output/qc/full_fastqscreen_report.html"]
-
-    @property
-    def library_complexity_files(self) -> List[str]:
-        return ["seqnado_output/qc/library_complexity_qc.html"]
 
     @computed_field
     @property
     def files(self) -> List[str]:
         files = self.default_files
-        files.extend(self.alignment_stats_files)
         files.extend(self.qualimap_files)
-        if self.fastq_screen:
-            files.extend(self.fastq_screen_files)
-        if self.library_complexity:
-            files.extend(self.library_complexity_files)
         return files
 
 
@@ -1650,8 +1630,6 @@ class RNAOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
                 sample_names=self.sample_names,
             ).files
         )
@@ -1737,8 +1715,6 @@ class NonRNAOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
                 sample_names=self.sample_names,
             ).files
         )
@@ -1868,8 +1844,6 @@ class SNPOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
                 sample_names=self.sample_names,
             ).files
         )
@@ -1955,8 +1929,6 @@ class METHOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
                 sample_names=self.sample_names,
             ).files
         )
@@ -2034,8 +2006,6 @@ class MCCOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
                 sample_names=self.sample_names,
             ).files
         )

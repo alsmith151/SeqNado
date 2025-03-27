@@ -9,7 +9,6 @@ use rule align_paired as align_paired_spikein with:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
 
 
-
 use rule align_single as align_single_spikein with:
     output:
         bam=temp("seqnado_output/aligned/spikein/raw/{sample}.bam"),
@@ -17,11 +16,17 @@ use rule align_single as align_single_spikein with:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
 
+if config["spikein"]:
+    ruleorder: align_paired_spikein > align_paired > align_single_spikein > align_single 
+else:
+    ruleorder: align_paired > align_paired_spikein > align_single > align_single_spikein 
+
 use rule sort_bam as sort_bam_spikein with:
     input:
         bam="seqnado_output/aligned/spikein/raw/{sample}.bam",
     output:
         bam=temp("seqnado_output/aligned/spikein/sorted/{sample}.bam"),
+        read_log=temp("seqnado_output/aligned/spikein/sorted/{sample}_read.log"),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
@@ -130,5 +135,3 @@ elif config.get("spikein_options", {}).get("normalisation_method") == "with_inpu
         script:
             "../scripts/calculate_spikein_norm_factors.py"
 
-
-ruleorder: align_paired_spikein > align_single_spikein

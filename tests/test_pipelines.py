@@ -337,7 +337,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Call SNPs?": "no",
         "Color by (for UCSC hub):": "samplename",
         "Do you have spikein? (yes/no)": "yes" if "rx" in assay else "no",
-        "Duplicates removal method:": "samtools" if assay == "atac" else "picard",
+        "Duplicates removal method:": "picard",
         "Fastqscreen config path:": "/dummy/fastqscreen.conf",
         "Generate consensus counts from Design merge column? (yes/no)": "yes"
         if assay in ["atac", "chip-rx"]
