@@ -205,6 +205,16 @@ def get_fastqc_files_all(wildcards):
         sample=single_end_assays,
     ),
     
+    all_qc_files = []
+    for files in [fastqc_raw_paired, fastqc_trimmed_paired, fastqc_raw_single, fastqc_trimmed_single]:
+        if files:
+            all_qc_files.extend(*files)
+    
+    return all_qc_files
+
+def get_fastq_screen_all(wildcards):
+    single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]
+    paired_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == True]
     fastq_screen_single = expand(
         "seqnado_output/qc/fastq_screen/{sample}_screen.txt",
         sample=single_end_assays,
@@ -214,13 +224,13 @@ def get_fastqc_files_all(wildcards):
         sample=paired_end_assays,
         read=[1, 2],
     ),
-
-    all_qc_files = []
-    for files in [fastqc_raw_paired, fastqc_trimmed_paired, fastq_screen_paired, fastqc_raw_single, fastqc_trimmed_single, fastq_screen_single]:
-        if files:
-            all_qc_files.extend(*files)
-    
-    return all_qc_files
+    all_fastq_screen_files = []
+    if config["fastq_screen"]:
+        for files in [fastq_screen_paired, fastq_screen_single]:
+            if files:
+                all_fastq_screen_files.extend(*files)
+        
+    return all_fastq_screen_files
 
 
 def get_library_complexity_qc(wildcards):
@@ -306,7 +316,7 @@ def get_multiqc_config():
 rule seqnado_report:
     input:
         get_fastqc_files_all,
-        get_fastqscreen_files,
+        get_fastq_screen_all,
         get_alignment_logs,
         get_library_complexity_qc,
         get_qualimap_files,
