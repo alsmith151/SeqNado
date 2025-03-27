@@ -323,18 +323,18 @@ def get_counts_files(wildcards):
     else:
         return []
 
+def get_snp_qc(wildcards):
+    if ASSAY == "SNP" and config["call_snps"]:
+        return expand(
+            "seqnado_output/variant/bcftools/{sample}_filtered.anno.vcf.gz",
+            sample=SAMPLE_NAMES,
+        )
+    else:
+        return []
 
 ##############################################
 #                  MultiQC                   #
 ##############################################
-
-def get_multiqc_config():
-    import importlib.resources
-    import seqnado.data
-    import pathlib
-
-    return pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml").absolute().resolve()
-
 
 rule seqnado_report:
     input:
@@ -343,12 +343,13 @@ rule seqnado_report:
         get_alignment_logs,
         get_library_complexity_qc,
         get_qualimap_files,
-        "seqnado_output/qc/alignment_post_process/alignment_stats.tsv",
         get_frip_files,
         get_counts_files,
+        get_snp_qc,
     output:
         report = "seqnado_output/seqnado_report.html",
-    params: multiqc_config = get_multiqc_config(),
+    params:
+        multiqc_config = "/opt/seqnado/multiqc_config.yaml"
     log: "seqnado_output/logs/seqnado_report.log",
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),

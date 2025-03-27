@@ -1263,6 +1263,7 @@ class QCFiles(BaseModel):
     def default_files(self) -> List[str]:
         return [
             "seqnado_output/seqnado_report.html",
+            "seqnado_output/qc/alignment_post_process/alignment_stats.tsv",
         ]
 
     @property
