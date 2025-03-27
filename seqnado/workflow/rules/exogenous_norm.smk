@@ -16,10 +16,8 @@ use rule align_single as align_single_spikein with:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
 
-if config["spikein"]:
-    ruleorder: align_paired_spikein > align_paired > align_single_spikein > align_single 
-else:
-    ruleorder: align_paired > align_paired_spikein > align_single > align_single_spikein 
+
+ruleorder: align_paired > align_paired_spikein > align_single > align_single_spikein 
 
 use rule sort_bam as sort_bam_spikein with:
     input:

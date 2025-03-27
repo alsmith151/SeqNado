@@ -267,9 +267,12 @@ def get_qualimap_files(wildcards):
 def get_frip_files(wildcards):
     import glob
     if ASSAY != "RNA" and config["call_peaks"]:
-        peaks = OUTPUT.peaks
-        frip_file = [f.replace("peaks", "qc/frip_enrichment").replace(".bed", "_frip.txt") for f in peaks]
-        return frip_file
+        peak_methods = OUTPUT.peak_calling_method
+        return expand(
+            "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+            sample=SAMPLE_NAMES,
+            directory=peak_methods,
+        )
     else:
         return []
 
