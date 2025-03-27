@@ -103,6 +103,17 @@ rule multiqc_library_complexity:
 #                  Qualimap                  #
 ############################################## 
 
+def format_qualimap_options(wildcards):
+    qualimap_rnaseq_options = "--paired --sorted"
+    qualimap_bamqc_options = "--collect-overlap-pairs"
+
+    is_paired = DESIGN.query(wildcards.sample).is_paired
+    if not is_paired:
+        qualimap_rnaseq_options = re.sub(r"--paired", "", qualimap_rnaseq_options)
+        qualimap_bamqc_options = re.sub(r"--collect-overlap-pairs", "", qualimap_bamqc_options)
+    return qualimap_rnaseq_options if ASSAY == "RNA" else qualimap_bamqc_options
+
+
 rule qualimap_bamqc:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
@@ -110,6 +121,7 @@ rule qualimap_bamqc:
         html="seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
     params:
         output_dir="seqnado_output/qc/qualimap_bamqc/{sample}/",
+        options=format_qualimap_options,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -118,6 +130,7 @@ rule qualimap_bamqc:
     log:"seqnado_output/logs/qualimap_bamqc/{sample}.log",
     shell:"""
     qualimap --java-mem-size={resources.mem} bamqc \
+    {params.options} \
     -nt {threads} \
     -bam {input.bam} \
     -outdir {params.output_dir} \
@@ -133,6 +146,7 @@ rule qualimap_rnaseq:
     params:
         output_dir="seqnado_output/qc/qualimap_rnaseq/{sample}/",
         annotation=config["genome"]["gtf"],
+        options=format_qualimap_options,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -142,7 +156,7 @@ rule qualimap_rnaseq:
         "seqnado_output/logs/qualimap_rnaseq/{sample}.log",
     shell:"""
     qualimap --java-mem-size={resources.mem} rnaseq \
-    -s \
+    {params.options} \
     -bam {input.bam} \
     -gtf {params.annotation} \
     -outdir {params.output_dir} \
@@ -155,6 +169,12 @@ rule qualimap_rnaseq:
 #               Frip Enrichment              #
 ##############################################
 
+def format_frip_enrichment_options(wildcards):
+    is_paired = DESIGN.query(wildcards.sample).is_paired
+    options = "--extendReads"
+    if not is_paired:
+        options = re.sub(r"--extendReads", "", options)
+    return options
 
 rule frip_enrichment:
     input:
@@ -163,6 +183,8 @@ rule frip_enrichment:
     output:
         pdf="seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.pdf",
         frip_count="seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+    params:
+        options=format_frip_enrichment_options,
     threads: 16
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
@@ -276,6 +298,7 @@ def get_qualimap_files(wildcards):
 
 def get_frip_files(wildcards):
     import glob
+
     if ASSAY != "RNA" and config["call_peaks"]:
         peak_methods = OUTPUT.peak_calling_method
         return expand(
