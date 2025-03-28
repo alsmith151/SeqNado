@@ -20,8 +20,8 @@ rule fastqc_raw_paired:
         temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     threads: 1
     resources:
-        mem="1.5GB",
-         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
