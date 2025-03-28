@@ -261,6 +261,8 @@ def get_library_complexity_qc(wildcards):
             "seqnado_output/aligned/duplicates_removed/{sample}.metrics",
             sample=SAMPLE_NAMES,
         )
+    else:
+        return []
 
 def get_alignment_logs(wildcards):
     return expand(
@@ -299,7 +301,7 @@ def get_qualimap_files(wildcards):
 def get_frip_files(wildcards):
     import glob
 
-    if ASSAY != "RNA" and config["call_peaks"]:
+    if ASSAY in ["ChIP", "CAT", "ATAC"] and config["call_peaks"]:
         peak_methods = OUTPUT.peak_calling_method
         return expand(
             "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
