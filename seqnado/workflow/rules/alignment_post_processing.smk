@@ -235,7 +235,7 @@ rule bam_stats:
         atac_shift="seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv",
         filtered="seqnado_output/qc/alignment_post_process/{sample}_filter.tsv",
         final="seqnado_output/qc/alignment_post_process/{sample}_final.tsv",
-    output: "seqnado_output/qc/alignment_post_process/{sample}_alignment_stats.tsv"
+    output: temp("seqnado_output/qc/alignment_post_process/{sample}_alignment_stats.tsv")
     shell: """
         cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
     """
