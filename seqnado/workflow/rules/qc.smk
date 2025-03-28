@@ -267,7 +267,7 @@ def get_library_complexity_qc(wildcards):
 def get_alignment_logs(wildcards):
     if ASSAY == "MCC":
         return []
-    elif ASSAY == "RNA"
+    elif ASSAY == "RNA":
         return expand(
             "seqnado_output/aligned/star/{sample}_Log.final.out",
             sample=SAMPLE_NAMES,
