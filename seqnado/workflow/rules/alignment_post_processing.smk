@@ -247,7 +247,7 @@ rule prepare_stats_report:
             sample=SAMPLE_NAMES,
         ),
     output:
-        "seqnado_output/qc/alignment_post_process/alignment_stats.tsv",
+        "seqnado_output/qc/alignment_stats.tsv",
     log:
         "seqnado_output/logs/alignment_stats.log",
     script:
