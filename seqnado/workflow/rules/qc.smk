@@ -265,13 +265,18 @@ def get_library_complexity_qc(wildcards):
         return []
 
 def get_alignment_logs(wildcards):
-    return expand(
-        "seqnado_output/aligned/star/{sample}_Log.final.out",
-        sample=SAMPLE_NAMES,
-    ) if ASSAY == "RNA" else expand(
-        "seqnado_output/logs/align/{sample}.log",
-        sample=SAMPLE_NAMES,
-    )
+    if ASSAY == "MCC":
+        return []
+    elif ASSAY == "RNA"
+        return expand(
+            "seqnado_output/aligned/star/{sample}_Log.final.out",
+            sample=SAMPLE_NAMES,
+        )
+    else: 
+        return expand(
+            "seqnado_output/logs/align/{sample}.log",
+            sample=SAMPLE_NAMES,
+            )
 
 
 rule prepare_stats_report:
@@ -289,13 +294,18 @@ rule prepare_stats_report:
 
 
 def get_qualimap_files(wildcards):
-    return expand(
-        "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
-        sample=SAMPLE_NAMES,
-    ) if ASSAY == "RNA" else expand(
-        "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
-        sample=SAMPLE_NAMES,
-    )
+    if ASSAY == "MCC":
+        return []
+    if ASSAY == "RNA":
+        return expand(
+            "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
+            sample=SAMPLE_NAMES,
+        )  
+    else 
+        return expand(
+            "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+            sample=SAMPLE_NAMES,
+        )
 
 
 def get_frip_files(wildcards):
