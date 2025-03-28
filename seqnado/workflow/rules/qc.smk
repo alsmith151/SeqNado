@@ -301,7 +301,7 @@ def get_qualimap_files(wildcards):
             "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
             sample=SAMPLE_NAMES,
         )  
-    else 
+    else:
         return expand(
             "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
             sample=SAMPLE_NAMES,
