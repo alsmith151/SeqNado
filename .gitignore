@@ -26,3 +26,4 @@ seqnado.sif
 *.tar
 *.tar.gz
 containers/*.sif
+.DS_Store
