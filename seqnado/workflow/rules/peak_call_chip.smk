@@ -164,7 +164,7 @@ rule lanceotron_no_input:
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/lanceotron/{sample}_{treatment}.bed",
+        "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
     params:
         options=check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
