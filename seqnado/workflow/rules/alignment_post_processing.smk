@@ -240,6 +240,18 @@ rule bam_stats:
         cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
     """
 
+rule prepare_stats_report:
+    input:
+        expand(
+            "seqnado_output/qc/alignment_post_process/{sample}_alignment_stats.tsv",
+            sample=SAMPLE_NAMES,
+        ),
+    output:
+        "seqnado_output/qc/alignment_post_process/alignment_stats.tsv",
+    log:
+        "seqnado_output/logs/alignment_stats.log",
+    script:
+        "../scripts/alignment_stats.py"
 
 def get_bam_files_for_merge(wildcards):
     from seqnado.design import NormGroups

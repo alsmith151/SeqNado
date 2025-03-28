@@ -279,20 +279,6 @@ def get_alignment_logs(wildcards):
             )
 
 
-rule prepare_stats_report:
-    input:
-        expand(
-            "seqnado_output/qc/alignment_post_process/{sample}_alignment_stats.tsv",
-            sample=SAMPLE_NAMES,
-        ),
-    output:
-        "seqnado_output/qc/alignment_post_process/alignment_stats.tsv",
-    log:
-        "seqnado_output/logs/alignment_stats.log",
-    script:
-        "../scripts/alignment_stats.py"
-
-
 def get_qualimap_files(wildcards):
     if ASSAY == "MCC":
         return []
@@ -309,8 +295,6 @@ def get_qualimap_files(wildcards):
 
 
 def get_frip_files(wildcards):
-    import glob
-
     if ASSAY in ["ChIP", "CAT", "ATAC"] and config["call_peaks"]:
         peak_methods = OUTPUT.peak_calling_method
         return expand(
