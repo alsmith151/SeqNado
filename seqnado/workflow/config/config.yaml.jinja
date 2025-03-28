@@ -32,8 +32,9 @@ shift_atac_reads: "{{shift_atac_reads}}"
 {% endif %}
 
 
-{% if spikein %}
+
 spikein: "{{spikein}}"
+{% if spikein %}
 spikein_options:
     normalisation_method: "{{normalisation_method}}"
     reference_genome: "{{reference_genome}}"
