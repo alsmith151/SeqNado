@@ -16,7 +16,7 @@ rule sort_bam:
     samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M &&
     echo 'Step\tRead Count' > {output.read_log} &&
     echo -e "Raw counts\t$(samtools view -c {input.bam})" >> {output.read_log} &&
-    echo -e "After sort\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+    echo -e "sort\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
     """
 
 
@@ -54,7 +54,7 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
         shell:"""
         bedtools intersect -v -b {params.blacklist} -a {input.bam} > {output.bam} &&
         samtools index -b {output.bam} -o {output.bai} &&
-        echo -e "After blacklisted regions removed\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+        echo -e "blacklisted regions removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
 
 else:
@@ -77,7 +77,7 @@ else:
         shell:"""
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
-        echo -e "After blacklisted regions not removed\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+        echo -e "blacklisted regions removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
 
 
@@ -101,7 +101,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
         shell:"""
         picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} &&
         mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
-        echo -e "After duplicates removed\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+        echo -e "duplicate removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
 elif config["remove_pcr_duplicates_method"] == "samtools":
     rule remove_duplicates_using_samtools:
@@ -120,7 +120,7 @@ elif config["remove_pcr_duplicates_method"] == "samtools":
         shell:"""
         samtools rmdup -@ {threads} {input.bam} {output.bam} &&
         samtools index {output.bam} &&
-        echo -e "After duplicates removed\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+        echo -e "duplicate removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
 else:
     rule ignore_duplicates:
@@ -138,7 +138,7 @@ else:
         shell: """
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
-        echo -e "After duplicates not removed\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+        echo -e "duplicate removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
 
 
@@ -165,7 +165,7 @@ if config.get("shift_atac_reads"):
         rsbamtk shift -b {input.bam} -o {output.tmp} &&
         samtools sort {output.tmp} -@ {threads} -o {output.bam} &&
         samtools index {output.bam} &&
-        echo -e "After ATAC shift\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+        echo -e "ATAC shift\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
 
 else:
@@ -183,7 +183,7 @@ else:
         shell:"""
         mv {input.bam} {output.bam} &&
         mv {input.bam}.bai {output.bai} &&
-        echo -e "After no ATAC shift\t$(samtools view -c {output.bam})" >> {output.read_log}
+        echo -e "ATAC shift\t$(samtools view -c {output.bam})" >> {output.read_log}
         """
 
 
@@ -205,7 +205,7 @@ rule filter_bam:
     shell:"""
     samtools view -@ {threads} -h -b {input.bam} {params.options} > {output.bam} &&
     samtools index {output.bam} &&
-    echo -e "After filtering\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+    echo -e "filtering\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
     """
 
 rule move_bam_to_final_location:
