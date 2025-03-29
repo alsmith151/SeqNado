@@ -18,7 +18,7 @@ rule bcftools_call_snp:
         "seqnado_output/logs/variant/{sample}.log",
     shell:"""
     bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1 &&
-    tabix -f {input.vcf} > {output.idx} 
+    tabix -f {output.vcf} > {output.idx} 
     """
 
 
