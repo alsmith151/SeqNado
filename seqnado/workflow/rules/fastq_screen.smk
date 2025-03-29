@@ -8,7 +8,7 @@ rule fastq_screen_paired:
     output:
         fq_screen=temp("seqnado_output/qc/fastq_screen/{sample}_{read}_screen.html"),
         fq_screen_png=temp("seqnado_output/qc/fastq_screen/{sample}_{read}_screen.png"),
-        fq_screen_txt=temp("seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt"),
+        fq_screen_txt="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
     params:
         outdir=temp("seqnado_output/qc/fastq_screen"),
         conf=config["fastq_screen_config"],

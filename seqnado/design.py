@@ -1830,14 +1830,9 @@ class IPOutput(NonRNAOutput):
 class SNPOutput(Output):
     assay: Literal["SNP"]
     call_snps: bool = False
+    annotate_snps: bool = False
     sample_names: List[str]
     make_ucsc_hub: bool = False
-    snp_calling_method: Optional[
-        Union[
-            Literal["bcftools", "deepvariant", False],
-            List[Literal["bcftools", "deepvariant"]],
-        ]
-    ] = None
 
     @property
     def design(self):
@@ -1847,9 +1842,18 @@ class SNPOutput(Output):
     def snp_files(self) -> List[str]:
         if self.call_snps:
             return expand(
-                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                "seqnado_output/variant/{sample}.vcf.gz",
                 sample=self.sample_names,
-                method=self.snp_calling_method,
+            )
+        else:
+            return []
+    
+    @property
+    def anno_snp_files(self) -> List[str]:
+        if self.annotate_snps:
+            return expand(
+                "seqnado_output/variant/{sample}.anno.vcf.gz",
+                sample=self.sample_names,
             )
         else:
             return []

@@ -17,7 +17,6 @@ rule fastqc_raw_paired:
     params:
         extra="--quiet",
         output_dir="seqnado_output/qc/fastqc_raw/",
-        temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     threads: 1
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -39,13 +38,13 @@ rule fastqc_raw_single:
     params:
         extra="--quiet",
         output_dir="seqnado_output/qc/fastqc_raw/",
-        temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
         """
         fastqc -o {params.output_dir} {input} > {log} 2>&1
         """
+
 
 use rule fastqc_raw_paired as fastqc_trimmed_paired with:
     input:
@@ -59,7 +58,6 @@ use rule fastqc_raw_paired as fastqc_trimmed_paired with:
     params:
         extra="--quiet",
         output_dir="seqnado_output/qc/fastqc_trimmed/",
-        temp_prefix="seqnado_output/qc/fastqc_trimmed/{sample}",
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}.log",
 
@@ -73,7 +71,6 @@ use rule fastqc_raw_single as fastqc_trimmed_single with:
     params:
         extra="--quiet",
         output_dir="seqnado_output/qc/fastqc_trimmed/",
-        temp_prefix="seqnado_output/qc/fastqc_trimmed/{sample}",
     log:
         "seqnado_output/logs/fastqc_trimmed/{sample}.log",
 
@@ -85,7 +82,7 @@ use rule fastqc_raw_single as fastqc_trimmed_single with:
 rule multiqc_library_complexity:
     input:
         expand(
-            "seqnado_output/aligned/duplicates_removed/{sample}.metrics",
+            "seqnado_output/qc/library_complexity/{sample}.metrics",
             sample=SAMPLE_NAMES,
         ),
     output:
@@ -258,7 +255,7 @@ def get_fastq_screen_all(wildcards):
 def get_library_complexity_qc(wildcards):
     if config["library_complexity"]:
         return expand(
-            "seqnado_output/aligned/duplicates_removed/{sample}.metrics",
+            "seqnado_output/qc/library_complexity/{sample}.metrics",
             sample=SAMPLE_NAMES,
         )
     else:
@@ -329,7 +326,7 @@ def get_counts_files(wildcards):
 def get_snp_qc(wildcards):
     if ASSAY == "SNP" and config["call_snps"]:
         return expand(
-            "seqnado_output/variant/bcftools/{sample}_filtered.anno.vcf.gz",
+            "seqnado_output/variant/{sample}.anno.vcf.gz",
             sample=SAMPLE_NAMES,
         )
     else:

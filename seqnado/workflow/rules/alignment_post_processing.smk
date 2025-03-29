@@ -89,7 +89,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
         output:
             bam=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam"),
             bai=temp("seqnado_output/aligned/duplicates_removed/{sample}.bam.bai"),
-            metrics=temp("seqnado_output/aligned/duplicates_removed/{sample}.metrics"),
+            metrics="seqnado_output/qc/library_complexity/{sample}.metrics",
             read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_remove_duplicates.tsv"),
         threads: 8
         params:
@@ -103,6 +103,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
         mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
         echo -e "duplicate removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
+
 elif config["remove_pcr_duplicates_method"] == "samtools":
     rule remove_duplicates_using_samtools:
         input:
