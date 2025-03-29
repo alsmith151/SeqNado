@@ -1879,7 +1879,7 @@ class SNPOutput(Output):
 
         if self.annotate_snps:
             files.append(self.anno_snp_files)
-        print(files)
+
         return files
 
 
