@@ -38,6 +38,6 @@ if processed_data:
     stacked_df = pd.DataFrame(processed_data).T.fillna(0).reset_index()
     stacked_df.rename(columns={'index': 'sample'}, inplace=True)
     stacked_df.to_csv(snakemake.output[0], sep='\t', index=False)
-    logger.info(f"Stacked bar chart data written to {snakemake.output[0]}")
+    logger.info(f"Alignmetn data written to {snakemake.output[0]}")
 else:
     logger.warning("No valid input files found; no output written.")

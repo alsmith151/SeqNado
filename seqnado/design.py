@@ -1407,7 +1407,6 @@ class PeakCallingFiles(BaseModel):
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "CUT&TAG"]
     make_heatmaps: bool = False
-    make_heatmaps: bool = False
 
     @property
     def heatmap_files(self) -> List[str]:
@@ -1830,14 +1829,9 @@ class IPOutput(NonRNAOutput):
 class SNPOutput(Output):
     assay: Literal["SNP"]
     call_snps: bool = False
+    annotate_snps: bool = False
     sample_names: List[str]
     make_ucsc_hub: bool = False
-    snp_calling_method: Optional[
-        Union[
-            Literal["bcftools", "deepvariant", False],
-            List[Literal["bcftools", "deepvariant"]],
-        ]
-    ] = None
 
     @property
     def design(self):
@@ -1847,16 +1841,21 @@ class SNPOutput(Output):
     def snp_files(self) -> List[str]:
         if self.call_snps:
             return expand(
-                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                "seqnado_output/variant/{sample}.vcf.gz",
                 sample=self.sample_names,
-                method=self.snp_calling_method,
             )
         else:
             return []
-
+    
     @property
-    def peaks(self):
-        return []
+    def anno_snp_files(self) -> List[str]:
+        if self.annotate_snps:
+            return expand(
+                "seqnado_output/variant/{sample}.anno.vcf.gz",
+                sample=self.sample_names,
+            )
+        else:
+            return []
 
     @computed_field
     @property
@@ -1870,7 +1869,6 @@ class SNPOutput(Output):
         )
 
         for file_list in (
-            self.snp_files,
             self.design,
         ):
             if file_list:
@@ -1878,6 +1876,9 @@ class SNPOutput(Output):
 
         if self.call_snps:
             files.append(self.snp_files)
+
+        if self.annotate_snps:
+            files.append(self.anno_snp_files)
 
         return files
 
@@ -1932,8 +1933,6 @@ class METHOutput(Output):
 
     @property
     def methylation_bias(self) -> List[str]:
-        """
-        Get the methylation bias files. and seqnado_output/methylation/methylation_conversion.tsv"""
         if self.call_methylation:
             return expand(
                 "seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",

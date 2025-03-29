@@ -87,7 +87,6 @@ include: "rules/alignment_post_processing.smk"
 include: "rules/fastq_screen.smk"
 include: "rules/fastq_trim.smk"
 include: "rules/qc.smk"
-include: "rules/variant.smk"
 include: "rules/geo_submission.smk"
 include: "rules/meth_calling.smk"
 

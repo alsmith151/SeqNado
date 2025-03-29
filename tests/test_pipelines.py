@@ -160,23 +160,23 @@ def blacklist(genome_path):
 
 
 @pytest.fixture(scope="function")
-def meth_files(genome_path):
-    meth_fasta = genome_path / "chr21_meth.fa"
-    meth_fasta_fai = genome_path / "chr21_meth.fa.fai"
+def genome_files(genome_path):
+    fasta = genome_path / "chr21_meth.fa"
+    fasta_fai = genome_path / "chr21_meth.fa.fai"
 
-    if not meth_fasta.exists():
+    if not fasta.exists():
         url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
         r = requests.get(url, stream=True)
-        with open(meth_fasta, "wb") as f:
+        with open(fasta, "wb") as f:
             f.write(r.content)
 
-    if not meth_fasta_fai.exists():
+    if not fasta_fai.exists():
         url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
         r = requests.get(url, stream=True)
-        with open(meth_fasta_fai, "wb") as f:
+        with open(fasta_fai, "wb") as f:
             f.write(r.content)
 
-    return meth_fasta, meth_fasta_fai
+    return fasta, fasta_fai
 
 
 @pytest.fixture(scope="function")
@@ -272,7 +272,7 @@ def run_directory(tmpdir_factory, assay):
 
 @pytest.fixture(scope="function", autouse=True)
 def run_init(
-    index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatch, meth_files
+    index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatch, genome_files
 ):
     """
     Runs seqnado-init before each test inside the test directory.
@@ -305,7 +305,7 @@ def run_init(
             "bt2_index": str(index),
         }
 
-    meth_fasta, _ = meth_files
+    fasta, _ = genome_files
     genome_config_dict = {
         "hg38": {
             "star_index": index_dict["star_index"],
@@ -314,7 +314,7 @@ def run_init(
             "gtf": str(gtf),
             "blacklist": str(blacklist),
             "genes": "",
-            "fasta": str(meth_fasta) if assay == "meth" else "",
+            "fasta": str(fasta) if assay in ["meth", "snp"] else "",
         }
     }
     with open(genome_config_file, "w") as f:
@@ -327,14 +327,15 @@ def run_init(
 
 
 @pytest.fixture(scope="function")
-def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_files):
-    meth_fasta, meth_fasta_fai = meth_files
+def user_inputs(test_data_path, assay, assay_type, plot_bed, genome_files, mcc_files):
+    fasta, fasta_fai = genome_files
     prompts = {
+        "Annotate SNPs?": "no",
         "Bigwig method:": "deeptools",
-        "Calculate library complexity?": "yes" if assay == "cat" else "no",
+        "Calculate library complexity?": "yes" if assay in ["cat", "snp"] else "no",
         "Call methylation?": "yes",
         "Call peaks?": "yes",
-        "Call SNPs?": "no",
+        "Call SNPs?": "yes" if assay == "snp" else "no",
         "Color by (for UCSC hub):": "samplename",
         "Do you have spikein? (yes/no)": "yes" if "rx" in assay else "no",
         "Duplicates removal method:": "picard",
@@ -355,12 +356,10 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         if not assay == "snp"
         else "",
         "Path to bed file with genes.": "",
-        "Path to reference fasta index:": "dummy_ref.fasta.fai"
-        if not assay == "meth"
-        else str(meth_fasta_fai),
+        "Path to reference fasta index:": str(fasta_fai) if assay in ["meth", "snp"] else "dummy_ref.fasta.fai",
         "Path to reference fasta:": "dummy_ref.fasta"
         if assay not in ["meth", "mcc"]
-        else str(meth_fasta),
+        else str(fasta),
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": "no",
@@ -373,7 +372,6 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Run DESeq2?": "no",
         "Salmon index path:": "dummy_salmon_index",
         "Shift ATAC reads?": "yes",
-        "SNP caller:": "bcftools",
         "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
