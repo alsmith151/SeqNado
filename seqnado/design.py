@@ -1933,8 +1933,6 @@ class METHOutput(Output):
 
     @property
     def methylation_bias(self) -> List[str]:
-        """
-        Get the methylation bias files. and seqnado_output/methylation/methylation_conversion.tsv"""
         if self.call_methylation:
             return expand(
                 "seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",

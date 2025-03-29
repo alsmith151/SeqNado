@@ -7,9 +7,9 @@ rule bcftools_call_snp:
     output:
         vcf="seqnado_output/variant/{sample}.vcf.gz",
         idx="seqnado_output/variant/{sample}.vcf.gz.tbi",
+        stats="seqnado_output/variant/bcftools/{sample}.stats.txt",
     params:
         fasta=config["fasta"],
-        faidx=config["fasta_index"],
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
@@ -18,9 +18,9 @@ rule bcftools_call_snp:
         "seqnado_output/logs/variant/{sample}.log",
     shell:"""
     bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1 &&
-    tabix -f {output.vcf} > {output.idx} 
+    tabix -f {output.vcf} > {output.idx} &&
+    bcftools stats -F {params.fasta} -s - {input.vcf} > {output.stats}
     """
-
 
 rule bcftools_annotate:
     input:
@@ -29,8 +29,10 @@ rule bcftools_annotate:
     output:
         vcf="seqnado_output/variant/{sample}.anno.vcf.gz",
         idx="seqnado_output/variant/{sample}.anno.vcf.gz.tbi",
+        stats="seqnado_output/variant/bcftools/{sample}.anno.stats.txt",
     params:
         dbsnp=config["snp_database"],
+        fasta=config["fasta"],
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
@@ -39,5 +41,6 @@ rule bcftools_annotate:
         "seqnado_output/logs/variant/{sample}_anno.log",
     shell:"""
     bcftools annotate --threads 16 -c ID -a {params.dbsnp} {input.vcf} > {output.vcf} 2> {log} &&
-    tabix -f {output.vcf} > {output.idx} 
+    tabix -f {output.vcf} > {output.idx} &&
+    bcftools stats -F {params.fasta} -s - {input.vcf} > {output.stats}
     """
