@@ -17,8 +17,8 @@ rule bcftools_call_snp:
     log:
         "seqnado_output/logs/variant/{sample}.log",
     shell:"""
-    bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1
-    tabix -f {input.vcf} > {output.vcf}
+    bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1 &&
+    tabix -f {input.vcf} > {output.idx} 
     """
 
 
@@ -31,8 +31,13 @@ rule bcftools_annotate:
         idx="seqnado_output/variant/{sample}.anno.vcf.gz.tbi",
     params:
         dbsnp=config["snp_database"],
+    resources:
+        mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
+        runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
     threads: 16
+    log:
+        "seqnado_output/logs/variant/{sample}_anno.log",
     shell:"""
-    bcftools annotate --threads 16 -c ID -a {params.dbsnp} {input.vcf} > {output.vcf}
-    bcftools index -f {output.vcf}
+    bcftools annotate --threads 16 -c ID -a {params.dbsnp} {input.vcf} > {output.vcf} 2> {log} &&
+    tabix -f {output.vcf} > {output.idx} 
     """
