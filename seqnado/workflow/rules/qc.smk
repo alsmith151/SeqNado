@@ -326,6 +326,11 @@ def get_counts_files(wildcards):
 def get_snp_qc(wildcards):
     if ASSAY == "SNP" and config["call_snps"]:
         return expand(
+            "seqnado_output/variant/{sample}.vcf.gz",
+            sample=SAMPLE_NAMES,
+        )
+    if ASSAY == "SNP" and config["annotate_snps"]:
+        return expand(
             "seqnado_output/variant/{sample}.anno.vcf.gz",
             sample=SAMPLE_NAMES,
         )

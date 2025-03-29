@@ -1407,7 +1407,6 @@ class PeakCallingFiles(BaseModel):
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "CUT&TAG"]
     make_heatmaps: bool = False
-    make_heatmaps: bool = False
 
     @property
     def heatmap_files(self) -> List[str]:
@@ -1858,10 +1857,6 @@ class SNPOutput(Output):
         else:
             return []
 
-    @property
-    def peaks(self):
-        return []
-
     @computed_field
     @property
     def files(self) -> List[str]:
@@ -1874,7 +1869,6 @@ class SNPOutput(Output):
         )
 
         for file_list in (
-            self.snp_files,
             self.design,
         ):
             if file_list:
@@ -1883,6 +1877,9 @@ class SNPOutput(Output):
         if self.call_snps:
             files.append(self.snp_files)
 
+        if self.annotate_snps:
+            files.append(self.anno_snp_files)
+        print(files)
         return files
 
 
