@@ -19,7 +19,7 @@ rule bcftools_call_snp:
     shell:"""
     bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1 &&
     tabix -f {output.vcf} > {output.idx} &&
-    bcftools stats -F {params.fasta} -s - {input.vcf} > {output.stats}
+    bcftools stats -F {params.fasta} -s - {output.vcf} > {output.stats}
     """
 
 rule bcftools_annotate:
@@ -40,7 +40,7 @@ rule bcftools_annotate:
     log:
         "seqnado_output/logs/variant/{sample}_anno.log",
     shell:"""
-    bcftools annotate --threads 16 -c ID -a {params.dbsnp} {input.vcf} > {output.vcf} 2> {log} &&
+    bcftools annotate --threads 16 -c ID -a {params.dbsnp} {output.vcf} > {output.vcf} 2> {log} &&
     tabix -f {output.vcf} > {output.idx} &&
-    bcftools stats -F {params.fasta} -s - {input.vcf} > {output.stats}
+    bcftools stats -F {params.fasta} -s - {output.vcf} > {output.stats}
     """
