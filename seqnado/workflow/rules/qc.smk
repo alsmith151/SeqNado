@@ -311,4 +311,4 @@ rule seqnado_report:
     --force > {log} 2>&1
     """
 
-ruleorder: fastqc_raw_paired > fastqc_raw_single > multiqc_library_complexity > seqnado_report
+ruleorder: fastqc_raw_paired > fastqc_raw_single > seqnado_report
