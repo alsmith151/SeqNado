@@ -14,7 +14,7 @@ rule fastq_screen_paired:
         conf=config["fastq_screen_config"],
     threads: 4,
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/fastq_screen/{sample}_{read}.log",

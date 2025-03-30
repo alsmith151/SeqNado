@@ -45,57 +45,6 @@ rule fastqc_raw_single:
         fastqc -o {params.output_dir} {input} > {log} 2>&1
         """
 
-
-use rule fastqc_raw_paired as fastqc_trimmed_paired with:
-    input:
-        fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
-        fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
-    output:
-        html1="seqnado_output/qc/fastqc_trimmed/{sample}_1_fastqc.html",
-        html2="seqnado_output/qc/fastqc_trimmed/{sample}_2_fastqc.html",
-        zip1="seqnado_output/qc/fastqc_trimmed/{sample}_1_fastqc.zip",
-        zip2="seqnado_output/qc/fastqc_trimmed/{sample}_2_fastqc.zip",
-    params:
-        extra="--quiet",
-        output_dir="seqnado_output/qc/fastqc_trimmed/",
-    log:
-        "seqnado_output/logs/fastqc_trimmed/{sample}.log",
-
-
-use rule fastqc_raw_single as fastqc_trimmed_single with:
-    input:
-        "seqnado_output/trimmed/{sample}.fastq.gz",
-    output:
-        html="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.html",
-        zip="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.zip",
-    params:
-        extra="--quiet",
-        output_dir="seqnado_output/qc/fastqc_trimmed/",
-    log:
-        "seqnado_output/logs/fastqc_trimmed/{sample}.log",
-
-
-##############################################
-#            Library Complexity              #
-##############################################
-
-rule multiqc_library_complexity:
-    input:
-        expand(
-            "seqnado_output/qc/library_complexity/{sample}.metrics",
-            sample=SAMPLE_NAMES,
-        ),
-    output:
-        "seqnado_output/qc/library_complexity_qc.html",
-    log:
-        "seqnado_output/logs/multiqc_library_complexity.log",
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        "multiqc -o seqnado_output/qc seqnado_output/aligned/duplicates_removed -n library_complexity_qc.html --force > {log} 2>&1"
-
-
 ##############################################
 #                  Qualimap                  #
 ############################################## 
@@ -173,6 +122,7 @@ def format_frip_enrichment_options(wildcards):
         options = re.sub(r"--extendReads", "", options)
     return options
 
+
 rule frip_enrichment:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
@@ -210,26 +160,17 @@ def get_fastqc_files_all(wildcards):
         sample=paired_end_assays,
         read=[1, 2],
     ),
-    fastqc_trimmed_paired = expand(
-        "seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
-        sample=paired_end_assays,
-        read=[1, 2],
-    ),
     fastqc_raw_single = expand(
         "seqnado_output/qc/fastqc_raw/{sample}_fastqc.html",
         sample=single_end_assays,
     ),
-    fastqc_trimmed_single = expand(
-        "seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.html",
-        sample=single_end_assays,
-    ),
-    
     all_qc_files = []
-    for files in [fastqc_raw_paired, fastqc_trimmed_paired, fastqc_raw_single, fastqc_trimmed_single]:
+    for files in [fastqc_raw_paired, fastqc_raw_single]:
         if files:
             all_qc_files.extend(*files)
     
     return all_qc_files
+
 
 def get_fastq_screen_all(wildcards):
     single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]
@@ -260,6 +201,7 @@ def get_library_complexity_qc(wildcards):
         )
     else:
         return []
+
 
 def get_alignment_logs(wildcards):
     if ASSAY == "MCC":
@@ -323,15 +265,16 @@ def get_counts_files(wildcards):
     else:
         return []
 
+
 def get_snp_qc(wildcards):
     if ASSAY == "SNP" and config["call_snps"]:
         return expand(
-            "seqnado_output/variant/bcftools/{sample}.stats.txt",
+            "seqnado_output/qc/variant/{sample}.stats.txt",
             sample=SAMPLE_NAMES,
         )
     if ASSAY == "SNP" and config["annotate_snps"]:
         return expand(
-            "seqnado_output/variant/bcftools/{sample}.anno.stats.txt",
+            "seqnado_output/qc/variant/{sample}.anno.stats.txt",
             sample=SAMPLE_NAMES,
         )
     else:

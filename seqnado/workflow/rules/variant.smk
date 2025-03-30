@@ -7,7 +7,7 @@ rule bcftools_call_snp:
     output:
         vcf="seqnado_output/variant/{sample}.vcf.gz",
         idx="seqnado_output/variant/{sample}.vcf.gz.tbi",
-        stats="seqnado_output/variant/bcftools/{sample}.stats.txt",
+        stats="seqnado_output/qc/variant/{sample}.stats.txt",
     params:
         fasta=config["fasta"],
     resources:
@@ -29,7 +29,7 @@ rule bcftools_annotate:
     output:
         vcf="seqnado_output/variant/{sample}.anno.vcf.gz",
         idx="seqnado_output/variant/{sample}.anno.vcf.gz.tbi",
-        stats="seqnado_output/variant/bcftools/{sample}.anno.stats.txt",
+        stats="seqnado_output/qc/variant/{sample}.anno.stats.txt",
     params:
         dbsnp=config["snp_database"],
         fasta=config["fasta"],

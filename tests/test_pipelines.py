@@ -365,7 +365,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, genome_files, mcc_f
         "Perform fastqscreen?": "no",
         "Perform plotting?": "yes" if not assay == "snp" else "no",
         "Project name?": "test",
-        "Quantification method:": "feature_counts",  # default RNA response
+        "Quantification method:": "feature_counts",
         "Reference genome:": "hg38",
         "Remove blacklist regions?": "yes",
         "Remove PCR duplicates?": "no" if assay in ["rna", "rna-rx"] else "yes",
