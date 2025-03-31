@@ -45,6 +45,7 @@ rule fastqc_raw_single:
         fastqc -o {params.output_dir} {input} > {log} 2>&1
         """
 
+        
 ##############################################
 #                  Qualimap                  #
 ############################################## 
