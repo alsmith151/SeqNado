@@ -237,6 +237,9 @@ rule bam_stats:
         filtered="seqnado_output/qc/alignment_post_process/{sample}_filter.tsv",
         final="seqnado_output/qc/alignment_post_process/{sample}_final.tsv",
     output: temp("seqnado_output/qc/alignment_post_process/{sample}_alignment_stats.tsv")
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     shell: """
         cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
     """
