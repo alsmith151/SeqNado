@@ -7,7 +7,7 @@ bowtie2:
     options:
 
 samtools:
-    threads: 16
+    threads: 8
     filter_options: -f 2
 
 picard:

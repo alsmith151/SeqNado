@@ -29,7 +29,6 @@ rule bcftools_annotate:
     output:
         vcf="seqnado_output/variant/{sample}.anno.vcf.gz",
         idx="seqnado_output/variant/{sample}.anno.vcf.gz.tbi",
-        stats="seqnado_output/qc/variant/{sample}.anno.stats.txt",
     params:
         dbsnp=config["snp_database"],
         fasta=config["fasta"],

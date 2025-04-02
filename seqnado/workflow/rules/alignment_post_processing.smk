@@ -8,7 +8,7 @@ rule sort_bam:
         bam=temp("seqnado_output/aligned/sorted/{sample}.bam"),
         read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_sort.tsv"),
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     threads: config["samtools"]["threads"]
     log: "seqnado_output/logs/alignment_post_process/{sample}_sort.log",
