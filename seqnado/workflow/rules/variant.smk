@@ -41,6 +41,5 @@ rule bcftools_annotate:
         "seqnado_output/logs/variant/{sample}_anno.log",
     shell:"""
     bcftools annotate --threads {threads} -c ID -a {params.dbsnp} -Oz -o {output.vcf} {input.vcf} 2> {log} &&
-    tabix -f {output.vcf} > {output.idx} &&
-    bcftools stats -F {params.fasta} -s - {output.vcf} > {output.stats}
+    tabix -f {output.vcf} > {output.idx}
     """

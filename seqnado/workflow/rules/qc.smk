@@ -272,11 +272,6 @@ def get_snp_qc(wildcards):
             "seqnado_output/qc/variant/{sample}.stats.txt",
             sample=SAMPLE_NAMES,
         )
-    if ASSAY == "SNP" and config["annotate_snps"]:
-        return expand(
-            "seqnado_output/qc/variant/{sample}.anno.stats.txt",
-            sample=SAMPLE_NAMES,
-        )
     else:
         return []
 
