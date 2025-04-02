@@ -128,7 +128,7 @@ rule fragment_bedgraph:
         bed=temp("seqnado_output/bedgraphs/{sample}.bed"),
         bed_log=temp("seqnado_output/logs/bedgraphs/{sample}_bamtobed.log"),
         fragments=temp("seqnado_output/bedgraphs/{sample}.fragments.bed"),
-        bdg="seqnado_output/bedgraphs/{sample}.bedGraph",
+        bdg=temp("seqnado_output/bedgraphs/{sample}.bedGraph"),
     params:
         genome=config['genome']['chromosome_sizes'],
     threads: 16
