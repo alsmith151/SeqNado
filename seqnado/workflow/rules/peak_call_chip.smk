@@ -54,8 +54,8 @@ rule macs2_with_input:
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     shell:
@@ -138,6 +138,7 @@ rule lanceotron_with_input:
         control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=False),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
+        ltron_peaks=temp("seqnado_output/peaks/lanceotron/{sample}_{treatment}_L-tron.bed"),
     log:
         "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
     params:
@@ -150,11 +151,10 @@ rule lanceotron_with_input:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        """
-        lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
-        cat {params.basename}_L-tron.bed | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks} 
-        """
+    shell:"""
+    lanceotron callPeaksInput {input.treatment} -i {input.control} -f {params.outdir} --skipheader > {log} 2>&1 &&
+    cat {output.ltron_peaks} | awk 'BEGIN{{OFS="\\t"}} $4 >= {params.threshold} {{print $1, $2, $3}}' > {output.peaks} 
+    """
 
 
 rule lanceotron_no_input:
@@ -163,6 +163,7 @@ rule lanceotron_no_input:
         control=lambda wc: get_control_file(wc, file_type="bigwig", allow_null=True),
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
+        ltron_peaks=temp("seqnado_output/peaks/lanceotron/{sample}_{treatment}_L-tron.bed"),
     log:
         "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
     params:
@@ -175,11 +176,10 @@ rule lanceotron_no_input:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        """
-        lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
-        cat {params.basename}_L-tron.bed | cut -f 1-3 > {output.peaks}
-        """
+    shell:"""
+    lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
+    cat {output.ltron_peaks} | cut -f 1-3 > {output.peaks}
+    """
 
 rule seacr:
     input:
@@ -197,12 +197,11 @@ rule seacr:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        """
-        SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1 || touch {params.prefix}.{params.stringency}.bed
-        mv {params.prefix}.{params.stringency}.bed {params.prefix}_seacr.txt
-        cut -f 1-3 {params.prefix}_seacr.txt > {output.peaks}
-        """
+    shell:"""
+    SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1 || touch {params.prefix}.{params.stringency}.bed
+    mv {params.prefix}.{params.stringency}.bed {params.prefix}_seacr.txt
+    cut -f 1-3 {params.prefix}_seacr.txt > {output.peaks}
+    """
     
 
 ruleorder: lanceotron_with_input > lanceotron_no_input

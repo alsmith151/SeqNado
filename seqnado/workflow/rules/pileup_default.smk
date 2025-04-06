@@ -66,7 +66,7 @@ rule deeptools_make_bigwigs:
     params:
         options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     threads:
         config["deeptools"]["threads"]
