@@ -287,7 +287,7 @@ use rule index_bam as index_consensus_bam with:
     input:
         bam="seqnado_output/aligned/merged/{group}.bam",
     output:
-        bai="seqnado_output/aligned/merged/{group}.bam.bai",
+        bai=temp("seqnado_output/aligned/merged/{group}.bam.bai"),
     threads: 8
 
 
