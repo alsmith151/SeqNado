@@ -49,7 +49,7 @@ rule merged_counts:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:"seqnado_output/logs/readcounts/featurecounts/{group}_counts.log",
     shell:"""
-    featureCounts -a {input.saf} -F SAF -T {threads} {params.options} -o {output.counts} {input.bam} > {log} 2>&1
+    featureCounts -a {input.saf} -F SAF -T {threads} --donotsort {params.options} -o {output.counts} {input.bam} > {log} 2>&1
     """
 
 localrules:
