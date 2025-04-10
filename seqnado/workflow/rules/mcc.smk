@@ -96,7 +96,7 @@ rule minimap2_to_viewpoints:
         """
         minimap2 -x sr -a -k 8 -w 1 --cs=long {input.viewpoints} {input.fq} 2> {log} |
         samtools view -h -b -o {output.bam} 2>> {log} &&
-        samtools sort -o {output.bam}.sorted {output.bam} 2>> {log} &&
+        samtools sort -@ 4 -o {output.bam}.sorted {output.bam} 2>> {log} &&
         mv {output.bam}.sorted {output.bam} &&
         samtools index {output.bam}
         """ 
