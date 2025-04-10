@@ -8,7 +8,7 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, NormGroups, MCCOutput
+from seqnado.design import Design, NormGroups, MCCOutput, ViewpointsFile
 from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files, extract_viewpoints, viewpoint_to_grouped_viewpoint
 
 
@@ -43,6 +43,7 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
+VIEWPOINTS_FILE = pd.read_csv(config["viewpoints"], sep='\t', header=None, names=['chromosome', 'start', 'end', 'name'])
 VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
 VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
 GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))

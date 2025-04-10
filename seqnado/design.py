@@ -1981,34 +1981,12 @@ class MCCOutput(Output):
     @property
     def bigwigs(self):
         replicate_bigwigs =  expand(
-            "seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
-            sample=self.sample_names,
-            viewpoint=self.viewpoint_oligos,
-        )
-
-        viewpoint_group_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
+            "seqnado_output/mcc/{sample}/bigwigs/{viewpoint_group}.bigWig",
             sample=self.sample_names,
             viewpoint_group=self.viewpoints_grouped,
         )
 
-
-        if "merge" in self.design_dataframe.columns:
-            sample_group_bigwigs = expand(
-                "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
-                group=self.design_dataframe['merge'].unique().tolist(),
-                viewpoint_group=self.viewpoints_grouped,
-            )
-        else:
-            sample_group_bigwigs = []
-
-        return [
-            *replicate_bigwigs,
-            *viewpoint_group_bigwigs,
-            *sample_group_bigwigs,
-        ]
-            
-
+        return [*replicate_bigwigs]
 
 
     @computed_field
@@ -2024,7 +2002,6 @@ class MCCOutput(Output):
         )
 
         for file_list in (
-            self.cooler_files,
             self.bigwigs,
             self.design,
         ):
@@ -2116,3 +2093,40 @@ class GEOSamples(BaseModel):
         df = pd.concat([s.to_series for s in self.samples], axis=1).T
         df.columns = df.columns.str.replace(r"\s\d+$", "", regex=True).str.strip()
         return df
+
+
+
+
+# class DataFrameDesignIP(pandera.DataFrameModel):
+#     sample_name: Series[str]
+#     ip: Series[str] = pandera.Field(coerce=True)
+#     control: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
+#     ip_r1: Series[str] = pandera.Field(coerce=True)
+#     ip_r2: Series[str] = pandera.Field(coerce=True, nullable=True)
+#     control_r1: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
+#     control_r2: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
+#     scale_group: Series[str]
+
+class ViewpointsFile(pandera.DataFrameModel):
+    """
+    Schema for the viewpoints file.
+    """
+    
+    chromosome: Series[str] = pandera.Field(coerce=True)
+    start: Series[int] = pandera.Field(coerce=True)
+    end: Series[int] = pandera.Field(coerce=True)
+    name: Series[str] = pandera.Field(coerce=True)
+    strand: Optional[Series[str]] = pandera.Field(coerce=True)
+    score: Optional[Series[float]] = pandera.Field(coerce=True)
+
+    # Validate the viewpoint names column
+    @pandera.check("name")
+    def check_viewpoint_names(cls, s: Series[str]) -> Series[str]:
+        # Check that the names do not contain spaces or special characters
+        if not s.str.match(r"^[a-zA-Z0-9_.-]+$").all():
+            raise pandera.errors.SchemaError(
+                "Viewpoint names must not contain spaces or special characters."
+            )
+        return s
+
+        
