@@ -2097,21 +2097,9 @@ class GEOSamples(BaseModel):
 
 
 
-# class DataFrameDesignIP(pandera.DataFrameModel):
-#     sample_name: Series[str]
-#     ip: Series[str] = pandera.Field(coerce=True)
-#     control: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
-#     ip_r1: Series[str] = pandera.Field(coerce=True)
-#     ip_r2: Series[str] = pandera.Field(coerce=True, nullable=True)
-#     control_r1: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
-#     control_r2: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
-#     scale_group: Series[str]
 
-class ViewpointsFile(pandera.DataFrameModel):
-    """
-    Schema for the viewpoints file.
-    """
-    
+
+class ViewpointsFile(pandera.DataFrameModel):    
     chromosome: Series[str] = pandera.Field(coerce=True)
     start: Series[int] = pandera.Field(coerce=True)
     end: Series[int] = pandera.Field(coerce=True)
@@ -2124,9 +2112,13 @@ class ViewpointsFile(pandera.DataFrameModel):
     def check_viewpoint_names(cls, s: Series[str]) -> Series[str]:
         # Check that the names do not contain spaces or special characters
         if not s.str.match(r"^[a-zA-Z0-9_.-]+$").all():
-            raise pandera.errors.SchemaError(
-                "Viewpoint names must not contain spaces or special characters."
+
+            # Identify the offending names
+            offending_names = s[~s.str.match(r"^[a-zA-Z0-9_.-]+$")]
+            logger.error(
+                f"Viewpoint names contain spaces or special characters: {set(offending_names.tolist())}"
             )
+            sys.exit(1)
         return s
 
         
