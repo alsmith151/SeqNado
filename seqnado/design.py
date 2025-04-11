@@ -1973,6 +1973,14 @@ class MCCOutput(Output):
             sample=self.sample_names,
             viewpoint=self.viewpoint_oligos,
         )
+    
+    @property
+    def pairs(self) -> List[str]:
+        return expand(
+            "seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+            group=self.design_dataframe["merge"].unique().tolist(),
+            viewpoint=self.viewpoints_grouped,
+        )
 
     @property
     def peaks(self):
@@ -2009,6 +2017,7 @@ class MCCOutput(Output):
 
         for file_list in (
             self.bigwigs,
+            self.pairs,
             self.design,
         ):
             if file_list:
