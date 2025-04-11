@@ -1980,13 +1980,19 @@ class MCCOutput(Output):
 
     @property
     def bigwigs(self):
-        replicate_bigwigs =  expand(
-            "seqnado_output/mcc/{sample}/bigwigs/{viewpoint_group}.bigWig",
+        replicate_bigwigs = expand(
+            "seqnado_output/mcc/replicates/{sample}/bigwigs/{viewpoint_group}.bigWig",
             sample=self.sample_names,
             viewpoint_group=self.viewpoints_grouped,
         )
 
-        return [*replicate_bigwigs]
+        grouped_bigwigs = expand(
+            "seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig",
+            viewpoint_group=self.viewpoints_grouped,
+            group=self.design_dataframe["merge"].unique().tolist(),
+        )
+
+        return [*replicate_bigwigs, *grouped_bigwigs]
 
 
     @computed_field
@@ -2111,20 +2117,5 @@ class ViewpointsFile(pandera.DataFrameModel):
         allowed_chars = r"^[a-zA-Z0-9_]+$"
 
         return s.str.match(allowed_chars)
-
-        # if not s.str.match(allowed_chars).all():
-
-        #     # Identify the offending names
-        #     offending_names = s[~s.str.match(allowed_chars)]
-        #     logger.error(
-        #         f"Viewpoint names contain spaces or special characters: {set(offending_names.tolist())}"
-        #     )
-        #     logger.info(
-        #         "Allowed characters are: letters, numbers, and underscores."
-        #     )
-        #     logger.warning("Please correct the viewpoint names before proceeding.")
-        #     sys.exit(1)
-        
-        # return 
 
         
