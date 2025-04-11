@@ -1,4 +1,4 @@
-from mcc.cooler import CoolerMerger, CoolerBinsLinker
+from mccnado.cooler import CoolerMerger, CoolerBinsLinker
 
 
 infiles = snakemake.input.mcools
