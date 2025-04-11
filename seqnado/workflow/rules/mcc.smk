@@ -245,9 +245,17 @@ rule make_bigwigs_mcc_replicates:
     container: None
     shell:
         """
-        bamnado bam-coverage -b {input.bam} -o {output.bigwig} --bin-size {params.bin_size} --scale-factor {params.scale_factor}
+        bamnado \
+        bam-coverage \
+        -b {input.bam} \
+        -o {output.bigwig} \
+        --bin-size {params.bin_size} \
+        --scale-factor {params.scale_factor} \
+        --blacklisted-locations {input.excluded_regions} \
+        --min-mapq 5 \
+        --read-group {wildcards.viewpoint_group}
         """
-
+        
 def get_mcc_bam_files_for_merge(wildcards):
     from seqnado.design import NormGroups
     norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
@@ -259,7 +267,7 @@ def get_mcc_bam_files_for_merge(wildcards):
     return bam_files
 
 
-rule merge_bams:
+rule merge_mcc_bams:
     input:
         bams=get_mcc_bam_files_for_merge,
     output:
@@ -323,8 +331,12 @@ rule identify_ligation_junctions:
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
     params:
         outdir="seqnado_output/mcc/{group}/ligation_junctions/raw/",
-    script:
-        "../scripts/mcc_identify_ligation_junctions.py"
+    shell:
+        """
+        mccnado identify-ligation-junctions \
+        {input.bam} \
+        {params.outdir}
+        """
 
 
 rule sort_ligation_junctions:
