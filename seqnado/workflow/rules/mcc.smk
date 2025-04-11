@@ -173,7 +173,7 @@ rule identify_viewpoint_reads:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
     output:
-        bam=temp("seqnado_output/mcc/{sample}/{sample}_unsorted.bam"),
+        bam=temp("seqnado_output/mcc/replicates/{sample}/{sample}_unsorted.bam"),
     params:
         output_dir="seqnado_output/mcc/{sample}/reporters/raw/",
     threads: 1
@@ -189,22 +189,22 @@ rule identify_viewpoint_reads:
 
 use rule sort_bam as sort_bam_viewpoints with:
     input:
-        bam="seqnado_output/mcc/{sample}/{sample}_unsorted.bam",
+        bam="seqnado_output/mcc/replicates/{sample}/{sample}_unsorted.bam",
     output:
-        bam="seqnado_output/mcc/{sample}/{sample}.bam",
+        bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
     log:
         "seqnado_output/logs/sort_bam_viewpoints/{sample}.log",
 
 use rule index_bam as index_bam_viewpoints with:
     input:
-        bam="seqnado_output/mcc/{sample}/{sample}.bam",
+        bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
     output:
-        bai="seqnado_output/mcc/{sample}/{sample}.bam.bai",
+        bai="seqnado_output/mcc/replicates/{sample}/{sample}.bam.bai",
 
 
 rule extract_ligation_stats:
     input:
-        bam="seqnado_output/mcc/{sample}/{sample}.bam",
+        bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
     output:
         stats="seqnado_output/resources/{sample}_ligation_stats.json"
     container: None
@@ -214,12 +214,17 @@ rule extract_ligation_stats:
         """
 
 
-
 def get_n_cis_scaling_factor(wc):
     import json 
     from pathlib import Path
 
-    stats_file = f"seqnado_output/resources/{wc.sample}_ligation_stats.json"
+    # Can either extract the stats for the sample or the group
+    if hasattr(wc, "group"):
+        stats_file = f"seqnado_output/resources/{wc.group}_ligation_stats.json"
+    else:
+        # If not, then use the sample
+        stats_file = f"seqnado_output/resources/{wc.sample}_ligation_stats.json"
+        
     with open(stats_file, 'r') as r:
         stats = json.load(r)
     
@@ -228,12 +233,12 @@ def get_n_cis_scaling_factor(wc):
 
 rule make_bigwigs_mcc_replicates:
     input:
-        bam="seqnado_output/mcc/{sample}/{sample}.bam",
-        bai="seqnado_output/mcc/{sample}/{sample}.bam.bai",
+        bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
+        bai="seqnado_output/mcc/replicates/{sample}/{sample}.bam.bai",
         excluded_regions="seqnado_output/resources/exclusion_regions.bed",
         cis_or_trans_stats="seqnado_output/resources/{sample}_ligation_stats.json",
     output:
-        bigwig="seqnado_output/mcc/{sample}/bigwigs/{viewpoint_group}.bigWig"
+        bigwig="seqnado_output/mcc/replicates/{sample}/bigwigs/{viewpoint_group}.bigWig"
     params:
         bin_size=10,
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
@@ -243,10 +248,110 @@ rule make_bigwigs_mcc_replicates:
         bamnado bam-coverage -b {input.bam} -o {output.bigwig} --bin-size {params.bin_size} --scale-factor {params.scale_factor}
         """
 
+def get_mcc_bam_files_for_merge(wildcards):
+    from seqnado.design import NormGroups
+    norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
+
+    sample_names = norm_groups.get_grouped_samples(wildcards.group)
+    bam_files = [
+        f"seqnado_output/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
+    ]
+    return bam_files
 
 
+rule merge_bams:
+    input:
+        bams=get_mcc_bam_files_for_merge,
+    output:
+        temp("seqnado_output/mcc/{group}/{group}.bam"),
+    threads: config["samtools"]["threads"]
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    log:
+        "seqnado_output/logs/merge_bam/{group}.log",
+    shell:
+        """
+        samtools merge {output} {input} -@ {threads}
+        """
 
 
+use rule index_bam as index_bam_merged with:
+    input:
+        bam="seqnado_output/mcc/{group}/{group}.bam",
+    output:
+        bai="seqnado_output/mcc/{group}/{group}.bam.bai",
+    log:
+        "seqnado_output/logs/index_bam_merged/{group}.log",
+
+
+use rule extract_ligation_stats as extract_ligation_stats_merged with:
+    input:
+        bam="seqnado_output/mcc/{group}/{group}.bam",
+    output:
+        stats="seqnado_output/resources/{group}_ligation_stats.json",
+    log:
+        "seqnado_output/logs/extract_ligation_stats_merged/{group}.log",
+
+
+use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped with:
+    input:
+        bam="seqnado_output/mcc/{group}/{group}.bam",
+        bai="seqnado_output/mcc/{group}/{group}.bam.bai",
+        excluded_regions="seqnado_output/resources/exclusion_regions.bed",
+        cis_or_trans_stats="seqnado_output/resources/{group}_ligation_stats.json",
+    output:
+        bigwig="seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig"
+    params:
+        bin_size=10,
+        scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
+    container: None
+        
+
+
+rule identify_ligation_junctions:
+    input:
+        bam="seqnado_output/mcc/{group}/{group}.bam",
+        bai="seqnado_output/mcc/{group}/{group}.bam.bai",
+    output:
+        pairs=expand("seqnado_output/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS),
+    log:
+        "seqnado_output/logs/ligation_junctions/{group}.log",
+    threads: 1
+    resources:
+        mem="1GB",
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    params:
+        outdir="seqnado_output/mcc/{group}/ligation_junctions/raw/",
+    script:
+        "../scripts/mcc_identify_ligation_junctions.py"
+
+
+rule sort_ligation_junctions:
+    input:
+        pairs="seqnado_output/mcc/{group}/ligation_junctions/raw/{viewpoint}.pairs",
+    output:
+        pairs=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs"),
+    threads: 1
+    resources:
+        mem="1GB",
+    log:
+        "seqnado_output/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
+    shell:
+        """
+        sort -k2,2 -k4,4 -k3,3n -k5,5n {input.pairs} > {output.pairs}
+        """
+
+rule bgzip_pairs:
+    input:
+        pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs",
+    output:
+        pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+    log:
+        "seqnado_output/logs/bgzip_pairs/{group}_{viewpoint}.log",
+    shell:
+        """
+        bgzip -c {input.pairs} > {output.pairs}
 
 
 
