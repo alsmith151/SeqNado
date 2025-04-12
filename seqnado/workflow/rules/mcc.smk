@@ -224,11 +224,30 @@ def get_n_cis_scaling_factor(wc):
     else:
         # If not, then use the sample
         stats_file = f"seqnado_output/resources/{wc.sample}_ligation_stats.json"
+    
+    # Create Path object and ensure the file exists
+    stats_path = Path(stats_file)
+    if not stats_path.exists():
+        raise FileNotFoundError(f"Stats file not found: {stats_file}")
         
-    with open(stats_file, 'r') as r:
+    with open(stats_path, 'r') as r:
         stats = json.load(r)
     
-    return (stats[wc.viewpoint_group]['n_cis'] /  stats[wc.viewpoint_group]['n_total']) * 1e6
+    # Check if viewpoint_group exists in stats
+    if wc.viewpoint_group not in stats:
+        raise KeyError(f"Viewpoint group '{wc.viewpoint_group}' not found in stats file")
+    
+    # Check if required keys exist in the viewpoint group stats
+    required_keys = ['n_cis', 'n_total']
+    missing_keys = [key for key in required_keys if key not in stats[wc.viewpoint_group]]
+    if missing_keys:
+        raise KeyError(f"Missing required keys in stats: {', '.join(missing_keys)}")
+    
+    # Avoid division by zero
+    if stats[wc.viewpoint_group]['n_total'] == 0:
+        return 0
+        
+    return (stats[wc.viewpoint_group]['n_cis'] / stats[wc.viewpoint_group]['n_total']) * 1e6
 
 
 rule make_bigwigs_mcc_replicates:
@@ -326,7 +345,7 @@ rule identify_ligation_junctions:
         bam="seqnado_output/mcc/{group}/{group}.bam",
         bai="seqnado_output/mcc/{group}/{group}.bam.bai",
     output:
-        pairs=expand("seqnado_output/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS),
+        pairs=temp(expand("seqnado_output/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS)),
     log:
         "seqnado_output/logs/ligation_junctions/{group}.log",
     threads: 1
@@ -370,208 +389,84 @@ rule bgzip_pairs:
         bgzip -c {input.pairs} > {output.pairs}
         """
 
+rule make_genomic_bins:
+    input:
+        chrom_sizes=config["genome"]["chromosome_sizes"],
+    params:
+        bin_size=config["resolution"],
+    output:
+        bed="seqnado_output/resources/genomic_bins.bed",
+    log:
+        "seqnado_output/logs/genomic_bins.log",
+    container:
+        "library://asmith151/seqnado/seqnado_mcc:latest"
+    shell:
+        """
+        cooler makebins {input.chrom_sizes} {params.bin_size} -o {output.bed} > {log} 2>&1
+        """
 
 
+rule make_cooler:
+    input:
+        pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+        bins="seqnado_output/resources/genomic_bins.bed",
+    output:
+        cooler=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.cool"),
+    log:
+        "seqnado_output/logs/make_cooler/{group}_{viewpoint}.log",
+    params:
+        resolution=config.get("resolution", 100),
+        genome=config["genome"]["name"],
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+    shell:
+        """
+        cooler cload pairs \
+        {input.bins} \
+        {input.pairs} \
+        {output.cooler} \
+        --assembly {params.genome} \
+        -c1 2 -p1 3 -c2 4 -p2 5 > {log} 2>&1
+        """
+
+rule zoomify_cooler:
+    input:
+        cooler="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.cool",
+    output:
+        cooler=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool"),
+    log:
+        "seqnado_output/logs/zoomify_cooler/{group}_{viewpoint}.log",
+    params:
+        resolutions=",".join([str(r) for r in config.get("resolutions", [100, 1000, 10000])]),
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    shell:
+        """
+        cooler zoomify {input.cooler} -r {params.resolutions} -o {output.cooler} > {log} 2>&1
+        """
 
 
-
-
-
-# # use rule move_bam_to_final_location as move_bam_viewpoints with:
-# #     input:
-# #         bam="seqnado_output/mcc/{sample}/reporters/sorted/{viewpoint}.bam",
-# #         bai="seqnado_output/mcc/{sample}/reporters/sorted/{viewpoint}.bam.bai",
-# #     output:
-# #         bam="seqnado_output/mcc/{sample}/reporters/{viewpoint}.bam",
-# #         bai="seqnado_output/mcc/{sample}/reporters/{viewpoint}.bam.bai",
-# #     log:
-# #         "seqnado_output/logs/move_bam/{sample}_{viewpoint}.log",
-
-# # use rule deeptools_make_bigwigs as deeptools_make_bigwigs_mcc_replicates with:
-# #     input:
-# #         bam="seqnado_output/mcc/{sample}/reporters/{viewpoint}.bam",
-# #         bai="seqnado_output/mcc/{sample}/reporters/{viewpoint}.bam.bai",
-# #     output:
-# #         bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
-# #     log:
-# #         "seqnado_output/logs/deeptools_bigwig/{sample}_{viewpoint}.log",
-
-
-# def define_bigwigs(wc):
-#     """
-#     Define the bigwig files to be created for each viewpoint group.
-#     """
-#     from collections import defaultdict
-#     viewpoints_required = defaultdict(list)
-    
-#     # Have a mapping that goes from viewpoint to viewpoint group. Want to collate all the viewpoints in a group.
-#     for viewpoint, viewpoint_group in VIEWPOINT_TO_GROUPED_VIEWPOINT.items():
-#         viewpoints_required[viewpoint_group].append(viewpoint)
-
-#     # Select the viewpoint group to be used
-#     viewpoint_group = wc.viewpoint_group
-#     viewpoints = viewpoints_required[viewpoint_group]
-
-#     return expand("seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig", sample=wc.sample, viewpoint=viewpoints)
-
-
-# rule merge_viewpoint_bigwigs:
-#     input:
-#         bigwigs=define_bigwigs,
-#     output:
-#         bigwig="seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
-#     log:
-#         "seqnado_output/logs/merge_bigwigs/{sample}_{viewpoint_group}.log",
-#     resources:
-#         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-#         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-#     threads:
-#         config["deeptools"]["threads"],
-#     params:
-#         options=lambda wildcards: check_options(config["deeptools"]["bamcoverage"]),
-#     shell:
-#         """
-#         bigwigAverage -b {input.bigwigs} -o {output.bigwig} -p {threads} {params.options} 2> {log}
-#         """
-
-
-
-# def get_bigwigs_to_merge(wc):
-#     from seqnado.design import NormGroups
-#     norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
-
-#     sample_names = norm_groups.get_grouped_samples(wc.group)
-
-#     return expand("seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig", sample=sample_names, viewpoint_group=wc.viewpoint_group)
-
-# use rule merge_viewpoint_bigwigs as merge_samples_bigwigs with:
-#     input:
-#         bigwigs=get_bigwigs_to_merge,
-#     output:
-#         bigwig="seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
-#     log:
-#         "seqnado_output/logs/merge_samples_bigwigs/{group}_{viewpoint_group}.log",
-
-
-# rule identify_ligation_junctions:
-#     input:
-#         bam="seqnado_output/aligned/{sample}.bam",
-#         bai="seqnado_output/aligned/{sample}.bam.bai",
-#     output:
-#         pairs=expand("seqnado_output/mcc/{{sample}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=VIEWPOINT_OLIGOS),
-#     log:
-#         "seqnado_output/logs/ligation_junctions/{sample}.log",
-#     threads: 1
-#     resources:
-#         mem="1GB",
-#     container: "library://asmith151/seqnado/seqnado_mcc:latest"
-#     params:
-#         outdir="seqnado_output/mcc/{sample}/ligation_junctions/raw/",
-#     script:
-#         "../scripts/mcc_identify_ligation_junctions.py"
-
-
-# rule sort_ligation_junctions:
-#     input:
-#         pairs="seqnado_output/mcc/{sample}/ligation_junctions/raw/{viewpoint}.pairs",
-#     output:
-#         pairs=temp("seqnado_output/mcc/{sample}/ligation_junctions/{viewpoint}.pairs"),
-#     threads: 1
-#     resources:
-#         mem="1GB",
-#     log:
-#         "seqnado_output/logs/sort_ligation_junctions/{sample}_{viewpoint}.log",
-#     shell:
-#         """
-#         sort -k2,2 -k4,4 -k3,3n -k5,5n {input.pairs} > {output.pairs}
-#         """
-
-# rule bgzip_pairs:
-#     input:
-#         pairs="seqnado_output/mcc/{sample}/ligation_junctions/{viewpoint}.pairs",
-#     output:
-#         pairs="seqnado_output/mcc/{sample}/ligation_junctions/{viewpoint}.pairs.gz",
-#     log:
-#         "seqnado_output/logs/bgzip_pairs/{sample}_{viewpoint}.log",
-#     shell:
-#         """
-#         bgzip -c {input.pairs} > {output.pairs}
-#         """
-
-# rule make_genomic_bins:
-#     input:
-#         chrom_sizes=config["genome"]["chromosome_sizes"],
-#     params:
-#         bin_size=config["resolution"],
-#     output:
-#         bed="seqnado_output/resources/genomic_bins.bed",
-#     log:
-#         "seqnado_output/logs/genomic_bins.log",
-#     container:
-#         "library://asmith151/seqnado/seqnado_mcc:latest"
-#     shell:
-#         """
-#         cooler makebins {input.chrom_sizes} {params.bin_size} -o {output.bed} > {log} 2>&1
-#         """
-
-
-# rule make_cooler:
-#     input:
-#         pairs="seqnado_output/mcc/{sample}/ligation_junctions/{viewpoint}.pairs.gz",
-#         bins="seqnado_output/resources/genomic_bins.bed",
-#     output:
-#         cooler="seqnado_output/mcc/{sample}/raw/{viewpoint}.cool",
-#     log:
-#         "seqnado_output/logs/make_cooler/{sample}_{viewpoint}.log",
-#     params:
-#         resolution=config.get("resolution", 100),
-#         genome=config["genome"]["name"],
-#     container: "library://asmith151/seqnado/seqnado_mcc:latest"
-#     resources:
-#         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-#         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
-#     shell:
-#         """
-#         cooler cload pairs \
-#         {input.bins} \
-#         {input.pairs} \
-#         {output.cooler} \
-#         --assembly {params.genome} \
-#         -c1 2 -p1 3 -c2 4 -p2 5 > {log} 2>&1
-#         """
-
-# rule zoomify_cooler:
-#     input:
-#         cooler="seqnado_output/mcc/{sample}/raw/{viewpoint}.cool",
-#     output:
-#         cooler="seqnado_output/mcc/{sample}/{viewpoint}.mcool",
-#     log:
-#         "seqnado_output/logs/zoomify_cooler/{sample}_{viewpoint}.log",
-#     params:
-#         resolutions=",".join([str(r) for r in config.get("resolutions", [100, 1000, 10000])]),
-#     resources:
-#         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-#         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
-#     container: "library://asmith151/seqnado/seqnado_mcc:latest"
-#     shell:
-#         """
-#         cooler zoomify {input.cooler} -r {params.resolutions} -o {output.cooler} > {log} 2>&1
-#         """
-
-
-# rule aggregate_coolers:
-#     input:
-#         mcools=expand("seqnado_output/mcc/{{sample}}/{viewpoint}.mcool", viewpoint=VIEWPOINT_OLIGOS),
-#     output:
-#         mcool="seqnado_output/mcc/{sample}.mcool",
-#     log:
-#         "seqnado_output/logs/{sample}_aggregate_coolers.log",
-#     resources:
-#         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-#         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
-#     container: None
-#     script:
-#         "../scripts/mcc_combine_coolers.py"
+rule aggregate_coolers:
+    input:
+        mcools=expand("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool", group=SAMPLE_GROUPS, viewpoint=GROUPED_VIEWPOINT_OLIGOS),
+    output:
+        mcool="seqnado_output/mcc/{group}/{group}.mcool",
+    log:
+        "seqnado_output/logs/{group}_aggregate_coolers.log",
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+    container: None
+    shell:
+        """
+        mccnado combine-ligation-junction-coolers \
+        {input.mcools} \
+        {output.mcool}
+        """
 
 
 
