@@ -43,6 +43,7 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
+SAMPLE_GROUPS = list(DESIGN.to_dataframe()['merge'].unique())
 VIEWPOINTS_FILE = ViewpointsFile.validate(pd.read_csv(config["viewpoints"], sep='\t', header=None, names=['chromosome', 'start', 'end', 'name']))
 VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
 VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
@@ -63,7 +64,7 @@ OUTPUT = MCCOutput(
 wildcard_constraints:
     sample="|".join(SAMPLE_NAMES),
     viewpoint="|".join([*VIEWPOINT_OLIGOS,  *GROUPED_VIEWPOINT_OLIGOS]),
-    group="|".join(DESIGN.to_dataframe()['merge'].unique()),
+    group="|".join(SAMPLE_GROUPS),
 
 
 
