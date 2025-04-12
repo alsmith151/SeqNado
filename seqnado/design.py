@@ -1969,9 +1969,8 @@ class MCCOutput(Output):
     @property
     def cooler_files(self) -> List[str]:
         return expand(
-            "seqnado_output/mcc/{sample}/{viewpoint}.mcool",
-            sample=self.sample_names,
-            viewpoint=self.viewpoint_oligos,
+            "seqnado_output/mcc/{group}/{group}.mcool",
+            group=self.design_dataframe["merge"].unique().tolist(),
         )
     
     @property
@@ -2017,6 +2016,7 @@ class MCCOutput(Output):
 
         for file_list in (
             self.bigwigs,
+            self.cooler_files,
             self.pairs,
             self.design,
         ):
