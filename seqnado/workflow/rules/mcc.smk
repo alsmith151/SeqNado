@@ -184,7 +184,7 @@ rule identify_viewpoint_reads:
     container: None
     shell:
         """
-        mccnado annotate-bam-file {input.bam} | samtools view -b - > {output.bam}
+        mccnado annotate-bam-file {input.bam} {output.bam} > {log} 2>&1
         """
 
 use rule sort_bam as sort_bam_viewpoints with:
@@ -239,6 +239,8 @@ rule make_bigwigs_mcc_replicates:
         cis_or_trans_stats="seqnado_output/resources/{sample}_ligation_stats.json",
     output:
         bigwig="seqnado_output/mcc/replicates/{sample}/bigwigs/{viewpoint_group}.bigWig"
+    log:
+        "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
     params:
         bin_size=10,
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
@@ -252,8 +254,8 @@ rule make_bigwigs_mcc_replicates:
         --bin-size {params.bin_size} \
         --scale-factor {params.scale_factor} \
         --blacklisted-locations {input.excluded_regions} \
-        --min-mapq 5 \
-        --read-group {wildcards.viewpoint_group}
+        --min-mapq 0 \
+        --read-group {wildcards.viewpoint_group} > {log} 2>&1
         """
         
 def get_mcc_bam_files_for_merge(wildcards):
@@ -271,7 +273,7 @@ rule merge_mcc_bams:
     input:
         bams=get_mcc_bam_files_for_merge,
     output:
-        temp("seqnado_output/mcc/{group}/{group}.bam"),
+        "seqnado_output/mcc/{group}/{group}.bam",
     threads: config["samtools"]["threads"]
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -313,6 +315,8 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped with:
     params:
         bin_size=10,
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
+    log:
+        "seqnado_output/logs/bigwig/{group}_{viewpoint_group}.log",
     container: None
         
 
@@ -328,7 +332,7 @@ rule identify_ligation_junctions:
     threads: 1
     resources:
         mem="1GB",
-    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    container: None,
     params:
         outdir="seqnado_output/mcc/{group}/ligation_junctions/raw/",
     shell:
@@ -364,6 +368,7 @@ rule bgzip_pairs:
     shell:
         """
         bgzip -c {input.pairs} > {output.pairs}
+        """
 
 
 
