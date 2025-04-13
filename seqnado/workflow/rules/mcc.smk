@@ -469,7 +469,7 @@ rule aggregate_coolers:
         """
 
 
-rule call_mcc_peaks:
+rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     input:
         bigwig="seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig",
     output:
