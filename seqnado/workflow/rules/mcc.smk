@@ -479,13 +479,19 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     params:
         options=check_options(config["lanceotron_mcc"]["options"]),
     container: None
+    threads: 2
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        gpu=1,
     shell:
         """
         lanceotron-mcc \
         call-mcc-peaks \
         --bigwig {input.bigwig} \
         --outfile {output.peaks} \
-        {params.options}
+        --n-jobs {threads} \
+        {params.options} > {log} 2>&1
         """
 
 
