@@ -469,6 +469,28 @@ rule aggregate_coolers:
         """
 
 
+rule call_mcc_peaks:
+    input:
+        bigwig="seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig",
+    output:
+        peaks="seqnado_output/mcc/{group}/peaks/{viewpoint_group}.bed",
+    log:
+        "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
+    params:
+        options=check_options(config["lanceotron_mcc"]["options"]),
+    shell:
+        """
+        lanceotron-mcc \
+        call-mcc-peaks \
+        --bigwig {input.bigwig} \
+        --outfile {output.peaks} \
+        {params.options}
+        """
+…
+
+
+
+
 
 ruleorder:
     combine_genome_mapped_reads > align_paired

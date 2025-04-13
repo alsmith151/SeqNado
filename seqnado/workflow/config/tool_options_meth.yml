@@ -17,3 +17,6 @@ picard:
 methyldackel:
     threads: 16
     options:
+
+lanceotron_mcc:
+    options: --max-peak-size 2000

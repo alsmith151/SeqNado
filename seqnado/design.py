@@ -1983,7 +1983,10 @@ class MCCOutput(Output):
 
     @property
     def peaks(self):
-        return []
+        return expand("seqnado_output/mcc/{group}/peaks/{viewpoint_group}.bed",
+            group=self.design_dataframe["merge"].unique().tolist(),
+            viewpoint_group=self.viewpoints_grouped,
+        )
 
     @property
     def bigwigs(self):
@@ -2018,6 +2021,7 @@ class MCCOutput(Output):
             self.bigwigs,
             self.cooler_files,
             self.pairs,
+            self.peaks,
             self.design,
         ):
             if file_list:
