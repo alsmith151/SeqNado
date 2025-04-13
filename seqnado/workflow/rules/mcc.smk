@@ -478,6 +478,7 @@ rule call_mcc_peaks:
         "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
     params:
         options=check_options(config["lanceotron_mcc"]["options"]),
+    container: None
     shell:
         """
         lanceotron-mcc \
