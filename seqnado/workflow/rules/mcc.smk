@@ -228,7 +228,8 @@ def get_n_cis_scaling_factor(wc):
     # Create Path object and ensure the file exists
     stats_path = Path(stats_file)
     if not stats_path.exists():
-        raise FileNotFoundError(f"Stats file not found: {stats_file}")
+       # raise FileNotFoundError(f"Stats file not found: {stats_file}")
+       return 1
         
     with open(stats_path, 'r') as r:
         stats = json.load(r)
@@ -400,6 +401,9 @@ rule make_genomic_bins:
         "seqnado_output/logs/genomic_bins.log",
     container:
         "library://asmith151/seqnado/seqnado_mcc:latest"
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
         cooler makebins {input.chrom_sizes} {params.bin_size} -o {output.bed} > {log} 2>&1
