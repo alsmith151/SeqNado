@@ -351,6 +351,8 @@ def get_tool_options(assay: str) -> str:
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_snp.yml'
         case "meth":
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_meth.yml'
+        case "mcc":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_mcc.yml'
         case _:
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_base.yml'
     
