@@ -157,8 +157,8 @@ rule combine_genome_mapped_reads:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     threads: config["samtools"]["threads"]
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/combine/{sample}.log",
     shell:
