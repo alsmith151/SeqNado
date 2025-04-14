@@ -132,7 +132,8 @@ rule align_unmapped_reads_to_genome:
         bai=temp("seqnado_output/aligned/second_alignment/{sample}.bam.bai"),
     threads: config["samtools"]["threads"]
     resources:
-        mem="4GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/realign/{sample}.log",
     params:
@@ -156,7 +157,8 @@ rule combine_genome_mapped_reads:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     threads: config["samtools"]["threads"]
     resources:
-        mem="4GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/combine/{sample}.log",
     shell:
