@@ -2114,16 +2114,17 @@ class GEOSamples(BaseModel):
         return df
 
 
+
 class ViewpointsFile(pandera.DataFrameModel):    
-    chromosome: Series[str] = pandera.Field(coerce=True)
-    start: Series[int] = pandera.Field(coerce=True)
-    end: Series[int] = pandera.Field(coerce=True)
-    name: Series[str] = pandera.Field(coerce=True)
-    strand: Optional[Series[str]] = pandera.Field(coerce=True)
-    score: Optional[Series[float]] = pandera.Field(coerce=True)
+    Chromosome: Series[str] = pandera.Field(coerce=True)
+    Start: Series[int] = pandera.Field(coerce=True)
+    End: Series[int] = pandera.Field(coerce=True)
+    Name: Series[str] = pandera.Field(coerce=True)
+    Strand: Optional[Series[str]] = pandera.Field(coerce=True)
+    Score: Optional[Series[float]] = pandera.Field(coerce=True, nullable=True)
 
     # Validate the viewpoint names column
-    @pandera.check("name")
+    @pandera.check("Name")
     def check_viewpoint_names(cls, s: Series[str]) -> Series[bool]:
         
         # Check that the names do not contain spaces or special characters
