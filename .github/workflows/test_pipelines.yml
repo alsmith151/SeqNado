@@ -8,7 +8,7 @@ jobs:
   prepare-images:
     runs-on: ubuntu-latest
     env:
-      APPTAINER_CACHE: ${{ github.workspace }}/apptainer-cache
+      APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
     steps:
       - uses: actions/checkout@v3
 
@@ -24,7 +24,7 @@ jobs:
 
       - name: Pull all required images
         run: |
-          mkdir -p "$APPTAINER_CACHE"
+          mkdir -p "$APPTAINER_CACHEDIR"
           images=(
             library://asmith151/seqnado/seqnado_pipeline:latest
             library://asmith151/seqnado/seqnado_extra:latest
@@ -34,7 +34,7 @@ jobs:
             library://asmith151/seqnado/seqnado_mcc:latest
           )
           for img in "${images[@]}"; do
-            APPTAINER_CACHEDIR="$APPTAINER_CACHE" apptainer pull --force $img
+            APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull --force $img
           done
 
       - name: Upload Apptainer cache
