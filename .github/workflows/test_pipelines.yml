@@ -34,7 +34,7 @@ jobs:
             library://asmith151/seqnado/seqnado_mcc:latest
           )
           for img in "${images[@]}"; do
-            APPTAINER_CACHE="$APPTAINER_CACHE" apptainer pull --force $img
+            APPTAINER_CACHEDIR="$APPTAINER_CACHE" apptainer pull --force $img
           done
 
       - name: Upload Apptainer cache
