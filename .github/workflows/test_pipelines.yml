@@ -68,8 +68,6 @@ jobs:
         with:
           environment-file: testing.yml
           miniforge-version: latest
-          activate-environment: base
-          auto-activate-base: true
 
       - name: Install package
         run: pip install .
@@ -112,8 +110,7 @@ jobs:
         with:
           environment-file: testing.yml
           miniforge-version: latest
-          activate-environment: base
-          auto-activate-base: true
+          auto-activate-base: false
 
       - name: Install package
         run: pip install .
