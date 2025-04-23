@@ -22,7 +22,17 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
           apptainer remote use SylabsCloud
 
+      - name: Cache Apptainer images
+        id: cache-singularity
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.APPTAINER_CACHEDIR }}
+          key: apptainer-cache-${{ hashFiles('**/*.sif') }}
+          restore-keys: |
+            apptainer-cache-
+
       - name: Pull all required images
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
         run: |
           mkdir -p "$APPTAINER_CACHEDIR"
           images=(
@@ -34,14 +44,8 @@ jobs:
             library://asmith151/seqnado/seqnado_mcc:latest
           )
           for img in "${images[@]}"; do
-            APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull --force $img
+            APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull $img
           done
-
-      - name: Upload Apptainer cache
-        uses: actions/upload-artifact@v4
-        with:
-          name: apptainer-cache
-          path: ${{ github.workspace }}/apptainer-cache
 
   Test:
     needs: prepare-images
@@ -59,10 +63,12 @@ jobs:
 
       - name: Download Apptainer cache
         if: matrix.test == 'pipeline'
-        uses: actions/download-artifact@v4
+        uses: actions/cache@v3
         with:
-          name: apptainer-cache
-          path: ${{ github.workspace }}/apptainer-cache
+          path: ${{ env.APPTAINER_CACHEDIR }}
+          key: apptainer-cache-${{ hashFiles('**/*.sif') }}
+          restore-keys: |
+            apptainer-cache-
 
       - name: Cache Conda & pip
         uses: actions/cache@v3
