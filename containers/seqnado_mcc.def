@@ -4,6 +4,8 @@ From: python:3.12.9-alpine
 
 %files
     MCCNado
+    BamNado
+    lanceotron-mcc
 
 %post
 
@@ -56,12 +58,18 @@ From: python:3.12.9-alpine
 
     # Install packages required
     pip install uv
-    uv pip install maturin --system
+    uv pip install maturin cooler --system
 
     # Use uv to install required packages
-    # git clone https://github.com/alsmith151/MCCNado.git
     cd MCCNado
-    uv pip install . cooler --system
+    uv pip install . --system
+    cd ../BamNado
+    uv pip install . --system
+    cd ../lanceotron-mcc
+    uv pip install . --system
+    cd ..
+    rm -rf MCCNado BamNado lanceotron-mcc
+
 
     # Cleanup
     uv cache clean
@@ -69,6 +77,8 @@ From: python:3.12.9-alpine
 
     # Remove packages
     apk del --no-cache git musl-dev gcc pkgconfig make zlib-dev ncurses libbz2 libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
+
+
 
     
 
