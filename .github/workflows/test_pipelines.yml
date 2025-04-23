@@ -136,10 +136,14 @@ jobs:
           install-prefix: ${{ needs.setup-env.outputs.conda_env_path }}
           auto-activate-base: false
 
+      - name: Debug conda_env_path
+        run: |
+          echo ">>> Conda env path is: '${{ needs.setup-env.outputs.conda_env_path }}'"
+
       - name: Restore full conda environment
         uses: actions/cache@v3
         with:
-          path: ${{ needs.setup-env.outputs.conda_env_path }}
+          path: "${{ needs.setup-env.outputs.conda_env_path }}"
           key: conda-env-full-${{ github.sha }}
           restore-keys: |
             conda-env-full-
