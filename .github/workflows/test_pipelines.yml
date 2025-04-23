@@ -31,12 +31,10 @@ jobs:
 
   prepare-images:
     needs: check-cache
-    # only run if cache miss OR update_cache=true
     if: ${{ needs.check-cache.outputs.cache-hit != 'true' || github.event.inputs.update_cache == 'true' }}
     runs-on: ubuntu-latest
     env:
       APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
-      UPDATE_SINGULARITY_CACHE: ${{ github.event.inputs.update_cache }}
     steps:
       - uses: actions/checkout@v3
 
@@ -53,15 +51,13 @@ jobs:
       - name: Pull all required images
         run: |
           mkdir -p "$APPTAINER_CACHEDIR"
-          images=(
-            library://asmith151/seqnado/seqnado_pipeline:latest
-            library://asmith151/seqnado/seqnado_extra:latest
-            library://asmith151/seqnado/seqnado_report:latest
-            library://cchahrou/seqnado/seqnado_meth.sif:latest
-            library://asmith151/lanceotron/lanceotron-mcc:latest
-            library://asmith151/seqnado/seqnado_mcc:latest
-          )
-          for img in "${images[@]}"; do
+          for img in \
+            library://asmith151/seqnado/seqnado_pipeline:latest \
+            library://asmith151/seqnado/seqnado_extra:latest \
+            library://asmith151/seqnado/seqnado_report:latest \
+            library://cchahrou/seqnado/seqnado_meth.sif:latest \
+            library://asmith151/lanceotron/lanceotron-mcc:latest \
+            library://asmith151/seqnado/seqnado_mcc:latest; do
             APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull "$img"
           done
 
@@ -120,6 +116,7 @@ jobs:
             conda-env-full-
 
   Test:
+    if: ${{ always() }}
     needs: [prepare-images, setup-env]
     runs-on: ubuntu-latest
     strategy:
