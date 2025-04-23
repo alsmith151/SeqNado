@@ -58,6 +58,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PKGS_DIR: ${{ github.workspace }}/conda_pkgs_dir
+      UPDATE_CONDA_CACHE: ${{ github.event.inputs.update_cache }}
+    outputs:
+      pkg_version: ${{ steps.pkg_version.outputs.version }}
+      conda_env_path: ${{ steps.get_env_path.outputs.path }}
     steps:
       - uses: actions/checkout@v3
 
@@ -78,8 +82,8 @@ jobs:
           pkgs-dirs: ${{ env.PKGS_DIR }}
           use-only-tar-bz2: true
 
-      - name: Update base environment if needed
-        if: steps.cache-pkgs.outputs.cache-hit != 'true'
+      - name: Update base environment
+        if: steps.cache-pkgs.outputs.cache-hit != 'true' || env.UPDATE_CONDA_CACHE == 'true'
         run: |
           mamba env update -n base -f testing.yml --prune
 
@@ -90,10 +94,14 @@ jobs:
         id: pkg_version
         run: echo "version=$(seqnado atac --version | tr -d '\n')" >> $GITHUB_OUTPUT
 
+      - name: Get conda env path
+        id: get_env_path
+        run: echo "path=$(conda info --base)" >> $GITHUB_OUTPUT
+
       - name: Cache full conda environment
         uses: actions/cache@v3
         with:
-          path: ~/.conda/envs/base
+          path: ${{ steps.get_env_path.outputs.path }}
           key: conda-env-full-${{ steps.pkg_version.outputs.version }}
           restore-keys: |
             conda-env-full-
@@ -123,7 +131,7 @@ jobs:
       - name: Restore full conda environment
         uses: actions/cache@v3
         with:
-          path: ~/.conda/envs/base
+          path: ${{ needs.setup-env.outputs.conda_env_path }}
           key: conda-env-full-${{ needs.setup-env.outputs.pkg_version }}
           restore-keys: |
             conda-env-full-
@@ -132,9 +140,6 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           auto-activate-base: true
-
-      - name: Install package fresh
-        run: pip install --no-cache-dir .
 
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
