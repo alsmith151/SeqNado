@@ -63,14 +63,15 @@ jobs:
           restore-keys: |
             conda-deps-
 
-      - name: Setup Mamba environment (dependencies only)
+      - name: Setup Mamba environment
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
           miniforge-version: latest
           auto-activate-base: true
+
+      - name: Update environment with dependencies
         run: |
-          # Only install dependencies; skip package install here
           conda env update --name base --file testing.yml --prune
 
   Test:
