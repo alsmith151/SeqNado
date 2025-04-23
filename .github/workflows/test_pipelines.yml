@@ -59,7 +59,7 @@ jobs:
 
       - name: Download Apptainer cache
         if: matrix.test == 'pipeline'
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: apptainer-cache
           path: ${{ github.workspace }}/apptainer-cache
