@@ -30,13 +30,15 @@ jobs:
             library://asmith151/seqnado/seqnado_extra:latest
             library://asmith151/seqnado/seqnado_report:latest
             library://cchahrou/seqnado/seqnado_meth.sif:latest
+            library://asmith151/lanceotron/lanceotron-mcc:latest
+            library://asmith151/seqnado/seqnado_mcc:latest
           )
           for img in "${images[@]}"; do
             APPTAINER_CACHE="$APPTAINER_CACHE" apptainer pull --force $img
           done
 
       - name: Upload Apptainer cache
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: apptainer-cache
           path: ${{ github.workspace }}/apptainer-cache
