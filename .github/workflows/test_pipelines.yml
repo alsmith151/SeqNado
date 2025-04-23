@@ -52,31 +52,31 @@ jobs:
 
   setup-env:
     runs-on: ubuntu-latest
+    outputs:
+      pkg_version: ${{ steps.pkg_version.outputs.version }}
     steps:
       - uses: actions/checkout@v3
-      - name: Cache Conda & pip dependencies
-        id: cache-deps
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.conda/pkgs
-            ~/.cache/pip
-          key: conda-deps-${{ hashFiles('**/testing.yml') }}
-          restore-keys: |
-            conda-deps-
+
       - name: Setup and populate environment
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
           miniforge-version: latest
           auto-activate-base: true
+
       - name: Install package into env
         run: pip install .
+
+      - name: Capture package version
+        id: pkg_version
+        run: |
+          echo "version=$(seqnado atac --version | tr -d '\n')" >> $GITHUB_OUTPUT
+
       - name: Cache full conda environment
         uses: actions/cache@v3
         with:
           path: ~/.conda/envs/base
-          key: conda-env-full-${{ hashFiles('**/testing.yml') }}
+          key: conda-env-full-${{ steps.pkg_version.outputs.version }}
           restore-keys: |
             conda-env-full-
 
@@ -92,6 +92,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
       - name: Download Apptainer cache
         if: matrix.test == 'pipeline'
         uses: actions/cache@v3
@@ -100,22 +101,27 @@ jobs:
           key: apptainer-cache-${{ hashFiles('**/*.sif') }}
           restore-keys: |
             apptainer-cache-
+
       - name: Restore full conda environment
         uses: actions/cache@v3
         with:
           path: ~/.conda/envs/base
-          key: conda-env-full-${{ hashFiles('**/testing.yml') }}
+          key: conda-env-full-${{ needs.setup-env.outputs.pkg_version }}
           restore-keys: |
             conda-env-full-
+
       - name: Activate environment
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-activate-base: true
+        shell: bash
+        run: |
+          source ~/miniconda3/etc/profile.d/conda.sh
+          conda activate base
+
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
           apptainer remote use SylabsCloud
+
       - name: Run pytest
         shell: bash
         env:
