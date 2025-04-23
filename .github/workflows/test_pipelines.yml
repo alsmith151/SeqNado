@@ -71,19 +71,21 @@ jobs:
         with:
           miniforge-version: latest
           activate-environment: base
-          environment-file: testing.yml
           pkgs-dirs: ${{ env.PKGS_DIR }}
           use-only-tar-bz2: true
 
-      - name: Update environment if cache miss
+      - name: Configure Conda pkg dirs
+        run: |
+          conda config --set pkgs_dirs "['${{ env.PKGS_DIR }}']"
+
+      - name: Create/update environment if needed
         if: steps.cache-pkgs.outputs.cache-hit != 'true'
         run: |
-          mamba env update --name base --file testing.yml --prune
+          mamba env update -n base -f testing.yml --prune
 
       - name: Install package into env
         run: pip install .
 
-      # Optionally cache the full env for faster activation
       - name: Cache full conda environment
         uses: actions/cache@v3
         with:
