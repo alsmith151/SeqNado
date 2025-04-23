@@ -151,4 +151,4 @@ jobs:
           # ensure conda commands are available
           source "${CONDA}/etc/profile.d/conda.sh"
           conda activate base
-          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+          python -m pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
