@@ -10,3 +10,7 @@ do
     echo "Building container $container"
     apptainer build $(basename $container .def).sif $container
 done
+
+## To upload:
+#apptainer sign IMG.sif
+#apptainer push IMG.sif library://asmith151/seqnado/XXXXX:TAG
