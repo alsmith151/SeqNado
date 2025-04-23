@@ -1,77 +1,102 @@
 name: Python package
 
-on: [push]
+on:
+  push:
+  pull_request:
 
 jobs:
+  prepare-images:
+    runs-on: ubuntu-latest
+    env:
+      APPTAINER_CACHE: ${{ github.workspace }}/apptainer-cache
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Apptainer
+        uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.3.4
+
+      - name: Configure Sylabs remote
+        run: |
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
+          apptainer remote use SylabsCloud
+
+      - name: Pull all required images
+        run: |
+          mkdir -p "$APPTAINER_CACHE"
+          images=(
+            library://asmith151/seqnado/seqnado_pipeline:latest
+            library://asmith151/seqnado/seqnado_extra:latest
+            library://asmith151/seqnado/seqnado_report:latest
+            library://cchahrou/seqnado/seqnado_meth.sif:latest
+          )
+          for img in "${images[@]}"; do
+            APPTAINER_CACHE="$APPTAINER_CACHE" apptainer pull --force $img
+          done
+
+      - name: Upload Apptainer cache
+        uses: actions/upload-artifact@v3
+        with:
+          name: apptainer-cache
+          path: ${{ github.workspace }}/apptainer-cache
+
   Test:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    needs: prepare-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
         test: ["config", "design", "pipeline"]
-        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
+        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", "cat", "meth", "mcc"]
+
+    env:
+      APPTAINER_CACHE: ${{ github.workspace }}/apptainer-cache
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache dependencies
-        id: cache-env
+      - name: Download Apptainer cache
+        if: matrix.test == 'pipeline'
+        uses: actions/download-artifact@v3
+        with:
+          name: apptainer-cache
+          path: ${{ github.workspace }}/apptainer-cache
+
+      - name: Cache Conda & pip
         uses: actions/cache@v3
         with:
           path: |
             ~/.conda
             ~/.cache/pip
-          key: ${{ runner.os }}-env-${{ hashFiles('**/testing.yml') }}
+          key: ${{ runner.os }}-conda-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
-            ${{ runner.os }}-env-
-      - name: Setup conda
+            ${{ runner.os }}-conda-
+
+      - name: Setup Mamba environment
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
-          miniforge-version: latest
+          auto-activate-base: false
+          mamba: true
 
       - name: Install package
-        shell: pwsh
-        run: |
-          pip install .
-      - name: Cache singularity
+        run: pip install .
+
+      - name: Setup Apptainer (for pipeline tests)
         if: matrix.test == 'pipeline'
-        id: cache-singularity
-        uses: actions/cache@v3
-        with:
-          path: ~/.apptainer
-          key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
-          restore-keys: |
-            ${{ runner.os }}-singularity-    
-      - uses: eWaterCycle/setup-apptainer@v2
-        if: matrix.test == 'pipeline'
+        uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.4
-      - name: Add singularity hub remote
+
+      - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
-        shell: pwsh
         run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
           apptainer remote use SylabsCloud
-      - name: Pull singularity images
-        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          echo "Pulling singularity images from the remote repository..."
-          mkdir -p tmp
-          if [[ "${{ matrix.test }}" == "pipeline" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_pipeline:latest
-          elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
-          elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
-          elif [[ "${{ matrix.assay }}" == "meth" ]]; then
-            apptainer pull --force library://cchahrou/seqnado/seqnado_meth.sif:latest
-          fi
-      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
-        shell: pwsh
+
+      - name: Run pytest
         env:
           TMPDIR: /tmp
-          SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
+          SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
