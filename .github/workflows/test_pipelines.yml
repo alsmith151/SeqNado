@@ -111,10 +111,9 @@ jobs:
             conda-env-full-
 
       - name: Activate environment
-        shell: bash
-        run: |
-          source ~/miniconda3/etc/profile.d/conda.sh
-          conda activate base
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-activate-base: true
 
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
