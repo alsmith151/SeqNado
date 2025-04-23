@@ -52,25 +52,26 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache Conda & pip
+      - name: Cache Conda & pip dependencies
         id: cache-conda
         uses: actions/cache@v3
         with:
           path: |
-            ~/.conda
+            ~/.conda/pkgs
             ~/.cache/pip
-          key: conda-env-${{ hashFiles('**/testing.yml') }}
+          key: conda-deps-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
-            conda-env-
+            conda-deps-
 
-      - name: Setup Mamba environment
+      - name: Setup Mamba environment (dependencies only)
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
           miniforge-version: latest
-
-      - name: Install package
-        run: pip install .
+          auto-activate-base: true
+        run: |
+          # Only install dependencies; skip package install here
+          conda env update --name base --file testing.yml --prune
 
   Test:
     needs: [prepare-images, setup-env]
@@ -79,7 +80,6 @@ jobs:
       matrix:
         test: ["config", "design", "pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", "cat", "meth", "mcc"]
-
     env:
       APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
 
@@ -95,31 +95,23 @@ jobs:
           restore-keys: |
             apptainer-cache-
 
-      - name: Use Conda & pip cache
+      - name: Use Conda dependencies cache
         uses: actions/cache@v3
         with:
           path: |
-            ~/.conda
+            ~/.conda/pkgs
             ~/.cache/pip
-          key: conda-env-${{ hashFiles('**/testing.yml') }}
+          key: conda-deps-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
-            conda-env-
+            conda-deps-
 
-      - name: Setup Mamba environment
+      - name: Activate environment
         uses: conda-incubator/setup-miniconda@v3
         with:
-          environment-file: testing.yml
-          miniforge-version: latest
-          auto-activate-base: false
+          auto-activate-base: true
 
-      - name: Install package
-        run: pip install .
-
-      - name: Setup Apptainer (for pipeline tests)
-        if: matrix.test == 'pipeline'
-        uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.3.4
+      - name: Install package fresh
+        run: pip install --no-cache-dir .
 
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
@@ -133,6 +125,4 @@ jobs:
           TMPDIR: /tmp
           SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
         run: |
-          source ~/.bashrc
-          conda activate base
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
