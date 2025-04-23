@@ -1,17 +1,20 @@
 BootStrap: docker
-From: python:3.12.9-alpine
+From: python:3.10-alpine
 
 
 %files
     MCCNado
     BamNado
-    lanceotron-mcc
 
 %post
 
     # Install required packages
     apk update
-    apk add --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make bash zlib-dev ncurses libbz2 curl-dev libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
+    apk add --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make bash zlib-dev ncurses libbz2 bzip2 curl-dev libdeflate autoconf automake bzip2-dev xz-dev xz-libs openssl-dev ncurses-dev bzip2-static xz-static 
+
+    export LIBRARY_PATH=/usr/lib:/usr/local/lib:$LIBRARY_PATH
+    export LD_LIBRARY_PATH=/usr/lib:/usr/local/lib:$LD_LIBRARY_PATH
+
 
     # Install FLASh
     git clone https://github.com/ebiggers/flash.git
@@ -54,8 +57,6 @@ From: python:3.12.9-alpine
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
     . "$HOME/.cargo/env"
 
-
-
     # Install packages required
     pip install uv
     uv pip install maturin cooler --system
@@ -63,21 +64,21 @@ From: python:3.12.9-alpine
     # Use uv to install required packages
     cd MCCNado
     uv pip install . --system
-    cd ../BamNado
-    uv pip install . --system
-    cd ../lanceotron-mcc
+    cd ..
+
+    cd BamNado
     uv pip install . --system
     cd ..
-    rm -rf MCCNado BamNado lanceotron-mcc
 
+    rm -rf MCCNado BamNado lanceotron-mcc
 
     # Cleanup
     uv cache clean
     rustup self uninstall -y
 
-    # Remove packages
-    apk del --no-cache git musl-dev gcc pkgconfig make zlib-dev ncurses libbz2 libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
-
+    # Remove build-only packages but keep runtime libraries
+    apk del --no-cache git musl-dev gcc pkgconfig make autoconf automake \
+        zlib-dev bzip2-dev xz-dev openssl-dev ncurses-dev
 
 
     
