@@ -54,7 +54,6 @@ jobs:
             APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull $img
           done
 
-  
   setup-env:
     runs-on: ubuntu-latest
     env:
@@ -85,8 +84,7 @@ jobs:
 
       - name: Update base environment
         if: steps.cache-pkgs.outputs.cache-hit != 'true' || env.UPDATE_CONDA_CACHE == 'true'
-        run: |
-          mamba env update -n base -f testing.yml --prune
+        run: mamba env update -n base -f testing.yml --prune
 
       - name: Install package into env
         run: pip install .
@@ -133,18 +131,14 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ needs.setup-env.outputs.conda_env_path }}
-          key: conda-env-full-${{ needs.setup-env.outputs.pkg_version }}
+          key: conda-env-full-${{ needs.setup-env.outputs.repo_hash }}
           restore-keys: |
             conda-env-full-
 
-      - name: Setup Miniconda
+      - name: Setup Miniconda (no auto-activate)
         uses: conda-incubator/setup-miniconda@v3
         with:
-          auto-activate-base: true
-
-      - name: Activate base Conda environment
-        shell: bash -l {0}
-        run: conda activate base
+          auto-activate-base: false
 
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
@@ -157,4 +151,10 @@ jobs:
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
-        run: pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+          # pass in path to conda installation so we can source conda.sh
+          CONDA: ${{ needs.setup-env.outputs.conda_env_path }}
+        run: |
+          # ensure 'conda activate' works in this shell
+          source "${CONDA}/etc/profile.d/conda.sh"
+          conda activate base
+          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
