@@ -11,7 +11,28 @@ on:
         default: 'false'
 
 jobs:
+  check-cache:
+    runs-on: ubuntu-latest
+    env:
+      APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
+    outputs:
+      cache-hit: ${{ steps.cache-singularity.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check for cached Apptainer images
+        id: cache-singularity
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.APPTAINER_CACHEDIR }}
+          key: apptainer-cache-${{ hashFiles('**/*.sif') }}
+          restore-keys: |
+            apptainer-cache-
+
   prepare-images:
+    needs: check-cache
+    # only run if cache miss OR update_cache=true
+    if: ${{ needs.check-cache.outputs.cache-hit != 'true' || github.event.inputs.update_cache == 'true' }}
     runs-on: ubuntu-latest
     env:
       APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
@@ -29,28 +50,28 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
           apptainer remote use SylabsCloud
 
-      - name: Cache Apptainer images
-        id: cache-singularity
+      - name: Pull all required images
+        run: |
+          mkdir -p "$APPTAINER_CACHEDIR"
+          images=(
+            library://asmith151/seqnado/seqnado_pipeline:latest
+            library://asmith151/seqnado/seqnado_extra:latest
+            library://asmith151/seqnado/seqnado_report:latest
+            library://cchahrou/seqnado/seqnado_meth.sif:latest
+            library://asmith151/lanceotron/lanceotron-mcc:latest
+            library://asmith151/seqnado/seqnado_mcc:latest
+          )
+          for img in "${images[@]}"; do
+            APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull "$img"
+          done
+
+      - name: Save to cache
         uses: actions/cache@v3
         with:
           path: ${{ env.APPTAINER_CACHEDIR }}
           key: apptainer-cache-${{ hashFiles('**/*.sif') }}
           restore-keys: |
             apptainer-cache-
-
-      - name: Pull all required images
-        if: steps.cache-singularity.outputs.cache-hit != 'true' || env.UPDATE_SINGULARITY_CACHE == 'true'
-        run: |
-          mkdir -p "$APPTAINER_CACHEDIR"
-          for img in \
-            library://asmith151/seqnado/seqnado_pipeline:latest \
-            library://asmith151/seqnado/seqnado_extra:latest \
-            library://asmith151/seqnado/seqnado_report:latest \
-            library://cchahrou/seqnado/seqnado_meth.sif:latest \
-            library://asmith151/lanceotron/lanceotron-mcc:latest \
-            library://asmith151/seqnado/seqnado_mcc:latest; do
-            APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull "$img"
-          done
 
   setup-env:
     runs-on: ubuntu-latest
@@ -71,7 +92,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-conda-pkgs-
 
-      - name: Bootstrap Miniconda
+      - name: Bootstrap & update base
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
