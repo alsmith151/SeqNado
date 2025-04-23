@@ -372,7 +372,8 @@ rule sort_ligation_junctions:
         pairs=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs"),
     threads: 1
     resources:
-        mem="1GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
     shell:
