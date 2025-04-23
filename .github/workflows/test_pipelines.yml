@@ -118,6 +118,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # 1) Install Miniconda so the prefix dir exists
+      - name: Setup Miniconda (no auto-activate)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          auto-activate-base: false
+
+      # 2) Download Apptainer cache (pipeline-only)
       - name: Download Apptainer cache
         if: matrix.test == 'pipeline'
         uses: actions/cache@v3
@@ -127,6 +135,7 @@ jobs:
           restore-keys: |
             apptainer-cache-
 
+      # 3) Restore the full conda prefix we cached in setup-env
       - name: Restore full conda environment
         uses: actions/cache@v3
         with:
@@ -135,12 +144,14 @@ jobs:
           restore-keys: |
             conda-env-full-
 
+      # 4) Configure Sylabs remote for pipeline tests
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
           apptainer remote use SylabsCloud
 
+      # 5) Source, activate, and run pytest via python -m pytest
       - name: Run pytest
         shell: bash -l {0}
         env:
@@ -148,7 +159,6 @@ jobs:
           SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
           CONDA: ${{ needs.setup-env.outputs.conda_env_path }}
         run: |
-          # ensure conda commands are available
           source "${CONDA}/etc/profile.d/conda.sh"
           conda activate base
           python -m pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
