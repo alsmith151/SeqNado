@@ -485,19 +485,19 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
         "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
     params:
         options=check_options(config["lanceotron_mcc"]["options"]),
-    container: "library://asmith151/seqnado/seqnado_extra:latest"
-    threads: 2
+    container: None
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         gpu=1,
     shell:
         """
+        apptainer exec \
+        library://asmith151/lanceotron/lanceotron-mcc:latest \
         lanceotron-mcc \
         call-mcc-peaks \
         --bigwig {input.bigwig} \
         --outfile {output.peaks} \
-        --n-jobs {threads} \
         {params.options} > {log} 2>&1
         """
 
