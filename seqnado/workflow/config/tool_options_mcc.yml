@@ -12,3 +12,8 @@ bowtie2:
 samtools:
     threads: 16
     filter_options: 
+
+deeptools:
+    threads: 8
+    alignmentsieve: --minMappingQuality 30 
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
