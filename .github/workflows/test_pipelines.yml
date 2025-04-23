@@ -52,33 +52,45 @@ jobs:
 
   setup-env:
     runs-on: ubuntu-latest
-    outputs:
-      pkg_version: ${{ steps.pkg_version.outputs.version }}
+    env:
+      PKGS_DIR: ${{ github.workspace }}/conda_pkgs_dir
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup and populate environment
+      - name: Cache Conda packages
+        id: cache-pkgs
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.PKGS_DIR }}
+          key: ${{ runner.os }}-conda-pkgs-${{ hashFiles('testing.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-pkgs-
+
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          environment-file: testing.yml
           miniforge-version: latest
-          auto-activate-base: true
+          activate-environment: base
+          environment-file: testing.yml
+          pkgs-dirs: ${{ env.PKGS_DIR }}
+          use-only-tar-bz2: true
+
+      - name: Update environment if cache miss
+        if: steps.cache-pkgs.outputs.cache-hit != 'true'
+        run: |
+          mamba env update --name base --file testing.yml --prune
 
       - name: Install package into env
         run: pip install .
 
-      - name: Capture package version
-        id: pkg_version
-        run: |
-          echo "version=$(seqnado atac --version | tr -d '\n')" >> $GITHUB_OUTPUT
-
+      # Optionally cache the full env for faster activation
       - name: Cache full conda environment
         uses: actions/cache@v3
         with:
           path: ~/.conda/envs/base
-          key: conda-env-full-${{ steps.pkg_version.outputs.version }}
+          key: ${{ runner.os }}-conda-env-${{ hashFiles('testing.yml') }}
           restore-keys: |
-            conda-env-full-
+            ${{ runner.os }}-conda-env-
 
   Test:
     needs: [prepare-images, setup-env]
@@ -92,7 +104,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
       - name: Download Apptainer cache
         if: matrix.test == 'pipeline'
         uses: actions/cache@v3
@@ -101,30 +112,31 @@ jobs:
           key: apptainer-cache-${{ hashFiles('**/*.sif') }}
           restore-keys: |
             apptainer-cache-
-
-      - name: Restore full conda environment
+      - name: Restore deps cache
         uses: actions/cache@v3
         with:
-          path: ~/.conda/envs/base
-          key: conda-env-full-${{ needs.setup-env.outputs.pkg_version }}
+          path: |
+            ~/.conda/pkgs
+            ~/.cache/pip
+          key: deps-cache-${{ needs.setup-env.outputs.pkg_version }}
           restore-keys: |
-            conda-env-full-
-
-      - name: Activate environment
+            deps-cache-
+      - name: Setup and activate environment
         uses: conda-incubator/setup-miniconda@v3
         with:
+          environment-file: testing.yml
+          miniforge-version: latest
           auto-activate-base: true
-
+      - name: Install package fresh
+        run: pip install --no-cache-dir .
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
           apptainer remote use SylabsCloud
-
       - name: Run pytest
         shell: bash
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
-        run: |
-          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+        run: pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
