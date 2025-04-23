@@ -21,4 +21,5 @@ set-resources:
         slurm_partition: "gpu"
         runtime: 30  # in minutes
         mem_mb_per_cpu: 3000
-        cpus_per_task: 2
+        cpus_per_task: 8
+        gpus: 1
