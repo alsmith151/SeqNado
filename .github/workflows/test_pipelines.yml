@@ -47,8 +47,35 @@ jobs:
             APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull $img
           done
 
+  setup-env:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Cache Conda & pip
+        id: cache-conda
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.conda
+            ~/.cache/pip
+          key: conda-env-${{ hashFiles('**/testing.yml') }}
+          restore-keys: |
+            conda-env-
+
+      - name: Setup Mamba environment
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: testing.yml
+          miniforge-version: latest
+          activate-environment: base
+          auto-activate-base: true
+
+      - name: Install package
+        run: pip install .
+
   Test:
-    needs: prepare-images
+    needs: [prepare-images, setup-env]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -70,21 +97,23 @@ jobs:
           restore-keys: |
             apptainer-cache-
 
-      - name: Cache Conda & pip
+      - name: Use Conda & pip cache
         uses: actions/cache@v3
         with:
           path: |
             ~/.conda
             ~/.cache/pip
-          key: ${{ runner.os }}-conda-${{ hashFiles('**/testing.yml') }}
+          key: conda-env-${{ hashFiles('**/testing.yml') }}
           restore-keys: |
-            ${{ runner.os }}-conda-
+            conda-env-
 
       - name: Setup Mamba environment
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
           miniforge-version: latest
+          activate-environment: base
+          auto-activate-base: true
 
       - name: Install package
         run: pip install .
@@ -102,8 +131,11 @@ jobs:
           apptainer remote use SylabsCloud
 
       - name: Run pytest
+        shell: bash
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
         run: |
+          source ~/.bashrc
+          conda activate base
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
