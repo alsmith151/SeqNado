@@ -70,11 +70,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-conda-pkgs-
 
-      - name: Setup Miniconda base
+      - name: Setup Miniconda bootstrap
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
-          activate-environment: base
           auto-activate-base: true
           pkgs-dirs: ${{ env.PKGS_DIR }}
           use-only-tar-bz2: true
