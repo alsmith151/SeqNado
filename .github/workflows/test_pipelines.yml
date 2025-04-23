@@ -52,7 +52,7 @@ jobs:
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", "cat", "meth", "mcc"]
 
     env:
-      APPTAINER_CACHE: ${{ github.workspace }}/apptainer-cache
+      APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
 
     steps:
       - uses: actions/checkout@v3
