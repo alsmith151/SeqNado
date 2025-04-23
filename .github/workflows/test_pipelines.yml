@@ -35,23 +35,20 @@ jobs:
         with:
           path: ${{ env.APPTAINER_CACHEDIR }}
           key: apptainer-cache-${{ hashFiles('**/*.sif') }}
-          restore-keys: |
-            apptainer-cache-
+          restore-keys: apptainer-cache-
 
       - name: Pull all required images
         if: steps.cache-singularity.outputs.cache-hit != 'true' || env.UPDATE_SINGULARITY_CACHE == 'true'
         run: |
           mkdir -p "$APPTAINER_CACHEDIR"
-          images=(
-            library://asmith151/seqnado/seqnado_pipeline:latest
-            library://asmith151/seqnado/seqnado_extra:latest
-            library://asmith151/seqnado/seqnado_report:latest
-            library://cchahrou/seqnado/seqnado_meth.sif:latest
-            library://asmith151/lanceotron/lanceotron-mcc:latest
-            library://asmith151/seqnado/seqnado_mcc:latest
-          )
-          for img in "${images[@]}"; do
-            APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull $img
+          for img in \
+            library://asmith151/seqnado/seqnado_pipeline:latest \
+            library://asmith151/seqnado/seqnado_extra:latest \
+            library://asmith151/seqnado/seqnado_report:latest \
+            library://cchahrou/seqnado/seqnado_meth.sif:latest \
+            library://asmith151/lanceotron/lanceotron-mcc:latest \
+            library://asmith151/seqnado/seqnado_mcc:latest; do
+            APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull "$img"
           done
 
   setup-env:
@@ -71,10 +68,9 @@ jobs:
         with:
           path: ${{ env.PKGS_DIR }}
           key: ${{ runner.os }}-conda-pkgs-${{ hashFiles('testing.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-conda-pkgs-
+          restore-keys: ${{ runner.os }}-conda-pkgs-
 
-      - name: Setup Miniconda bootstrap
+      - name: Bootstrap Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
@@ -102,8 +98,7 @@ jobs:
         with:
           path: ${{ steps.get_env_path.outputs.path }}
           key: conda-env-full-${{ steps.repo_hash.outputs.hash }}
-          restore-keys: |
-            conda-env-full-
+          restore-keys: conda-env-full-
 
   Test:
     needs: [prepare-images, setup-env]
@@ -118,31 +113,30 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # 1) Install Miniconda so the prefix dir exists
-      - name: Setup Miniconda (no auto-activate)
+      # 1) Install Miniconda into the same prefix we cached
+      - name: Bootstrap Miniconda at cached prefix
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
+          install-prefix: ${{ needs.setup-env.outputs.conda_env_path }}
           auto-activate-base: false
 
-      # 2) Download Apptainer cache (pipeline-only)
+      # 2) Restore the full conda env (including pytest) over it
+      - name: Restore full conda environment
+        uses: actions/cache@v3
+        with:
+          path: ${{ needs.setup-env.outputs.conda_env_path }}
+          key: conda-env-full-${{ needs.setup-env.outputs.repo_hash }}
+          restore-keys: conda-env-full-
+
+      # 3) Download Apptainer cache (pipeline-only)
       - name: Download Apptainer cache
         if: matrix.test == 'pipeline'
         uses: actions/cache@v3
         with:
           path: ${{ env.APPTAINER_CACHEDIR }}
           key: apptainer-cache-${{ hashFiles('**/*.sif') }}
-          restore-keys: |
-            apptainer-cache-
-
-      # 3) Restore the full conda prefix we cached in setup-env
-      - name: Restore full conda environment
-        uses: actions/cache@v3
-        with:
-          path: ${{ needs.setup-env.outputs.conda_env_path }}
-          key: conda-env-full-${{ needs.setup-env.outputs.repo_hash }}
-          restore-keys: |
-            conda-env-full-
+          restore-keys: apptainer-cache-
 
       # 4) Configure Sylabs remote for pipeline tests
       - name: Configure Sylabs remote
@@ -151,7 +145,7 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
           apptainer remote use SylabsCloud
 
-      # 5) Source, activate, and run pytest via python -m pytest
+      # 5) Activate and run tests
       - name: Run pytest
         shell: bash -l {0}
         env:
