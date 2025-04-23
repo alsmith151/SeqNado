@@ -183,7 +183,7 @@ rule identify_viewpoint_reads:
         mem="1GB",
     log:
         "seqnado_output/logs/identify_viewpoint_reads/{sample}.log",
-    container: None
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
         mccnado annotate-bam-file {input.bam} {output.bam} > {log} 2>&1
@@ -209,7 +209,7 @@ rule extract_ligation_stats:
         bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
     output:
         stats="seqnado_output/resources/{sample}_ligation_stats.json"
-    container: None
+    container: 'library://asmith151/seqnado/seqnado_mcc:latest'
     shell:
         """
         mccnado extract-ligation-stats {input.bam} {output.stats} 
@@ -266,7 +266,7 @@ rule make_bigwigs_mcc_replicates:
     params:
         bin_size=10,
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
-    container: None
+    container: 'library://asmith151/seqnado/seqnado_mcc:latest'
     shell:
         """
         bamnado \
@@ -339,7 +339,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped with:
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
     log:
         "seqnado_output/logs/bigwig/{group}_{viewpoint_group}.log",
-    container: None
+    container: 'library://asmith151/seqnado/seqnado_mcc:latest'
         
 
 
@@ -354,7 +354,7 @@ rule identify_ligation_junctions:
     threads: 1
     resources:
         mem="1GB",
-    container: None,
+    container: 'library://asmith151/seqnado/seqnado_mcc:latest',
     params:
         outdir="seqnado_output/mcc/{group}/ligation_junctions/raw/",
     shell:
@@ -467,7 +467,7 @@ rule aggregate_coolers:
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
-    container: None
+    container: "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
         mccnado combine-ligation-junction-coolers \
@@ -485,7 +485,7 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
         "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
     params:
         options=check_options(config["lanceotron_mcc"]["options"]),
-    container: None
+    container: "library://asmith151/seqnado/seqnado_extra:latest"
     threads: 2
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
