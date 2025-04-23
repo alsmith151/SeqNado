@@ -136,10 +136,14 @@ jobs:
           restore-keys: |
             conda-env-full-
 
-      - name: Activate environment
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
           auto-activate-base: true
+
+      - name: Activate base Conda environment
+        shell: bash -l {0}
+        run: conda activate base
 
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
@@ -148,7 +152,7 @@ jobs:
           apptainer remote use SylabsCloud
 
       - name: Run pytest
-        shell: bash
+        shell: bash -l {0}
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
