@@ -135,11 +135,6 @@ jobs:
           restore-keys: |
             conda-env-full-
 
-      - name: Setup Miniconda (no auto-activate)
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-activate-base: false
-
       - name: Configure Sylabs remote
         if: matrix.test == 'pipeline'
         run: |
@@ -151,10 +146,9 @@ jobs:
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
-          # pass in path to conda installation so we can source conda.sh
           CONDA: ${{ needs.setup-env.outputs.conda_env_path }}
         run: |
-          # ensure 'conda activate' works in this shell
+          # ensure conda commands are available
           source "${CONDA}/etc/profile.d/conda.sh"
           conda activate base
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
