@@ -78,8 +78,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
-          auto-activate-base: false
-          mamba: true
+          miniforge-version: latest
 
       - name: Install package
         run: pip install .
