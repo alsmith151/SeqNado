@@ -1,26 +1,13 @@
 BootStrap: docker
-From: tensorflow/tensorflow:latest-gpu
+From: tensorflow/tensorflow:latest
 
 %files
   environment_extra.yml /opt/environment_extra.yml
-  lanceotron-mcc
   
 %post
   
-  # Install required packages
-  apt-get update
-  apt-get install -y --no-install-recommends \
-    libcurl4-openssl-dev \
-    zlib1g-dev \
-    libbz2-dev \
-    liblzma-dev 
-
   # Install lanceotron
   pip install pyBigWig scikit-learn pandas joblib natsort tqdm
   pip install lanceotron --no-dependencies 
-
-  cd lanceotron-mcc
-  pip install .
-  cd ..
-  rm -rf lanceotron-mcc
+  pip cache purge
   
