@@ -1,3 +1,14 @@
 lanceotron_mcc:
     options: --max-peak-size 2000
 
+trim_galore:
+    threads: 4
+    options: --2colour 20 
+
+bowtie2:
+    threads: 8
+    options:
+
+samtools:
+    threads: 16
+    filter_options: 
