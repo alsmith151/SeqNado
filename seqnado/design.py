@@ -1984,40 +1984,41 @@ class MCCOutput(Output):
     @property
     def cooler_files(self) -> List[str]:
         return expand(
-            "seqnado_output/mcc/{sample}/{viewpoint}.mcool",
-            sample=self.sample_names,
-            viewpoint=self.viewpoint_oligos,
+            "seqnado_output/mcc/{group}/{group}.mcool",
+            group=self.design_dataframe["merge"].unique().tolist(),
+        )
+    
+    @property
+    def pairs(self) -> List[str]:
+        return expand(
+            "seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+            group=self.design_dataframe["merge"].unique().tolist(),
+            viewpoint=self.viewpoints_grouped,
         )
 
     @property
     def peaks(self):
-        return []
-
-    @property
-    def bigwigs(self):
-        replicate_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
-            sample=self.sample_names,
-            viewpoint=self.viewpoint_oligos,
-        )
-
-        viewpoint_group_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
-            sample=self.sample_names,
-            viewpoint_group=self.viewpoints_grouped,
-        )
-
-        sample_group_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
+        return expand("seqnado_output/mcc/{group}/peaks/{viewpoint_group}.bed",
             group=self.design_dataframe["merge"].unique().tolist(),
             viewpoint_group=self.viewpoints_grouped,
         )
 
-        return [
-            *replicate_bigwigs,
-            *viewpoint_group_bigwigs,
-            *sample_group_bigwigs,
-        ]
+    @property
+    def bigwigs(self):
+        replicate_bigwigs = expand(
+            "seqnado_output/mcc/replicates/{sample}/bigwigs/{viewpoint_group}.bigWig",
+            sample=self.sample_names,
+            viewpoint_group=self.viewpoints_grouped,
+        )
+
+        grouped_bigwigs = expand(
+            "seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig",
+            viewpoint_group=self.viewpoints_grouped,
+            group=self.design_dataframe["merge"].unique().tolist(),
+        )
+
+        return [*replicate_bigwigs, *grouped_bigwigs]
+
 
     @computed_field
     @property
@@ -2031,8 +2032,10 @@ class MCCOutput(Output):
         )
 
         for file_list in (
-            self.cooler_files,
             self.bigwigs,
+            self.cooler_files,
+            self.pairs,
+            self.peaks,
             self.design,
         ):
             if file_list:
@@ -2122,3 +2125,24 @@ class GEOSamples(BaseModel):
         df = pd.concat([s.to_series for s in self.samples], axis=1).T
         df.columns = df.columns.str.replace(r"\s\d+$", "", regex=True).str.strip()
         return df
+
+
+
+class ViewpointsFile(pandera.DataFrameModel):    
+    Chromosome: Series[str] = pandera.Field(coerce=True)
+    Start: Series[int] = pandera.Field(coerce=True)
+    End: Series[int] = pandera.Field(coerce=True)
+    Name: Series[str] = pandera.Field(coerce=True)
+    Strand: Optional[Series[str]] = pandera.Field(coerce=True)
+    Score: Optional[Series[float]] = pandera.Field(coerce=True, nullable=True)
+
+    # Validate the viewpoint names column
+    @pandera.check("Name")
+    def check_viewpoint_names(cls, s: Series[str]) -> Series[bool]:
+        
+        # Check that the names do not contain spaces or special characters
+        allowed_chars = r"^[a-zA-Z0-9_]+$"
+
+        return s.str.match(allowed_chars)
+
+        

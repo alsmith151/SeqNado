@@ -1,15 +1,48 @@
 BootStrap: docker
-From: python:3.12.9-alpine
+From: python:3.10-alpine
 
 
 %files
     MCCNado
+    BamNado
 
 %post
 
+    WD=$(pwd)
+
     # Install required packages
     apk update
-    apk add --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make bash zlib-dev ncurses libbz2 curl-dev libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
+    apk add --no-cache curl git musl-dev gcc pkgconfig hdf5-dev make bash zlib-dev ncurses libbz2 bzip2 curl-dev libdeflate autoconf automake bzip2-dev xz-dev xz-libs openssl-dev ncurses-dev bzip2-static xz-static 
+
+    export LIBRARY_PATH=/usr/lib:/usr/local/lib:$LIBRARY_PATH
+    export LD_LIBRARY_PATH=/usr/lib:/usr/local/lib:$LD_LIBRARY_PATH
+
+        # Download the bedgraphToBigWig binary and add it to the PATH
+    mkdir -p /usr/local/bin
+    cd /tmp
+    wget -O bedGraphToBigWig https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/bedGraphToBigWig || { echo "Download failed"; exit 1; }
+    chmod +x bedGraphToBigWig
+    mv bedGraphToBigWig /usr/local/bin/
+    
+    # Make sure PATH is properly set up
+    export PATH=/usr/local/bin:$PATH
+    
+    # Install runtime libraries needed for UCSC tools (they're often compiled against glibc)
+    apk add --no-cache libstdc++ libc6-compat
+    
+    # Verify binary exists
+    ls -la /usr/local/bin/bedGraphToBigWig
+    
+    # Test with proper error handling
+    if command -v bedGraphToBigWig >/dev/null 2>&1; then
+        echo "bedGraphToBigWig is available in PATH"
+        bedGraphToBigWig 2>&1 || echo "Command failed but continuing build"
+    else
+        echo "WARNING: bedGraphToBigWig not found in PATH. Continuing build anyway."
+        echo "PATH=$PATH"
+    fi
+
+    cd $WD
 
     # Install FLASh
     git clone https://github.com/ebiggers/flash.git
@@ -52,23 +85,29 @@ From: python:3.12.9-alpine
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
     . "$HOME/.cargo/env"
 
-
-
     # Install packages required
     pip install uv
-    uv pip install maturin --system
+    uv pip install maturin cooler --system
 
     # Use uv to install required packages
-    # git clone https://github.com/alsmith151/MCCNado.git
     cd MCCNado
-    uv pip install . cooler --system
+    uv pip install . --system
+    cd ..
+
+    cd BamNado
+    uv pip install . --system
+    cd ..
+
+    rm -rf MCCNado BamNado lanceotron-mcc
 
     # Cleanup
     uv cache clean
     rustup self uninstall -y
 
-    # Remove packages
-    apk del --no-cache git musl-dev gcc pkgconfig make zlib-dev ncurses libbz2 libdeflate autoconf automake bzip2-dev xz-dev openssl-dev ncurses-dev
+    # Remove build-only packages but keep runtime libraries
+    apk del --no-cache git musl-dev gcc pkgconfig make autoconf automake \
+        zlib-dev bzip2-dev xz-dev openssl-dev ncurses-dev
+
 
     
 
