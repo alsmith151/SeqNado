@@ -194,6 +194,7 @@ use rule sort_bam as sort_bam_viewpoints with:
         bam="seqnado_output/mcc/replicates/{sample}/{sample}_unsorted.bam",
     output:
         bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
+        read_log="seqnado_output/mcc/replicates/{sample}/{sample}_read_log.txt",
     log:
         "seqnado_output/logs/sort_bam_viewpoints/{sample}.log",
 
