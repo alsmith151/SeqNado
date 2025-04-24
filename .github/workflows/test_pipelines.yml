@@ -1,175 +1,74 @@
 name: Python package
 
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
-    inputs:
-      update_cache:
-        description: 'Force update Singularity image cache'
-        required: false
-        default: 'false'
+on: [push]
 
 jobs:
-  check-cache:
-    runs-on: ubuntu-latest
-    env:
-      APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
-    outputs:
-      cache-hit: ${{ steps.cache-singularity.outputs.cache-hit }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Check for cached Apptainer images
-        id: cache-singularity
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.APPTAINER_CACHEDIR }}
-          key: apptainer-cache-${{ hashFiles('**/*.sif') }}
-          restore-keys: |
-            apptainer-cache-
-
-  prepare-images:
-    needs: check-cache
-    if: ${{ needs.check-cache.outputs.cache-hit != 'true' || github.event.inputs.update_cache == 'true' }}
-    runs-on: ubuntu-latest
-    env:
-      APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Apptainer
-        uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.3.4
-
-      - name: Configure Sylabs remote
-        run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
-          apptainer remote use SylabsCloud
-
-      - name: Pull all required images
-        run: |
-          mkdir -p "$APPTAINER_CACHEDIR"
-          for img in \
-            library://asmith151/seqnado/seqnado_pipeline:latest \
-            library://asmith151/seqnado/seqnado_extra:latest \
-            library://asmith151/seqnado/seqnado_report:latest \
-            library://cchahrou/seqnado/seqnado_meth.sif:latest \
-            library://asmith151/lanceotron/lanceotron-mcc:latest \
-            library://asmith151/seqnado/seqnado_mcc:latest; do
-            APPTAINER_CACHEDIR="$APPTAINER_CACHEDIR" apptainer pull "$img"
-          done
-
-      - name: Save to cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.APPTAINER_CACHEDIR }}
-          key: apptainer-cache-${{ hashFiles('**/*.sif') }}
-          restore-keys: |
-            apptainer-cache-
-
-  setup-env:
-    runs-on: ubuntu-latest
-    env:
-      PKGS_DIR: ${{ github.workspace }}/conda_pkgs_dir
-      UPDATE_CONDA_CACHE: ${{ github.event.inputs.update_cache }}
-    outputs:
-      conda_env_path: ${{ steps.get_env_path.outputs.path }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Cache Conda packages
-        id: cache-pkgs
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.PKGS_DIR }}
-          key: ${{ runner.os }}-conda-pkgs-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-conda-pkgs-
-
-      - name: Bootstrap & update base
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          auto-activate-base: true
-          pkgs-dirs: ${{ env.PKGS_DIR }}
-          use-only-tar-bz2: true
-
-      - name: Update base environment
-        if: steps.cache-pkgs.outputs.cache-hit != 'true' || env.UPDATE_CONDA_CACHE == 'true'
-        run: mamba env update -n base -f testing.yml --prune
-
-      - name: Install package into env
-        run: pip install .
-
-      - name: Get conda env path
-        id: get_env_path
-        run: echo "path=$(conda info --base)" >> $GITHUB_OUTPUT
-
-      - name: Cache full conda environment
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.get_env_path.outputs.path }}
-          key: conda-env-full-${{ github.sha }}
-          restore-keys: |
-            conda-env-full-
-
   Test:
-    if: ${{ always() }}
-    needs: [prepare-images, setup-env]
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
         test: ["config", "design", "pipeline"]
-        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", "cat", "meth", "mcc"]
-    env:
-      APPTAINER_CACHEDIR: ${{ github.workspace }}/apptainer-cache
+        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: true
 
-      - name: Bootstrap Miniconda at cached prefix
+      - name: Setup conda
         uses: conda-incubator/setup-miniconda@v3
         with:
+          environment-file: testing.yml
           miniforge-version: latest
-          install-prefix: ${{ needs.setup-env.outputs.conda_env_path }}
-          auto-activate-base: false
 
-      - name: Debug conda_env_path
+      - name: Install package
+        shell: pwsh
         run: |
-          echo ">>> Conda env path is: '${{ needs.setup-env.outputs.conda_env_path }}'"
+          pip install .
 
-      - name: Restore full conda environment
+      - name: Cache singularity
+        if: matrix.test == 'pipeline'
+        id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: "${{ needs.setup-env.outputs.conda_env_path }}"
-          key: conda-env-full-${{ github.sha }}
+          path: ~/.apptainer
+          key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
           restore-keys: |
-            conda-env-full-
-
-      - name: Download Apptainer cache
+            ${{ runner.os }}-singularity-    
+      - uses: eWaterCycle/setup-apptainer@v2
         if: matrix.test == 'pipeline'
-        uses: actions/cache@v3
         with:
-          path: ${{ env.APPTAINER_CACHEDIR }}
-          key: apptainer-cache-${{ hashFiles('**/*.sif') }}
-          restore-keys: |
-            apptainer-cache-
+          apptainer-version: 1.3.4
 
-      - name: Configure Sylabs remote
+      - name: Add singularity hub remote
         if: matrix.test == 'pipeline'
+        shell: pwsh
         run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io || true
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Run pytest
-        shell: bash -l {0}
+      - name: Pull singularity images
+        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          echo "Pulling singularity images from the remote repository..."
+          mkdir -p tmp
+          if [[ "${{ matrix.test }}" == "pipeline" ]]; then
+            apptainer pull --force library://asmith151/seqnado/seqnado_pipeline:latest
+            apptainer pull --force library://cchahrou/seqnado/seqnado_qc.sif:latest
+          elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
+            apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
+          elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
+            apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
+          elif [[ "${{ matrix.assay }}" == "meth" ]]; then
+            apptainer pull --force library://cchahrou/seqnado/seqnado_meth.sif:latest
+          fi
+
+      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
+        shell: pwsh
         env:
           TMPDIR: /tmp
-          SEQNADO_CONFIG: ${{ github.workspace }}/tests/genome_config.json
-          CONDA: ${{ needs.setup-env.outputs.conda_env_path }}
+          SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          source "${CONDA}/etc/profile.d/conda.sh"
-          conda activate base
-          python -m pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
