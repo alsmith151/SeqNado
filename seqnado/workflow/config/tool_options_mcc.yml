@@ -1,5 +1,5 @@
 lanceotron_mcc:
-    options: --max-peak-size 2000
+    options: --max-peak-size 2000 --no-mcc-filter-enriched-regions --no-mcc-filter-background
 
 trim_galore:
     threads: 4
