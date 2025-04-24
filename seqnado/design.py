@@ -1257,35 +1257,34 @@ class GEOFiles(BaseModel):
 
 class QCFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
-    fastq_screen: bool = False
-    library_complexity: bool = False
+    sample_names: List[str]
 
     @property
     def default_files(self) -> List[str]:
         return [
-            "seqnado_output/qc/fastq_raw_qc.html",
-            "seqnado_output/qc/fastq_trimmed_qc.html",
-            "seqnado_output/qc/alignment_raw_qc.html",
-            "seqnado_output/qc/alignment_filtered_qc.html",
-            "seqnado_output/qc/full_qc_report.html",
+            "seqnado_output/seqnado_report.html",
+            "seqnado_output/qc/alignment_stats.tsv",
         ]
 
     @property
-    def fastq_screen_files(self) -> List[str]:
-        return ["seqnado_output/qc/full_fastqscreen_report.html"]
+    def qualimap_files(self) -> List[str]:
+        if self.assay == "RNA":
+            return expand(
+                "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
+                sample=self.sample_names,
+            )
+        else:
+            return expand(
+                "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+                sample=self.sample_names,
+            )
 
-    @property
-    def library_complexity_files(self) -> List[str]:
-        return ["seqnado_output/qc/library_complexity_qc.html"]
 
     @computed_field
     @property
     def files(self) -> List[str]:
         files = self.default_files
-        if self.fastq_screen:
-            files.extend(self.fastq_screen_files)
-        if self.library_complexity:
-            files.extend(self.library_complexity_files)
+        files.extend(self.qualimap_files)
         return files
 
 
@@ -1408,7 +1407,6 @@ class PeakCallingFiles(BaseModel):
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "CUT&TAG"]
     make_heatmaps: bool = False
-    make_heatmaps: bool = False
 
     @property
     def heatmap_files(self) -> List[str]:
@@ -1491,7 +1489,7 @@ class PlotFiles(BaseModel):
                     else region.Name
                 )
                 plots.append(outdir / f"{fig_name}.{self.plotting_format}")
-        
+
         except FileNotFoundError:
             logger.warning(
                 f"Could not find plotting coordinates file: {self.plotting_coordinates}"
@@ -1605,7 +1603,8 @@ class Output(BaseModel):
     def plots(self):
         if self.perform_plotting:
             pf = PlotFiles(
-                plotting_coordinates=self.plotting_coordinates, plotting_format=self.plotting_format
+                plotting_coordinates=self.plotting_coordinates,
+                plotting_format=self.plotting_format,
             )
             return pf.files
         else:
@@ -1651,8 +1650,7 @@ class RNAOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
@@ -1737,8 +1735,7 @@ class NonRNAOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
@@ -1832,14 +1829,9 @@ class IPOutput(NonRNAOutput):
 class SNPOutput(Output):
     assay: Literal["SNP"]
     call_snps: bool = False
+    annotate_snps: bool = False
     sample_names: List[str]
     make_ucsc_hub: bool = False
-    snp_calling_method: Optional[
-        Union[
-            Literal["bcftools", "deepvariant", False],
-            List[Literal["bcftools", "deepvariant"]],
-        ]
-    ] = None
 
     @property
     def design(self):
@@ -1849,16 +1841,21 @@ class SNPOutput(Output):
     def snp_files(self) -> List[str]:
         if self.call_snps:
             return expand(
-                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                "seqnado_output/variant/{sample}.vcf.gz",
                 sample=self.sample_names,
-                method=self.snp_calling_method,
             )
         else:
             return []
-
+    
     @property
-    def peaks(self):
-        return []
+    def anno_snp_files(self) -> List[str]:
+        if self.annotate_snps:
+            return expand(
+                "seqnado_output/variant/{sample}.anno.vcf.gz",
+                sample=self.sample_names,
+            )
+        else:
+            return []
 
     @computed_field
     @property
@@ -1867,13 +1864,11 @@ class SNPOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
         for file_list in (
-            self.snp_files,
             self.design,
         ):
             if file_list:
@@ -1881,6 +1876,9 @@ class SNPOutput(Output):
 
         if self.call_snps:
             files.append(self.snp_files)
+
+        if self.annotate_snps:
+            files.append(self.anno_snp_files)
 
         return files
 
@@ -1912,7 +1910,7 @@ class METHOutput(Output):
                 genome=self.genomes,
             )
         return []
-    
+
     @property
     def meth_files(self) -> List[str]:
         if self.call_methylation and "taps" not in self.methylation_assay:
@@ -1935,8 +1933,6 @@ class METHOutput(Output):
 
     @property
     def methylation_bias(self) -> List[str]:
-        """
-        Get the methylation bias files. and seqnado_output/methylation/methylation_conversion.tsv"""
         if self.call_methylation:
             return expand(
                 "seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",
@@ -1946,7 +1942,6 @@ class METHOutput(Output):
 
         return []
 
-
     @computed_field
     @property
     def files(self) -> List[str]:
@@ -1954,8 +1949,7 @@ class METHOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
@@ -1974,7 +1968,7 @@ class METHOutput(Output):
 class MCCOutput(Output):
     assay: Literal["MCC"]
     sample_names: List[str]
-    
+
     viewpoint_oligos: List[str]
     viewpoints_grouped: List[str]
 
@@ -2033,8 +2027,7 @@ class MCCOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
@@ -2049,7 +2042,6 @@ class MCCOutput(Output):
                 files.extend(file_list)
 
         return files
-
 
 
 class Molecule(Enum):

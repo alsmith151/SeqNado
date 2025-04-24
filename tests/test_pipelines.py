@@ -160,39 +160,39 @@ def blacklist(genome_path):
 
 
 @pytest.fixture(scope="function")
-def meth_files(genome_path):
-    meth_fasta = genome_path / "chr21_meth.fa"
-    meth_fasta_fai = genome_path / "chr21_meth.fa.fai"
+def genome_files(genome_path):
+    fasta = genome_path / "chr21_meth.fa"
+    fasta_fai = genome_path / "chr21_meth.fa.fai"
 
-    if not meth_fasta.exists():
+    if not fasta.exists():
         url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
         r = requests.get(url, stream=True)
-        with open(meth_fasta, "wb") as f:
+        with open(fasta, "wb") as f:
             f.write(r.content)
 
-    if not meth_fasta_fai.exists():
+    if not fasta_fai.exists():
         url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
         r = requests.get(url, stream=True)
-        with open(meth_fasta_fai, "wb") as f:
+        with open(fasta_fai, "wb") as f:
             f.write(r.content)
 
-    return meth_fasta, meth_fasta_fai
+    return fasta, fasta_fai
 
 
 @pytest.fixture(scope="function")
 def mcc_files(genome_path):
     files = dict()
-    
-    
+
     url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/test_viewpoints.bed"
     r = requests.get(url, stream=True)
     mcc_viewpoints = genome_path / "mcc_viewpoints.bed"
     with open(mcc_viewpoints, "wb") as f:
         f.write(r.content)
-    
-    files['viewpoints'] = genome_path / "mcc_viewpoints.bed"
+
+    files["viewpoints"] = genome_path / "mcc_viewpoints.bed"
 
     return files
+
 
 @pytest.fixture(scope="function")
 def assay_type(assay):
@@ -272,7 +272,7 @@ def run_directory(tmpdir_factory, assay):
 
 @pytest.fixture(scope="function", autouse=True)
 def run_init(
-    index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatch, meth_files
+    index, chromsizes, gtf, blacklist, run_directory, assay, monkeypatch, genome_files
 ):
     """
     Runs seqnado-init before each test inside the test directory.
@@ -305,7 +305,7 @@ def run_init(
             "bt2_index": str(index),
         }
 
-    meth_fasta, _ = meth_files
+    fasta, _ = genome_files
     genome_config_dict = {
         "hg38": {
             "star_index": index_dict["star_index"],
@@ -314,7 +314,7 @@ def run_init(
             "gtf": str(gtf),
             "blacklist": str(blacklist),
             "genes": "",
-            "fasta": str(meth_fasta) if assay == "meth" else "",
+            "fasta": str(fasta) if assay in ["meth", "snp"] else "",
         }
     }
     with open(genome_config_file, "w") as f:
@@ -327,14 +327,15 @@ def run_init(
 
 
 @pytest.fixture(scope="function")
-def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_files):
-    meth_fasta, meth_fasta_fai = meth_files
+def user_inputs(test_data_path, assay, assay_type, plot_bed, genome_files, mcc_files):
+    fasta, fasta_fai = genome_files
     prompts = {
+        "Annotate SNPs?": "no",
         "Bigwig method:": "deeptools",
-        "Calculate library complexity?": "yes" if assay == "atac" else "no",
+        "Calculate library complexity?": "yes" if assay in ["cat", "snp"] else "no",
         "Call methylation?": "yes",
         "Call peaks?": "yes",
-        "Call SNPs?": "no",
+        "Call SNPs?": "yes" if assay == "snp" else "no",
         "Color by (for UCSC hub):": "samplename",
         "Do you have spikein? (yes/no)": "yes" if "rx" in assay else "no",
         "Duplicates removal method:": "picard",
@@ -342,7 +343,9 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         "Generate consensus counts from Design merge column? (yes/no)": "yes"
         if assay in ["atac", "chip-rx"]
         else "no",
-        "Generate GEO submission files?": "yes" if assay in ["chip", "rna", 'cat'] else "no",
+        "Generate GEO submission files?": "yes"
+        if assay in ["chip", "rna", "cat"]
+        else "no",
         "Genome?": "hg38",
         "Make Bigwigs?": "yes",
         "Make heatmaps?": "yes" if assay == "atac" else "no",
@@ -353,25 +356,30 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, meth_files, mcc_fil
         if not assay == "snp"
         else "",
         "Path to bed file with genes.": "",
-        "Path to reference fasta index:": "dummy_ref.fasta.fai" if not assay == "meth" else str(meth_fasta_fai),
-        "Path to reference fasta:": "dummy_ref.fasta" if assay not in ["meth", 'mcc'] else str(meth_fasta),
+        "Path to reference fasta index:": str(fasta_fai) if assay in ["meth", "snp"] else "dummy_ref.fasta.fai",
+        "Path to reference fasta:": "dummy_ref.fasta"
+        if assay not in ["meth", "mcc"]
+        else str(fasta),
         "Path to SNP database:": "dummy_snp_db",
         "Peak calling method:": "lanceotron",
         "Perform fastqscreen?": "no",
         "Perform plotting?": "yes" if not assay == "snp" else "no",
         "Project name?": "test",
-        "Quantification method:": "feature_counts",  # default RNA response
+        "Quantification method:": "feature_counts",
         "Reference genome:": "hg38",
         "Remove blacklist regions?": "yes",
-        "Remove PCR duplicates?": "yes",
+        "Remove PCR duplicates?": "no" if assay in ["rna", "rna-rx"] else "yes",
         "Run DESeq2?": "no",
         "Salmon index path:": "dummy_salmon_index",
         "Shift ATAC reads?": "yes",
-        "SNP caller:": "bcftools",
         "Spikein genome:": "dm6",
         "UCSC hub directory:": "dummy_hub_dir",
         "What is your email address?": "test@example.com",
-        "Path to viewpoints file: (default: path/to/viewpoints.bed):": str(mcc_files['viewpoints']) if assay == "mcc" else "",
+        "Path to viewpoints file: (default: path/to/viewpoints.bed):": str(
+            mcc_files["viewpoints"]
+        )
+        if assay == "mcc"
+        else "",
         "Resolution for MCC cooler files:": "100",
     }
 
@@ -486,15 +494,28 @@ def test_design(design, assay_type):
 
 @pytest.fixture(scope="function", autouse=True)
 def apptainer_args(index, test_data_path):
+    import importlib.resources
+    import seqnado.data
+    import pathlib
+    import os
+
     indicies_mount = index.parent if not index.is_dir() else index
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
     apptainer_cache_dir = pathlib.Path.home() / ".apptainer"
+    multiqc_config = (
+        pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml")
+        .absolute()
+        .resolve()
+    )
+    multiqc_config_parent = multiqc_config.parent
+
     os.environ["APPTAINER_BINDPATH"] = (
         f"{wd}:{wd},"
         f"{test_data_path}:{test_data_path},"
         f"{indicies_mount}:{indicies_mount},"
-        f"{tmpdir}:{tmpdir}"
+        f"{tmpdir}:{tmpdir},"
+        f"{multiqc_config_parent}:{multiqc_config_parent}"
     )
 
     if not os.environ.get("APPTAINER_CACHEDIR"):
@@ -514,6 +535,7 @@ def test_pipeline(
     design,
     index,
     test_data_path,
+    package_path,
     test_profile_path,
 ):
     subprocess.run(
@@ -533,4 +555,4 @@ def test_pipeline(
 
     assert not os.path.exists("seqnado_error.log")
     assert os.path.exists("seqnado_output/")
-    assert os.path.exists("seqnado_output/qc/full_qc_report.html")
+    assert os.path.exists("seqnado_output/seqnado_report.html")

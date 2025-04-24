@@ -28,3 +28,4 @@ seqnado.sif
 containers/*.sif
 *target/*
 *delete*
+.DS_Store
