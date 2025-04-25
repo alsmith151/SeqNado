@@ -1,6 +1,10 @@
 import os
 from seqnado.helpers import check_options, define_time_requested, define_memory_requested
 
+##############################################
+#                   FastQC                   #
+############################################## 
+
 rule fastqc_raw_paired:
     input:
         fq1="seqnado_output/fastqs/{sample}_1.fastq.gz",
@@ -13,11 +17,10 @@ rule fastqc_raw_paired:
     params:
         extra="--quiet",
         output_dir="seqnado_output/qc/fastqc_raw/",
-        temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     threads: 1
     resources:
-        mem="1.5GB",
-         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
@@ -35,7 +38,6 @@ rule fastqc_raw_single:
     params:
         extra="--quiet",
         output_dir="seqnado_output/qc/fastqc_raw/",
-        temp_prefix="seqnado_output/qc/fastqc_raw/{sample}",
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
@@ -43,212 +45,271 @@ rule fastqc_raw_single:
         fastqc -o {params.output_dir} {input} > {log} 2>&1
         """
 
+        
+##############################################
+#                  Qualimap                  #
+############################################## 
 
-use rule fastqc_raw_paired as fastqc_trimmed_paired with:
-    input:
-        fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
-        fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
-    output:
-        html1="seqnado_output/qc/fastqc_trimmed/{sample}_1_fastqc.html",
-        html2="seqnado_output/qc/fastqc_trimmed/{sample}_2_fastqc.html",
-        zip1="seqnado_output/qc/fastqc_trimmed/{sample}_1_fastqc.zip",
-        zip2="seqnado_output/qc/fastqc_trimmed/{sample}_2_fastqc.zip",
-    params:
-        extra="--quiet",
-        output_dir="seqnado_output/qc/fastqc_trimmed/",
-        temp_prefix="seqnado_output/qc/fastqc_trimmed/{sample}",
-    log:
-        "seqnado_output/logs/fastqc_trimmed/{sample}.log",
+def format_qualimap_options(wildcards):
+    qualimap_rnaseq_options = "--paired --sorted"
+    qualimap_bamqc_options = "--collect-overlap-pairs"
+
+    is_paired = DESIGN.query(wildcards.sample).is_paired
+    if not is_paired:
+        qualimap_rnaseq_options = re.sub(r"--paired", "", qualimap_rnaseq_options)
+        qualimap_bamqc_options = re.sub(r"--collect-overlap-pairs", "", qualimap_bamqc_options)
+    return qualimap_rnaseq_options if ASSAY == "RNA" else qualimap_bamqc_options
 
 
-use rule fastqc_raw_single as fastqc_trimmed_single with:
-    input:
-        "seqnado_output/trimmed/{sample}.fastq.gz",
-    output:
-        html="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.html",
-        zip="seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.zip",
-    params:
-        extra="--quiet",
-        output_dir="seqnado_output/qc/fastqc_trimmed/",
-        temp_prefix="seqnado_output/qc/fastqc_trimmed/{sample}",
-    log:
-        "seqnado_output/logs/fastqc_trimmed/{sample}.log",
-
-
-rule samtools_stats:
-    input:
-        bam="seqnado_output/aligned/raw/{sample}.bam",
-    output:
-        stats="seqnado_output/qc/alignment_raw/{sample}.txt",
-    threads: 1
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        """samtools stats {input.bam} > {output.stats}"""
-
-
-use rule samtools_stats as samtools_stats_filtered with:
+rule qualimap_bamqc:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
     output:
-        stats="seqnado_output/qc/alignment_filtered/{sample}.txt",
+        html="seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+    params:
+        output_dir="seqnado_output/qc/qualimap_bamqc/{sample}/",
+        options=format_qualimap_options,
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    threads: 16
+    container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
+    log:"seqnado_output/logs/qualimap_bamqc/{sample}.log",
+    shell:"""
+    qualimap --java-mem-size={resources.mem} bamqc \
+    {params.options} \
+    -nt {threads} \
+    -bam {input.bam} \
+    -outdir {params.output_dir} \
+    > {log} 2>&1
+    """
 
-def get_fastqc_files(wildcards):
-    
-    
+
+rule qualimap_rnaseq:
+    input:
+        bam="seqnado_output/aligned/{sample}.bam",
+    output:
+        html="seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
+    params:
+        output_dir="seqnado_output/qc/qualimap_rnaseq/{sample}/",
+        annotation=config["genome"]["gtf"],
+        options=format_qualimap_options,
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    threads: 16
+    container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
+    log:
+        "seqnado_output/logs/qualimap_rnaseq/{sample}.log",
+    shell:"""
+    qualimap --java-mem-size={resources.mem} rnaseq \
+    {params.options} \
+    -bam {input.bam} \
+    -gtf {params.annotation} \
+    -outdir {params.output_dir} \
+    > {log} 2>&1    
+    """
+
+
+
+##############################################
+#               Frip Enrichment              #
+##############################################
+
+def format_frip_enrichment_options(wildcards):
+    is_paired = DESIGN.query(wildcards.sample).is_paired
+    options = "--extendReads"
+    if not is_paired:
+        options = re.sub(r"--extendReads", "", options)
+    return options
+
+
+rule frip_enrichment:
+    input:
+        bam="seqnado_output/aligned/{sample}.bam",
+        peak="seqnado_output/peaks/{directory}/{sample}.bed",
+    output:
+        pdf="seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.pdf",
+        frip_count="seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+    params:
+        options=format_frip_enrichment_options,
+    threads: 16
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    log:"seqnado_output/logs/frip_enrichment/{directory}/{sample}.log",
+    shell:
+        """
+        plotEnrichment -p {threads} \
+        --bamfiles {input.bam} \
+        --BED {input.peak} \
+        --outRawCounts {output.frip_count} \
+        --plotFile {output.pdf} \
+        > {log} 2>&1
+        """
+
+
+##############################################
+#                Gather Stats                #
+##############################################
+
+def get_fastqc_files_all(wildcards):
     single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]
     paired_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == True]
-   
-    
     fastqc_raw_paired = expand(
-            "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
-            sample=paired_end_assays,
-            read=[1, 2],
-        ),
-    fastqc_trimmed_paired = expand(
-            "seqnado_output/qc/fastqc_trimmed/{sample}_{read}_fastqc.html",
-            sample=paired_end_assays,
-            read=[1, 2],
-        ),
-    
+        "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
+        sample=paired_end_assays,
+        read=[1, 2],
+    ),
     fastqc_raw_single = expand(
-            "seqnado_output/qc/fastqc_raw/{sample}_fastqc.html",
-            sample=single_end_assays,
-        ),
-    
-    fastqc_trimmed_single = expand(
-            "seqnado_output/qc/fastqc_trimmed/{sample}_fastqc.html",
-            sample=single_end_assays,
-        ),
-    
+        "seqnado_output/qc/fastqc_raw/{sample}_fastqc.html",
+        sample=single_end_assays,
+    ),
     all_qc_files = []
-    for files in [fastqc_raw_paired, fastqc_trimmed_paired, fastqc_raw_single, fastqc_trimmed_single]:
+    for files in [fastqc_raw_paired, fastqc_raw_single]:
         if files:
             all_qc_files.extend(*files)
     
     return all_qc_files
 
 
-rule multiqc:
-    input:
-        get_fastqc_files,
-        expand("seqnado_output/qc/alignment_raw/{sample}.txt", sample=SAMPLE_NAMES),
-        expand(
-            "seqnado_output/qc/alignment_filtered/{sample}.txt",
+def get_fastq_screen_all(wildcards):
+    single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]
+    paired_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == True]
+    fastq_screen_single = expand(
+        "seqnado_output/qc/fastq_screen/{sample}_screen.txt",
+        sample=single_end_assays,
+    ),
+    fastq_screen_paired = expand(
+        "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
+        sample=paired_end_assays,
+        read=[1, 2],
+    ),
+    all_fastq_screen_files = []
+    if config["fastq_screen"]:
+        for files in [fastq_screen_paired, fastq_screen_single]:
+            if files:
+                all_fastq_screen_files.extend(*files)
+        
+    return all_fastq_screen_files
+
+
+def get_library_complexity_qc(wildcards):
+    if config["library_complexity"]:
+        return expand(
+            "seqnado_output/qc/library_complexity/{sample}.metrics",
             sample=SAMPLE_NAMES,
-        ),
-    output:
-        "seqnado_output/qc/full_qc_report.html",
-    log:
-        "seqnado_output/logs/multiqc.log",
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        "multiqc -o seqnado_output/qc seqnado_output/qc -n full_qc_report.html --force > {log} 2>&1"
+        )
+    else:
+        return []
 
 
-def get_fastqc_files(*args, **kwargs):
-    """Return a list of fastq files for a given sample name."""
-    import pathlib
-
-    fastqc_dir = pathlib.Path("seqnado_output/qc/fastqc_raw/")
-
-    fastqc_files = []
-    fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
-    for fq_file in fq_files:
-        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + "_fastqc.html")
-        fastqc_files.append(str(fastqc_file))
-
-    return fastqc_files
-
-
-rule multiqc_raw:
-    input:
-        get_fastqc_files,
-    output:
-        "seqnado_output/qc/fastq_raw_qc.html",
-    log:
-        "seqnado_output/logs/multiqc_raw.log",
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        "multiqc -o seqnado_output/qc seqnado_output/qc/fastqc_raw -n fastq_raw_qc.html --force > {log} 2>&1"
-
-
-def get_trimmed_files(wc):
-    """Return a list of fastq files for a given sample name."""
-    import pathlib
-
-    fastqc_dir = pathlib.Path("seqnado_output/qc/fastqc_trimmed/")
-
-    fastqc_files = []
-    fq_files = pathlib.Path("seqnado_output/fastqs").glob("*.fastq.gz")
-    for fq_file in fq_files:
-        fastqc_file = fastqc_dir / (fq_file.stem.replace(".fastq", "") + "_fastqc.html")
-        fastqc_files.append(str(fastqc_file))
-
-    return fastqc_files
-
-
-rule multiqc_trimmed:
-    input:
-        get_trimmed_files,
-    output:
-        "seqnado_output/qc/fastq_trimmed_qc.html",
-    log:
-        "seqnado_output/logs/multiqc_trimmed.log",
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        "multiqc -o seqnado_output/qc seqnado_output/qc/fastqc_trimmed -n fastq_trimmed_qc.html --force > {log} 2>&1"
-
-
-rule multiqc_alignment_raw:
-    input:
-        expand(
-            "seqnado_output/qc/alignment_raw/{sample}.txt",
+def get_alignment_logs(wildcards):
+    if ASSAY == "MCC":
+        return []
+    elif ASSAY == "RNA":
+        return expand(
+            "seqnado_output/aligned/star/{sample}_Log.final.out",
             sample=SAMPLE_NAMES,
-        ),
-    output:
-        "seqnado_output/qc/alignment_raw_qc.html",
-    log:
-        "seqnado_output/logs/multiqc_alignment_raw.log",
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_raw -n alignment_raw_qc.html --force > {log} 2>&1"
-
-
-rule multiqc_alignment_filtered:
-    input:
-        expand(
-            "seqnado_output/qc/alignment_filtered/{sample}.txt",
+        )
+    else: 
+        return expand(
+            "seqnado_output/logs/align/{sample}.log",
             sample=SAMPLE_NAMES,
-        ),
-    output:
-        "seqnado_output/qc/alignment_filtered_qc.html",
-    log:
-        "seqnado_output/logs/multiqc_alignment_filtered.log",
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        "multiqc -o seqnado_output/qc seqnado_output/qc/alignment_filtered -n alignment_filtered_qc.html --force > {log} 2>&1"
+            )
 
 
-rule multiqc_library_complexity:
-    input:
-        expand(
-            "seqnado_output/aligned/duplicates_removed/{sample}.metrics",
+def get_qualimap_files(wildcards):
+    if ASSAY == "MCC":
+        return []
+    if ASSAY == "RNA":
+        return expand(
+            "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
             sample=SAMPLE_NAMES,
-        ),
+        )  
+    else:
+        return expand(
+            "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+            sample=SAMPLE_NAMES,
+        )
+
+
+def get_frip_files(wildcards):
+    if ASSAY in ["CAT", "ATAC"] and config["call_peaks"]:
+        peak_methods = OUTPUT.peak_calling_method
+        return expand(
+            "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+            sample=SAMPLE_NAMES,
+            directory=peak_methods,
+        )
+    if ASSAY == "ChIP" and config["call_peaks"]:
+        peak_methods = OUTPUT.peak_calling_method
+        return expand(
+            "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+            sample=SAMPLE_NAMES_IP,
+            directory=peak_methods,
+        )
+    else:
+        return []
+
+
+def get_counts_files(wildcards):
+    if ASSAY == "RNA" and config["rna_quantification"] == "featurecounts":
+        return expand(
+            "seqnado_output/readcounts/feature_counts/read_counts.tsv",
+        ) 
+    elif ASSAY == "RNA" and config["rna_quantification"] == "salmon":
+        return expand(
+            "seqnado_output/readcounts/salmon/salmon_{sample}/quant.sf",
+            sample=SAMPLE_NAMES,
+        ) 
+    else:
+        return []
+
+
+def get_snp_qc(wildcards):
+    if ASSAY == "SNP" and config["call_snps"]:
+        return expand(
+            "seqnado_output/qc/variant/{sample}.stats.txt",
+            sample=SAMPLE_NAMES,
+        )
+    if ASSAY == "SNP" and config["annotate_snps"]:
+        return expand(
+            "seqnado_output/qc/variant/{sample}.anno.stats.txt",
+            sample=SAMPLE_NAMES,
+        )
+    else:
+        return []
+
+##############################################
+#                  MultiQC                   #
+##############################################
+
+rule seqnado_report:
+    input:
+        get_fastqc_files_all,
+        get_fastq_screen_all,
+        get_alignment_logs,
+        get_library_complexity_qc,
+        get_qualimap_files,
+        get_frip_files,
+        get_counts_files,
+        get_snp_qc,
     output:
-        "seqnado_output/qc/library_complexity_qc.html",
-    log:
-        "seqnado_output/logs/multiqc_library_complexity.log",
+        report = "seqnado_output/seqnado_report.html",
+    params:
+        multiqc_config = "/opt/seqnado/multiqc_config.yaml"
+    log: "seqnado_output/logs/seqnado_report.log",
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        "multiqc -o seqnado_output/qc seqnado_output/aligned/duplicates_removed -n library_complexity_qc.html --force > {log} 2>&1"
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
+    shell:"""
+    multiqc -o seqnado_output seqnado_output \
+    --config {params.multiqc_config} \
+    --filename "seqnado_report.html" \
+    --no-data-dir \
+    --force > {log} 2>&1
+    """
 
-
-ruleorder: fastqc_raw_paired > fastqc_raw_single > fastqc_trimmed_paired > fastqc_trimmed_single > samtools_stats > samtools_stats_filtered > multiqc_raw > multiqc_trimmed > multiqc_alignment_raw > multiqc_alignment_filtered > multiqc_library_complexity
+ruleorder: fastqc_raw_paired > fastqc_raw_single > seqnado_report

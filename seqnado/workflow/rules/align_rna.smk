@@ -13,6 +13,7 @@ rule align_paired:
         bam2=temp(
             "seqnado_output/aligned/star/{sample}_Aligned.toTranscriptome.out.bam"
         ),
+        log_out=temp("seqnado_output/aligned/star/{sample}_Log.final.out"),
     threads: config["star"]["threads"]
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=35, attempts=attempt, scale=SCALE_RESOURCES),

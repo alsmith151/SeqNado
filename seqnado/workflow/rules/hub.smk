@@ -89,7 +89,7 @@ rule generate_hub:
             OUTPUT.bigwigs,
             OUTPUT.bigbed,
         ],
-        report="seqnado_output/qc/alignment_filtered_qc.html",
+        report="seqnado_output/seqnado_report.html",
     output:
         hub=OUTPUT.ucsc_hub.hub_txt,
     log:

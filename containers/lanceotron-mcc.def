@@ -1,0 +1,27 @@
+BootStrap: docker
+From: pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
+
+
+%files
+    lanceotron-mcc
+
+%post
+    # Install required packages
+    apt-get update && apt-get install -y \
+        build-essential \
+        libcurl4-openssl-dev \
+        gcc 
+
+
+    cd lanceotron-mcc
+    pip install .
+    cd ..
+
+    # Clean up
+    rm -rf lanceotron-mcc
+    pip cache purge
+    apt-get clean
+    apt-get autoremove -y
+
+    ## remove build essential
+    apt-get remove -y build-essential

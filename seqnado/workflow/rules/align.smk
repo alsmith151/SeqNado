@@ -19,9 +19,7 @@ rule align_paired:
         "seqnado_output/logs/align/{sample}.log",
     shell:
         """bowtie2 -p {threads} -x {params.index} -1 {input.fq1} -2 {input.fq2} {params.options} 2> {log} |
-           samtools view -bS - > {output.bam} &&
-           samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} >> {log} 2>&1 &&
-           mv {output.bam}_sorted {output.bam}
+           samtools view -bS - > {output.bam}
         """
 
 
@@ -41,9 +39,7 @@ rule align_single:
         "seqnado_output/logs/align/{sample}.log",
     shell:
         """bowtie2 -p {threads} -x {params.index} -U {input.fq1} {params.options} 2> {log} |
-            samtools view -bS - > {output.bam} &&
-            samtools sort -@ {threads} -o {output.bam}_sorted {output.bam} &&
-            mv {output.bam}_sorted {output.bam}
+            samtools view -bS - > {output.bam}
         """
 
 

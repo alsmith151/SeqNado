@@ -148,7 +148,7 @@ rule lanceotron_with_input:
         "library://asmith151/seqnado/seqnado_extra:latest"
     threads: 1
     resources:
-        mem="10GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
@@ -164,7 +164,7 @@ rule lanceotron_no_input:
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
     log:
-        "seqnado_output/logs/lanceotron/{sample}_{treatment}.bed",
+        "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
     params:
         options=check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
@@ -173,7 +173,7 @@ rule lanceotron_no_input:
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
     resources:
-        mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt)}GB",
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """

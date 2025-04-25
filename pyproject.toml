@@ -40,10 +40,6 @@ seqnado-design = "seqnado.cli:cli_design"
 seqnado-config = "seqnado.cli:cli_config"
 seqnado-init = "seqnado.cli:cli_init"
 
-[project.optional-dependencies]
-#atac = ["rsbamtk @ git+https://github.com/alsmith151/rsbamtk.git"]
-mcc = ["mccnado @ git+https://github.com/alsmith151/MCCNado.git", "cooler"]
-
 [tool.setuptools_scm]
 write_to = "seqnado/_version.py"
 local_scheme = "no-local-version"

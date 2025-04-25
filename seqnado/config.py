@@ -68,6 +68,7 @@ class WorkflowConfig(BaseModel):
     # SNP-Specific
     call_snps: bool = False
     snp_calling_method: Literal["bcftools", "deepvariant", "False"] = "False"
+    annotate_snps: bool = False
     snp_database: Optional[str] = None
 
     # MCC-Specific
@@ -296,10 +297,11 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     if assay == "snp":
         features["call_snps"] = get_user_input("Call SNPs?", default="no", is_boolean=True)
         if features["call_snps"]:
-            features["snp_calling_method"] = get_user_input("SNP caller:", choices=["bcftools", "deepvariant"], default="bcftools")
             features["fasta"] = genome_config.fasta if genome_config.fasta else get_user_input("Path to reference fasta:", default='no')
             features["fasta_index"] = get_user_input("Path to reference fasta index:", default="path/to/reference.fasta.fai", is_path=True)
-            features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database", is_path=True)
+            features["annotate_snps"] = get_user_input("Annotate SNPs?", default="no", is_boolean=True)
+            if features["annotate_snps"]:
+                features["snp_database"] = get_user_input("Path to SNP database:", default="path/to/snp_database", is_path=True)
     
     # Methylation Calling
     if assay == "meth":
@@ -351,6 +353,8 @@ def get_tool_options(assay: str) -> str:
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_snp.yml'
         case "meth":
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_meth.yml'
+        case "mcc":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_mcc.yml'
         case _:
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_base.yml'
     

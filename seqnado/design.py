@@ -1257,56 +1257,43 @@ class GEOFiles(BaseModel):
 
 class QCFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
-    fastq_screen: bool = False
-    library_complexity: bool = False
+    sample_names: List[str]
 
     @property
     def default_files(self) -> List[str]:
         return [
-            "seqnado_output/qc/fastq_raw_qc.html",
-            "seqnado_output/qc/fastq_trimmed_qc.html",
-            "seqnado_output/qc/alignment_raw_qc.html",
-            "seqnado_output/qc/alignment_filtered_qc.html",
-            "seqnado_output/qc/full_qc_report.html",
+            "seqnado_output/seqnado_report.html",
+            "seqnado_output/qc/alignment_stats.tsv",
         ]
 
     @property
-    def fastq_screen_files(self) -> List[str]:
-        return ["seqnado_output/qc/full_fastqscreen_report.html"]
+    def qualimap_files(self) -> List[str]:
+        if self.assay == "RNA":
+            return expand(
+                "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
+                sample=self.sample_names,
+            )
+        else:
+            return expand(
+                "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+                sample=self.sample_names,
+            )
 
-    @property
-    def library_complexity_files(self) -> List[str]:
-        return ["seqnado_output/qc/library_complexity_qc.html"]
 
     @computed_field
     @property
     def files(self) -> List[str]:
         files = self.default_files
-        if self.fastq_screen:
-            files.extend(self.fastq_screen_files)
-        if self.library_complexity:
-            files.extend(self.library_complexity_files)
+        files.extend(self.qualimap_files)
         return files
 
 
 class BigWigFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", 'MCC']
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
     names: List[str]
     pileup_method: Union[
         Literal["deeptools", "homer", False],
-        List[
-            Literal[
-                "deeptools",
-                "homer",
-            ]
-        ],
-        Literal["deeptools", "homer", False],
-        List[
-            Literal[
-                "deeptools",
-                "homer",
-            ]
-        ],
+        List[Literal["deeptools", "homer"]]
     ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
@@ -1325,15 +1312,48 @@ class BigWigFiles(BaseModel):
             self.scale_method = ["unscaled", self.scale_method]
         else:
             self.scale_method = [self.scale_method]
+    
+    def _filter_bigwigs(self, bigwigs: List[str]) -> List[str]:
+        """
+        Filter the bigwigs based on the scale method.
+
+        Some combinations of scale methods and pileup methods are not
+        compatible. For example, the csaw scale method is not compatible
+        with the homer pileup method.
+        """
+
+        pileup_to_scale_method_not_compatible = {
+            "homer": ["csaw"],
+        }
+
+        # Iterate over the bigwigs and filter out the incompatible ones
+        filtered_bigwigs = []
+        for bigwig in bigwigs:
+            bw = pathlib.Path(bigwig)
+            scale_method = bw.parts[-2]
+            pileup_method = bw.parts[-3]
+
+            if (
+                pileup_method in pileup_to_scale_method_not_compatible
+                and scale_method in pileup_to_scale_method_not_compatible[pileup_method]
+            ):
+                continue
+            else:
+                filtered_bigwigs.append(bigwig)
+
+        return filtered_bigwigs
+
 
     @property
     def bigwigs_non_rna(self):
-        return expand(
+        bws = expand(
             self.prefix + "{method}/{scale}/{sample}.bigWig",
             sample=self.names,
             scale=self.scale_method,
             method=self.pileup_method,
         )
+
+        return self._filter_bigwigs(bws)
 
     @property
     def bigwigs_rna(self):
@@ -1386,7 +1406,6 @@ class PeakCallingFiles(BaseModel):
 
 class HeatmapFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "CUT&TAG"]
-    make_heatmaps: bool = False
     make_heatmaps: bool = False
 
     @property
@@ -1470,7 +1489,7 @@ class PlotFiles(BaseModel):
                     else region.Name
                 )
                 plots.append(outdir / f"{fig_name}.{self.plotting_format}")
-        
+
         except FileNotFoundError:
             logger.warning(
                 f"Could not find plotting coordinates file: {self.plotting_coordinates}"
@@ -1584,7 +1603,8 @@ class Output(BaseModel):
     def plots(self):
         if self.perform_plotting:
             pf = PlotFiles(
-                plotting_coordinates=self.plotting_coordinates, plotting_format=self.plotting_format
+                plotting_coordinates=self.plotting_coordinates,
+                plotting_format=self.plotting_format,
             )
             return pf.files
         else:
@@ -1630,8 +1650,7 @@ class RNAOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
@@ -1716,8 +1735,7 @@ class NonRNAOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
@@ -1811,14 +1829,9 @@ class IPOutput(NonRNAOutput):
 class SNPOutput(Output):
     assay: Literal["SNP"]
     call_snps: bool = False
+    annotate_snps: bool = False
     sample_names: List[str]
     make_ucsc_hub: bool = False
-    snp_calling_method: Optional[
-        Union[
-            Literal["bcftools", "deepvariant", False],
-            List[Literal["bcftools", "deepvariant"]],
-        ]
-    ] = None
 
     @property
     def design(self):
@@ -1828,16 +1841,21 @@ class SNPOutput(Output):
     def snp_files(self) -> List[str]:
         if self.call_snps:
             return expand(
-                "seqnado_output/variant/{method}/{sample}.vcf.gz",
+                "seqnado_output/variant/{sample}.vcf.gz",
                 sample=self.sample_names,
-                method=self.snp_calling_method,
             )
         else:
             return []
-
+    
     @property
-    def peaks(self):
-        return []
+    def anno_snp_files(self) -> List[str]:
+        if self.annotate_snps:
+            return expand(
+                "seqnado_output/variant/{sample}.anno.vcf.gz",
+                sample=self.sample_names,
+            )
+        else:
+            return []
 
     @computed_field
     @property
@@ -1846,13 +1864,11 @@ class SNPOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
         for file_list in (
-            self.snp_files,
             self.design,
         ):
             if file_list:
@@ -1860,6 +1876,9 @@ class SNPOutput(Output):
 
         if self.call_snps:
             files.append(self.snp_files)
+
+        if self.annotate_snps:
+            files.append(self.anno_snp_files)
 
         return files
 
@@ -1891,7 +1910,7 @@ class METHOutput(Output):
                 genome=self.genomes,
             )
         return []
-    
+
     @property
     def meth_files(self) -> List[str]:
         if self.call_methylation and "taps" not in self.methylation_assay:
@@ -1914,8 +1933,6 @@ class METHOutput(Output):
 
     @property
     def methylation_bias(self) -> List[str]:
-        """
-        Get the methylation bias files. and seqnado_output/methylation/methylation_conversion.tsv"""
         if self.call_methylation:
             return expand(
                 "seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",
@@ -1925,7 +1942,6 @@ class METHOutput(Output):
 
         return []
 
-
     @computed_field
     @property
     def files(self) -> List[str]:
@@ -1933,8 +1949,7 @@ class METHOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
@@ -1953,7 +1968,7 @@ class METHOutput(Output):
 class MCCOutput(Output):
     assay: Literal["MCC"]
     sample_names: List[str]
-    
+
     viewpoint_oligos: List[str]
     viewpoints_grouped: List[str]
 
@@ -1969,42 +1984,40 @@ class MCCOutput(Output):
     @property
     def cooler_files(self) -> List[str]:
         return expand(
-            "seqnado_output/mcc/{sample}/{viewpoint}.mcool",
-            sample=self.sample_names,
-            viewpoint=self.viewpoint_oligos,
+            "seqnado_output/mcc/{group}/{group}.mcool",
+            group=self.design_dataframe["merge"].unique().tolist(),
+        )
+    
+    @property
+    def pairs(self) -> List[str]:
+        return expand(
+            "seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+            group=self.design_dataframe["merge"].unique().tolist(),
+            viewpoint=self.viewpoints_grouped,
         )
 
     @property
     def peaks(self):
-        return []
+        return expand("seqnado_output/mcc/{group}/peaks/{viewpoint_group}.bed",
+            group=self.design_dataframe["merge"].unique().tolist(),
+            viewpoint_group=self.viewpoints_grouped,
+        )
 
     @property
     def bigwigs(self):
-        replicate_bigwigs =  expand(
-            "seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
-            sample=self.sample_names,
-            viewpoint=self.viewpoint_oligos,
-        )
-
-        viewpoint_group_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
+        replicate_bigwigs = expand(
+            "seqnado_output/mcc/replicates/{sample}/bigwigs/{viewpoint_group}.bigWig",
             sample=self.sample_names,
             viewpoint_group=self.viewpoints_grouped,
         )
 
-        sample_group_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
-            group=self.design_dataframe['merge'].unique().tolist(),
+        grouped_bigwigs = expand(
+            "seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig",
             viewpoint_group=self.viewpoints_grouped,
+            group=self.design_dataframe["merge"].unique().tolist(),
         )
 
-        return [
-            *replicate_bigwigs,
-            *viewpoint_group_bigwigs,
-            *sample_group_bigwigs,
-        ]
-            
-
+        return [*replicate_bigwigs, *grouped_bigwigs]
 
 
     @computed_field
@@ -2014,21 +2027,21 @@ class MCCOutput(Output):
         files.extend(
             QCFiles(
                 assay=self.assay,
-                fastq_screen=self.fastq_screen,
-                library_complexity=self.library_complexity,
+                sample_names=self.sample_names,
             ).files
         )
 
         for file_list in (
-            self.cooler_files,
             self.bigwigs,
+            self.cooler_files,
+            self.pairs,
+            self.peaks,
             self.design,
         ):
             if file_list:
                 files.extend(file_list)
 
         return files
-
 
 
 class Molecule(Enum):
@@ -2112,3 +2125,24 @@ class GEOSamples(BaseModel):
         df = pd.concat([s.to_series for s in self.samples], axis=1).T
         df.columns = df.columns.str.replace(r"\s\d+$", "", regex=True).str.strip()
         return df
+
+
+
+class ViewpointsFile(pandera.DataFrameModel):    
+    Chromosome: Series[str] = pandera.Field(coerce=True)
+    Start: Series[int] = pandera.Field(coerce=True)
+    End: Series[int] = pandera.Field(coerce=True)
+    Name: Series[str] = pandera.Field(coerce=True)
+    Strand: Optional[Series[str]] = pandera.Field(coerce=True)
+    Score: Optional[Series[float]] = pandera.Field(coerce=True, nullable=True)
+
+    # Validate the viewpoint names column
+    @pandera.check("Name")
+    def check_viewpoint_names(cls, s: Series[str]) -> Series[bool]:
+        
+        # Check that the names do not contain spaces or special characters
+        allowed_chars = r"^[a-zA-Z0-9_]+$"
+
+        return s.str.match(allowed_chars)
+
+        

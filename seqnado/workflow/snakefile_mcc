@@ -3,12 +3,13 @@ import glob
 import os
 import shutil
 import sys
+import pyranges as pr
 
 import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, NormGroups, MCCOutput
+from seqnado.design import Design, NormGroups, MCCOutput, ViewpointsFile
 from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files, extract_viewpoints, viewpoint_to_grouped_viewpoint
 
 
@@ -43,6 +44,8 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
+SAMPLE_GROUPS = list(DESIGN.to_dataframe()['merge'].unique())
+VIEWPOINTS_FILE = ViewpointsFile.validate(pr.read_bed(config["viewpoints"]).df.assign(Score=0)) # Ignore score column
 VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
 VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
 GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))
@@ -62,6 +65,7 @@ OUTPUT = MCCOutput(
 wildcard_constraints:
     sample="|".join(SAMPLE_NAMES),
     viewpoint="|".join([*VIEWPOINT_OLIGOS,  *GROUPED_VIEWPOINT_OLIGOS]),
+    group="|".join(SAMPLE_GROUPS),
 
 
 

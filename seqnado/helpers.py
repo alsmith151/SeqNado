@@ -66,16 +66,19 @@ def extract_apptainer_args(options: List[str]) -> Tuple[List[str], str]:
 
     return options, apptainer_args
 
-
 def define_memory_requested(
-    attempts: int = 1, initial_value: int = 1, scale: float = 1
+    attempts: int = 1,
+    initial_value: int = 1,
+    scale: float = 1
 ) -> str:
     """
-    Define the memory requested for the job.
+    Define the memory requested for the job, 
+    returns a string like "4G" avoiding decimals for qualimap.
     """
-    memory = int(initial_value) * 2 ** (int(attempts) - 1)
-    memory = memory * float(scale)
-    return f"{memory}G"
+    mem_value = int(initial_value) * 2 ** (int(attempts) - 1)
+    mem_value = int(mem_value * float(scale))
+    return f"{mem_value}G"
+
 
 
 def define_time_requested(

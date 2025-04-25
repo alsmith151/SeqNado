@@ -48,7 +48,7 @@ def cli_init(preset):
             for key, value in genome_data[genome].items():
                 if "PATH" in value:
                     if not os.path.exists(value):
-                        logger.error(
+                        logger.info(
                             f"Please update the genome config file {genome_config} with the correct paths."
                         )
                         break
@@ -61,7 +61,7 @@ def cli_init(preset):
             template = json.load(open(preset_genome_path, "r"))
         else:
             genome_template = f"{PACKAGE_DIR}/workflow/config/genomes_template.json"
-            logger.error(
+            logger.info(
                 f"Template genome file created. Please update the genome file {genome_config} with the correct paths."
             )
             template = json.load(open(genome_template, "r"))
