@@ -334,7 +334,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped with:
         excluded_regions="seqnado_output/resources/exclusion_regions.bed",
         cis_or_trans_stats="seqnado_output/resources/{group}_ligation_stats.json",
     output:
-        bigwig="seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig"
+        bigwig="seqnado_output/bigwigs/mcc/{group}_{viewpoint_group}.bigWig"
     params:
         bin_size=10,
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
@@ -479,9 +479,9 @@ rule aggregate_coolers:
 
 rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     input:
-        bigwig="seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig",
+        bigwig="seqnado_output/bigwigs/mcc/{group}_{viewpoint_group}.bigWig",
     output:
-        peaks="seqnado_output/mcc/{group}/peaks/{viewpoint_group}.bed",
+        peaks="seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
     log:
         "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
     params:

@@ -1998,7 +1998,7 @@ class MCCOutput(Output):
 
     @property
     def peaks(self):
-        return expand("seqnado_output/mcc/{group}/peaks/{viewpoint_group}.bed",
+        return expand("seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
             group=self.design_dataframe["merge"].unique().tolist(),
             viewpoint_group=self.viewpoints_grouped,
         )
@@ -2012,7 +2012,7 @@ class MCCOutput(Output):
         )
 
         grouped_bigwigs = expand(
-            "seqnado_output/mcc/{group}/bigwigs/{viewpoint_group}.bigWig",
+            "seqnado_output/bigwigs/mcc/{group}_{viewpoint_group}.bigWig",
             viewpoint_group=self.viewpoints_grouped,
             group=self.design_dataframe["merge"].unique().tolist(),
         )
