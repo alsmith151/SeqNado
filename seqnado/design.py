@@ -2018,6 +2018,15 @@ class MCCOutput(Output):
         )
 
         return [*replicate_bigwigs, *grouped_bigwigs]
+    
+    @property
+    def bigbed(self) -> List[str]:
+        bb = []
+        for peak_file in self.peaks:
+            bed = pathlib.Path(peak_file)
+            bigbed = bed.with_suffix(".bigBed")
+            bb.append(bigbed)
+        return bb
 
 
     @computed_field
@@ -2028,7 +2037,9 @@ class MCCOutput(Output):
             QCFiles(
                 assay=self.assay,
                 sample_names=self.sample_names,
-            ).files
+            ).files,
+            self.ucsc_hub.files,
+            self.geo_files.files,
         )
 
         for file_list in (
