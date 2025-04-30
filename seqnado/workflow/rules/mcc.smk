@@ -336,7 +336,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     output:
         bigwig="seqnado_output/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig"
     params:
-        bin_size=10,
+        bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
     log:
         "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
@@ -351,7 +351,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     output:
         bigwig="seqnado_output/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig"
     params:
-        bin_size=10,
+        bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=1,
     log:
         "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
@@ -508,6 +508,7 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     shell:
         """
         apptainer exec \
+        --nv \
         library://asmith151/lanceotron/lanceotron-mcc:latest \
         lanceotron-mcc \
         call-mcc-peaks \
