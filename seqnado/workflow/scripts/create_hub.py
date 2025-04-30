@@ -41,6 +41,11 @@ elif snakemake.params.assay == "RNA":
     df["strand"] = np.where(df["fn"].str.contains("_plus.bigWig"), "plus", "minus")
     df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
 
+elif snakemake.params.assay == 'MCC':
+    df["samplename"] = df["fn"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
+    df["method"] = df["fn"].apply(lambda x: x.split("/")[-3])
+    df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
+
 
 # Check that the dataframe is not empty i.e. no files were found
 if df.empty:
