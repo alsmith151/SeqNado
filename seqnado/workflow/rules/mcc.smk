@@ -327,21 +327,35 @@ use rule extract_ligation_stats as extract_ligation_stats_merged with:
         "seqnado_output/logs/extract_ligation_stats_merged/{group}.log",
 
 
-use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped with:
+use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     input:
         bam="seqnado_output/mcc/{group}/{group}.bam",
         bai="seqnado_output/mcc/{group}/{group}.bam.bai",
         excluded_regions="seqnado_output/resources/exclusion_regions.bed",
         cis_or_trans_stats="seqnado_output/resources/{group}_ligation_stats.json",
     output:
-        bigwig="seqnado_output/bigwigs/mcc/{group}_{viewpoint_group}.bigWig"
+        bigwig="seqnado_output/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig"
     params:
         bin_size=10,
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
     log:
-        "seqnado_output/logs/bigwig/{group}_{viewpoint_group}.log",
+        "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
     container: 'library://asmith151/seqnado/seqnado_mcc:latest'
-        
+
+
+use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
+    input:
+        bam="seqnado_output/mcc/{group}/{group}.bam",
+        bai="seqnado_output/mcc/{group}/{group}.bam.bai",
+        excluded_regions="seqnado_output/resources/exclusion_regions.bed",
+    output:
+        bigwig="seqnado_output/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig"
+    params:
+        bin_size=10,
+        scale_factor=1,
+    log:
+        "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
+
 
 
 rule identify_ligation_junctions:
@@ -479,7 +493,7 @@ rule aggregate_coolers:
 
 rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     input:
-        bigwig="seqnado_output/bigwigs/mcc/{group}_{viewpoint_group}.bigWig",
+        bigwig="seqnado_output/bigwigs/mcc/raw/{group}_{viewpoint_group}.bigWig",
     output:
         peaks="seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
     log:
