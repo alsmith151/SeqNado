@@ -2012,7 +2012,8 @@ class MCCOutput(Output):
         )
 
         grouped_bigwigs = expand(
-            "seqnado_output/bigwigs/mcc/{group}_{viewpoint_group}.bigWig",
+            "seqnado_output/bigwigs/mcc/{norm}/{group}_{viewpoint_group}.bigWig",
+            norm=['unscaled', 'n_cis'], 
             viewpoint_group=self.viewpoints_grouped,
             group=self.design_dataframe["merge"].unique().tolist(),
         )
