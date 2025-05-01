@@ -989,7 +989,7 @@ def generate_fastq_raw_names(
 class GEOFiles(BaseModel):
     make_geo_submission_files: bool
 
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
