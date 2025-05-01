@@ -1279,7 +1279,6 @@ class QCFiles(BaseModel):
                 sample=self.sample_names,
             )
 
-
     @computed_field
     @property
     def files(self) -> List[str]:
@@ -1292,8 +1291,7 @@ class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
     names: List[str]
     pileup_method: Union[
-        Literal["deeptools", "homer", False],
-        List[Literal["deeptools", "homer"]]
+        Literal["deeptools", "homer", False], List[Literal["deeptools", "homer"]]
     ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
@@ -1312,7 +1310,7 @@ class BigWigFiles(BaseModel):
             self.scale_method = ["unscaled", self.scale_method]
         else:
             self.scale_method = [self.scale_method]
-    
+
     def _filter_bigwigs(self, bigwigs: List[str]) -> List[str]:
         """
         Filter the bigwigs based on the scale method.
@@ -1342,7 +1340,6 @@ class BigWigFiles(BaseModel):
                 filtered_bigwigs.append(bigwig)
 
         return filtered_bigwigs
-
 
     @property
     def bigwigs_non_rna(self):
@@ -1846,7 +1843,7 @@ class SNPOutput(Output):
             )
         else:
             return []
-    
+
     @property
     def anno_snp_files(self) -> List[str]:
         if self.annotate_snps:
@@ -1868,9 +1865,7 @@ class SNPOutput(Output):
             ).files
         )
 
-        for file_list in (
-            self.design,
-        ):
+        for file_list in (self.design,):
             if file_list:
                 files.extend(file_list)
 
@@ -1987,7 +1982,7 @@ class MCCOutput(Output):
             "seqnado_output/mcc/{group}/{group}.mcool",
             group=self.design_dataframe["merge"].unique().tolist(),
         )
-    
+
     @property
     def pairs(self) -> List[str]:
         return expand(
@@ -1998,7 +1993,8 @@ class MCCOutput(Output):
 
     @property
     def peaks(self):
-        return expand("seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
+        return expand(
+            "seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
             group=self.design_dataframe["merge"].unique().tolist(),
             viewpoint_group=self.viewpoints_grouped,
         )
@@ -2013,13 +2009,13 @@ class MCCOutput(Output):
 
         grouped_bigwigs = expand(
             "seqnado_output/bigwigs/mcc/{norm}/{group}_{viewpoint_group}.bigWig",
-            norm=['unscaled', 'n_cis'], 
+            norm=["unscaled", "n_cis"],
             viewpoint_group=self.viewpoints_grouped,
             group=self.design_dataframe["merge"].unique().tolist(),
         )
 
         return [*replicate_bigwigs, *grouped_bigwigs]
-    
+
     @property
     def bigbed(self) -> List[str]:
         bb = []
@@ -2029,19 +2025,17 @@ class MCCOutput(Output):
             bb.append(bigbed)
         return bb
 
-
     @computed_field
     @property
     def files(self) -> List[str]:
-        files = []
-        files.extend(
-            QCFiles(
+        files = [
+            *QCFiles(
                 assay=self.assay,
                 sample_names=self.sample_names,
             ).files,
-            self.ucsc_hub.files,
-            self.geo_files.files,
-        )
+            *self.ucsc_hub.files,
+            *self.geo_files.files,
+        ]
 
         for file_list in (
             self.bigwigs,
@@ -2139,8 +2133,7 @@ class GEOSamples(BaseModel):
         return df
 
 
-
-class ViewpointsFile(pandera.DataFrameModel):    
+class ViewpointsFile(pandera.DataFrameModel):
     Chromosome: Series[str] = pandera.Field(coerce=True)
     Start: Series[int] = pandera.Field(coerce=True)
     End: Series[int] = pandera.Field(coerce=True)
@@ -2151,10 +2144,7 @@ class ViewpointsFile(pandera.DataFrameModel):
     # Validate the viewpoint names column
     @pandera.check("Name")
     def check_viewpoint_names(cls, s: Series[str]) -> Series[bool]:
-        
         # Check that the names do not contain spaces or special characters
         allowed_chars = r"^[a-zA-Z0-9_]+$"
 
         return s.str.match(allowed_chars)
-
-        
