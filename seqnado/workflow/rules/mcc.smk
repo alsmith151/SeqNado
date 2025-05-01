@@ -493,7 +493,7 @@ rule aggregate_coolers:
 
 rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     input:
-        bigwig="seqnado_output/bigwigs/mcc/raw/{group}_{viewpoint_group}.bigWig",
+        bigwig="seqnado_output/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig",
     output:
         peaks="seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
     log:
