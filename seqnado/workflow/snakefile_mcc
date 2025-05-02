@@ -63,7 +63,7 @@ OUTPUT = MCCOutput(
 
 # Wilcard constraints
 wildcard_constraints:
-    sample="|".join(SAMPLE_NAMES),
+    # sample="|".join(SAMPLE_NAMES),
     viewpoint="|".join([*VIEWPOINT_OLIGOS,  *GROUPED_VIEWPOINT_OLIGOS]),
     group="|".join(SAMPLE_GROUPS),
 

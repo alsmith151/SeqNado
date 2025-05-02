@@ -41,11 +41,22 @@ elif snakemake.params.assay == "RNA":
     df["strand"] = np.where(df["fn"].str.contains("_plus.bigWig"), "plus", "minus")
     df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
 
+elif snakemake.params.assay == 'MCC':
+    # Regex pattern to extract method, normalisation, sample, viewpoint
+    pattern = re.compile(
+    r'seqnado_output/(?:bigwigs|peaks)/'
+    r'(?P<method>[^/]+)/'
+    r'(?:(?P<norm>[^/]+)/)?'
+    r'(?P<samplename>.*?)_(?P<viewpoint>[^/.]+)\.(?:bigWig|bigBed)'
+)
+    # Extract the method, normalisation, sample, and viewpoint from the file path
+    df_meta = df['fn'].str.extract(pattern)
+    df = df.join(df_meta)
+
 
 # Check that the dataframe is not empty i.e. no files were found
 if df.empty:
     raise ValueError("No bigwigs or bigbeds found in the input directory. Please ensure that make_pileups has been set to True in the config file.")
-
 
 # Create hub design
 design = tracknado.TrackDesign.from_design(

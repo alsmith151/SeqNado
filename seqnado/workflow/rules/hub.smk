@@ -35,7 +35,11 @@ def get_hub_params(config):
     if ASSAY == "RNA":
         hub_params["overlay_by"] = ["samplename", "method", "norm"]
         hub_params["subgroup_by"] = ["method", "norm", "strand"]
-
+    
+    elif ASSAY == 'MCC':
+        hub_params["subgroup_by"] = ["norm", "viewpoint"]
+        hub_params["color_by"] = ["viewpoint"]
+        
     return hub_params
 
 
@@ -77,7 +81,7 @@ rule bed_to_bigbed:
         "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
     shell:
         """
-        sort -k1,1 -k2,2n {input.bed} | grep '#' -v > {input.bed}.tmp &&
+        sort -k1,1 -k2,2n {input.bed} | grep '#' -v | cut -f 1-4 > {input.bed}.tmp &&
         bedToBigBed {input.bed}.tmp {params.chrom_sizes} {output.bigbed} 2> {log} &&
         rm {input.bed}.tmp
         """
