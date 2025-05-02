@@ -37,7 +37,6 @@ def get_hub_params(config):
         hub_params["subgroup_by"] = ["method", "norm", "strand"]
     
     elif ASSAY == 'MCC':
-        hub_params["overlay_by"] = ["samplename", "method", "norm"]
         hub_params["subgroup_by"] = ["norm", "viewpoint"]
         hub_params["color_by"] = ["viewpoint"]
         
