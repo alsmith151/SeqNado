@@ -2002,7 +2002,7 @@ class MCCOutput(Output):
     @property
     def bigwigs(self):
         replicate_bigwigs = expand(
-            "seqnado_output/mcc/replicates/{sample}/bigwigs/{viewpoint_group}.bigWig",
+            "seqnado_output/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig",
             sample=self.sample_names,
             viewpoint_group=self.viewpoints_grouped,
         )

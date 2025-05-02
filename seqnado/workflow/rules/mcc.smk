@@ -261,7 +261,7 @@ rule make_bigwigs_mcc_replicates:
         excluded_regions="seqnado_output/resources/exclusion_regions.bed",
         cis_or_trans_stats="seqnado_output/resources/{sample}_ligation_stats.json",
     output:
-        bigwig="seqnado_output/mcc/replicates/{sample}/bigwigs/{viewpoint_group}.bigWig"
+        bigwig="seqnado_output/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig"
     log:
         "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
     params:
@@ -474,7 +474,9 @@ rule zoomify_cooler:
 
 rule aggregate_coolers:
     input:
-        mcools=expand("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool", group=SAMPLE_GROUPS, viewpoint=GROUPED_VIEWPOINT_OLIGOS),
+        mcools=expand("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool", 
+                     group=SAMPLE_GROUPS, 
+                     viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     output:
         mcool="seqnado_output/mcc/{group}/{group}.mcool",
     log:
