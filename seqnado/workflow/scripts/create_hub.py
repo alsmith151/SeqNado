@@ -46,7 +46,7 @@ elif snakemake.params.assay == 'MCC':
     pattern = re.compile(
     r'seqnado_output/(?:bigwigs|peaks)/'
     r'(?P<method>[^/]+)/'
-    r'(?:(?P<normalisation>[^/]+)/)?'
+    r'(?:(?P<norm>[^/]+)/)?'
     r'(?P<samplename>.*?)_(?P<viewpoint>[^/.]+)\.(?:bigWig|bigBed)'
 )
     # Extract the method, normalisation, sample, and viewpoint from the file path
@@ -57,7 +57,6 @@ elif snakemake.params.assay == 'MCC':
 # Check that the dataframe is not empty i.e. no files were found
 if df.empty:
     raise ValueError("No bigwigs or bigbeds found in the input directory. Please ensure that make_pileups has been set to True in the config file.")
-
 
 # Create hub design
 design = tracknado.TrackDesign.from_design(
