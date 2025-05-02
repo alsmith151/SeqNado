@@ -42,13 +42,16 @@ elif snakemake.params.assay == "RNA":
     df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
 
 elif snakemake.params.assay == 'MCC':
-    df_meta = df['fn'].astype(str).str.extract(r'^seqnado_output/(?!bigwigs|peaks)/mcc/(?P<norm>[^/]+)/(?P<group>[^_]+)_(?P<viewpoint_group>[^.]+)\.(bigWig|bigBed)$')
-    df['norm'] = df_meta['norm']
-    df['samplename'] = df_meta['group']
-    df['viewpoint'] = df_meta['viewpoint_group']
-    df['method'] = 'mcc'
-    
-
+    # Regex pattern to extract method, normalisation, sample, viewpoint
+    pattern = re.compile(
+    r'seqnado_output/(?:bigwigs|peaks)/'
+    r'(?P<method>[^/]+)/'
+    r'(?:(?P<normalisation>[^/]+)/)?'
+    r'(?P<samplename>.*?)_(?P<viewpoint>[^/.]+)\.(?:bigWig|bigBed)'
+)
+    # Extract the method, normalisation, sample, and viewpoint from the file path
+    df_meta = df['fn'].str.extract(pattern)
+    df = df.join(df_meta)
 
 
 # Check that the dataframe is not empty i.e. no files were found
