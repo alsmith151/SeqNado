@@ -186,6 +186,8 @@ rule seacr:
         treatment="seqnado_output/bedgraphs/{sample}_{treatment}.bedGraph",
     output:
         peaks="seqnado_output/peaks/seacr/{sample}_{treatment}.bed",
+        seacr=temp("seqnado_output/peaks/seacr/{sample}_{treatment}_seacr.txt"),
+        noM=temp("seqnado_output/bedgraphs/{sample}_{treatment}.nochrM.bedGraph"),
     log:
         "seqnado_output/logs/seacr/{sample}_{treatment}.log",
     params:
@@ -199,9 +201,10 @@ rule seacr:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
-        SEACR_1.3.sh {input.treatment} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1 || touch {params.prefix}.{params.stringency}.bed
-        mv {params.prefix}.{params.stringency}.bed {params.prefix}_seacr.txt
-        cut -f 1-3 {params.prefix}_seacr.txt > {output.peaks}
+        awk '$1 != "chrM"' {input.treatment} > {output.noM}
+        SEACR_1.3.sh {output.noM} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1 || touch {params.prefix}.{params.stringency}.bed
+        mv {params.prefix}.{params.stringency}.bed {output.seacr}
+        cut -f 1-3 {output.seacr} > {output.peaks}
         """
     
 
