@@ -12,7 +12,7 @@ samtools:
 
 featurecounts:
     threads: 16
-    options: -F SAF -p --countReadPairs
+    options: -F SAF 
 
 cutadapt:
   options: -g 'ACACCG' --cut 0 -l 20 -m 20 -M 20 --discard-untrimmed
