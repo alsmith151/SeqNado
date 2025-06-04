@@ -4,7 +4,7 @@ trim_galore:
 
 bowtie2:
     threads: 8
-    options: --no-discordant --no-mixed
+    options:
 
 samtools:
     threads: 16
