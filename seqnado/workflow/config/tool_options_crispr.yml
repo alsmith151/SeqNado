@@ -1,0 +1,15 @@
+trim_galore:
+    threads: 4
+    options: --2colour 20 --clip_R1 20 --clip_R2 20
+
+bowtie2:
+    threads: 8
+    options: --no-discordant --no-mixed
+
+samtools:
+    threads: 16
+    filter_options: -F 4
+
+featurecounts:
+    threads: 16
+    options: -F SAF -p --countReadPairs
