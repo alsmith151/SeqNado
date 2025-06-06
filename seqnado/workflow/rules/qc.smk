@@ -263,6 +263,10 @@ def get_counts_files(wildcards):
             "seqnado_output/readcounts/salmon/salmon_{sample}/quant.sf",
             sample=SAMPLE_NAMES,
         ) 
+    elif ASSAY == "CRISPR":
+        return expand(
+            "seqnado_output/readcounts/feature_counts/read_counts.tsv",
+        )
     else:
         return []
 

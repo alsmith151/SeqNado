@@ -1256,7 +1256,7 @@ class GEOFiles(BaseModel):
 
 
 class QCFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC", "CRISPR"]
     sample_names: List[str]
 
     @property
@@ -1288,7 +1288,7 @@ class QCFiles(BaseModel):
 
 
 class BigWigFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC", "CRISPR"]
     names: List[str]
     pileup_method: Union[
         Literal["deeptools", "homer", False], List[Literal["deeptools", "homer"]]
@@ -1503,7 +1503,7 @@ class PlotFiles(BaseModel):
 
 
 class Output(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "MCC"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "MCC", "METH", "CRISPR"]
     config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
@@ -2050,6 +2050,40 @@ class MCCOutput(Output):
         return files
 
 
+class CRISPROutput(Output):
+    assay: Literal["CRISPR"]
+    sample_names: List[str]
+    make_ucsc_hub: bool = False
+    rna_quantification: Optional[Literal["feature_counts"]] = None
+
+    @property
+    def counts(self):
+        if self.rna_quantification == "feature_counts":
+            return ["seqnado_output/readcounts/feature_counts/read_counts.tsv"]
+        return []
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = []
+        files.extend(
+            QCFiles(
+                assay=self.assay,
+                sample_names=self.sample_names,
+            ).files
+        )
+
+        for file_list in (self.design,):
+            if file_list:
+                files.extend(file_list)
+
+        return files
+
+
 class Molecule(Enum):
     rna_total = "total RNA"
     rna_polya = "polyA RNA"
@@ -2148,3 +2182,4 @@ class ViewpointsFile(pandera.DataFrameModel):
         allowed_chars = r"^[a-zA-Z0-9_]+$"
 
         return s.str.match(allowed_chars)
+
