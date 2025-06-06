@@ -22,6 +22,7 @@ rule feature_counts:
         {input.annotation} \
         -T \
         {threads} \
+        --donotsort \
         {params.options} \
         -o \
         {output.counts} \

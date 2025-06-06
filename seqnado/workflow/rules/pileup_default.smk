@@ -66,8 +66,8 @@ rule deeptools_make_bigwigs:
     params:
         options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     threads:
         config["deeptools"]["threads"]
     log:
@@ -128,7 +128,7 @@ rule fragment_bedgraph:
         bed=temp("seqnado_output/bedgraphs/{sample}.bed"),
         bed_log=temp("seqnado_output/logs/bedgraphs/{sample}_bamtobed.log"),
         fragments=temp("seqnado_output/bedgraphs/{sample}.fragments.bed"),
-        bdg="seqnado_output/bedgraphs/{sample}.bedGraph",
+        bdg=temp("seqnado_output/bedgraphs/{sample}.bedGraph"),
     params:
         genome=config['genome']['chromosome_sizes'],
     threads: 16

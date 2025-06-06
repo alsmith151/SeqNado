@@ -45,7 +45,6 @@ rule fastqc_raw_single:
         fastqc -o {params.output_dir} {input} > {log} 2>&1
         """
 
-        
 ##############################################
 #                  Qualimap                  #
 ############################################## 
@@ -280,7 +279,6 @@ def get_snp_qc(wildcards):
     if ASSAY == "SNP" and config["annotate_snps"]:
         return expand(
             "seqnado_output/qc/variant/{sample}.anno.stats.txt",
-            sample=SAMPLE_NAMES,
         )
     else:
         return []

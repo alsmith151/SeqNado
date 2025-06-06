@@ -1263,7 +1263,6 @@ class QCFiles(BaseModel):
     def default_files(self) -> List[str]:
         return [
             "seqnado_output/seqnado_report.html",
-            "seqnado_output/qc/alignment_stats.tsv",
         ]
 
     @property
@@ -1843,7 +1842,7 @@ class SNPOutput(Output):
             )
         else:
             return []
-
+    
     @property
     def anno_snp_files(self) -> List[str]:
         if self.annotate_snps:
@@ -1865,7 +1864,10 @@ class SNPOutput(Output):
             ).files
         )
 
-        for file_list in (self.design,):
+
+        for file_list in (
+            self.design,
+        ):
             if file_list:
                 files.extend(file_list)
 

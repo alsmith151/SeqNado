@@ -58,6 +58,7 @@ rule lanceotron_no_input:
         treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample}.bigWig",
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}.bed",
+        ltron_peaks=temp("seqnado_output/peaks/lanceotron/{sample}_L-tron.bed"),
     log:
         "seqnado_output/logs/lanceotron/{sample}.log",
     params:
@@ -69,8 +70,7 @@ rule lanceotron_no_input:
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt)}GB",
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        """
-        lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
-        cat {params.outdir}/{wildcards.sample}_L-tron.bed | cut -f 1-3 > {output.peaks}
-        """
+    shell:"""
+    lanceotron callPeaks {input.treatment} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
+    cat {output.ltron_peaks} | cut -f 1-3 > {output.peaks}
+    """
