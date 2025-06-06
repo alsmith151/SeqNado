@@ -1,0 +1,54 @@
+lanceotron_mcc:
+    options: --max-peak-size 2000 --no-mcc-filter-enriched-regions --no-mcc-filter-background
+
+bamnado:
+    bin_size: 10
+    options: 
+
+trim_galore:
+    threads: 4
+    options: --2colour 20 
+
+bowtie2:
+    threads: 8
+    options:
+
+samtools:
+    threads: 16
+    filter_options:
+
+picard:
+    threads: 8
+    options:
+
+homer:
+    use_input: true
+    maketagdirectory:
+    makebigwig:
+    findpeaks:
+
+deeptools:
+    threads: 8
+    alignmentsieve: --minMappingQuality 30 
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
+
+macs:
+    version: 2
+    callpeak: -f BAMPE
+
+lanceotron:
+    use_input: True
+    callpeak: -c 0.5
+
+seacr:
+    threshold: 0.01
+    norm: non
+    stringency: stringent
+
+heatmap:
+    options: -b 1000 -m 5000 -a 1000 --binSize 50
+    colormap: RdYlBu_r 
+
+featurecounts:
+    threads: 16
+    options:  -p --countReadPairs

@@ -81,6 +81,9 @@ rule split_bam:
         exo_prefix=config.get("spikein_options", {}).get("spikein_genome"),
         prefix="seqnado_output/aligned/spikein/{sample}",
         map_qual=30,
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/split_bam/{sample}.log",
     shell:

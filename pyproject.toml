@@ -21,7 +21,7 @@ dependencies = [
     "cookiecutter",
     "pandas",
     "pandera",
-    "pulp<=2.9.0",
+    "pulp<=3.2.1",
     "pydantic",
     "pyranges",
     "pyyaml",

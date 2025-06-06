@@ -1,5 +1,3 @@
-
-
 rule bcftools_call_snp:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
@@ -42,6 +40,7 @@ rule split_multiallelic:
     tabix -f {output.vcf} > {output.idx}
     """
 
+      
 rule bcftools_annotate:
     input:
         vcf=rules.split_multiallelic.output.vcf,

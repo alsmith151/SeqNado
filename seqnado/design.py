@@ -989,7 +989,7 @@ def generate_fastq_raw_names(
 class GEOFiles(BaseModel):
     make_geo_submission_files: bool
 
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
     sample_names: List[str]
     config: dict
     design: pd.DataFrame
@@ -1256,7 +1256,7 @@ class GEOFiles(BaseModel):
 
 
 class QCFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC", "CRISPR"]
     sample_names: List[str]
 
     @property
@@ -1278,7 +1278,6 @@ class QCFiles(BaseModel):
                 sample=self.sample_names,
             )
 
-
     @computed_field
     @property
     def files(self) -> List[str]:
@@ -1288,11 +1287,10 @@ class QCFiles(BaseModel):
 
 
 class BigWigFiles(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC", "CRISPR"]
     names: List[str]
     pileup_method: Union[
-        Literal["deeptools", "homer", False],
-        List[Literal["deeptools", "homer"]]
+        Literal["deeptools", "homer", False], List[Literal["deeptools", "homer"]]
     ] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
@@ -1311,7 +1309,7 @@ class BigWigFiles(BaseModel):
             self.scale_method = ["unscaled", self.scale_method]
         else:
             self.scale_method = [self.scale_method]
-    
+
     def _filter_bigwigs(self, bigwigs: List[str]) -> List[str]:
         """
         Filter the bigwigs based on the scale method.
@@ -1341,7 +1339,6 @@ class BigWigFiles(BaseModel):
                 filtered_bigwigs.append(bigwig)
 
         return filtered_bigwigs
-
 
     @property
     def bigwigs_non_rna(self):
@@ -1505,7 +1502,7 @@ class PlotFiles(BaseModel):
 
 
 class Output(BaseModel):
-    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "MCC"]
+    assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "MCC", "METH", "CRISPR"]
     config: dict
     run_design: Union[Design, DesignIP]
     sample_names: List[str]
@@ -1867,6 +1864,7 @@ class SNPOutput(Output):
             ).files
         )
 
+
         for file_list in (
             self.design,
         ):
@@ -1983,40 +1981,92 @@ class MCCOutput(Output):
     @property
     def cooler_files(self) -> List[str]:
         return expand(
-            "seqnado_output/mcc/{sample}/{viewpoint}.mcool",
-            sample=self.sample_names,
-            viewpoint=self.viewpoint_oligos,
+            "seqnado_output/mcc/{group}/{group}.mcool",
+            group=self.design_dataframe["merge"].unique().tolist(),
+        )
+
+    @property
+    def pairs(self) -> List[str]:
+        return expand(
+            "seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+            group=self.design_dataframe["merge"].unique().tolist(),
+            viewpoint=self.viewpoints_grouped,
         )
 
     @property
     def peaks(self):
-        return []
-
-    @property
-    def bigwigs(self):
-        replicate_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/unscaled/{sample}/{viewpoint}.bigWig",
-            sample=self.sample_names,
-            viewpoint=self.viewpoint_oligos,
-        )
-
-        viewpoint_group_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/grouped_viewpoints/{sample}/{viewpoint_group}.bigWig",
-            sample=self.sample_names,
-            viewpoint_group=self.viewpoints_grouped,
-        )
-
-        sample_group_bigwigs = expand(
-            "seqnado_output/bigwigs/deeptools/grouped_samples/{group}_{viewpoint_group}.bigWig",
+        return expand(
+            "seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
             group=self.design_dataframe["merge"].unique().tolist(),
             viewpoint_group=self.viewpoints_grouped,
         )
 
-        return [
-            *replicate_bigwigs,
-            *viewpoint_group_bigwigs,
-            *sample_group_bigwigs,
+    @property
+    def bigwigs(self):
+        replicate_bigwigs = expand(
+            "seqnado_output/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig",
+            sample=self.sample_names,
+            viewpoint_group=self.viewpoints_grouped,
+        )
+
+        grouped_bigwigs = expand(
+            "seqnado_output/bigwigs/mcc/{norm}/{group}_{viewpoint_group}.bigWig",
+            norm=["unscaled", "n_cis"],
+            viewpoint_group=self.viewpoints_grouped,
+            group=self.design_dataframe["merge"].unique().tolist(),
+        )
+
+        return [*replicate_bigwigs, *grouped_bigwigs]
+
+    @property
+    def bigbed(self) -> List[str]:
+        bb = []
+        for peak_file in self.peaks:
+            bed = pathlib.Path(peak_file)
+            bigbed = bed.with_suffix(".bigBed")
+            bb.append(bigbed)
+        return bb
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        files = [
+            *QCFiles(
+                assay=self.assay,
+                sample_names=self.sample_names,
+            ).files,
+            *self.ucsc_hub.files,
+            *self.geo_files.files,
         ]
+
+        for file_list in (
+            self.bigwigs,
+            self.cooler_files,
+            self.pairs,
+            self.peaks,
+            self.design,
+        ):
+            if file_list:
+                files.extend(file_list)
+
+        return files
+
+
+class CRISPROutput(Output):
+    assay: Literal["CRISPR"]
+    sample_names: List[str]
+    make_ucsc_hub: bool = False
+    rna_quantification: Optional[Literal["feature_counts"]] = None
+
+    @property
+    def counts(self):
+        if self.rna_quantification == "feature_counts":
+            return ["seqnado_output/readcounts/feature_counts/read_counts.tsv"]
+        return []
+
+    @property
+    def design(self):
+        return ["seqnado_output/design.csv"]
 
     @computed_field
     @property
@@ -2029,11 +2079,7 @@ class MCCOutput(Output):
             ).files
         )
 
-        for file_list in (
-            self.cooler_files,
-            self.bigwigs,
-            self.design,
-        ):
+        for file_list in (self.design,):
             if file_list:
                 files.extend(file_list)
 
@@ -2121,3 +2167,21 @@ class GEOSamples(BaseModel):
         df = pd.concat([s.to_series for s in self.samples], axis=1).T
         df.columns = df.columns.str.replace(r"\s\d+$", "", regex=True).str.strip()
         return df
+
+
+class ViewpointsFile(pandera.DataFrameModel):
+    Chromosome: Series[str] = pandera.Field(coerce=True)
+    Start: Series[int] = pandera.Field(coerce=True)
+    End: Series[int] = pandera.Field(coerce=True)
+    Name: Series[str] = pandera.Field(coerce=True)
+    Strand: Optional[Series[str]] = pandera.Field(coerce=True)
+    Score: Optional[Series[float]] = pandera.Field(coerce=True, nullable=True)
+
+    # Validate the viewpoint names column
+    @pandera.check("Name")
+    def check_viewpoint_names(cls, s: Series[str]) -> Series[bool]:
+        # Check that the names do not contain spaces or special characters
+        allowed_chars = r"^[a-zA-Z0-9_]+$"
+
+        return s.str.match(allowed_chars)
+

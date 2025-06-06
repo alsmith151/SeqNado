@@ -1,5 +1,5 @@
-from mcc import mcc        
+import mccnado        
         
 
 
-mcc.split_viewpoint_reads(snakemake.input.bam, snakemake.output.fq)
+mccnado.split_viewpoint_reads(snakemake.input.bam, snakemake.output.fq)

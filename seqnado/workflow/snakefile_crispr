@@ -3,23 +3,22 @@ import glob
 import os
 import shutil
 import sys
-import pyranges as pr
 
 import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, NormGroups, MCCOutput, ViewpointsFile
-from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files, extract_viewpoints, viewpoint_to_grouped_viewpoint
+from seqnado.design import Design, CRISPROutput, NormGroups
+from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files
 
 
 ####################
 # Hardcoded config #
 ####################
 
-ASSAY = "MCC"
+ASSAY = "CRISPR"
 SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
-configfile: "config_mcc.yml"
+configfile: "config_crispr.yml"
 container: "library://asmith151/seqnado/seqnado_pipeline:latest"
 
 
@@ -44,45 +43,25 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
-SAMPLE_GROUPS = list(DESIGN.to_dataframe()['merge'].unique())
-VIEWPOINTS_FILE = ViewpointsFile.validate(pr.read_bed(config["viewpoints"]).df.assign(Score=0)) # Ignore score column
-VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
-VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
-GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))
-
-OUTPUT = MCCOutput(
+OUTPUT = CRISPROutput(
     assay=ASSAY,
     config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
-    viewpoint_oligos=VIEWPOINT_OLIGOS,
-    viewpoints_grouped=GROUPED_VIEWPOINT_OLIGOS,
     **config
 )
 
-
-# Wilcard constraints
-wildcard_constraints:
-    # sample="|".join(SAMPLE_NAMES),
-    viewpoint="|".join([*VIEWPOINT_OLIGOS,  *GROUPED_VIEWPOINT_OLIGOS]),
-    group="|".join(SAMPLE_GROUPS),
-
-
+NORMALISATION_SCALING = NormGroups.from_design(DESIGN, subset_column="scale_group", include_controls=True)
+NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", include_controls=True)
 
 ###################
 # Pipeline config #
 ###################
-
-include: "rules/common.smk"
-include: "rules/fastq_trim.smk"
-include: "rules/fastq_custom_rules.smk"
-include: "rules/align.smk"
-include: "rules/alignment_post_processing.smk"
-include: "rules/pileup_default.smk"
+include: "rules/fastq_screen.smk"
 include: "rules/qc.smk"
-include: "rules/hub.smk"
-include: "rules/mcc.smk"
-
+include: "rules/crispr.smk"
+include: "rules/alignment_post_processing.smk"
+include: "rules/common.smk"
 
 
 rule all:
@@ -99,5 +78,4 @@ onerror:
         f"An error occurred. Please check the log file {log_out} for more information."
     )
     remove_unwanted_run_files()
-
 

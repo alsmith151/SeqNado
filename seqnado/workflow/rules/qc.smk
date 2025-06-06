@@ -262,6 +262,10 @@ def get_counts_files(wildcards):
             "seqnado_output/readcounts/salmon/salmon_{sample}/quant.sf",
             sample=SAMPLE_NAMES,
         ) 
+    elif ASSAY == "CRISPR":
+        return expand(
+            "seqnado_output/readcounts/feature_counts/read_counts.tsv",
+        )
     else:
         return []
 
@@ -271,6 +275,10 @@ def get_snp_qc(wildcards):
         return expand(
             "seqnado_output/qc/variant/{sample}.stats.txt",
             sample=SAMPLE_NAMES,
+        )
+    if ASSAY == "SNP" and config["annotate_snps"]:
+        return expand(
+            "seqnado_output/qc/variant/{sample}.anno.stats.txt",
         )
     else:
         return []
