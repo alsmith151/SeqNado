@@ -24,7 +24,7 @@ class GenomeConfig(BaseModel):
 
 class WorkflowConfig(BaseModel):
     # Core Configuration
-    assay: Literal["rna", "chip", "atac", "snp", "cat", "meth", 'mcc']
+    assay: Literal["rna", "chip", "atac", "snp", "cat", "meth", 'mcc', 'crispr']
     username: str
     project_date: str
     project_name: str
@@ -215,8 +215,11 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     if features["fastq_screen"]:
         features["fastq_screen_config"] = get_user_input("Fastqscreen config path:", default="/ceph/project/milne_group/shared/seqnado_reference/fastqscreen_reference/fastq_screen.conf", is_path=True)
     
-    # Blacklist Handling
-    features["remove_blacklist"] = get_user_input("Remove blacklist regions?", default="yes", is_boolean=True)
+    if assay != "crispr":
+        # Blacklist Regions
+        features["remove_blacklist"] = get_user_input("Remove blacklist regions?", default="yes", is_boolean=True)
+    else:
+        features["remove_blacklist"] = get_user_input("Remove blacklist regions?", default="no", is_boolean=True)
     
     # PCR Duplicates
     default_duplicates = "yes" if assay in ["chip", "atac", "cat", "meth"] else "no"
@@ -310,8 +313,12 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
             features["fasta"] = genome_config.fasta if genome_config.fasta else get_user_input("Path to reference fasta:", default='no')
             features["methylation_assay"] = get_user_input("Methylation assay:", choices=["taps", "bisulfite"], default="taps")
 
+    # Crispr-Specific Features
+    if assay == "crispr":
+        features["rna_quantification"] = get_user_input("Quantification method:", choices=["feature_counts"], default="feature_counts")
+
     # Consensus Counts
-    if not assay == 'rna':
+    if  assay not in ['rna', 'crispr']:
         features["consensus_counts"] = get_user_input(
             "Generate consensus counts from Design merge column? (yes/no)",
             default="no",
@@ -355,6 +362,8 @@ def get_tool_options(assay: str) -> str:
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_meth.yml'
         case "mcc":
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_mcc.yml'
+        case "crispr":
+            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_crispr.yml'
         case _:
             tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_base.yml'
     
