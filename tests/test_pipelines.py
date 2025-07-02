@@ -382,9 +382,8 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, genome_files, mcc_f
         else "",
         "Resolution for MCC cooler files:": "100",
         "Make dataset for ML?": "yes" if assay == "cat" else "no",
-        "Use regions BED file?": "yes" if assay == "cat" else "no",
-        "Path to regions BED file:": str(test_data_path / "plotting_coordinates.bed") if assay == "cat"
-        else "",
+        "Use regions BED file?": "no",
+        "Binsize for dataset:": "10000" if assay == "cat" else "",
     }
 
     return prompts
