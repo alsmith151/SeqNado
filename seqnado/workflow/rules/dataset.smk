@@ -25,7 +25,7 @@ rule make_dataset_regions:
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    log: "seqnado_output/logs/dataset/make_dataset_regions.log",
+    container: "library://cchahrou/seqnado/seqnado_quant.sif:latest",
     shell:"""
     quantnado-make-dataset \
     --bigwig-dir {params.bigwig_dir} \
@@ -54,7 +54,7 @@ rule make_dataset_binsize:
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    log: "seqnado_output/logs/dataset/make_dataset_binsize.log",
+    container: "library://cchahrou/seqnado/seqnado_quant.sif:latest",
     shell:"""
     quantnado-make-dataset \
     --bigwig-dir {params.bigwig_dir} \
