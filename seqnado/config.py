@@ -95,6 +95,9 @@ class WorkflowConfig(BaseModel):
     perform_plotting: bool = False
     plotting_coordinates: Optional[str] = None
     plotting_genes: Optional[str] = None
+    make_dataset: bool = False
+    regions_bed: Optional[str] = None
+    binsize: Optional[str] = None
 
     @field_validator("remove_pcr_duplicates_method")
     def validate_pcr_method(cls, v, values):
@@ -241,7 +244,7 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
     # Spike-in Normalisation
     if assay in ["chip", "rna", 'cat']:
         features["spikein"] = get_user_input(
-            "Do you have spikein? (yes/no)", default="no", is_boolean=True
+            "Do you have spikein?", default="no", is_boolean=True
         )
         if features["spikein"] and not assay == "rna":
             features["normalisation_method"] = get_user_input(
@@ -334,6 +337,19 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
         features["plotting_coordinates"] = get_user_input("Path to bed file with coordinates for plotting", default=None)
         features["plotting_genes"] = genome_config.genes if genome_config.genes else get_user_input("Path to bed file with genes.", default='no')
     
+    # Make Dataset
+    if assay in ["atac", "chip", "cat"]:
+        features["make_dataset"] = get_user_input("Make dataset for ML?", default="no", is_boolean=True)
+        if features["make_dataset"]:
+            use_regions = get_user_input("Use regions BED file?", default="yes", is_boolean=True)
+            if use_regions:
+                regions_path = get_user_input("Path to regions BED file:", default="path/to/regions.bed", is_path=True)
+                features["regions_bed"] = regions_path
+                features["binsize"] = None
+            else:
+                features["binsize"] = get_user_input("Binsize for dataset:", default="1000")
+                features["regions_bed"] = None
+
     # Add tool options
     features["options"] = get_tool_options(assay)
     return features
@@ -393,9 +409,16 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
     fastq_dir = pathlib.Path(dir_name) / "fastq"
     fastq_dir.mkdir(exist_ok=True)
 
-    # Render main config
+    template = env.get_template("config.yaml.jinja")
+    rendered = template.render(workflow_config.model_dump())
+
+    # Remove consecutive empty lines
+    cleaned = "\n".join([line for line in rendered.splitlines() if line.strip() != ""])
     with open(f"{dir_name}/config_{assay}.yml", "w") as f:
-        f.write(env.get_template("config.yaml.jinja").render(workflow_config.model_dump()))
+        f.write(cleaned)
+    # # Render main config
+    # with open(f"{dir_name}/config_{assay}.yml", "w") as f:
+    #     f.write(env.get_template("config.yaml.jinja").render(workflow_config.model_dump()))
     
     # Additional RNA template
     if assay == "rna":

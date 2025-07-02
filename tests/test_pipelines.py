@@ -337,7 +337,7 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, genome_files, mcc_f
         "Call peaks?": "yes",
         "Call SNPs?": "yes" if assay == "snp" else "no",
         "Color by (for UCSC hub):": "samplename",
-        "Do you have spikein? (yes/no)": "yes" if "rx" in assay else "no",
+        "Do you have spikein?": "yes" if "rx" in assay else "no",
         "Duplicates removal method:": "picard",
         "Fastqscreen config path:": "/dummy/fastqscreen.conf",
         "Generate consensus counts from Design merge column? (yes/no)": "yes"
@@ -381,6 +381,10 @@ def user_inputs(test_data_path, assay, assay_type, plot_bed, genome_files, mcc_f
         if assay == "mcc"
         else "",
         "Resolution for MCC cooler files:": "100",
+        "Make dataset for ML?": "yes" if assay == "cat" else "no",
+        "Use regions BED file?": "yes" if assay == "cat" else "no",
+        "Path to regions BED file:": str(test_data_path / "plotting_coordinates.bed") if assay == "cat"
+        else "",
     }
 
     return prompts
