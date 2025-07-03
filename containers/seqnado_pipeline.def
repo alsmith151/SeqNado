@@ -5,28 +5,54 @@ From: mambaorg/micromamba:alpine
   environment_slim.yml /opt/environment_slim.yml
   
 %post
-  
-  # # Pre set up
+  # Set up build environment
   cd /opt/
   apk --no-cache add curl gcc git cmake make libtool g++ pkgconfig perl openssl-dev linux-headers
 
-
-  # Mamba packages
+  # Initialize micromamba and install packages
   micromamba install -y -n base -f /opt/environment_slim.yml
+  
+  # Properly activate micromamba environment
   export PATH="/opt/conda/bin:$PATH"
+  export CONDA_DEFAULT_ENV=base
+  export CONDA_PREFIX="/opt/conda"
 
-  # Install using pip
-  /opt/conda/bin/python -m pip install wget tracknado
+  # Install Python packages
+  /opt/conda/bin/python -m pip install --no-cache-dir wget tracknado
 
-  # Clean
+  # Install bamnado from GitHub releases - download the correct wheel for your Python version
+  wget https://github.com/alsmith151/BamNado/releases/download/v0.3.0/bamnado-0.3.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  /opt/conda/bin/python -m pip install --no-cache-dir bamnado-0.3.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+
+  # Clean up downloaded files
+  rm -f bamnado-0.3.0-*.whl
+
+  # Cleanup to reduce image size
   apk del curl gcc git cmake make libtool g++ pkgconfig openssl-dev linux-headers
   micromamba clean -afy 
   /opt/conda/bin/python -m pip cache purge
   find /opt/conda/ -follow -type f -name '*.a' -delete
   find /opt/conda/ -follow -type f -name '*.pyc' -delete
-
+  find /opt/conda/ -follow -type f -name '*.js.map' -delete
+  find /opt/conda/ -follow -type f -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 
 %environment
-  export PATH=/opt/conda/bin:$PATH
+  export PATH="/opt/conda/bin:$PATH"
+  export CONDA_DEFAULT_ENV=base
 
+%runscript
+  exec "$@"
+
+%labels
+  Author asmith
+  Version 0.3.0
+  Description SeqNado pipeline container with BamNado v0.3.0
   
+%help
+  This container includes:
+  - SeqNado pipeline environment
+  - BamNado v0.3.0
+  - TrackNado
+  
+  Usage:
+    singularity run seqnado_pipeline.sif <command>
