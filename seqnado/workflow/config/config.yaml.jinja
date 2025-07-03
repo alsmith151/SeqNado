@@ -93,7 +93,7 @@ plotting_genes: "{{plotting_genes}}"
 plotting_format: "svg"
 
 {% if assay in ["atac", "chip", "cat"] %}
-make_dataset: {{ make_dataset }}
+make_dataset: "{{ make_dataset }}"
 dataset:
   {% if regions_bed is not none %}
   regions_bed: "{{ regions_bed }}"
