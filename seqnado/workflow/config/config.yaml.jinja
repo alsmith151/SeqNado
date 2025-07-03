@@ -92,6 +92,24 @@ plotting_coordinates: "{{plotting_coordinates}}"
 plotting_genes: "{{plotting_genes}}"
 plotting_format: "svg"
 
+{% if assay in ["atac", "chip", "cat"] %}
+make_dataset: "{{ make_dataset }}"
+dataset:
+  {% if regions_bed is not none %}
+  regions_bed: "{{ regions_bed }}"
+  {% else %}
+  regions_bed: ""
+  {% endif %}
+
+  {% if binsize is not none %}
+  binsize: {{ binsize }}
+  {% else %}
+  binsize: ""
+  {% endif %}
+{% else %}
+make_dataset: "False"
+{% endif %}
+
 #################################
 # Tool specific options         #
 #################################

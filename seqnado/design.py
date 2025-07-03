@@ -1524,10 +1524,13 @@ class Output(BaseModel):
     library_complexity: bool = False
 
     geo_submission_files: bool = False
-
+    
     perform_plotting: bool = False
     plotting_format: Literal["svg", "png", "pdf"] = "svg"
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
+
+    make_dataset: bool = False
+
 
     # Correct plotting_coordinates type as it may be False
     @validator("plotting_coordinates", pre=True)
@@ -1615,6 +1618,22 @@ class Output(BaseModel):
             design=self.design_dataframe,
             config=self.config,
         )
+    @property
+    def dataset_files(self):
+        if not self.make_dataset:
+            return []
+
+        dataset_config = self.config.get("dataset", {})
+        use_regions = dataset_config.get("regions_bed")
+        use_bins = dataset_config.get("binsize")
+
+        if use_regions and str(use_regions).strip():
+            return ["seqnado_output/dataset/dataset_regions.h5ad"]
+        elif use_bins and str(use_bins).strip():
+            return ["seqnado_output/dataset/dataset_bins.h5ad"]
+        else:
+            return []
+
 
 
 class RNAOutput(Output):
@@ -1659,6 +1678,7 @@ class RNAOutput(Output):
             self.counts,
             self.design,
             self.plots,
+            self.dataset_files,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1745,6 +1765,7 @@ class NonRNAOutput(Output):
             self.design,
             self.plots,
             self.merged_counts,
+            self.dataset_files,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1815,6 +1836,7 @@ class IPOutput(NonRNAOutput):
             self.design,
             self.plots,
             self.merged_counts,
+            self.dataset_files,
         ):
             if file_list:
                 files.extend(file_list)
