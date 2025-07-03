@@ -23,7 +23,7 @@ rule make_dataset_regions:
         regions=check_options(config["dataset"]["regions_bed"]),
     threads: 1
     resources:
-            mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
+            mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "library://cchahrou/seqnado/seqnado_quant.sif:latest",
     shell:"""
@@ -52,7 +52,7 @@ rule make_dataset_binsize:
         binsize=check_options(config["dataset"]["binsize"]),
     threads: 1
     resources:
-            mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
+            mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "library://cchahrou/seqnado/seqnado_quant.sif:latest",
     shell:"""
