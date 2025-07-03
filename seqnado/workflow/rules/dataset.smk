@@ -26,6 +26,7 @@ rule make_dataset_regions:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "library://cchahrou/seqnado/seqnado_quant.sif:latest",
+    log: "seqnado_output/logs/make_dataset_regions.log",
     shell:"""
     quantnado-make-dataset \
     --bigwig-dir {params.bigwig_dir} \
@@ -33,6 +34,7 @@ rule make_dataset_regions:
     --chromsizes {params.chromosome_sizes} \
     --regions {params.regions} \
     --blacklist {params.blacklist} 
+    --log-file {log}
     """
 
 rule make_dataset_binsize:
@@ -55,6 +57,7 @@ rule make_dataset_binsize:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "library://cchahrou/seqnado/seqnado_quant.sif:latest",
+    log: "seqnado_output/logs/make_dataset_binsize.log",
     shell:"""
     quantnado-make-dataset \
     --bigwig-dir {params.bigwig_dir} \
@@ -62,4 +65,5 @@ rule make_dataset_binsize:
     --chromsizes {params.chromosome_sizes} \
     --binsize {params.binsize} \
     --blacklist {params.blacklist}
+    --log-file {log}
     """
