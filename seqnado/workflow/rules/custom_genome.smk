@@ -12,7 +12,7 @@ rule rename_chr_cat_fasta:
         cat_genome="data/{reference_genome}_{spikein_genome}.fa",
         prefix="data/index_bt2/{reference_genome}_{spikein_genome}",
         spikein_genome=spikein_genome,
-    benchmark: repeat("seqnado_output/benchmark/genome/{spikein_genome}/{reference_genome}_{spikein_genome}.txt", 3) if config.get("benchmark", False) else None
+    benchmark: repeat("seqnado_output/benchmark/genome/{spikein_genome}/{reference_genome}_{spikein_genome}.benchmark", 3) if config.get("benchmark", False) else None
     shell:
         """
         gunzip {input.spikein_fasta} | sed -e 's/chr/{params.spikein_genome}/' | cat -e {input.reference_fasta} > {params.cat_genome} &&
@@ -31,7 +31,7 @@ rule STAR_index:
         prefix="data/index_STAR/{reference_genome}_{spikein_genome}",
         spikein_genome=spikein_genome,
     threads: 6
-    benchmark: repeat("seqnado_output/benchmark/genome/{spikein_genome}/{reference_genome}_{spikein_genome}.txt", 3) if config.get("benchmark", False) else None
+    benchmark: repeat("seqnado_output/benchmark/genome/{spikein_genome}/{reference_genome}_{spikein_genome}.benchmark", 3) if config.get("benchmark", False) else None
     shell:
         """
     gunzip {input.spikein_fasta} | sed -e 's/chr/{params.spikein_genome}/' | cat -e {input.reference_fasta} > {params.cat_genome} &&

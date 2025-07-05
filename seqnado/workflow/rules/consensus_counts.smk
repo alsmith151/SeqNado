@@ -30,7 +30,7 @@ rule merged_saf:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    benchmark: repeat("seqnado_output/benchmark/readcounts/featurecounts/{group}_saf.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/readcounts/featurecounts/{group}_saf.benchmark", 3) if config.get("benchmark", False) else None,
     shell:"""
     awk 'BEGIN{{OFS="\\t"}}{{print $1":"$2"-"$3,$1,$2,$3,"\\*"}}' {input.peaks} > {output.saf}
     """
@@ -49,7 +49,7 @@ rule merged_counts:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:"seqnado_output/logs/readcounts/featurecounts/{group}_counts.log",
-    benchmark: repeat("seqnado_output/benchmark/readcounts/featurecounts/{group}_counts.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/readcounts/featurecounts/{group}_counts.benchmark", 3) if config.get("benchmark", False) else None,
     shell:"""
     featureCounts -a {input.saf} -F SAF -T {threads} --donotsort {params.options} -o {output.counts} {input.bam} > {log} 2>&1
     """

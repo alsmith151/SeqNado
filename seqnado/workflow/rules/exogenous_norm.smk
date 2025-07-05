@@ -8,7 +8,7 @@ use rule align_paired as align_paired_spikein with:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/aligned_spikein/{sample}_align.log",
-    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_align.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_align.benchmark", 3) if config.get("benchmark", False) else None,
 
 
 use rule align_single as align_single_spikein with:
@@ -18,7 +18,7 @@ use rule align_single as align_single_spikein with:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/aligned_spikein/{sample}_align.log",
-    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_align.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_align.benchmark", 3) if config.get("benchmark", False) else None,
     
 
 ruleorder: align_paired > align_paired_spikein > align_single > align_single_spikein 
@@ -37,7 +37,7 @@ use rule sort_bam as sort_bam_spikein with:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/aligned_spikein/{sample}_sort.log",
-    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_sort.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_sort.benchmark", 3) if config.get("benchmark", False) else None,
 
 
 use rule index_bam as index_bam_spikein with:
@@ -46,7 +46,7 @@ use rule index_bam as index_bam_spikein with:
     output:
         bai=temp("seqnado_output/aligned/spikein/sorted/{sample}.bam.bai"),
     log: "seqnado_output/logs/aligned_spikein/{sample}_index.log",
-    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_index.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_index.benchmark", 3) if config.get("benchmark", False) else None,
 
 
 rule filter_bam_spikein:
@@ -55,7 +55,7 @@ rule filter_bam_spikein:
     output:
         bam=temp("seqnado_output/aligned/spikein/filtered/{sample}.bam"),
     log: "seqnado_output/logs/aligned_spikein/{sample}_filter.log",
-    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_filter.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_filter.benchmark", 3) if config.get("benchmark", False) else None,
     shell:
         """
     samtools view -b -F 260 -@ 8 {input.bam} > {output.bam} &&
@@ -70,7 +70,7 @@ use rule index_bam as index_bam_spikein_filtered with:
     output:
         bai=temp("seqnado_output/aligned/spikein/filtered/{sample}.bam.bai"),
     log: "seqnado_output/logs/aligned_spikein/{sample}_filter_index.log",
-    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_filter_index.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/aligned_spikein/{sample}_filter_index.benchmark", 3) if config.get("benchmark", False) else None,
 
 
 rule split_bam:
@@ -90,7 +90,7 @@ rule split_bam:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/split_bam/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/split_bam/{sample}.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/split_bam/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
     shell:
         """
         samtools view -h {input.bam} | awk '{{if($0 ~ /^@/ || $3 ~ /^chr/) print}}' | samtools view -b -o {output.ref_bam} &&
@@ -105,7 +105,7 @@ rule move_ref_bam:
         bam=rules.split_bam.output.ref_bam,
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
-    benchmark: repeat("seqnado_output/benchmark/move_ref_bam/{sample}.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/move_ref_bam/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
     shell:
         """
     mv {input.bam} {output.bam}
@@ -124,7 +124,7 @@ if config.get("spikein_options", {}).get("normalisation_method") == "orlando":
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
         log: "seqnado_output/logs/normalisation_factors_{group}.log",
-        benchmark: repeat("seqnado_output/benchmark/normalisation_factors_{group}.txt", 3) if config.get("benchmark", False) else None,
+        benchmark: repeat("seqnado_output/benchmark/normalisation_factors_{group}.benchmark", 3) if config.get("benchmark", False) else None,
         script:
             "../scripts/calculate_spikein_norm_orlando.py"
 
@@ -141,7 +141,7 @@ elif config.get("spikein_options", {}).get("normalisation_method") == "with_inpu
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
         log: "seqnado_output/logs/normalisation_factors_{group}.log",
-        benchmark: repeat("seqnado_output/benchmark/normalisation_factors_{group}.txt", 3) if config.get("benchmark", False) else None,
+        benchmark: repeat("seqnado_output/benchmark/normalisation_factors_{group}.benchmark", 3) if config.get("benchmark", False) else None,
         script:
             "../scripts/calculate_spikein_norm_factors.py"
 

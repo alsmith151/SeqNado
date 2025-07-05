@@ -16,7 +16,7 @@ rule lanceotron_no_input_consensus:
     container:
         "library://asmith151/seqnado/seqnado_extra:latest"
     log: "seqnado_output/logs/lanceotron/{group}.log",
-    benchmark: repeat("seqnado_output/benchmark/lanceotron/{group}.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/lanceotron/{group}.benchmark", 3) if config.get("benchmark", False) else None,
     shell:"""
     lanceotron callPeaks {input.bigwig} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
     cat {output.ltron_peaks} | cut -f 1-3 > {output.peaks}

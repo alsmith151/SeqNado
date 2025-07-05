@@ -17,7 +17,7 @@ rule trimgalore_paired:
         options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
     log: "seqnado_output/logs/trimming/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/trimming/{sample}.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/trimming/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
     shell:
         """
         trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --paired --output_dir {params.trim_dir} {input.fq1} {input.fq2} >> {log} 2>&1 &&
@@ -40,7 +40,7 @@ rule trimgalore_single:
         options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
     log: "seqnado_output/logs/trimming/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/trimming/{sample}.txt", 3) if config.get("benchmark", False) else None,
+    benchmark: repeat("seqnado_output/benchmark/trimming/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
     shell:
         """
         trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --output_dir {params.trim_dir} {input.fq} >> {log} 2>&1 &&
