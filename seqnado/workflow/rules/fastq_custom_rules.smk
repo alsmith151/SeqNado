@@ -10,7 +10,7 @@ rule deduplicate_fastq_raw:
     resources:
         mem="1GB",
     log: "seqnado_output/logs/deduplication/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/deduplication/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/deduplication/{sample}.benchmark" if config.get("benchmark", False) else None,
     container:  "library://asmith151/seqnado/seqnado_mcc:latest"
     script:
         "../scripts/deduplicate_fastq.py"
@@ -36,7 +36,7 @@ rule flash:
         mem_mb=1000,
     container:  "library://asmith151/seqnado/seqnado_mcc:latest"
     log: "seqnado_output/logs/flash/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/flash/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/flash/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         flash {input.fq1} {input.fq2} -o {params.outdir} -t {threads} -z --compress-prog-args pigz > {log} 2>&1

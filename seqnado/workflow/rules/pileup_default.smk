@@ -28,7 +28,7 @@ rule homer_make_tag_directory:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/homer/maketagdirectory_{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/homer/maketagdirectory_{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/homer/maketagdirectory_{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """makeTagDirectory {output.homer_tag_directory} {input.bam} {params.options} > {log} 2>&1"""
 
@@ -39,7 +39,7 @@ rule homer_make_bigwigs:
     output:
         homer_bigwig="seqnado_output/bigwigs/homer/unscaled/{sample}.bigWig",
     log: "seqnado_output/logs/homer/makebigwigs_{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/homer/makebigwigs_{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/homer/makebigwigs_{sample}.benchmark" if config.get("benchmark", False) else None,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -71,7 +71,7 @@ rule deeptools_make_bigwigs:
     threads:
         config["deeptools"]["threads"]
     log: "seqnado_output/logs/pileups/deeptools/unscaled/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/pileups/deeptools/unscaled/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/pileups/deeptools/unscaled/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} > {log} 2>&1
@@ -91,7 +91,7 @@ rule deeptools_make_bigwigs_rna_plus:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/pileups/deeptools/unscaled/{sample}_plus.log",
-    benchmark: repeat("seqnado_output/benchmark/pileups/deeptools/unscaled/{sample}_plus.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/pileups/deeptools/unscaled/{sample}_plus.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         bamCoverage {params.options} -p {threads} --filterRNAstrand forward -b {input.bam} -o {output.bigwig} > {log} 2>&1
@@ -111,7 +111,7 @@ rule deeptools_make_bigwigs_rna_minus:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/pileups/deeptools/unscaled/{sample}_minus.log",
-    benchmark: repeat("seqnado_output/benchmark/pileups/deeptools/unscaled/{sample}_minus.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/pileups/deeptools/unscaled/{sample}_minus.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse --scaleFactor -1 > {log} 2>&1
@@ -136,7 +136,7 @@ rule fragment_bedgraph:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),    
     log: "seqnado_output/logs/bedgraphs/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/bedgraphs/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/bedgraphs/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:"""
         samtools view -@ {threads} -q 30 -f 2 -h {input.bam} | grep -v chrM > {output.filtered} 2> {log}
         samtools sort -@ {threads} -m 900M -o {output.sort} -T {output.sort}.tmp {output.filtered} 2>> {log}

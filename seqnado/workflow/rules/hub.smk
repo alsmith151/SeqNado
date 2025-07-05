@@ -51,7 +51,7 @@ rule validate_peaks:
     container:
         None
     log: "seqnado_output/logs/validate_peaks.log",
-    benchmark: repeat("seqnado_output/benchmark/validate_peaks.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/validate_peaks.benchmark" if config.get("benchmark", False) else None,
     run:
         from loguru import logger
 
@@ -78,7 +78,7 @@ rule bed_to_bigbed:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/bed_to_bigbed/{directory}/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/bed_to_bigbed/{directory}/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v | cut -f 1-4 > {input.bed}.tmp &&
@@ -98,7 +98,7 @@ rule generate_hub:
         hub=OUTPUT.ucsc_hub.hub_txt,
     log:
         log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log".strip(),
-    benchmark: repeat("seqnado_output/benchmark/hub.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/hub.benchmark" if config.get("benchmark", False) else None,
     container:
         None
     params:

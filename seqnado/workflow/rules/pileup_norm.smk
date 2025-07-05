@@ -82,7 +82,7 @@ rule tile_regions:
         genome_tiled="seqnado_output/resources/genome_tiled.gtf",
     params:
         tile_size=config["genome"].get("tile_size", 10_000),
-    benchmark: repeat("seqnado_output/benchmark/tile_regions.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/tile_regions.benchmark" if config.get("benchmark", False) else None,
     run:
         import pyranges as pr
 
@@ -131,7 +131,7 @@ rule count_bam:
     params:
         options='-p --countReadPairs',
     log: "seqnado_output/logs/counts/readcounts.log",
-    benchmark: repeat("seqnado_output/benchmark/counts/readcounts.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/counts/readcounts.benchmark" if config.get("benchmark", False) else None,
     threads: 8
     shell:
         "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} {params.options} > {log} 2>&1"
@@ -143,7 +143,7 @@ rule setup_for_scaling_factors:
     output:
         formatted_counts="seqnado_output/counts/{group}_formatted_counts.tsv",
         metadata="seqnado_output/counts/{group}_metadata.tsv",
-    benchmark: repeat("seqnado_output/benchmark/counts/{group}_formatted_counts.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/counts/{group}_formatted_counts.benchmark" if config.get("benchmark", False) else None,
     run:
         counts = format_feature_counts(input[0])
         counts.to_csv(output[0], sep="\t", index=False)
@@ -159,7 +159,7 @@ rule calculate_scaling_factors:
     output:
         scaling_factors="seqnado_output/resources/{group}_scaling_factors.tsv",
     container: "library://asmith151/seqnado/seqnado_report:latest"
-    benchmark: repeat("seqnado_output/benchmark/counts/{group}_scaling_factors.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/counts/{group}_scaling_factors.benchmark" if config.get("benchmark", False) else None,
     script:
         "../scripts/calculate_scaling_factors.R"
 
@@ -175,7 +175,7 @@ rule calculate_scaling_factors_spikein:
     params:
         spikein_genes=["AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq"],
     log: "seqnado_output/logs/normalisation_factors.log"
-    benchmark: repeat("seqnado_output/benchmark/counts/scaling_factors_spikein.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/counts/scaling_factors_spikein.benchmark" if config.get("benchmark", False) else None,
     script:
         "../scripts/calculate_spikein_norm_factors_rna.R"
 
@@ -199,7 +199,7 @@ rule deeptools_make_bigwigs_scale:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),    
     log: "seqnado_output/logs/pileups/deeptools/scaled/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/pileups/deeptools/scaled/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/pileups/deeptools/scaled/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         "bamCoverage -b {input.bam} -o {output.bigwig} --scaleFactor {params.scale} -p {threads} {params.options} > {log} 2>&1"
 
@@ -211,7 +211,7 @@ use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
         scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc , DESIGN)}_normalisation_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}.bigWig",
-    benchmark: repeat("seqnado_output/benchmark/pileups/deeptools/spikein/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/pileups/deeptools/spikein/{sample}.benchmark" if config.get("benchmark", False) else None,
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
         scale=get_norm_factor_spikein,
@@ -232,7 +232,7 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/pileups/deeptools/spikein/{sample}_plus.log",
-    benchmark: repeat("seqnado_output/benchmark/pileups/deeptools/spikein/{sample}_plus.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/pileups/deeptools/spikein/{sample}_plus.benchmark" if config.get("benchmark", False) else None,
     shell:
         "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} --scaleFactor {params.scale} {params.options} --filterRNAstrand forward > {log} 2>&1"
 
@@ -252,6 +252,6 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/pileups/deeptools/spikein/{sample}_minus.log",
-    benchmark: repeat("seqnado_output/benchmark/pileups/deeptools/spikein/{sample}_minus.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/pileups/deeptools/spikein/{sample}_minus.benchmark" if config.get("benchmark", False) else None,
     shell:
         "bamCoverage -b {input.bam} -o {output.bigwig} -p {threads} --scaleFactor {params.scale} {params.options} --filterRNAstrand reverse > {log} 2>&1"

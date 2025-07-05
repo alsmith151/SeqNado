@@ -22,7 +22,7 @@ rule fastqc_raw_paired:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/fastqc_raw/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/fastqc_raw/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/fastqc_raw/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         fastqc -o {params.output_dir} {input.fq1} {input.fq2} > {log} 2>&1
@@ -39,7 +39,7 @@ rule fastqc_raw_single:
         extra="--quiet",
         output_dir="seqnado_output/qc/fastqc_raw/",
     log: "seqnado_output/logs/fastqc_raw/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/fastqc_raw/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/fastqc_raw/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         fastqc -o {params.output_dir} {input} > {log} 2>&1
@@ -74,7 +74,7 @@ rule qualimap_bamqc:
     threads: 16
     container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
     log:"seqnado_output/logs/qualimap_bamqc/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/qualimap_bamqc/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/qualimap_bamqc/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:"""
     qualimap --java-mem-size={resources.mem} bamqc \
     {params.options} \
@@ -100,7 +100,7 @@ rule qualimap_rnaseq:
     threads: 16
     container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
     log: "seqnado_output/logs/qualimap_rnaseq/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/qualimap_rnaseq/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/qualimap_rnaseq/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:"""
     qualimap --java-mem-size={resources.mem} rnaseq \
     {params.options} \
@@ -138,7 +138,7 @@ rule frip_enrichment:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     log:"seqnado_output/logs/frip_enrichment/{directory}/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/frip_enrichment/{directory}/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/frip_enrichment/{directory}/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         plotEnrichment -p {threads} \
@@ -304,7 +304,7 @@ rule seqnado_report:
     params:
         multiqc_config = "/opt/seqnado/multiqc_config.yaml"
     log: "seqnado_output/logs/seqnado_report.log",
-    benchmark: repeat("seqnado_output/benchmark/seqnado_report.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/seqnado_report.benchmark" if config.get("benchmark", False) else None,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),

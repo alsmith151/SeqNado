@@ -14,7 +14,7 @@ rule feature_counts:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
-    benchmark: repeat("seqnado_output/benchmark/readcounts/featurecounts/featurecounts.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/readcounts/featurecounts/featurecounts.benchmark" if config.get("benchmark", False) else None
     shell:
         """
         featureCounts \
@@ -45,7 +45,7 @@ rule salmon_counts_paired:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/readcounts/salmon/salmon_{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/readcounts/salmon/salmon_{sample}.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/readcounts/salmon/salmon_{sample}.benchmark" if config.get("benchmark", False) else None
     shell:
         """
         salmon quant -i {params.index} {params.options} -1 {input.fq1} -2 {input.fq2} -p {threads} -o {output.out_dir}
@@ -65,7 +65,7 @@ rule salmon_counts_single:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/readcounts/salmon/salmon_{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/readcounts/salmon/salmon_{sample}.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/readcounts/salmon/salmon_{sample}.benchmark" if config.get("benchmark", False) else None
     shell:
         """
         salmon quant -i {params.index} {params.options} -r {input.fq} -p {threads} -o {output.out_dir}
@@ -78,7 +78,7 @@ rule get_salmon_counts:
     output:
         count_table="seqnado_output/readcounts/salmon/salmon_counts.csv"
     log: "seqnado_output/logs/readcounts/salmon/salmon_counts.log"
-    benchmark: repeat("seqnado_output/benchmark/readcounts/salmon/salmon_counts.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/readcounts/salmon/salmon_counts.benchmark" if config.get("benchmark", False) else None
     script:
         "../scripts/get_salmon_counts.py"
 

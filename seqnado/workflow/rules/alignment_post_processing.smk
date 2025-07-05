@@ -74,7 +74,7 @@ else:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_blacklist.log",
-        benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_blacklist.benchmark", 3) if config.get("benchmark", False) else None
+        benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_blacklist.benchmark" if config.get("benchmark", False) else None
         shell:"""
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
@@ -99,7 +99,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
-        benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_remove_duplicates.benchmark", 3) if config.get("benchmark", False) else None
+        benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_remove_duplicates.benchmark" if config.get("benchmark", False) else None
         shell:"""
         picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} &&
         mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
@@ -120,7 +120,7 @@ elif config["remove_pcr_duplicates_method"] == "samtools":
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
-        benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_remove_duplicates.benchmark", 3) if config.get("benchmark", False) else None
+        benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_remove_duplicates.benchmark" if config.get("benchmark", False) else None
         shell:"""
         samtools rmdup -@ {threads} {input.bam} {output.bam} &&
         samtools index {output.bam} &&
@@ -139,7 +139,7 @@ else:
         resources:
             mem="500MB",
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
-        benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_remove_duplicates.benchmark", 3) if config.get("benchmark", False) else None
+        benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_remove_duplicates.benchmark" if config.get("benchmark", False) else None
         shell: """
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
@@ -166,7 +166,7 @@ if config.get("shift_atac_reads"):
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         threads: 1
         log: "seqnado_output/logs/alignment_post_process/{sample}_atac_shift.log",
-        benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_atac_shift.benchmark", 3) if config.get("benchmark", False) else None
+        benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_atac_shift.benchmark" if config.get("benchmark", False) else None
         shell:"""
         rsbamtk shift -b {input.bam} -o {output.tmp} &&
         samtools sort {output.tmp} -@ {threads} -o {output.bam} &&
@@ -186,7 +186,7 @@ else:
             ),
             read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv"),
         threads: 1
-        benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_move_bam_to_temp_location.benchmark", 3) if config.get("benchmark", False) else None
+        benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_move_bam_to_temp_location.benchmark" if config.get("benchmark", False) else None
         shell:"""
         mv {input.bam} {output.bam} &&
         mv {input.bam}.bai {output.bai} &&
@@ -207,7 +207,7 @@ rule filter_bam:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/alignment_post_process/{sample}_filter.log",
-    benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_filter.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_filter.benchmark" if config.get("benchmark", False) else None
     params:
         options=check_options(config["samtools"]["filter_options"]),
     shell:"""
@@ -228,7 +228,7 @@ rule move_bam_to_final_location:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/alignment_post_process/{sample}_final.log",
-    benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_final.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_final.benchmark" if config.get("benchmark", False) else None
     shell:"""
     mv {input.bam} {output.bam} &&
     mv {input.bai} {output.bai} &&
@@ -248,7 +248,7 @@ rule bam_stats:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    benchmark: repeat("seqnado_output/benchmark/alignment_post_process/{sample}_alignment_stats.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/alignment_post_process/{sample}_alignment_stats.benchmark" if config.get("benchmark", False) else None
     shell: """
         cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
     """
@@ -262,7 +262,7 @@ rule prepare_stats_report:
     output:
         "seqnado_output/qc/alignment_stats.tsv",
     log: "seqnado_output/logs/alignment_stats.log",
-    benchmark: repeat("seqnado_output/benchmark/alignment_stats.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/alignment_stats.benchmark" if config.get("benchmark", False) else None
     script:
         "../scripts/alignment_stats.py"
 
@@ -287,7 +287,7 @@ rule merge_bams:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/merge_bam/{group}.log",
-    benchmark: repeat("seqnado_output/benchmark/merge_bam/{group}.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/merge_bam/{group}.benchmark" if config.get("benchmark", False) else None
     shell:"""
     samtools merge {output} {input} -@ {threads}
     """
@@ -299,7 +299,7 @@ use rule index_bam as index_consensus_bam with:
     output:
         bai=temp("seqnado_output/aligned/merged/{group}.bam.bai"),
     threads: 8
-    benchmark: repeat("seqnado_output/benchmark/merged/{group}.benchmark", 3) if config.get("benchmark", False) else None
+    benchmark: "seqnado_output/benchmark/merged/{group}.benchmark" if config.get("benchmark", False) else None
 
 localrules:
     move_bam_to_final_location,

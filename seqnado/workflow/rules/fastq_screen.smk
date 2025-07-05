@@ -17,7 +17,7 @@ rule fastq_screen_paired:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
-    benchmark: repeat("seqnado_output/benchmark/fastq_screen/{sample}_{read}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/fastq_screen/{sample}_{read}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """ fastq_screen --conf {params.conf} --threads {threads} --subset 10000 --aligner bowtie2 --threads {threads} {input.fq}  --outdir {params.outdir} > {log} 2>&1 """
 
@@ -30,6 +30,6 @@ use rule fastq_screen_paired as fastq_screen_single with:
         fq_screen_png=temp("seqnado_output/qc/fastq_screen/{sample}_screen.png"),
         fq_screen_txt=temp("seqnado_output/qc/fastq_screen/{sample}_screen.txt"),
     log: "seqnado_output/logs/fastq_screen/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/fastq_screen/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/fastq_screen/{sample}.benchmark" if config.get("benchmark", False) else None,
 
 ruleorder: fastq_screen_paired > fastq_screen_single 

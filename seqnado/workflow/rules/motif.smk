@@ -10,7 +10,7 @@ rule get_fasta:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/motifs/fasta/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/motifs/fasta/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/motifs/fasta/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
     cat {input.peaks} | cut -f 1-3 > {output.bed} &&
@@ -30,7 +30,7 @@ rule motif_meme_chip:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/motifs/meme/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/motifs/meme/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/motifs/meme/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         meme-chip -oc {params.meme_dir} {params.meme_chip_db} {params.meme_chip_params} {input.fasta}
@@ -49,7 +49,7 @@ rule motif_homer:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/motifs/homer/{sample}.log",
-    benchmark: repeat("seqnado_output/benchmark/motifs/homer/{sample}.benchmark", 3) if config.get("benchmark", False) else None,
+    benchmark: "seqnado_output/benchmark/motifs/homer/{sample}.benchmark" if config.get("benchmark", False) else None,
     shell:
         """
         findMotifsGenome.pl {input.fasta} {params.homer_bg} {params.homer_dir} {params.homer_params}
