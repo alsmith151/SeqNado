@@ -20,8 +20,8 @@ rule generate_plotnado_visualisation:
          runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container:
         "library://asmith151/plotnado/plotnado:latest"
-    script:
-        "../scripts/run_plotnado.py"
+    benchmark: repeat("seqnado_output/benchmark/plotnado.txt", 3) if config.get("benchmark", False) else None,
+    script: "../scripts/run_plotnado.py"
 
 
         

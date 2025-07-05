@@ -51,6 +51,7 @@ rule geo_symlink:
     params:
         output=OUTPUT,
     container: None
+    benchmark: repeat("seqnado_output/benchmark/geo_symlink.txt", 3) if config.get("benchmark", False) else None,
     run:
         import pathlib
         from seqnado.design import GEOFiles
@@ -90,6 +91,7 @@ rule md5sum:
         files=get_symlinked_files,
     output:
         "seqnado_output/geo_submission/md5sums.txt",
+    benchmark: repeat("seqnado_output/benchmark/md5sum.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         cd seqnado_output/geo_submission
@@ -112,6 +114,7 @@ rule geo_md5_table:
         raw="seqnado_output/geo_submission/raw_data_checksums.txt",
         processed="seqnado_output/geo_submission/processed_data_checksums.txt",
     container: None
+    benchmark: repeat("seqnado_output/benchmark/geo_md5_table.txt", 3) if config.get("benchmark", False) else None,
     run:
         import pandas as pd 
 
@@ -130,6 +133,7 @@ rule samples_table:
     params: 
         output=OUTPUT,
     container: None
+    benchmark: repeat("seqnado_output/benchmark/samples_table.txt", 3) if config.get("benchmark", False) else None,
     run:
         from seqnado.design import GEOFiles
         df = GEOFiles(make_geo_submission_files=True,
@@ -147,6 +151,7 @@ rule geo_protocol:
         "seqnado_output/geo_submission/protocol.txt",
     params:
         assay=ASSAY,
+    benchmark: repeat("seqnado_output/benchmark/geo_protocol.txt", 3) if config.get("benchmark", False) else None,
     script:
         "../scripts/produce_data_processing_protocol.py"
 
@@ -154,6 +159,7 @@ rule geo_upload_instructions:
     output:
         instructions="seqnado_output/geo_submission/upload_instructions.txt",
     container: None
+    benchmark: repeat("seqnado_output/benchmark/geo_upload_instructions.txt", 3) if config.get("benchmark", False) else None,
     run:
         import importlib.resources
         import seqnado.data
@@ -169,6 +175,7 @@ rule move_to_upload:
         validated="seqnado_output/geo_submission/.validated",
     output:
         outdir = directory(f"seqnado_output/geo_submission/{ASSAY.replace('&', '_and_')}")
+    benchmark: repeat("seqnado_output/benchmark/move_to_upload.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         mkdir -p {output.outdir}
@@ -184,6 +191,7 @@ rule remove_headers_for_security:
     output:
         validated="seqnado_output/geo_submission/.validated",
     container: None
+    benchmark: repeat("seqnado_output/benchmark/remove_headers_for_security.txt", 3) if config.get("benchmark", False) else None,
     run:
         import pathlib
 

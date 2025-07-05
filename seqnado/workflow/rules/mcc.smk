@@ -41,9 +41,8 @@ rule viewpoints_to_fasta:
         genome=config["fasta"],
     output:
         fasta="seqnado_output/resources/viewpoints.fa",
-    log:
-        "seqnado_output/logs/bed_to_fasta/viewpoints.log",
-    
+    log: "seqnado_output/logs/bed_to_fasta/viewpoints.log",
+    benchmark: repeat("seqnado_output/benchmark/bed_to_fasta/viewpoints.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         bedtools getfasta -fi {input.genome} -bed {input.bed} -fo {output.fasta} -name 2> {log} &&
@@ -57,8 +56,8 @@ rule fasta_index:
         fasta="seqnado_output/resources/viewpoints.fa",
     output:
         index="seqnado_output/resources/viewpoints.fa.fai",
-    log:
-        "seqnado_output/logs/bed_to_fasta/index.log",
+    log: "seqnado_output/logs/bed_to_fasta/index.log",
+    benchmark: repeat("seqnado_output/benchmark/bed_to_fasta/index.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         samtools faidx {input.fasta} -o {output.index}
@@ -69,8 +68,8 @@ rule exclusion_regions:
         bed=config['viewpoints'],
     output:
         bed="seqnado_output/resources/exclusion_regions.bed"
-    log:
-        "seqnado_output/logs/exclusion_regions.log"
+    log: "seqnado_output/logs/exclusion_regions.log"
+    benchmark: repeat("seqnado_output/benchmark/exclusion_regions.txt", 3) if config.get("benchmark", False) else None,
     params:
         genome=config['genome']['chromosome_sizes'],
         exclusion_zone=config.get("exclusion_zone", 500)
@@ -90,8 +89,8 @@ rule minimap2_to_viewpoints:
     resources:
         mem="4GB",
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
-    log:
-        "seqnado_output/logs/aligned/{sample}.log",
+    log: "seqnado_output/logs/aligned/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/aligned/{sample}.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         minimap2 -x sr -a -k 8 -w 1 --cs=long {input.viewpoints} {input.fq} 2> {log} |
@@ -110,8 +109,8 @@ rule split_reads_aligned_to_viewpoints:
     threads: 1
     resources:
         mem="1GB",
-    log:
-        "seqnado_output/logs/split_reads/{sample}.log",
+    log: "seqnado_output/logs/split_reads/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/split_reads/{sample}.txt", 3) if config.get("benchmark", False) else None,
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
     script:
         "../scripts/mcc_split_reads_aligned_to_viewpoints.py"
@@ -122,6 +121,7 @@ use rule align_single as align_mcc_reads_to_genome with:
         fq1="seqnado_output/mcc/{sample}/{sample}.sliced.fastq.gz", 
     output:
         bam=temp("seqnado_output/aligned/initial_alignment/{sample}.bam"),
+    benchmark: repeat("seqnado_output/benchmark/align_mcc_reads/{sample}.txt", 3) if config.get("benchmark", False) else None,
 
 
 rule align_unmapped_reads_to_genome:
@@ -134,8 +134,8 @@ rule align_unmapped_reads_to_genome:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/realign/{sample}.log",
+    log: "seqnado_output/logs/realign/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/realign/{sample}.txt", 3) if config.get("benchmark", False) else None,
     params:
         index=config["genome"]["index"],
         options=check_options(config["bowtie2"]["options"]),
@@ -159,8 +159,8 @@ rule combine_genome_mapped_reads:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/combine/{sample}.log",
+    log: "seqnado_output/logs/combine/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/combine/{sample}.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         samtools merge -@ {threads} {output.bam} {input.bam1} {input.bam2} &&
@@ -181,8 +181,8 @@ rule identify_viewpoint_reads:
     threads: 1
     resources:
         mem="1GB",
-    log:
-        "seqnado_output/logs/identify_viewpoint_reads/{sample}.log",
+    log: "seqnado_output/logs/identify_viewpoint_reads/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/identify_viewpoint_reads/{sample}.txt", 3) if config.get("benchmark", False) else None,
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
@@ -195,14 +195,15 @@ use rule sort_bam as sort_bam_viewpoints with:
     output:
         bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
         read_log="seqnado_output/mcc/replicates/{sample}/{sample}_read_log.txt",
-    log:
-        "seqnado_output/logs/sort_bam_viewpoints/{sample}.log",
+    log: "seqnado_output/logs/sort_bam_viewpoints/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/sort_bam_viewpoints/{sample}.txt", 3) if config.get("benchmark", False) else None,
 
 use rule index_bam as index_bam_viewpoints with:
     input:
         bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
     output:
         bai="seqnado_output/mcc/replicates/{sample}/{sample}.bam.bai",
+    benchmark: repeat("seqnado_output/benchmark/index_bam_viewpoints/{sample}.txt", 3) if config.get("benchmark", False) else None,
 
 
 rule extract_ligation_stats:
@@ -211,6 +212,7 @@ rule extract_ligation_stats:
     output:
         stats="seqnado_output/resources/{sample}_ligation_stats.json"
     container: 'library://asmith151/seqnado/seqnado_mcc:latest'
+    benchmark: repeat("seqnado_output/benchmark/extract_ligation_stats/{sample}.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         mccnado extract-ligation-stats {input.bam} {output.stats} 
@@ -262,8 +264,8 @@ rule make_bigwigs_mcc_replicates:
         cis_or_trans_stats="seqnado_output/resources/{sample}_ligation_stats.json",
     output:
         bigwig="seqnado_output/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig"
-    log:
-        "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
+    log: "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
+    benchmark: repeat("seqnado_output/benchmark/bigwig/{sample}_{viewpoint_group}.txt", 3) if config.get("benchmark", False) else None,
     params:
         bin_size=10,
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
@@ -301,8 +303,8 @@ rule merge_mcc_bams:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/merge_bam/{group}.log",
+    log: "seqnado_output/logs/merge_bam/{group}.log",
+    benchmark: repeat("seqnado_output/benchmark/merge_bam/{group}.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         samtools merge {output} {input} -@ {threads}
@@ -314,8 +316,8 @@ use rule index_bam as index_bam_merged with:
         bam="seqnado_output/mcc/{group}/{group}.bam",
     output:
         bai="seqnado_output/mcc/{group}/{group}.bam.bai",
-    log:
-        "seqnado_output/logs/index_bam_merged/{group}.log",
+    log: "seqnado_output/logs/index_bam_merged/{group}.log",
+    benchmark: repeat("seqnado_output/benchmark/index_bam_merged/{group}.txt", 3) if config.get("benchmark", False) else None,
 
 
 use rule extract_ligation_stats as extract_ligation_stats_merged with:
@@ -323,8 +325,8 @@ use rule extract_ligation_stats as extract_ligation_stats_merged with:
         bam="seqnado_output/mcc/{group}/{group}.bam",
     output:
         stats="seqnado_output/resources/{group}_ligation_stats.json",
-    log:
-        "seqnado_output/logs/extract_ligation_stats_merged/{group}.log",
+    log: "seqnado_output/logs/extract_ligation_stats_merged/{group}.log",
+    benchmark: repeat("seqnado_output/benchmark/extract_ligation_stats_merged/{group}.txt", 3) if config.get("benchmark", False) else None,
 
 
 use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
@@ -338,8 +340,8 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     params:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
-    log:
-        "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
+    log: "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
+    benchmark: repeat("seqnado_output/benchmark/bigwig/{group}_{viewpoint_group}_n_cis.txt", 3) if config.get("benchmark", False) else None,
     container: 'library://asmith151/seqnado/seqnado_mcc:latest'
 
 
@@ -353,8 +355,8 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     params:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=1,
-    log:
-        "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
+    log: "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
+    benchmark: repeat("seqnado_output/benchmark/bigwig/{group}_{viewpoint_group}_unscaled.txt", 3) if config.get("benchmark", False) else None,
 
 
 
@@ -364,8 +366,8 @@ rule identify_ligation_junctions:
         bai="seqnado_output/mcc/{group}/{group}.bam.bai",
     output:
         pairs=temp(expand("seqnado_output/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS)),
-    log:
-        "seqnado_output/logs/ligation_junctions/{group}.log",
+    log: "seqnado_output/logs/ligation_junctions/{group}.log",
+    benchmark: repeat("seqnado_output/benchmark/ligation_junctions/{group}.txt", 3) if config.get("benchmark", False) else None,
     threads: 1
     resources:
         mem="1GB",
@@ -389,8 +391,8 @@ rule sort_ligation_junctions:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
+    log: "seqnado_output/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
+    benchmark: repeat("seqnado_output/benchmark/sort_ligation_junctions/{group}_{viewpoint}.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         sort -k2,2 -k4,4 -k3,3n -k5,5n {input.pairs} > {output.pairs}
@@ -401,8 +403,8 @@ rule bgzip_pairs:
         pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs",
     output:
         pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
-    log:
-        "seqnado_output/logs/bgzip_pairs/{group}_{viewpoint}.log",
+    log: "seqnado_output/logs/bgzip_pairs/{group}_{viewpoint}.log",
+    benchmark: repeat("seqnado_output/benchmark/bgzip_pairs/{group}_{viewpoint}.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         bgzip -c {input.pairs} > {output.pairs}
@@ -415,8 +417,8 @@ rule make_genomic_bins:
         bin_size=config["resolution"],
     output:
         bed="seqnado_output/resources/genomic_bins.bed",
-    log:
-        "seqnado_output/logs/genomic_bins.log",
+    log: "seqnado_output/logs/genomic_bins.log",
+    benchmark: repeat("seqnado_output/benchmark/genomic_bins.txt", 3) if config.get("benchmark", False) else None,
     container:
         "library://asmith151/seqnado/seqnado_mcc:latest"
     resources:
@@ -434,8 +436,8 @@ rule make_cooler:
         bins="seqnado_output/resources/genomic_bins.bed",
     output:
         cooler=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.cool"),
-    log:
-        "seqnado_output/logs/make_cooler/{group}_{viewpoint}.log",
+    log: "seqnado_output/logs/make_cooler/{group}_{viewpoint}.log",
+    benchmark: repeat("seqnado_output/benchmark/make_cooler/{group}_{viewpoint}.txt", 3) if config.get("benchmark", False) else None,
     params:
         resolution=config.get("resolution", 100),
         genome=config["genome"]["name"],
@@ -458,8 +460,8 @@ rule zoomify_cooler:
         cooler="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.cool",
     output:
         cooler=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool"),
-    log:
-        "seqnado_output/logs/zoomify_cooler/{group}_{viewpoint}.log",
+    log: "seqnado_output/logs/zoomify_cooler/{group}_{viewpoint}.log",
+    benchmark: repeat("seqnado_output/benchmark/zoomify_cooler/{group}_{viewpoint}.txt", 3) if config.get("benchmark", False) else None,
     params:
         resolutions=",".join([str(r) for r in config.get("resolutions", [100, 1000, 10000])]),
     resources:
@@ -479,8 +481,8 @@ rule aggregate_coolers:
                      viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     output:
         mcool="seqnado_output/mcc/{group}/{group}.mcool",
-    log:
-        "seqnado_output/logs/{group}_aggregate_coolers.log",
+    log: "seqnado_output/logs/{group}_aggregate_coolers.log",
+    benchmark: repeat("seqnado_output/benchmark/{group}_aggregate_coolers.txt", 3) if config.get("benchmark", False) else None,
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
@@ -498,8 +500,8 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
         bigwig="seqnado_output/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig",
     output:
         peaks="seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
-    log:
-        "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
+    log: "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
+    benchmark: repeat("seqnado_output/benchmark/call_mcc_peaks/{group}_{viewpoint_group}.txt", 3) if config.get("benchmark", False) else None,
     params:
         options=check_options(config["lanceotron_mcc"]["options"]),
     container: None

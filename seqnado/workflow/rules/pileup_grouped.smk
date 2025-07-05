@@ -24,8 +24,8 @@ rule deeptools_make_bigwigs_consensus:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads:
         config["deeptools"]["threads"]
-    log:
-        "seqnado_output/logs/bigwigs/{sample}.log",
+    log: "seqnado_output/logs/bigwigs/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/bigwigs/{sample}.txt", 3) if config.get("benchmark", False) else None,
     shell:
         """
         bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} > {log} 2>&1

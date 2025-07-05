@@ -1,27 +1,6 @@
 import pathlib
 
 
-rule deseq2_report_rnaseq:
-    input:
-        counts="seqnado_output/readcounts/feature_counts/read_counts.tsv",
-        qmd=f"deseq2_{PROJECT_NAME}.qmd".replace(" ", ""),
-        yml="seqnado_output/resources/deseq2_params.yml"
-    output:
-        deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
-    log:
-        "seqnado_output/logs/deseq2/deseq2.log",
-    container:
-        "library://asmith151/seqnado/seqnado_report:latest"
-    shell:
-        """
-        input_file=$(realpath "{input.qmd}")
-        base_dir=$(dirname $input_file)
-        cd "$base_dir"
-        quarto render {input.qmd} --no-cache --output {output.deseq2} --log {log} --execute-params {input.yml}
-        """
-
-
-
 rule deseq2_params:
     output:
         yml="seqnado_output/resources/deseq2_params.yml"
@@ -31,6 +10,7 @@ rule deseq2_params:
         de_dir=str(pathlib.Path(rules.deseq2_report_rnaseq.output.deseq2).parent),
         counts=rules.deseq2_report_rnaseq.input.counts,
     container: None
+    benchmark: repeat("seqnado_output/benchmark/deseq2/deseq2_params.txt", 3) if config.get("benchmark", False) else None
     run:
         import yaml
 
@@ -44,6 +24,27 @@ rule deseq2_params:
                 },
                 f,
             )
+
+
+rule deseq2_report_rnaseq:
+    input:
+        counts="seqnado_output/readcounts/feature_counts/read_counts.tsv",
+        qmd=f"deseq2_{PROJECT_NAME}.qmd".replace(" ", ""),
+        yml="seqnado_output/resources/deseq2_params.yml"
+    output:
+        deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
+    log: "seqnado_output/logs/deseq2/deseq2.log",
+    benchmark: repeat("seqnado_output/benchmark/deseq2/deseq2.txt", 3) if config.get("benchmark", False) else None
+    container:
+        "library://asmith151/seqnado/seqnado_report:latest"
+    shell:
+        """
+        input_file=$(realpath "{input.qmd}")
+        base_dir=$(dirname $input_file)
+        cd "$base_dir"
+        quarto render {input.qmd} --no-cache --output {output.deseq2} --log {log} --execute-params {input.yml}
+        """
+
 
 
 

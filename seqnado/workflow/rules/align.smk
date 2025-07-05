@@ -15,8 +15,8 @@ rule align_paired:
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/align/{sample}.log",
+    log: "seqnado_output/logs/align/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/align/{sample}.txt", 3) if config.get("benchmark", False) else None
     shell:
         """bowtie2 -p {threads} -x {params.index} -1 {input.fq1} -2 {input.fq2} {params.options} 2> {log} |
            samtools view -bS - > {output.bam}
@@ -35,8 +35,8 @@ rule align_single:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: config["bowtie2"]["threads"]
-    log:
-        "seqnado_output/logs/align/{sample}.log",
+    log: "seqnado_output/logs/align/{sample}.log",
+    benchmark: repeat("seqnado_output/benchmark/align/{sample}.txt", 3) if config.get("benchmark", False) else None
     shell:
         """bowtie2 -p {threads} -x {params.index} -U {input.fq1} {params.options} 2> {log} |
             samtools view -bS - > {output.bam}

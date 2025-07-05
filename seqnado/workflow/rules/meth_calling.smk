@@ -11,8 +11,8 @@ checkpoint methylation_split_bams:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/methylation/split_bams/{sample}_{genome}.log"
+    log: "seqnado_output/logs/methylation/split_bams/{sample}_{genome}.log"
+    benchmark: repeat("seqnado_output/benchmark/methylation/split_bams/{sample}_{genome}.txt", 3) if config.get("benchmark", False) else None
     shell: """
         if [[ "{wildcards.genome}" == "{params.ref_genome}" ]]; then
             samtools view -h {input} | awk '{{if($0 ~ /^@/ || $3 ~ /^chr/) print}}' | samtools view -b -o {output.bam} 2> {log}
@@ -43,6 +43,7 @@ rule methyldackel_bias:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container:"library://cchahrou/seqnado/seqnado_meth.sif:latest"
     log:"seqnado_output/logs/methylation/methyldackel/bias/{sample}_{genome}.log"
+    benchmark: repeat("seqnado_output/benchmark/methylation/methyldackel/bias/{sample}_{genome}.txt", 3) if config.get("benchmark", False) else None
     shell: """
         MethylDackel mbias -@ {threads} --txt {params.fasta} {input.bam} {params.prefix} > {output.bias} 2> {log}
     """
@@ -55,8 +56,8 @@ rule calculate_conversion:
         plot="seqnado_output/methylation/methylation_conversion.png"
     params:
         assay=config["methylation_assay"],
-    log:
-        "seqnado_output/logs/methylation/conversion.log"
+    log: "seqnado_output/logs/methylation/conversion.log"
+    benchmark: repeat("seqnado_output/benchmark/methylation/conversion.txt", 3) if config.get("benchmark", False) else None
     script: "../scripts/methylation_conversion.py"
     
 
@@ -74,8 +75,8 @@ rule methyldackel_extract:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "library://cchahrou/seqnado/seqnado_meth.sif:latest"
-    log:
-        "seqnado_output/logs/methylation/methyldackel/{sample}_{genome}.log"
+    log: "seqnado_output/logs/methylation/methyldackel/{sample}_{genome}.log"
+    benchmark: repeat("seqnado_output/benchmark/methylation/methyldackel/{sample}_{genome}.txt", 3) if config.get("benchmark", False) else None
     shell: """
         MethylDackel extract -@ {threads} {params.options} -o {params.prefix} {params.fasta} {input.bam} > {log} 2>&1
     """
@@ -89,8 +90,8 @@ rule taps_inverted:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/methylation/taps_inverted/{sample}_{genome}.log"
+    log: "seqnado_output/logs/methylation/taps_inverted/{sample}_{genome}.log"
+    benchmark: repeat("seqnado_output/benchmark/methylation/taps_inverted/{sample}_{genome}.txt", 3) if config.get("benchmark", False) else None
     shell: """
         awk -v OFS="\t" '{{print $1, $2, $3, (100-$4), $5, $6}}' {input.bdg} > {output.taps} 2> {log}
         rm {input.bdg}
