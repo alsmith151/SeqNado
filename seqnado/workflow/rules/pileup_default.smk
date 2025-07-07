@@ -122,7 +122,7 @@ rule bamnado_bam_coverage:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
     output:
-        bigwig="seqnado_output/bigwigs/bamnado/{sample}.bigWig",
+        bigwig="seqnado_output/bigwigs/bamnado/unscaled/{sample}.bigWig",
     params:
         options=check_options(config["bamnado"]["bamcoverage"]),
     resources:
