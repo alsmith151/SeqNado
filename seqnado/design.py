@@ -1286,12 +1286,26 @@ class QCFiles(BaseModel):
         return files
 
 
+class PileupMethod(Enum):
+    DEEPTOOLS = "deeptools"
+    HOMER = "homer"
+    BAMNADO = "bamnado"
+
+class ScaleMethod(Enum):
+    UNNORMALISED = "unscaled"
+    CSAW = "csaw"
+    CPM = "cpm"
+    RPKM = "rpkm"
+    SPIKEIN = "spikein"
+    MERGED = "merged"
+
+
 class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC", "CRISPR"]
     names: List[str]
-    pileup_method: Optional[List[Union[Literal["deeptools", "homer", "bamnado"], None]]] = None
+    pileup_method: Optional[PileupMethod] = None
     make_bigwigs: bool = False
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
+    scale_method: Optional[ScaleMethod] = None
     include_unscaled: bool = True
     prefix: Optional[str] = "seqnado_output/bigwigs/"
 
@@ -1371,13 +1385,19 @@ class BigWigFiles(BaseModel):
             return []
 
 
+class PeakCallingMethod(Enum):
+    MACS = "macs"
+    HOMER = "homer"
+    LANCEOTRON = "lanceotron"
+    SEACR = "seacr"
+
+
+
+
 class PeakCallingFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "CUT&TAG"]
     names: List[str]
-    peak_calling_method: Union[
-        Literal["macs", "homer", "lanceotron", "seacr", False],
-        List[Literal["macs", "homer", "lanceotron", "seacr"]],
-    ] = None
+    peak_calling_method: Optional[List[PeakCallingMethod]] = None
     call_peaks: bool = False
     prefix: Optional[str] = "seqnado_output/peaks/"
 
@@ -1506,10 +1526,7 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: Union[
-        Literal["deeptools", "homer", False],
-        List[Literal["deeptools", "homer"]],
-    ] = None
+    pileup_method: Optional[PeakCallingMethod] = None
 
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
 
@@ -1671,12 +1688,7 @@ class NonRNAOutput(Output):
     assay: Literal["ChIP", "ATAC", "CUT&TAG"]
     consensus_counts: bool = False
     call_peaks: bool = False
-    peak_calling_method: Optional[
-        Union[
-            Literal["macs", "homer", "lanceotron", False],
-            List[Literal["macs", "homer", "lanceotron"]],
-        ]
-    ] = None
+    peak_calling_method: Optional[PeakCallingMethod] = None
 
     @property
     def merge_peaks(self):
@@ -1759,14 +1771,9 @@ class IPOutput(NonRNAOutput):
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
-    peak_calling_method: Optional[
-        Union[
-            Literal["macs", "homer", "lanceotron", "seacr", False],
-            List[Literal["macs", "homer", "lanceotron", "seacr"]],
-        ]
-    ] = None
+    peak_calling_method: Optional[PeakCallingMethod] = None
     chip_spikein_normalisation: bool = False
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
+    scale_method: Optional[ScaleMethod] = None
 
     @property
     def peaks(self):
