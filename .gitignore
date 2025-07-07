@@ -29,3 +29,4 @@ containers/*.sif
 *target/*
 *delete*
 .DS_Store
+containers/push_notes.txt

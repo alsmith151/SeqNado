@@ -19,7 +19,7 @@ from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwa
 ASSAY = "CRISPR"
 SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 configfile: "config_crispr.yml"
-container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
 
 
 ####################

@@ -20,7 +20,7 @@ SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 configfile: "config_rna.yml"
 
 
-container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
 
 
 ####################
