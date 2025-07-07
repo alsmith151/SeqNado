@@ -1287,40 +1287,26 @@ class QCFiles(BaseModel):
 
 
 class PileupMethod(Enum):
-    DEEPTOOLS = "deeptools"
-    HOMER = "homer"
-    BAMNADO = "bamnado"
+    deeptools = "deeptools"
+    homer = "homer"
+    bamnado = "bamnado"
 
 class ScaleMethod(Enum):
-    UNNORMALISED = "unscaled"
-    CSAW = "csaw"
-    CPM = "cpm"
-    RPKM = "rpkm"
-    SPIKEIN = "spikein"
-    MERGED = "merged"
+    unscaled = "unscaled"
+    csaw = "csaw"
+    cpm = "cpm"
+    rpkm = "rpkm"
+    spikein = "spikein"
+    merged = "merged"
 
 
 class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC", "CRISPR"]
     names: List[str]
-    pileup_method: Optional[PileupMethod] = None
+    pileup_method: Optional[List[PileupMethod]] = None
     make_bigwigs: bool = False
-    scale_method: Optional[ScaleMethod] = None
-    include_unscaled: bool = True
+    scale_method: List[ScaleMethod] = [ScaleMethod.unscaled]
     prefix: Optional[str] = "seqnado_output/bigwigs/"
-
-    def model_post_init(self, __context: Any) -> None:
-        if isinstance(self.pileup_method, str):
-            self.pileup_method = [self.pileup_method]
-
-        if self.include_unscaled and not self.scale_method:
-            self.scale_method = [
-                "unscaled",
-            ]
-        elif self.include_unscaled and self.scale_method:
-            self.scale_method = ["unscaled", self.scale_method]
-        else:
-            self.scale_method = [self.scale_method]
 
     def _filter_bigwigs(self, bigwigs: List[str]) -> List[str]:
         """
@@ -1333,6 +1319,7 @@ class BigWigFiles(BaseModel):
 
         pileup_to_scale_method_not_compatible = {
             "homer": ["csaw"],
+            "bamnado": ["csaw", "spikein"],
         }
 
         # Iterate over the bigwigs and filter out the incompatible ones
@@ -1357,8 +1344,8 @@ class BigWigFiles(BaseModel):
         bws = expand(
             self.prefix + "{method}/{scale}/{sample}.bigWig",
             sample=self.names,
-            scale=self.scale_method,
-            method=self.pileup_method,
+            scale=[m.value for m in self.scale_method],
+            method=[p.value for p in self.pileup_method],
         )
 
         return self._filter_bigwigs(bws)
@@ -1368,8 +1355,8 @@ class BigWigFiles(BaseModel):
         return expand(
             self.prefix + "{method}/{scale}/{sample}_{strand}.bigWig",
             sample=self.names,
-            scale=self.scale_method,
-            method=self.pileup_method,
+            scale=[m.value for m in self.scale_method],
+            method=[p.value for p in self.pileup_method],
             strand=["plus", "minus"],
         )
 
@@ -1386,10 +1373,10 @@ class BigWigFiles(BaseModel):
 
 
 class PeakCallingMethod(Enum):
-    MACS = "macs"
-    HOMER = "homer"
-    LANCEOTRON = "lanceotron"
-    SEACR = "seacr"
+    macs = "macs"
+    homer = "homer"
+    lanceotron = "lanceotron"
+    seacr = "seacr"
 
 
 
@@ -1406,7 +1393,7 @@ class PeakCallingFiles(BaseModel):
         return expand(
             self.prefix + "{method}/{sample}.bed",
             sample=self.names,
-            method=self.peak_calling_method,
+            method=[m.value for m in self.peak_calling_method],
         )
 
     @computed_field
@@ -1526,9 +1513,8 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: Optional[PeakCallingMethod] = None
-
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
+    pileup_method: Optional[List[PileupMethod]] = None
+    scale_method: Optional[List[ScaleMethod]] = [ScaleMethod.unscaled]
 
     make_heatmaps: bool = False
     make_ucsc_hub: bool = False
@@ -1577,9 +1563,8 @@ class Output(BaseModel):
                 assay=self.assay,
                 names=self.design_dataframe["merge"].unique().tolist(),
                 make_bigwigs=self.make_bigwigs,
-                pileup_method="deeptools",
-                scale_method="merged",
-                include_unscaled=False,
+                pileup_method=[PileupMethod.deeptools],
+                scale_method=[ScaleMethod.merged],
             )
 
             files = bwf_samples.files + bwf_merged.files
@@ -1688,7 +1673,7 @@ class NonRNAOutput(Output):
     assay: Literal["ChIP", "ATAC", "CUT&TAG"]
     consensus_counts: bool = False
     call_peaks: bool = False
-    peak_calling_method: Optional[PeakCallingMethod] = None
+    peak_calling_method: Optional[List[PeakCallingMethod]] = None
 
     @property
     def merge_peaks(self):
@@ -1700,7 +1685,7 @@ class NonRNAOutput(Output):
             assay=self.assay,
             names=self.design_dataframe["merge"].unique().tolist(),
             call_peaks=self.call_peaks,
-            peak_calling_method="lanceotron",
+            peak_calling_method=["lanceotron"],
             prefix="seqnado_output/peaks/merged/",
         )
 
@@ -1771,9 +1756,9 @@ class IPOutput(NonRNAOutput):
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
-    peak_calling_method: Optional[PeakCallingMethod] = None
+    peak_calling_method: Optional[List[PeakCallingMethod]] = None
     chip_spikein_normalisation: bool = False
-    scale_method: Optional[ScaleMethod] = None
+    scale_method: List[ScaleMethod] = [ScaleMethod.unscaled]
 
     @property
     def peaks(self):

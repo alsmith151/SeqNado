@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 from loguru import logger
 
-from seqnado.design import Design, DesignIP
+from seqnado.design import Design, DesignIP, ScaleMethod
 
 FILETYPE_TO_DIR_MAPPING = {
     "tag": "tag_dirs",
@@ -290,20 +290,18 @@ def get_group_for_sample(wildcards, design: Union[Design, DesignIP], strip: str 
         raise KeyError(f"Sample {wildcards.sample} not found in normalisation groups.")
 
 
-def get_scale_method(config: Dict) -> Optional[str]:
+def get_scale_method(config: Dict) -> List[str]:
     """
     Returns the scale method based on the config.
     """
 
+    method = [ScaleMethod.unscaled]
+
     if config.get("spikein"):
-        method = "spikein"
+        method.append(ScaleMethod.spikein)
     elif config.get("scale"):
-        method = "csaw"
-    else:
-        method = None
-
-    return method
-
+        method.append(ScaleMethod.csaw)
+    return [m.value for m in method]
 
 def remove_unwanted_run_files():
     import glob
