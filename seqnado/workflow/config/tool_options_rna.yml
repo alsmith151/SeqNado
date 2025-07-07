@@ -32,7 +32,8 @@ deeptools:
     bamcoverage: -bs 1 --normalizeUsing CPM
 
 bamnado:
-    options: --bin-size 10 --norm-method cpm 
+    threads: 8
+    bamcoverage: --bin-size 10 --norm-method cpm 
 
 heatmap:
     options: -b 1000 -m 5000 -a 1000 --binSize 50

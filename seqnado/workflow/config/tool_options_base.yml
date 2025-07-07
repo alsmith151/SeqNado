@@ -1,5 +1,6 @@
 bamnado:
-    options: --bin-size 10 --norm-method rpkm 
+    threads: 8
+    bamcoverage: --bin-size 10 --norm-method rpkm 
 
 bowtie2:
     threads: 8
