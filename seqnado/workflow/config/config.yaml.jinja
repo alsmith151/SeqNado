@@ -55,7 +55,12 @@ make_heatmaps: "{{make_heatmaps}}"
 
 {% if assay != "rna" %}
 call_peaks: "{{call_peaks}}"
+{% if peak_calling_method %}
+peak_calling_method: 
+    - "{{peak_calling_method}}"
+{% else %}
 peak_calling_method: "{{peak_calling_method}}"
+{% endif %}
 {% endif %}
 
 consensus_counts: "{{consensus_counts}}"
