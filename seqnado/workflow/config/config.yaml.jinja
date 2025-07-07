@@ -43,7 +43,14 @@ spikein_options:
 
 make_bigwigs: "{{make_bigwigs}}"  
 scale: "{{scale}}"
+
+{% if pileup_method %}
+pileup_method: 
+    - "{{pileup_method}}"
+{% else %}
 pileup_method: "{{pileup_method}}"
+{% endif %}
+
 make_heatmaps: "{{make_heatmaps}}"
 
 {% if assay != "rna" %}
