@@ -1289,9 +1289,7 @@ class QCFiles(BaseModel):
 class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC", "CRISPR"]
     names: List[str]
-    pileup_method: Union[
-        Literal["deeptools", "homer", False], List[Literal["deeptools", "homer"]]
-    ] = None
+    pileup_method: Optional[List[Union[Literal["deeptools", "homer", "bamnado"], None]]] = None
     make_bigwigs: bool = False
     scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
     include_unscaled: bool = True
