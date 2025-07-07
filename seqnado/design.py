@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Literal, LiteralString, Optional, Union
 
 import numpy as np
 import pandas as pd
-import pandera
+import pandera.pandas as pa
 from loguru import logger
 from pandera.typing import DataFrame, Index, Series
 from pydantic import BaseModel, Field, computed_field, field_validator, validator
@@ -298,23 +298,23 @@ class IPExperiment(BaseModel):
         return ip and control
 
 
-class DataFrameDesign(pandera.DataFrameModel):
+class DataFrameDesign(pa.DataFrameModel):
     sample_name: Series[str]
-    r1: Series[str] = pandera.Field(coerce=True)
-    r2: Series[str] = pandera.Field(coerce=True, nullable=True)
+    r1: Series[str] = pa.Field(coerce=True)
+    r2: Series[str] = pa.Field(coerce=True, nullable=True)
     scale_group: Series[str]
-    deseq2: Optional[Series[str]] = pandera.Field()
-    merge: Optional[Series[str]] = pandera.Field()
+    deseq2: Optional[Series[str]] = pa.Field()
+    merge: Optional[Series[str]] = pa.Field()
 
 
-class DataFrameDesignIP(pandera.DataFrameModel):
+class DataFrameDesignIP(pa.DataFrameModel):
     sample_name: Series[str]
-    ip: Series[str] = pandera.Field(coerce=True)
-    control: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
-    ip_r1: Series[str] = pandera.Field(coerce=True)
-    ip_r2: Series[str] = pandera.Field(coerce=True, nullable=True)
-    control_r1: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
-    control_r2: Optional[Series[str]] = pandera.Field(coerce=True, nullable=True)
+    ip: Series[str] = pa.Field(coerce=True)
+    control: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
+    ip_r1: Series[str] = pa.Field(coerce=True)
+    ip_r2: Series[str] = pa.Field(coerce=True, nullable=True)
+    control_r1: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
+    control_r2: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
     scale_group: Series[str]
 
 
@@ -1525,10 +1525,13 @@ class Output(BaseModel):
     library_complexity: bool = False
 
     geo_submission_files: bool = False
-
+    
     perform_plotting: bool = False
     plotting_format: Literal["svg", "png", "pdf"] = "svg"
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
+
+    make_dataset: bool = False
+
 
     # Correct plotting_coordinates type as it may be False
     @validator("plotting_coordinates", pre=True)
@@ -1615,6 +1618,22 @@ class Output(BaseModel):
             design=self.design_dataframe,
             config=self.config,
         )
+    @property
+    def dataset_files(self):
+        if not self.make_dataset:
+            return []
+
+        dataset_config = self.config.get("dataset", {})
+        use_regions = dataset_config.get("regions_bed")
+        use_bins = dataset_config.get("binsize")
+
+        if use_regions and str(use_regions).strip():
+            return ["seqnado_output/dataset/dataset_regions.h5ad"]
+        elif use_bins and str(use_bins).strip():
+            return ["seqnado_output/dataset/dataset_bins.h5ad"]
+        else:
+            return []
+
 
 
 class RNAOutput(Output):
@@ -1659,6 +1678,7 @@ class RNAOutput(Output):
             self.counts,
             self.design,
             self.plots,
+            self.dataset_files,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1740,6 +1760,7 @@ class NonRNAOutput(Output):
             self.design,
             self.plots,
             self.merged_counts,
+            self.dataset_files,
         ):
             if file_list:
                 files.extend(file_list)
@@ -1805,6 +1826,7 @@ class IPOutput(NonRNAOutput):
             self.design,
             self.plots,
             self.merged_counts,
+            self.dataset_files,
         ):
             if file_list:
                 files.extend(file_list)
@@ -2159,16 +2181,16 @@ class GEOSamples(BaseModel):
         return df
 
 
-class ViewpointsFile(pandera.DataFrameModel):
-    Chromosome: Series[str] = pandera.Field(coerce=True)
-    Start: Series[int] = pandera.Field(coerce=True)
-    End: Series[int] = pandera.Field(coerce=True)
-    Name: Series[str] = pandera.Field(coerce=True)
-    Strand: Optional[Series[str]] = pandera.Field(coerce=True)
-    Score: Optional[Series[float]] = pandera.Field(coerce=True, nullable=True)
+class ViewpointsFile(pa.DataFrameModel):
+    Chromosome: Series[str] = pa.Field(coerce=True)
+    Start: Series[int] = pa.Field(coerce=True)
+    End: Series[int] = pa.Field(coerce=True)
+    Name: Series[str] = pa.Field(coerce=True)
+    Strand: Optional[Series[str]] = pa.Field(coerce=True)
+    Score: Optional[Series[float]] = pa.Field(coerce=True, nullable=True)
 
     # Validate the viewpoint names column
-    @pandera.check("Name")
+    @pa.check("Name")
     def check_viewpoint_names(cls, s: Series[str]) -> Series[bool]:
         # Check that the names do not contain spaces or special characters
         allowed_chars = r"^[a-zA-Z0-9_]+$"

@@ -63,6 +63,8 @@ jobs:
             apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
           elif [[ "${{ matrix.assay }}" == "meth" ]]; then
             apptainer pull --force library://cchahrou/seqnado/seqnado_meth.sif:latest
+          elif [[ "${{ matrix.assay }}" == "cat" ]]; then
+            apptainer pull --force library://cchahrou/seqnado/seqnado_quant:latest
           fi
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}

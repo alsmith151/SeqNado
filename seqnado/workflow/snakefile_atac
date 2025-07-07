@@ -76,6 +76,7 @@ include: "rules/hub.smk"
 include: "rules/geo_submission.smk"
 include: "rules/visualisation.smk"
 include: "rules/consensus_counts.smk"
+include: "rules/dataset.smk"
 
 rule all:
     input:
