@@ -265,20 +265,19 @@ rule make_bigwigs_mcc_replicates:
     log:
         "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
     params:
-        bin_size=10,
+        options=check_options(config["bamnado"]["bamcoverage"]),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
-    container: 'library://asmith151/seqnado/seqnado_mcc:latest'
     shell:
         """
         bamnado \
         bam-coverage \
         -b {input.bam} \
         -o {output.bigwig} \
-        --bin-size {params.bin_size} \
         --scale-factor {params.scale_factor} \
         --blacklisted-locations {input.excluded_regions} \
         --min-mapq 0 \
-        --read-group {wildcards.viewpoint_group} > {log} 2>&1
+        --read-group {wildcards.viewpoint_group}
+        {params.options} > {log} 2>&1
         """
         
 def get_mcc_bam_files_for_merge(wildcards):

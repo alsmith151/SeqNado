@@ -2,8 +2,9 @@ lanceotron_mcc:
     options: --max-peak-size 2000 --no-mcc-filter-enriched-regions --no-mcc-filter-background
 
 bamnado:
-    bin_size: 10
-    options: 
+    threads: 8
+    bamcoverage: --bin-size 10 --norm-method rpkm 
+
 
 trim_galore:
     threads: 4
