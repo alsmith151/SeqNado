@@ -1705,7 +1705,7 @@ class NonRNAOutput(Output):
             assay=self.assay,
             names=self.design_dataframe["merge"].unique().tolist(),
             call_peaks=self.call_peaks,
-            peak_calling_method=["lanceotron"],
+            peak_calling_method=[PeakCallingMethod.lanceotron],
             prefix="seqnado_output/peaks/merged/",
         )
 
