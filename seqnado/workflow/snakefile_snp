@@ -43,11 +43,21 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
+
+# Ensure that peak calling and pileup methods are turned off for SNP assay as these are not applicable
+if "peak_calling_method" in config:
+    del config["peak_calling_method"]
+if "pileup_method" in config:
+    del config["pileup_method"]
+
+
 OUTPUT = SNPOutput(
     assay=ASSAY,
     config=config,
     run_design=DESIGN,
     sample_names=SAMPLE_NAMES,
+    pileup_method=None,  # SNP assay does not use pileup method
+    peak_calling_method=None,  # SNP assay does not use peak calling method
     **config
 )
 

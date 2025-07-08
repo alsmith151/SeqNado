@@ -234,19 +234,20 @@ def get_qualimap_files(wildcards):
 
 
 def get_frip_files(wildcards):
-    peak_methods = [m.value for m in OUTPUT.peak_calling_method]
-    if ASSAY in ["CAT", "ATAC"] and config["call_peaks"]:
-        return expand(
-            "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
-            sample=SAMPLE_NAMES,
-            directory=peak_methods,
-        )
-    if ASSAY == "ChIP" and config["call_peaks"]:
-        return expand(
-            "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
-            sample=SAMPLE_NAMES_IP,
-            directory=peak_methods,
-        )
+    if OUTPUT.peak_calling_method:
+        peak_methods = [m.value for m in OUTPUT.peak_calling_method]
+        if ASSAY in ["CAT", "ATAC"] and config["call_peaks"]:
+            return expand(
+                "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+                sample=SAMPLE_NAMES,
+                directory=peak_methods,
+            )
+        if ASSAY == "ChIP" and config["call_peaks"]:
+            return expand(
+                "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+                sample=SAMPLE_NAMES_IP,
+                directory=peak_methods,
+            )
     else:
         return []
 
