@@ -1383,8 +1383,6 @@ class PeakCallingMethodMCC(Enum):
     lanceotron_mcc = "lanceotron-mcc"
 
 
-
-
 class PeakCallingFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "CUT&TAG"]
     names: List[str]
@@ -1844,6 +1842,8 @@ class SNPOutput(Output):
     annotate_snps: bool = False
     sample_names: List[str]
     make_ucsc_hub: bool = False
+    peak_calling_method: None
+    pileup_method: None
 
     @property
     def design(self):
