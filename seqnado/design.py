@@ -1378,6 +1378,10 @@ class PeakCallingMethod(Enum):
     lanceotron = "lanceotron"
     seacr = "seacr"
 
+class PeakCallingMethodMCC(Enum):
+    lanceotron = "lanceotron"
+    lanceotron_mcc = "lanceotron-mcc"
+
 
 
 
@@ -1980,6 +1984,8 @@ class MCCOutput(Output):
 
     viewpoint_oligos: List[str]
     viewpoints_grouped: List[str]
+
+    peak_calling_method: Optional[List[PeakCallingMethodMCC]] = None
 
     config: dict
     make_ucsc_hub: bool = False
