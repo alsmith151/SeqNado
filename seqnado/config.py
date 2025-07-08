@@ -412,6 +412,7 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
     fastq_dir.mkdir(exist_ok=True)
 
     template = env.get_template("config.yaml.jinja")
+    workflow_config.assay = assay  # Ensure assay is set correctly in the config
     rendered = template.render(workflow_config.model_dump())
 
     # Remove consecutive empty lines
