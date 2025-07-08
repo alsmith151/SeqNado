@@ -14,6 +14,16 @@ from pydantic import BaseModel, Field, computed_field, field_validator, validato
 from snakemake.io import expand
 
 
+class Assay(Enum):
+    RNA = "rna"
+    ATAC = "atac"
+    SNP = "snp"
+    ChIP = "chip"
+    CAT = "cat"
+    Methylation = "meth"
+    MCC = "mcc"
+    CRISPR = "crispr"
+
 def predict_organism(genome: str) -> str:
     if "hg" in genome:
         return "Homo sapiens"
