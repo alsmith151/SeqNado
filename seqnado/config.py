@@ -412,8 +412,12 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
     fastq_dir.mkdir(exist_ok=True)
 
     template = env.get_template("config.yaml.jinja")
-    workflow_config.assay = assay  # Ensure assay is set correctly in the config
-    rendered = template.render(workflow_config.model_dump())
+    
+    # Convert the Pydantic model to a dictionary for rendering 
+    config_dict = workflow_config.model_dump()
+    # Ensure the 'assay' field is a string for rendering
+    config_dict['assay'] = workflow_config.assay.value
+    rendered = template.render(config_dict)
 
     # Remove consecutive empty lines
     cleaned = "\n".join([line for line in rendered.splitlines() if line.strip() != ""])
