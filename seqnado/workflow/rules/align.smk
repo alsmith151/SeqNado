@@ -24,7 +24,7 @@ rule align_paired:
         """
 
 
-use rule align_paired as align_single with:
+rule align_single:
     input:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
     params:
