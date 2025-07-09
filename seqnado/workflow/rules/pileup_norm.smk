@@ -143,7 +143,7 @@ rule setup_for_scaling_factors:
     output:
         formatted_counts="seqnado_output/counts/{group}_formatted_counts.tsv",
         metadata="seqnado_output/counts/{group}_metadata.tsv",
-    benchmark: "seqnado_output/benchmarks/counts/formatted_counts.benchmark"
+    benchmark: "seqnado_output/benchmarks/counts/{group}_formatted_counts.benchmark"
     run:
         counts = format_feature_counts(input[0])
         counts.to_csv(output[0], sep="\t", index=False)
@@ -160,7 +160,7 @@ rule calculate_scaling_factors:
         scaling_factors="seqnado_output/resources/{group}_scaling_factors.tsv",
     container:
         "library://asmith151/seqnado/seqnado_report:latest"
-    benchmark: "seqnado_output/benchmarks/counts/scaling_factors.benchmark"
+    benchmark: "seqnado_output/benchmarks/counts/{group}_scaling_factors.benchmark"
     script:
         "../scripts/calculate_scaling_factors.R"
 

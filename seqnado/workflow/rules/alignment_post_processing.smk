@@ -304,6 +304,7 @@ use rule index_bam as index_consensus_bam with:
     output:
         bai=temp("seqnado_output/aligned/merged/{group}.bam.bai"),
     threads: 8,
+    log: "seqnado_output/logs/merge_bam/{group}_index.log",
     benchmark: "seqnado_output/benchmarks/merge_bam/{group}_index.benchmark",
 
 
