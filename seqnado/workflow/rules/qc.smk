@@ -234,7 +234,7 @@ def get_qualimap_files(wildcards):
 
 
 def get_frip_files(wildcards):
-    if OUTPUT.peak_calling_method:
+    if hasattr(OUTPUT, "peak_calling_method") and OUTPUT.peak_calling_method:
         peak_methods = [m.value for m in OUTPUT.peak_calling_method]
         if ASSAY in ["CUT&TAG", "ATAC"] and config["call_peaks"]:
             return expand(
