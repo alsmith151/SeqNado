@@ -18,8 +18,8 @@ rule align_paired:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=35, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/align/{sample}.log",
+    log: "seqnado_output/logs/align/{sample}.log",
+    benchmark: "seqnado_output/benchmarks/align/{sample}.benchmark",
     shell:
         """
         STAR \
@@ -37,6 +37,7 @@ rule rename_aligned:
         bam=rules.align_paired.output.bam,
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
+    benchmark: "seqnado_output/benchmarks/rename_aligned/{sample}.benchmark",
     shell:
         "mv {input.bam} {output.bam}"
 

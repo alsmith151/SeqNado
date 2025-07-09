@@ -16,10 +16,18 @@ rule fastq_screen_paired:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
-    shell:
-        """ fastq_screen --conf {params.conf} --threads {threads} --subset 10000 --aligner bowtie2 --threads {threads} {input.fq}  --outdir {params.outdir} > {log} 2>&1 """
+    log: "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
+    benchmark: "seqnado_output/benchmarks/fastq_screen/{sample}_{read}.benchmark",
+    shell:""" 
+    fastq_screen \
+    --conf {params.conf} \
+    --threads {threads} \
+    --subset 10000 \
+    --aligner bowtie2 \
+    --threads {threads} {input.fq} \
+    --outdir {params.outdir} \
+    > {log} 2>&1 
+    """
 
 
 use rule fastq_screen_paired as fastq_screen_single with:
@@ -29,7 +37,7 @@ use rule fastq_screen_paired as fastq_screen_single with:
         fq_screen=temp("seqnado_output/qc/fastq_screen/{sample}_screen.html"),
         fq_screen_png=temp("seqnado_output/qc/fastq_screen/{sample}_screen.png"),
         fq_screen_txt=temp("seqnado_output/qc/fastq_screen/{sample}_screen.txt"),
-    log:
-        "seqnado_output/logs/fastq_screen/{sample}.log",
+    log: "seqnado_output/logs/fastq_screen/{sample}.log",
+    benchmark: "seqnado_output/benchmarks/fastq_screen/{sample}.benchmark",
 
 ruleorder: fastq_screen_paired > fastq_screen_single 

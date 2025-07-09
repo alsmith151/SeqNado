@@ -12,6 +12,7 @@ rule sort_bam:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     threads: config["samtools"]["threads"]
     log: "seqnado_output/logs/alignment_post_process/{sample}_sort.log",
+    benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_sort.benchmark",
     shell:"""
     samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M &&
     echo 'Step\tRead Count' > {output.read_log} &&
@@ -29,6 +30,8 @@ rule index_bam:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    log: "seqnado_output/logs/alignment_post_process/{sample}_index.log",
+    benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_index.benchmark",
     shell:"samtools index -@ {threads} -b {input.bam}"
 
 
@@ -51,6 +54,7 @@ if config["remove_blacklist"] and os.path.exists(config.get("blacklist", "")):
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_blacklist.log",
+        benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_blacklist.benchmark",
         shell:"""
         bedtools intersect -v -b {params.blacklist} -a {input.bam} > {output.bam} &&
         samtools index -b {output.bam} -o {output.bai} &&
@@ -74,6 +78,7 @@ else:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_blacklist.log",
+        benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_blacklist.benchmark",
         shell:"""
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
@@ -98,6 +103,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
+        benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_remove_duplicates.benchmark",
         shell:"""
         picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} &&
         mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
@@ -118,6 +124,7 @@ elif config["remove_pcr_duplicates_method"] == "samtools":
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
+        benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_remove_duplicates.benchmark",
         shell:"""
         samtools rmdup -@ {threads} {input.bam} {output.bam} &&
         samtools index {output.bam} &&
@@ -136,6 +143,7 @@ else:
         resources:
             mem="500MB",
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
+        benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_remove_duplicates.benchmark",
         shell: """
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&
@@ -162,6 +170,7 @@ if config.get("shift_atac_reads"):
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         threads: 1
         log: "seqnado_output/logs/alignment_post_process/{sample}_atac_shift.log",
+        benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_atac_shift.benchmark",
         shell:"""
         rsbamtk shift -b {input.bam} -o {output.tmp} &&
         samtools sort {output.tmp} -@ {threads} -o {output.bam} &&
@@ -181,6 +190,7 @@ else:
             ),
             read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv"),
         threads: 1
+        benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_atac_shift.benchmark",
         shell:"""
         mv {input.bam} {output.bam} &&
         mv {input.bam}.bai {output.bai} &&
@@ -201,6 +211,7 @@ rule filter_bam:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/alignment_post_process/{sample}_filter.log",
+    benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_filter.benchmark",
     params:
         options=check_options(config["samtools"]["filter_options"]),
     shell:"""
@@ -221,6 +232,7 @@ rule move_bam_to_final_location:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/alignment_post_process/{sample}_final.log",
+    benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_final.benchmark",
     shell:"""
     mv {input.bam} {output.bam} &&
     mv {input.bai} {output.bai} &&
@@ -240,6 +252,8 @@ rule bam_stats:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    log: "seqnado_output/logs/alignment_post_process/{sample}_alignment_stats.log",
+    benchmark: "seqnado_output/benchmarks/alignment_post_process/{sample}_alignment_stats.benchmark",
     shell: """
         cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
     """
@@ -252,8 +266,8 @@ rule prepare_stats_report:
         ),
     output:
         "seqnado_output/qc/alignment_stats.tsv",
-    log:
-        "seqnado_output/logs/alignment_stats.log",
+    log: "seqnado_output/logs/alignment_stats.log",
+    benchmark: "seqnado_output/benchmarks/alignment_stats.benchmark",
     script:
         "../scripts/alignment_stats.py"
 
@@ -278,6 +292,7 @@ rule merge_bams:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/merge_bam/{group}.log",
+    benchmark: "seqnado_output/benchmarks/merge_bam/{group}.benchmark",
     shell:"""
     samtools merge {output} {input} -@ {threads}
     """
@@ -288,7 +303,8 @@ use rule index_bam as index_consensus_bam with:
         bam="seqnado_output/aligned/merged/{group}.bam",
     output:
         bai=temp("seqnado_output/aligned/merged/{group}.bam.bai"),
-    threads: 8
+    threads: 8,
+    benchmark: "seqnado_output/benchmarks/merge_bam/{group}_index.benchmark",
 
 
 localrules:

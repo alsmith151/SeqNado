@@ -24,8 +24,8 @@ rule heatmap_matrix:
     resources:
         runtime=lambda wildcards, attempt: f"{1 * 2**attempt}h",
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/heatmap/matrix.log",
+    log: "seqnado_output/logs/heatmap/matrix.log",
+    benchmark: "seqnado_output/benchmarks/heatmap/matrix.benchmark",
     shell:
         """computeMatrix scale-regions -p {threads} {params.options} --smartLabels --missingDataAsZero -S {input.bigwigs} -R {params.gtf} -o {output.matrix} >> {log} 2>&1"""
 
@@ -39,8 +39,8 @@ rule heatmap_plot:
         colormap=check_options(config["heatmap"]["colormap"]),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/heatmap/heatmap.log",
+    log: "seqnado_output/logs/heatmap/heatmap.log",
+    benchmark: "seqnado_output/benchmarks/heatmap/heatmap.benchmark",
     shell:
         """plotHeatmap -m {input.matrix} -out {output.heatmap} --colorMap {params.colormap} --boxAroundHeatmaps no"""
 
@@ -52,7 +52,7 @@ rule heatmap_metaplot:
         metaplot="seqnado_output/heatmap/metaplot.pdf",
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/heatmap/metaplot.log",
+    log: "seqnado_output/logs/heatmap/metaplot.log",
+    benchmark: "seqnado_output/benchmarks/heatmap/metaplot.benchmark",
     shell:
         """plotProfile -m {input.matrix} -out {output.metaplot} --perGroup"""

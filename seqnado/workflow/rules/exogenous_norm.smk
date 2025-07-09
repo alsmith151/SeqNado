@@ -31,8 +31,7 @@ use rule sort_bam as sort_bam_spikein with:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/aligned_spikein/{sample}_sort.log",
+    log: "seqnado_output/logs/aligned_spikein/{sample}_sort.log",
 
 
 use rule index_bam as index_bam_spikein with:
@@ -40,8 +39,7 @@ use rule index_bam as index_bam_spikein with:
         bam=rules.sort_bam_spikein.output.bam,
     output:
         bai=temp("seqnado_output/aligned/spikein/sorted/{sample}.bam.bai"),
-    log:
-        "seqnado_output/logs/aligned_spikein/{sample}_index.log",
+    log: "seqnado_output/logs/aligned_spikein/{sample}_index.log",
 
 
 rule filter_bam_spikein:
@@ -49,8 +47,7 @@ rule filter_bam_spikein:
         bam=rules.sort_bam_spikein.output.bam,
     output:
         bam=temp("seqnado_output/aligned/spikein/filtered/{sample}.bam"),
-    log:
-        "seqnado_output/logs/aligned_spikein/{sample}_filter.log",
+    log: "seqnado_output/logs/aligned_spikein/{sample}_filter.log",
     shell:
         """
     samtools view -b -F 260 -@ 8 {input.bam} > {output.bam} &&
@@ -64,8 +61,7 @@ use rule index_bam as index_bam_spikein_filtered with:
         bam=rules.filter_bam_spikein.output.bam,
     output:
         bai=temp("seqnado_output/aligned/spikein/filtered/{sample}.bam.bai"),
-    log:
-        "seqnado_output/logs/aligned_spikein/{sample}_filter_index.log",
+    log: "seqnado_output/logs/aligned_spikein/{sample}_filter_index.log",
 
 
 rule split_bam:
@@ -84,8 +80,7 @@ rule split_bam:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/split_bam/{sample}.log",
+    log: "seqnado_output/logs/split_bam/{sample}.log",
     shell:
         """
         samtools view -h {input.bam} | awk '{{if($0 ~ /^@/ || $3 ~ /^chr/) print}}' | samtools view -b -o {output.ref_bam} &&
@@ -117,8 +112,8 @@ if config.get("spikein_options", {}).get("normalisation_method") == "orlando":
         output:
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
-        log:
-            "seqnado_output/logs/normalisation_factors_{group}.log",
+        log: "seqnado_output/logs/normalisation_factors_{group}.log",
+        benchmark: "seqnado_output/benchmarks/normalisation_factors_{group}.benchmark",
         script:
             "../scripts/calculate_spikein_norm_orlando.py"
 
@@ -134,8 +129,8 @@ elif config.get("spikein_options", {}).get("normalisation_method") == "with_inpu
         output:
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",
-        log:
-            "seqnado_output/logs/normalisation_factors_{group}.log",
+        log: "seqnado_output/logs/normalisation_factors_{group}.log",
+        benchmark: "seqnado_output/benchmarks/normalisation_factors_{group}.benchmark",
         script:
             "../scripts/calculate_spikein_norm_factors.py"
 

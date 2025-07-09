@@ -50,8 +50,8 @@ rule validate_peaks:
         sentinel="seqnado_output/peaks/.validated",
     container:
         None
-    log:
-        "seqnado_output/logs/validate_peaks.log",
+    log: "seqnado_output/logs/validate_peaks.log",
+    benchmark: "seqnado_output/benchmarks/validate_peaks.benchmark",
     run:
         from loguru import logger
 
@@ -77,8 +77,8 @@ rule bed_to_bigbed:
         chrom_sizes=config["genome"]["chromosome_sizes"],
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
+    log: "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
+    benchmark: "seqnado_output/benchmarks/bed_to_bigbed/{directory}/{sample}.benchmark",
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v | cut -f 1-4 > {input.bed}.tmp &&
@@ -96,8 +96,8 @@ rule generate_hub:
         report="seqnado_output/seqnado_report.html",
     output:
         hub=OUTPUT.ucsc_hub.hub_txt,
-    log:
-        log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log".strip(),
+    log: log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log".strip(),
+    benchmark: "seqnado_output/benchmarks/hub.benchmark",
     container:
         None
     params:

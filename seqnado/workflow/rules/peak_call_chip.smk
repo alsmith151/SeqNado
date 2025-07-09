@@ -56,8 +56,8 @@ rule macs2_with_input:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/macs/{sample}_{treatment}.log",
+    log: "seqnado_output/logs/macs/{sample}_{treatment}.log",
+    benchmark: "seqnado_output/benchmarks/macs/{sample}_{treatment}.benchmark",
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
@@ -79,8 +79,8 @@ rule macs2_no_input:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/macs/{sample}_{treatment}.log",
+    log: "seqnado_output/logs/macs/{sample}_{treatment}.log",
+    benchmark: "seqnado_output/benchmarks/macs/{sample}_{treatment}.benchmark",
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
@@ -94,8 +94,8 @@ rule homer_with_input:
         control=lambda wc: get_control_file(wc, file_type="tag", allow_null=False),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
-    log:
-        "seqnado_output/logs/homer/{sample}_{treatment}.log",
+    log: "seqnado_output/logs/homer/{sample}_{treatment}.log",
+    benchmark: "seqnado_output/benchmarks/homer/{sample}_{treatment}.benchmark",
     params:
         options=check_options(config["homer"]["findpeaks"]),
     threads: 1
@@ -116,8 +116,8 @@ rule homer_no_input:
         control=lambda wc: get_control_file(wc, file_type="tag", allow_null=True),
     output:
         peaks="seqnado_output/peaks/homer/{sample}_{treatment}.bed",
-    log:
-        "seqnado_output/logs/homer/{sample}_{treatment}.log",
+    log: "seqnado_output/logs/homer/{sample}_{treatment}.log",
+    benchmark: "seqnado_output/benchmarks/homer/{sample}_{treatment}.benchmark",
     params:
         options=check_options(config["homer"]["findpeaks"]),
     threads: 1
@@ -139,8 +139,8 @@ rule lanceotron_with_input:
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
         ltron_peaks=temp("seqnado_output/peaks/lanceotron/{sample}_{treatment}_L-tron.bed"),
-    log:
-        "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
+    log: "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
+    benchmark: "seqnado_output/benchmarks/lanceotron/{sample}_{treatment}.benchmark",
     params:
         threshold=get_lanceotron_threshold,
         outdir=lambda wc, output: os.path.dirname(output.peaks),
@@ -164,8 +164,8 @@ rule lanceotron_no_input:
     output:
         peaks="seqnado_output/peaks/lanceotron/{sample}_{treatment}.bed",
         ltron_peaks=temp("seqnado_output/peaks/lanceotron/{sample}_{treatment}_L-tron.bed"),
-    log:
-        "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
+    log: "seqnado_output/logs/lanceotron/{sample}_{treatment}.log",
+    benchmark: "seqnado_output/benchmarks/lanceotron/{sample}_{treatment}.benchmark",
     params:
         options=check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
@@ -188,8 +188,8 @@ rule seacr:
         peaks="seqnado_output/peaks/seacr/{sample}_{treatment}.bed",
         seacr=temp("seqnado_output/peaks/seacr/{sample}_{treatment}_seacr.txt"),
         noM=temp("seqnado_output/bedgraphs/{sample}_{treatment}.nochrM.bedGraph"),
-    log:
-        "seqnado_output/logs/seacr/{sample}_{treatment}.log",
+    log: "seqnado_output/logs/seacr/{sample}_{treatment}.log",
+    benchmark: "seqnado_output/benchmarks/seacr/{sample}_{treatment}.benchmark",
     params:
         threshold=config["seacr"].get("threshold", 0.01),
         norm=config["seacr"].get("norm", "non"),

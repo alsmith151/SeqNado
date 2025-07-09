@@ -16,14 +16,13 @@ rule trimgalore_paired:
     params:
         options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
-    log:
-        "seqnado_output/logs/trimming/{sample}.log",
-    shell:
-        """
-        trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --paired --output_dir {params.trim_dir} {input.fq1} {input.fq2} >> {log} 2>&1 &&
-        mv {params.trim_dir}/{wildcards.sample}_val_1.fq.gz {output.trimmed1} &&
-        mv {params.trim_dir}/{wildcards.sample}_val_2.fq.gz {output.trimmed2}
-        """
+    log: "seqnado_output/logs/trimming/{sample}.log",
+    benchmark: "seqnado_output/benchmarks/trimming/{sample}.benchmark",
+    shell:"""
+    trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --paired --output_dir {params.trim_dir} {input.fq1} {input.fq2} >> {log} 2>&1 &&
+    mv {params.trim_dir}/{wildcards.sample}_val_1.fq.gz {output.trimmed1} &&
+    mv {params.trim_dir}/{wildcards.sample}_val_2.fq.gz {output.trimmed2}
+    """
 
 
 rule trimgalore_single:
@@ -39,13 +38,12 @@ rule trimgalore_single:
     params:
         options=check_options(config["trim_galore"]["options"]),
         trim_dir="seqnado_output/trimmed",
-    log:
-        "seqnado_output/logs/trimming/{sample}.log",
-    shell:
-        """
-        trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --output_dir {params.trim_dir} {input.fq} >> {log} 2>&1 &&
-        mv {params.trim_dir}/{wildcards.sample}_trimmed.fq.gz {output.trimmed}
-        """
+    log: "seqnado_output/logs/trimming/{sample}.log",
+    benchmark: "seqnado_output/benchmarks/trimming/{sample}.benchmark",
+    shell: """
+    trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --output_dir {params.trim_dir} {input.fq} >> {log} 2>&1 &&
+    mv {params.trim_dir}/{wildcards.sample}_trimmed.fq.gz {output.trimmed}
+    """
 
 
 ruleorder: trimgalore_paired > trimgalore_single

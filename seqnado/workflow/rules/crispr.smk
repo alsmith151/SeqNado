@@ -13,8 +13,8 @@ rule crispr_trimming:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/trimming/{sample}.log",
+    log: "seqnado_output/logs/trimming/{sample}.log",
+    benchmark: "seqnado_output/benchmarks/trimming/{sample}.benchmark",
     shell:"""
     cutadapt {params.options} -o {output.trimmed} {input.fq} > {log} 2>&1
     """
@@ -32,8 +32,8 @@ rule align_crispr:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: config["bowtie2"]["threads"]
-    log:
-        "seqnado_output/logs/align/{sample}.log",
+    log: "seqnado_output/logs/align/{sample}.log",
+    benchmark: "seqnado_output/benchmarks/align/{sample}.benchmark",
     shell:"""
     bowtie2 -p {threads} -x {params.index} -U {input.fq1} {params.options} 2> {log} |
     samtools view -bS - > {output.bam}
@@ -52,8 +52,8 @@ rule feature_counts:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
+    log: "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
+    benchmark: "seqnado_output/benchmarks/readcounts/featurecounts/featurecounts.benchmark",
     shell:"""
     featureCounts \
     -a \

@@ -8,10 +8,9 @@ rule deseq2_report_rnaseq:
         yml="seqnado_output/resources/deseq2_params.yml"
     output:
         deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
-    log:
-        "seqnado_output/logs/deseq2/deseq2.log",
-    container:
-        "library://asmith151/seqnado/seqnado_report:latest"
+    container: "library://asmith151/seqnado/seqnado_report:latest",
+    log: "seqnado_output/logs/deseq2/deseq2.log",
+    benchmark: "seqnado_output/benchmarks/deseq2/deseq2.benchmark",
     shell:
         """
         input_file=$(realpath "{input.qmd}")
