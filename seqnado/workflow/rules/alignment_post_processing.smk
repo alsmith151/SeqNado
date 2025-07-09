@@ -99,7 +99,7 @@ if config["remove_pcr_duplicates_method"] == "picard":
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
         shell:"""
-        picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} &&
+        picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} 2> {log} &&
         mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
         echo -e "duplicate removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """

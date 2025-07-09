@@ -23,7 +23,6 @@ rule align_paired:
            samtools view -bS - > {output.bam}
         """
 
-
 rule align_single:
     input:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
