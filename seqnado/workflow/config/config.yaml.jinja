@@ -48,7 +48,7 @@ scale: "{{scale}}"
 pileup_method: 
     - "{{pileup_method}}"
 {% else %}
-pileup_method: "{{pileup_method}}"
+pileup_method: []
 {% endif %}
 
 make_heatmaps: "{{make_heatmaps}}"
@@ -59,7 +59,7 @@ call_peaks: "{{call_peaks}}"
 peak_calling_method: 
     - "{{peak_calling_method}}"
 {% else %}
-peak_calling_method: "{{peak_calling_method}}"
+peak_calling_method: []
 {% endif %}
 {% endif %}
 
