@@ -240,7 +240,7 @@ def format_config_dict(config: Dict) -> Dict:
             elif is_off(entry):
                 config[key] = False
             elif is_none(entry):
-                config[key] = False
+                config[key] = None
             else:
                 config[key] = entry
 
