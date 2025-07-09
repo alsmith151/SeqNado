@@ -13,7 +13,7 @@ rule bcftools_call_snp:
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
     threads: config["bcftools"]["threads"]
     log: "seqnado_output/logs/variant/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/variant/{sample}.benchmark",
+    benchmark: ".benchmarks/variant/{sample}.benchmark",
     shell:"""
     bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1 &&
     tabix -f {output.vcf} > {output.idx} &&
@@ -34,7 +34,7 @@ rule split_multiallelic:
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
     threads: 16
     log: "seqnado_output/logs/variant/{sample}_split.log",
-    benchmark: "seqnado_output/benchmarks/variant/{sample}_split.benchmark",
+    benchmark: ".benchmarks/variant/{sample}_split.benchmark",
     shell:"""
     bcftools norm --threads {threads} -m-any -Oz -o {output.vcf} {input.vcf} > {log} 2>&1 &&
     tabix -f {output.vcf} > {output.idx}
@@ -56,7 +56,7 @@ rule bcftools_annotate:
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
     threads: 16
     log: "seqnado_output/logs/variant/{sample}_anno.log",
-    benchmark: "seqnado_output/benchmarks/variant/{sample}_anno.benchmark",
+    benchmark: ".benchmarks/variant/{sample}_anno.benchmark",
     shell:"""
     bcftools annotate --threads {threads} -c ID -a {params.dbsnp} -Oz -o {output.vcf} {input.vcf} 2> {log} &&
     tabix -f {output.vcf} > {output.idx}

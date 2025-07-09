@@ -42,7 +42,7 @@ rule viewpoints_to_fasta:
     output:
         fasta="seqnado_output/resources/viewpoints.fa",
     log: "seqnado_output/logs/bed_to_fasta/viewpoints.log",
-    benchmark: "seqnado_output/benchmarks/bed_to_fasta/viewpoints.benchmark",
+    benchmark: ".benchmarks/bed_to_fasta/viewpoints.benchmark",
     shell:
         """
         bedtools getfasta -fi {input.genome} -bed {input.bed} -fo {output.fasta} -name 2> {log} &&
@@ -57,7 +57,7 @@ rule fasta_index:
     output:
         index="seqnado_output/resources/viewpoints.fa.fai",
     log: "seqnado_output/logs/bed_to_fasta/index.log",
-    benchmark: "seqnado_output/benchmarks/bed_to_fasta/index.benchmark",
+    benchmark: ".benchmarks/bed_to_fasta/index.benchmark",
     shell:
         """
         samtools faidx {input.fasta} -o {output.index}
@@ -69,7 +69,7 @@ rule exclusion_regions:
     output:
         bed="seqnado_output/resources/exclusion_regions.bed"
     log: "seqnado_output/logs/exclusion_regions.log"
-    benchmark: "seqnado_output/benchmarks/exclusion_regions.benchmark",
+    benchmark: ".benchmarks/exclusion_regions.benchmark",
     params:
         genome=config['genome']['chromosome_sizes'],
         exclusion_zone=config.get("exclusion_zone", 500)
@@ -90,7 +90,7 @@ rule minimap2_to_viewpoints:
         mem="4GB",
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
     log: "seqnado_output/logs/aligned/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/aligned/{sample}.benchmark",
+    benchmark: ".benchmarks/aligned/{sample}.benchmark",
     shell:
         """
         minimap2 -x sr -a -k 8 -w 1 --cs=long {input.viewpoints} {input.fq} 2> {log} |
@@ -110,7 +110,7 @@ rule split_reads_aligned_to_viewpoints:
     resources:
         mem="1GB",
     log: "seqnado_output/logs/split_reads/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/split_reads/{sample}.benchmark",
+    benchmark: ".benchmarks/split_reads/{sample}.benchmark",
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
     script:
         "../scripts/mcc_split_reads_aligned_to_viewpoints.py"
@@ -134,7 +134,7 @@ rule align_unmapped_reads_to_genome:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/realign/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/realign/{sample}.benchmark",
+    benchmark: ".benchmarks/realign/{sample}.benchmark",
     params:
         index=config["genome"]["index"],
         options=check_options(config["bowtie2"]["options"]),
@@ -158,7 +158,7 @@ rule combine_genome_mapped_reads:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/combine/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/combine/{sample}.benchmark",
+    benchmark: ".benchmarks/combine/{sample}.benchmark",
     shell:
         """
         samtools merge -@ {threads} {output.bam} {input.bam1} {input.bam2} &&
@@ -180,7 +180,7 @@ rule identify_viewpoint_reads:
     resources:
         mem="1GB",
     log: "seqnado_output/logs/identify_viewpoint_reads/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/identify_viewpoint_reads/{sample}.benchmark",
+    benchmark: ".benchmarks/identify_viewpoint_reads/{sample}.benchmark",
     container: "library://asmith151/seqnado/seqnado_mcc:latest"
     shell:
         """
@@ -194,7 +194,7 @@ use rule sort_bam as sort_bam_viewpoints with:
         bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
         read_log="seqnado_output/mcc/replicates/{sample}/{sample}_read_log.txt",
     log: "seqnado_output/logs/sort_bam_viewpoints/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/sort_bam_viewpoints/{sample}.benchmark",
+    benchmark: ".benchmarks/sort_bam_viewpoints/{sample}.benchmark",
 
 use rule index_bam as index_bam_viewpoints with:
     input:
@@ -202,7 +202,7 @@ use rule index_bam as index_bam_viewpoints with:
     output:
         bai="seqnado_output/mcc/replicates/{sample}/{sample}.bam.bai",
     log: "seqnado_output/logs/index_bam_viewpoints/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/index_bam_viewpoints/{sample}.benchmark",
+    benchmark: ".benchmarks/index_bam_viewpoints/{sample}.benchmark",
 
 
 rule extract_ligation_stats:
@@ -212,7 +212,7 @@ rule extract_ligation_stats:
         stats="seqnado_output/resources/{sample}_ligation_stats.json"
     container: 'library://asmith151/seqnado/seqnado_mcc:latest'
     log: "seqnado_output/logs/extract_ligation_stats/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/extract_ligation_stats/{sample}.benchmark",
+    benchmark: ".benchmarks/extract_ligation_stats/{sample}.benchmark",
     shell:
         """
         mccnado extract-ligation-stats {input.bam} {output.stats} 
@@ -265,7 +265,7 @@ rule make_bigwigs_mcc_replicates:
     output:
         bigwig="seqnado_output/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig"
     log: "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
-    benchmark: "seqnado_output/benchmarks/bigwig/{sample}_{viewpoint_group}.benchmark",
+    benchmark: ".benchmarks/bigwig/{sample}_{viewpoint_group}.benchmark",
     params:
         bin_size=10,
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
@@ -304,7 +304,7 @@ rule merge_mcc_bams:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/merge_bam/{group}.log",
-    benchmark: "seqnado_output/benchmarks/merge_bam/{group}.benchmark",
+    benchmark: ".benchmarks/merge_bam/{group}.benchmark",
     shell:
         """
         samtools merge {output} {input} -@ {threads}
@@ -317,7 +317,7 @@ use rule index_bam as index_bam_merged with:
     output:
         bai="seqnado_output/mcc/{group}/{group}.bam.bai",
     log: "seqnado_output/logs/index_bam_merged/{group}.log",
-    benchmark: "seqnado_output/benchmarks/index_bam_merged/{group}.benchmark",
+    benchmark: ".benchmarks/index_bam_merged/{group}.benchmark",
 
 
 use rule extract_ligation_stats as extract_ligation_stats_merged with:
@@ -326,7 +326,7 @@ use rule extract_ligation_stats as extract_ligation_stats_merged with:
     output:
         stats="seqnado_output/resources/{group}_ligation_stats.json",
     log: "seqnado_output/logs/extract_ligation_stats_merged/{group}.log",
-    benchmark: "seqnado_output/benchmarks/extract_ligation_stats_merged/{group}.benchmark",
+    benchmark: ".benchmarks/extract_ligation_stats_merged/{group}.benchmark",
 
 
 use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
@@ -341,7 +341,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
     log: "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
-    benchmark: "seqnado_output/benchmarks/bigwig/{group}_{viewpoint_group}_n_cis.benchmark",
+    benchmark: ".benchmarks/bigwig/{group}_{viewpoint_group}_n_cis.benchmark",
     container: 'library://asmith151/seqnado/seqnado_mcc:latest'
 
 
@@ -356,7 +356,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=1,
     log: "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
-    benchmark: "seqnado_output/benchmarks/bigwig/{group}_{viewpoint_group}_unscaled.benchmark",
+    benchmark: ".benchmarks/bigwig/{group}_{viewpoint_group}_unscaled.benchmark",
 
 rule identify_ligation_junctions:
     input:
@@ -365,7 +365,7 @@ rule identify_ligation_junctions:
     output:
         pairs=temp(expand("seqnado_output/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS)),
     log: "seqnado_output/logs/ligation_junctions/{group}.log",
-    benchmark: "seqnado_output/benchmarks/ligation_junctions/{group}.benchmark",
+    benchmark: ".benchmarks/ligation_junctions/{group}.benchmark",
     threads: 1
     resources:
         mem="1GB",
@@ -390,7 +390,7 @@ rule sort_ligation_junctions:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
-    benchmark: "seqnado_output/benchmarks/sort_ligation_junctions/{group}_{viewpoint}.benchmark",
+    benchmark: ".benchmarks/sort_ligation_junctions/{group}_{viewpoint}.benchmark",
     shell:
         """
         sort -k2,2 -k4,4 -k3,3n -k5,5n {input.pairs} > {output.pairs}
@@ -402,7 +402,7 @@ rule bgzip_pairs:
     output:
         pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
     log: "seqnado_output/logs/bgzip_pairs/{group}_{viewpoint}.log",
-    benchmark: "seqnado_output/benchmarks/bgzip_pairs/{group}_{viewpoint}.benchmark",
+    benchmark: ".benchmarks/bgzip_pairs/{group}_{viewpoint}.benchmark",
     shell:
         """
         bgzip -c {input.pairs} > {output.pairs}
@@ -416,7 +416,7 @@ rule make_genomic_bins:
     output:
         bed="seqnado_output/resources/genomic_bins.bed",
     log: "seqnado_output/logs/genomic_bins.log",
-    benchmark: "seqnado_output/benchmarks/genomic_bins.benchmark",
+    benchmark: ".benchmarks/genomic_bins.benchmark",
     container:
         "library://asmith151/seqnado/seqnado_mcc:latest"
     resources:
@@ -435,7 +435,7 @@ rule make_cooler:
     output:
         cooler=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.cool"),
     log: "seqnado_output/logs/make_cooler/{group}_{viewpoint}.log",
-    benchmark: "seqnado_output/benchmarks/make_cooler/{group}_{viewpoint}.benchmark",
+    benchmark: ".benchmarks/make_cooler/{group}_{viewpoint}.benchmark",
     params:
         resolution=config.get("resolution", 100),
         genome=config["genome"]["name"],
@@ -459,7 +459,7 @@ rule zoomify_cooler:
     output:
         cooler=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool"),
     log: "seqnado_output/logs/zoomify_cooler/{group}_{viewpoint}.log",
-    benchmark: "seqnado_output/benchmarks/zoomify_cooler/{group}_{viewpoint}.benchmark",
+    benchmark: ".benchmarks/zoomify_cooler/{group}_{viewpoint}.benchmark",
     params:
         resolutions=",".join([str(r) for r in config.get("resolutions", [100, 1000, 10000])]),
     resources:
@@ -480,7 +480,7 @@ rule aggregate_coolers:
     output:
         mcool="seqnado_output/mcc/{group}/{group}.mcool",
     log: "seqnado_output/logs/{group}_aggregate_coolers.log",
-    benchmark: "seqnado_output/benchmarks/{group}_aggregate_coolers.benchmark",
+    benchmark: ".benchmarks/{group}_aggregate_coolers.benchmark",
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
@@ -499,7 +499,7 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     output:
         peaks="seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
     log: "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
-    benchmark: "seqnado_output/benchmarks/call_mcc_peaks/{group}_{viewpoint_group}.benchmark",
+    benchmark: ".benchmarks/call_mcc_peaks/{group}_{viewpoint_group}.benchmark",
     params:
         options=check_options(config["lanceotron_mcc"]["options"]),
     container: None

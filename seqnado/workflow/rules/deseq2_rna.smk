@@ -10,7 +10,7 @@ rule deseq2_report_rnaseq:
         deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
     container: "library://asmith151/seqnado/seqnado_report:latest",
     log: "seqnado_output/logs/deseq2/deseq2.log",
-    benchmark: "seqnado_output/benchmarks/deseq2/deseq2.benchmark",
+    benchmark: ".benchmarks/deseq2/deseq2.benchmark",
     shell:
         """
         input_file=$(realpath "{input.qmd}")

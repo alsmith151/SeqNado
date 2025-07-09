@@ -30,7 +30,7 @@ rule merged_saf:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    benchmark: "seqnado_output/benchmarks/readcounts/featurecounts/{group}_merged_saf.benchmark",
+    benchmark: ".benchmarks/readcounts/featurecounts/{group}_merged_saf.benchmark",
     shell:"""
     awk 'BEGIN{{OFS="\\t"}}{{print $1":"$2"-"$3,$1,$2,$3,"\\*"}}' {input.peaks} > {output.saf}
     """
@@ -49,7 +49,7 @@ rule merged_counts:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:"seqnado_output/logs/readcounts/featurecounts/{group}_counts.log",
-    benchmark: "seqnado_output/benchmarks/readcounts/featurecounts/{group}_merged_counts.benchmark",
+    benchmark: ".benchmarks/readcounts/featurecounts/{group}_merged_counts.benchmark",
     shell:"""
     featureCounts -a {input.saf} -F SAF -T {threads} --donotsort {params.options} -o {output.counts} {input.bam} > {log} 2>&1
     """

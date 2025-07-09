@@ -17,7 +17,7 @@ rule fastq_screen_paired:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
-    benchmark: "seqnado_output/benchmarks/fastq_screen/{sample}_{read}.benchmark",
+    benchmark: ".benchmarks/fastq_screen/{sample}_{read}.benchmark",
     shell:""" 
     fastq_screen \
     --conf {params.conf} \
@@ -38,6 +38,6 @@ use rule fastq_screen_paired as fastq_screen_single with:
         fq_screen_png=temp("seqnado_output/qc/fastq_screen/{sample}_screen.png"),
         fq_screen_txt=temp("seqnado_output/qc/fastq_screen/{sample}_screen.txt"),
     log: "seqnado_output/logs/fastq_screen/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/fastq_screen/{sample}.benchmark",
+    benchmark: ".benchmarks/fastq_screen/{sample}.benchmark",
 
 ruleorder: fastq_screen_paired > fastq_screen_single 

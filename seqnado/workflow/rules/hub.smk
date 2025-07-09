@@ -51,7 +51,7 @@ rule validate_peaks:
     container:
         None
     log: "seqnado_output/logs/validate_peaks.log",
-    benchmark: "seqnado_output/benchmarks/validate_peaks.benchmark",
+    benchmark: ".benchmarks/validate_peaks.benchmark",
     run:
         from loguru import logger
 
@@ -78,7 +78,7 @@ rule bed_to_bigbed:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/bed_to_bigbed/{directory}/{sample}.benchmark",
+    benchmark: ".benchmarks/bed_to_bigbed/{directory}/{sample}.benchmark",
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v | cut -f 1-4 > {input.bed}.tmp &&
@@ -97,7 +97,7 @@ rule generate_hub:
     output:
         hub=OUTPUT.ucsc_hub.hub_txt,
     log: log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log".strip(),
-    benchmark: "seqnado_output/benchmarks/hub.benchmark",
+    benchmark: ".benchmarks/hub.benchmark",
     container:
         None
     params:

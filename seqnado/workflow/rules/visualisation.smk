@@ -18,5 +18,6 @@ rule generate_plotnado_visualisation:
         mem="1.5GB",
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "library://asmith151/plotnado/plotnado:latest",
+    benchmark: ".benchmarks/plotnado.benchmark",
     script:
         "../scripts/run_plotnado.py"

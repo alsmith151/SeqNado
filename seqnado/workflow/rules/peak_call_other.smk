@@ -24,7 +24,7 @@ rule macs2_no_input:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: "seqnado_output/logs/macs/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/macs/{sample}.benchmark",
+    benchmark: ".benchmarks/macs/{sample}.benchmark",
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
@@ -38,7 +38,7 @@ rule homer_no_input:
     output:
         peaks="seqnado_output/peaks/homer/{sample}.bed",
     log: "seqnado_output/logs/homer/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/homer/{sample}.benchmark",
+    benchmark: ".benchmarks/homer/{sample}.benchmark",
     params:
         options=check_options(config["homer"]["findpeaks"]),
     threads: 1
@@ -60,7 +60,7 @@ rule lanceotron_no_input:
         peaks="seqnado_output/peaks/lanceotron/{sample}.bed",
         ltron_peaks=temp("seqnado_output/peaks/lanceotron/{sample}_L-tron.bed"),
     log: "seqnado_output/logs/lanceotron/{sample}.log",
-    benchmark: "seqnado_output/benchmarks/lanceotron/{sample}.benchmark",
+    benchmark: ".benchmarks/lanceotron/{sample}.benchmark",
     params:
         options=check_options(config["lanceotron"]["callpeak"]),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
