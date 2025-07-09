@@ -27,6 +27,16 @@ rule align_paired:
 use rule align_paired as align_single with:
     input:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
+    params:
+        index=config["genome"]["index"],
+        options=check_options(config["bowtie2"]["options"]),
+        rg="--rg-id {sample} --rg SM:{sample}",
+    threads: config["bowtie2"]["threads"],
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    log:
+        "seqnado_output/logs/align/{sample}.log",
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     shell:
