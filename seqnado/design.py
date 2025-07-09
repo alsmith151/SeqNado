@@ -1544,7 +1544,6 @@ class Output(BaseModel):
 
     make_dataset: bool = False
 
-
     # Correct plotting_coordinates type as it may be False
     @validator("plotting_coordinates", pre=True)
     def validate_plotting_coordinates(cls, v):
