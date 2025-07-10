@@ -56,15 +56,15 @@ jobs:
           mkdir -p tmp
           if [[ "${{ matrix.test }}" == "pipeline" ]]; then
             apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-            apptainer pull --force library://cchahrou/seqnado/seqnado_qc.sif:latest
+            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
           elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
+            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
           elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
+            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
           elif [[ "${{ matrix.assay }}" == "meth" ]]; then
-            apptainer pull --force library://cchahrou/seqnado/seqnado_meth.sif:latest
+            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
           elif [[ "${{ matrix.assay }}" == "cat" ]]; then
-            apptainer pull --force library://cchahrou/seqnado/seqnado_quant:latest
+            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
           fi
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
