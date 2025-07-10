@@ -38,7 +38,7 @@ dependencies:
 
 
 # Python and core dependencies
-- python==3.10
+- python<3.13
 - pip
 - numpy>=1.19
 - pandas
@@ -89,5 +89,6 @@ dependencies:
 
 # Python packages
 pip:
+  - mccnado
   - tracknado
   - wget
