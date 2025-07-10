@@ -85,6 +85,7 @@ dependencies:
 - curl
 - git
 - wget
+- quarto
 
 # Python packages
 pip:
