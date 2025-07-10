@@ -6,7 +6,8 @@
 [![Bioconda Updated](https://anaconda.org/bioconda/seqnado/badges/latest_release_date.svg)](https://anaconda.org/bioconda/seqnado)
 [![PyPI Downloads](https://static.pepy.tech/badge/seqnado)](https://pepy.tech/projects/seqnado)
 
-![SeqNado logo](https://raw.githubusercontent.com/alsmith151/SeqNado/master/seqnado_logo.jpeg)
+| ![SeqNado logo](https://raw.githubusercontent.com/alsmith151/SeqNado/master/containers/seqnado.png) |
+| :-: |
 
 *A unified, user-friendly collection of workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, WGS, Methylation (Bisulfite/TAPS), CRISPR screens & Micro-Capture-C.*
 
