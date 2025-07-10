@@ -1,138 +1,73 @@
 BootStrap: docker
-From: mambaorg/micromamba:alpine
+From: mambaorg/micromamba:debian-slim
 
 %files
   environment_pipeline.yml /opt/environment_pipeline.yml
   multiqc_config.yaml /opt/seqnado/multiqc_config.yaml
   seqnado.png /opt/seqnado/seqnado.png
-  
-%post
-  # Set up build environment
-  cd /opt/
-  apk --no-cache add curl gcc git cmake make libtool g++ pkgconfig perl openssl-dev linux-headers jq
-  
-  # Install essential runtime libraries
-  apk --no-cache add libgcc libstdc++ musl-dev
-  
-  # Check if glibc is already installed, if not, try gcompat
-  if ! apk list --installed | grep -q glibc; then
-    echo "Installing gcompat for glibc compatibility"
-    apk --no-cache add gcompat || echo "gcompat installation failed, continuing without it"
-  else
-    echo "glibc already present, skipping gcompat"
-  fi
 
-  # Initialize micromamba and install packages
+%post
+  set -e
+
+  # Update and install only minimal build tools
+  apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    curl ca-certificates gcc g++ make cmake git pkg-config jq \
+    libssl-dev zlib1g-dev libbz2-dev liblzma-dev wget unzip \
+    && rm -rf /var/lib/apt/lists/*
+  
+  # Micromamba environment setup (ensure Python <3.12)
   micromamba install -y -n base -f /opt/environment_pipeline.yml
-    
-  # Download and install latest BamNado with better error handling
+  micromamba clean -afy
+
+  # Install latest BamNado binary
   echo "Downloading latest BamNado..."
   LATEST_TAG=$(curl -s https://api.github.com/repos/alsmith151/BamNado/releases/latest | jq -r '.tag_name')
-  if [ "$LATEST_TAG" = "null" ] || [ -z "$LATEST_TAG" ]; then
-    echo "Failed to get latest tag, using fallback version v0.3.5"
-    LATEST_TAG="v0.3.5"
-  fi
-  echo "Using BamNado version: $LATEST_TAG"
-  
-  BAMNADO_URL="https://github.com/alsmith151/BamNado/releases/download/${LATEST_TAG}/bamnado-linux-x86_64"
-  curl -L -f --retry 3 --retry-delay 5 -o /opt/conda/bin/bamnado "$BAMNADO_URL"
-  
-  # Verify download and make executable
-  if [ -f /opt/conda/bin/bamnado ] && [ -s /opt/conda/bin/bamnado ]; then
-    chmod +x /opt/conda/bin/bamnado
-    echo "BamNado installed successfully"
-  else
-    echo "BamNado download failed"
-    exit 1
-  fi
-
-  # Install latest MCCNado
-  echo "Installing latest MCCNado..."
-  MCCNADO_WHL_URL=$(curl -s https://api.github.com/repos/alsmith151/MCCNado/releases/latest | \
-    jq -r '.assets[] | select(.name | test("cp310-cp310.*manylinux.*x86_64\\.whl$")) | .browser_download_url' | head -n1)
-  if [ -z "$MCCNADO_WHL_URL" ]; then
-    echo "Failed to get latest MCCNado wheel URL for x86_64 architecture"
-    exit 1
-  fi
-  echo "Downloading MCCNado wheel from $MCCNADO_WHL_URL"
-  /opt/conda/bin/python -m pip install --no-cache-dir "$MCCNADO_WHL_URL"
-  if [ $? -eq 0 ]; then
-    echo "MCCNado installed successfully"
-  else
-    echo "MCCNado installation failed"
-    exit 1
-  fi
-
-  
-  
-
-  # Verify key tools are available
-  echo "Verifying installation..."
-  /opt/conda/bin/python --version
-  /opt/conda/bin/samtools --version | head -1
-  /opt/conda/bin/bamnado --help > /dev/null 2>&1 && echo "BamNado OK" || echo "BamNado check failed"
-
-  # Cleanup to reduce image size - remove curl after BamNado download
-  apk del git cmake make libtool pkgconfig openssl-dev linux-headers jq
-  
-  # Keep curl, gcc, g++, libgcc, libstdc++, musl-dev, gcompat for runtime
-  micromamba clean -afy 
+  [ "$LATEST_TAG" = "null" ] && LATEST_TAG="v0.3.5"
+  curl -L -f --retry 3 --retry-delay 5 -o /opt/conda/bin/bamnado \
+    "https://github.com/alsmith151/BamNado/releases/download/${LATEST_TAG}/bamnado-linux-x86_64"
+  chmod +x /opt/conda/bin/bamnado
   /opt/conda/bin/python -m pip cache purge
-  
-  # More aggressive cleanup
-  find /opt/conda/ -follow -type f -name '*.a' -delete
-  find /opt/conda/ -follow -type f -name '*.pyc' -delete
-  find /opt/conda/ -follow -type f -name '*.js.map' -delete
-  find /opt/conda/ -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
-  find /opt/conda/ -name '*.egg-info' -type d -exec rm -rf {} + 2>/dev/null || true
-  find /opt/conda/ -name 'tests' -type d -exec rm -rf {} + 2>/dev/null || true
-  
-  # Remove unnecessary locale files
-  find /opt/conda/ -name 'locale' -type d -exec rm -rf {} + 2>/dev/null || true
+
+  # Remove build tools
+  apt-get purge -y gcc g++ make cmake git pkg-config jq libssl-dev \
+    zlib1g-dev libbz2-dev liblzma-dev wget unzip && apt-get autoremove -y && apt-get clean
+
+  # Remove unnecessary data and dev files
+  find /opt/conda/ -type f -name '*.a' -delete
+  find /opt/conda/ -type f -name '*.pyc' -delete
+  find /opt/conda/ -name '__pycache__' -type d -exec rm -rf {} +
+  find /opt/conda/ -name '*.egg-info' -type d -exec rm -rf {} +
+  find /opt/conda/ -name 'tests' -type d -exec rm -rf {} +
+  find /opt/conda/ -name 'locale' -type d -exec rm -rf {} +
+  find /opt/conda/ -type d -name 'share' -exec rm -rf {} +
+  rm -rf /root/.cache /opt/conda/pkgs
 
 %environment
   export PATH="/opt/conda/bin:$PATH"
   export CONDA_DEFAULT_ENV=base
   export CONDA_PREFIX="/opt/conda"
   export LD_LIBRARY_PATH="/usr/lib:/lib:$LD_LIBRARY_PATH"
-  # Ensure micromamba is properly configured
   export MAMBA_ROOT_PREFIX="/opt/conda"
 
 %runscript
   exec "$@"
 
 %test
-  # Basic functionality tests
-  echo "Testing container functionality..."
+  echo "Testing minimal container..."
   python --version
-  samtools --version
   bamnado --help > /dev/null 2>&1 && echo "BamNado test passed" || exit 1
   echo "All tests passed!"
 
 %labels
   Author asmith
   Version 0.4.0
-  Description SeqNado pipeline container with latest BamNado
+  Description Minimal SeqNado container with BamNado and Python tools
   BamNado.Version dynamic
   BuildDate $(date '+%Y-%m-%d')
-  
+
 %help
-  This container includes:
-  - SeqNado pipeline environment with bioinformatics tools
-  - Latest BamNado release (downloaded at build time)
-  - TrackNado for track generation
-  - Python 3.10 with scientific computing packages
-  - R with Bioconductor packages
-  
-  Usage:
-    # Run any command in the container
-    singularity run seqnado_pipeline.sif <command>
-    
-    # Execute specific tools
-    singularity exec seqnado_pipeline.sif bamnado --help
-    singularity exec seqnado_pipeline.sif samtools view file.bam
-    singularity exec seqnado_pipeline.sif python script.py
-    
-  Common tools available:
-    bamnado, samtools, bedtools, fastqc, trim-galore, 
-    star, salmon, macs2, deeptools, multiqc
+  This is a lightweight SeqNado container with:
+  - Python 3.x (glibc-based)
+  - Latest BamNado (downloaded at build)
+  - Core bioinformatics tools (from `environment_pipeline.yml`)
+  - MACS2, MultiQC, etc.
