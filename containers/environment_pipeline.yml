@@ -9,6 +9,7 @@ dependencies:
 - bcftools
 - bedtools
 - bowtie2
+- cooler
 - deeptools
 - fastq-screen
 - fastqc
