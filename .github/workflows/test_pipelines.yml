@@ -51,21 +51,18 @@ jobs:
       - name: Pull singularity images
         if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
+        env:
+          APPTAINER_CACHEDIR: "/tmp"
         run: |
-          echo "Pulling singularity images from the remote repository..."
-          mkdir -p tmp
-          if [[ "${{ matrix.test }}" == "pipeline" ]]; then
-            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-          elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
-            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
-          elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
-            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-          elif [[ "${{ matrix.assay }}" == "meth" ]]; then
-            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-          elif [[ "${{ matrix.assay }}" == "cat" ]]; then
-            apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-          fi
+          echo "Pulling Apptainer image for assay ${{ matrix.assay }}..."
+          case "${{ matrix.assay }}" in
+            atac|chip|chip-rx)
+              apptainer pull --force oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
+              ;;
+            *)
+              apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
+              ;;
+          esac
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
