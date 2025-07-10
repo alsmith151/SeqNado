@@ -30,3 +30,4 @@ containers/*.sif
 *delete*
 .DS_Store
 containers/push_notes.txt
+paths.txt
