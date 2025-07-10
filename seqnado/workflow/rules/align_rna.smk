@@ -30,7 +30,7 @@ rule align_paired:
         --outSAMtype BAM SortedByCoordinate \
         --runThreadN {threads} \
         --outFileNamePrefix {params.prefix} {params.options} > {log} 2>&1
-        mv {output.bam} {output.raw_bam}
+        cp {output.bam} {output.raw_bam}
         """
 
 rule align_single:
@@ -62,7 +62,7 @@ rule align_single:
         --outSAMtype BAM SortedByCoordinate \
         --runThreadN {threads} \
         --outFileNamePrefix {params.prefix} {params.options} > {log} 2>&1
-        mv {output.bam} {output.raw_bam}
+        cp {output.bam} {output.raw_bam}
         """
 
 ruleorder: align_paired > align_single
