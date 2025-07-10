@@ -1,11 +1,58 @@
+<p align="center">
+<!-- Badges -->
 [![Documentation](https://github.com/alsmith151/SeqNado/actions/workflows/build_docs.yml/badge.svg)](https://github.com/alsmith151/SeqNado/actions/workflows/build_docs.yml)
 ![Bioconda](https://anaconda.org/bioconda/seqnado/badges/version.svg)
 ![Bioconda Updated](https://anaconda.org/bioconda/seqnado/badges/latest_release_date.svg)
 [![PyPI Downloads](https://static.pepy.tech/badge/seqnado)](https://pepy.tech/projects/seqnado)
-
+</p>
+<p align="center">
+<!-- Logo -->
 ![SeqNado logo](https://raw.githubusercontent.com/alsmith151/SeqNado/master/seqnado_logo.jpeg)
-# SeqNado Pipeline
+</p>
+<h1 align="center">SeqNado Pipeline</h1>
+<p align="center"><em>A unified, user-friendly collection of workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, WGS, Methylation (Bisulfite/TAPS), CRISPR screens & Micro-Capture-C.</em></p>
 
-Pipeline based on snakemake to process ChIP-seq, ATAC-seq, RNA-seq and short read WGS data for SNP calling.
+## Table of Contents
+- [Key Features](#key-features)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+- [License](#license)
 
-See the SeqNado documentation https://alsmith151.github.io/SeqNado/ for more information. 
+---
+
+*A unified, user-friendly collection of Snakemake-based workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, whole-genome sequencing (WGS), methylation (Bisulfite/TAPS), CRISPR screens, and Micro-Capture-C.*
+
+---
+
+Empower your genomics research with modular, reproducible, and container-ready pipelines that take you from raw data to publication-ready results.
+
+See the [SeqNado documentation](https://alsmith151.github.io/SeqNado/) for more information.
+
+## Quickstart
+
+Install via mamba (Bioconda channel):  
+
+```bash
+mamba install -c bioconda seqnado
+```
+
+Generate a config and working directory for your assay:  
+
+```bash
+seqnado-config [atac|chip|rna|snp|meth|crispr|mcc]
+```
+
+Link your FASTQ files into the new directory:  
+
+```bash
+ln -s /path/to/fastq/* <workdir>/fastq/
+```
+
+Run the pipeline (example uses RNA-seq with 8 cores on the cluster preset):  
+
+```bash
+cd <workdir>
+seqnado rna -c 8 --preset ss
+```
+
+For full details and advanced options, see the [SeqNado documentation](https://alsmith151.github.io/SeqNado/docs/index.html#quick-start).
