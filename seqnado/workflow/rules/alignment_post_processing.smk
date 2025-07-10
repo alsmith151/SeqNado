@@ -163,7 +163,7 @@ if config.get("shift_atac_reads"):
         threads: 1
         log: "seqnado_output/logs/alignment_post_process/{sample}_atac_shift.log",
         shell:"""
-        rsbamtk shift -b {input.bam} -o {output.tmp} &&
+        bamnado modify --input {input.bam} --output {output.tmp} --tn5-shift &&
         samtools sort {output.tmp} -@ {threads} -o {output.bam} &&
         samtools index {output.bam} &&
         echo -e "ATAC shift\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
