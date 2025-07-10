@@ -1,0 +1,91 @@
+BootStrap: docker
+From: mambaorg/micromamba:alpine
+
+%files
+  environment_slim.yml /opt/environment_slim.yml
+  
+%post
+  # Set up build environment
+  cd /opt/
+  apk --no-cache add curl gcc git cmake make libtool g++ pkgconfig perl openssl-dev linux-headers
+  # Install essential runtime libraries
+  apk --no-cache add libgcc libstdc++ musl-dev
+  # Check if glibc is already installed, if not, try gcompat
+  if ! apk list --installed | grep -q glibc; then
+    echo "Installing gcompat for glibc compatibility"
+    apk --no-cache add gcompat || echo "gcompat installation failed, continuing without it"
+  else
+    echo "glibc already present, skipping gcompat"
+  fi
+
+  # Initialize micromamba and install packages
+  micromamba install -y -n base -f /opt/environment_slim.yml
+    
+  # Properly activate micromamba environment
+  export PATH="/opt/conda/bin:$PATH"
+  export CONDA_DEFAULT_ENV=base
+  export CONDA_PREFIX="/opt/conda"
+
+  # Install Python packages
+  /opt/conda/bin/python -m pip install --no-cache-dir wget tracknado
+
+  # Get Python version dynamically for correct wheel selection
+  PYTHON_VERSION=$(/opt/conda/bin/python -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')")
+  echo "Python version tag: $PYTHON_VERSION"
+
+  # Alternative: Install from source if wheel fails
+  # /opt/conda/bin/python -m pip install --no-cache-dir git+https://github.com/alsmith151/BamNado.git@v0.3.0
+  
+  # Try to install bamnado from GitHub releases with fallback options
+  if ! wget -q --spider https://github.com/alsmith151/BamNado/releases/download/v0.3.0/bamnado-0.3.0-${PYTHON_VERSION}-${PYTHON_VERSION}-manylinux_2_17_x86_64.manylinux2014_x86_64.whl; then
+    echo "Exact wheel not found, trying cp311 version"
+    wget https://github.com/alsmith151/BamNado/releases/download/v0.3.0/bamnado-0.3.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+    /opt/conda/bin/python -m pip install --no-cache-dir --force-reinstall bamnado-0.3.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  else
+    wget https://github.com/alsmith151/BamNado/releases/download/v0.3.0/bamnado-0.3.0-${PYTHON_VERSION}-${PYTHON_VERSION}-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+    /opt/conda/bin/python -m pip install --no-cache-dir bamnado-0.3.0-${PYTHON_VERSION}-${PYTHON_VERSION}-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  fi
+
+  # Clean up downloaded files
+  rm -f bamnado-0.3.0-*.whl
+
+  # Test installation and check dependencies
+  echo "Testing bamnado installation..."
+  /opt/conda/bin/python -c "import bamnado; print('BamNado imported successfully')" || echo "BamNado import failed"
+  
+  # Check shared library dependencies
+  echo "Checking bamnado binary dependencies..."
+  ldd /opt/conda/bin/bamnado || echo "ldd check failed - this is expected if bamnado is a Python script"
+
+  # Cleanup to reduce image size - keep essential runtime libraries
+  apk del curl git cmake make libtool pkgconfig openssl-dev linux-headers
+  # Keep gcc, g++, libgcc, libstdc++, musl-dev, gcompat for runtime
+  micromamba clean -afy 
+  /opt/conda/bin/python -m pip cache purge
+  find /opt/conda/ -follow -type f -name '*.a' -delete
+  find /opt/conda/ -follow -type f -name '*.pyc' -delete
+  find /opt/conda/ -follow -type f -name '*.js.map' -delete
+  find /opt/conda/ -follow -type f -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+
+%environment
+  export PATH="/opt/conda/bin:$PATH"
+  export CONDA_DEFAULT_ENV=base
+  export LD_LIBRARY_PATH="/usr/lib:/lib:$LD_LIBRARY_PATH"
+
+%runscript
+  exec "$@"
+
+%labels
+  Author asmith
+  Version 0.3.0
+  Description SeqNado pipeline container with BamNado v0.3.0
+  
+%help
+  This container includes:
+  - SeqNado pipeline environment
+  - BamNado v0.3.0
+  - TrackNado
+  
+  Usage:
+    singularity run seqnado_pipeline.sif <command>
+    singularity exec seqnado_pipeline.sif bamnado --help

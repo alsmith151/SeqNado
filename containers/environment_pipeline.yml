@@ -1,0 +1,91 @@
+name: base
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+# Bioinformatics tools
+- bcftools
+- bedtools
+- bowtie2
+- deeptools
+- fastq-screen
+- fastqc
+- fastqsplitter
+- flash
+- homer
+- macs2
+- macs3
+- minimap2
+- multiqc
+- picard-slim
+- pyranges
+- qualimap
+- salmon
+- samtools>1.7
+- seacr
+- star=2.7.11b
+- subread
+- trackhub
+- trim-galore
+- ucsc-bedgraphtobigwig
+- ucsc-bedtobigbed
+- ucsc-bigbedtobed
+- ucsc-fetchchromsizes
+- methyldackel=0.6.1
+
+
+# Python and core dependencies
+- python==3.10
+- pip
+- numpy>=1.19
+- pandas
+- pysam
+- scipy
+- matplotlib
+- seaborn
+
+# Bioconductor packages
+- bioconductor-annotationdbi
+- bioconductor-chipseeker
+- bioconductor-clusterprofiler
+- bioconductor-complexheatmap
+- bioconductor-deseq2
+- bioconductor-edaseq
+- bioconductor-edger
+- bioconductor-fgsea
+- bioconductor-genomeinfodb
+- bioconductor-genomicalignments
+- bioconductor-genomicfeatures
+- bioconductor-genomicranges
+- bioconductor-goseq
+- bioconductor-org.hs.eg.db
+- bioconductor-org.mm.eg.db
+- bioconductor-pcaexplorer
+- bioconductor-qvalue
+- bioconductor-rgreat
+- bioconductor-rtracklayer
+- bioconductor-ruvseq
+
+# R packages
+- r-base
+- r-circlize
+- r-dt
+- r-ggrepel
+- r-knitr
+- r-msigdbr
+- r-rcolorbrewer
+- r-rjson
+- r-tidyverse
+- r-yaml
+
+# Additional utilities
+- curl
+- git
+- wget
+
+# Python packages
+pip:
+  - tracknado
+  - wget
