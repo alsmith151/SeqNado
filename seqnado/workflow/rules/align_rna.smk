@@ -10,6 +10,7 @@ rule align_paired:
         prefix="seqnado_output/aligned/star/{sample}_",
     output:
         bam=temp("seqnado_output/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),
+        raw_bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
         bam2=temp(
             "seqnado_output/aligned/star/{sample}_Aligned.toTranscriptome.out.bam"
         ),
@@ -29,18 +30,39 @@ rule align_paired:
         --outSAMtype BAM SortedByCoordinate \
         --runThreadN {threads} \
         --outFileNamePrefix {params.prefix} {params.options} > {log} 2>&1
+        mv {output.bam} {output.raw_bam}
         """
 
-
-rule rename_aligned:
+rule align_single:
     input:
-        bam=rules.align_paired.output.bam,
+        fq1="seqnado_output/trimmed/{sample}.fastq.gz",
+    params:
+        index=config["genome"]["index"],
+        options=check_options(config["star"]["options"]),
+        prefix="seqnado_output/aligned/star/{sample}_",
     output:
-        bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
-    benchmark: ".benchmarks/rename_aligned/{sample}.benchmark",
+        bam=temp("seqnado_output/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),
+        raw_bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
+        bam2=temp(
+            "seqnado_output/aligned/star/{sample}_Aligned.toTranscriptome.out.bam"
+        ),
+        log_out=temp("seqnado_output/aligned/star/{sample}_Log.final.out"),
+    threads: config["star"]["threads"]
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=35, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
+    log: "seqnado_output/logs/align/{sample}.log",
+    benchmark: ".benchmarks/align/{sample}.benchmark",
     shell:
-        "mv {input.bam} {output.bam}"
+        """
+        STAR \
+        --genomeDir {params.index} \
+        --readFilesIn {input.fq1} \
+        --readFilesCommand zcat \
+        --outSAMtype BAM SortedByCoordinate \
+        --runThreadN {threads} \
+        --outFileNamePrefix {params.prefix} {params.options} > {log} 2>&1
+        mv {output.bam} {output.raw_bam}
+        """
 
-
-localrules:
-    rename_aligned,
+ruleorder: align_paired > align_single
