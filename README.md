@@ -69,4 +69,4 @@ For full details and advanced options, see the [SeqNado documentation](https://a
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [GPL3](LICENSE).
