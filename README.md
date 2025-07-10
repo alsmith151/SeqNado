@@ -1,18 +1,17 @@
-<p align="center">
-<!-- Badges -->
+<!-- Header and badges -->
+# SeqNado Pipeline
+
 [![Documentation](https://github.com/alsmith151/SeqNado/actions/workflows/build_docs.yml/badge.svg)](https://github.com/alsmith151/SeqNado/actions/workflows/build_docs.yml)
-![Bioconda](https://anaconda.org/bioconda/seqnado/badges/version.svg)
-![Bioconda Updated](https://anaconda.org/bioconda/seqnado/badges/latest_release_date.svg)
+[![Bioconda](https://anaconda.org/bioconda/seqnado/badges/version.svg)](https://anaconda.org/bioconda/seqnado)
+[![Bioconda Updated](https://anaconda.org/bioconda/seqnado/badges/latest_release_date.svg)](https://anaconda.org/bioconda/seqnado)
 [![PyPI Downloads](https://static.pepy.tech/badge/seqnado)](https://pepy.tech/projects/seqnado)
-</p>
-<p align="center">
-<!-- Logo -->
+
 ![SeqNado logo](https://raw.githubusercontent.com/alsmith151/SeqNado/master/seqnado_logo.jpeg)
-</p>
-<h1 align="center">SeqNado Pipeline</h1>
-<p align="center"><em>A unified, user-friendly collection of workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, WGS, Methylation (Bisulfite/TAPS), CRISPR screens & Micro-Capture-C.</em></p>
+
+*A unified, user-friendly collection of workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, WGS, Methylation (Bisulfite/TAPS), CRISPR screens & Micro-Capture-C.*
 
 ## Table of Contents
+
 - [Key Features](#key-features)
 - [Installation](#installation)
 - [Quickstart](#quickstart)
@@ -28,13 +27,23 @@ Empower your genomics research with modular, reproducible, and container-ready p
 
 See the [SeqNado documentation](https://alsmith151.github.io/SeqNado/) for more information.
 
-## Quickstart
+## Key Features
+
+- Modular, Snakemake-based workflows for multiple assays
+- Container-ready pipelines using Apptainer/Singularity
+- Configurable and reproducible analysis environments
+- Support for ATAC-seq, ChIP-seq, RNA-seq, WGS, methylation, CRISPR screens, and M-Capture-C
+
+## Installation
 
 Install via mamba (Bioconda channel):  
 
 ```bash
 mamba install -c bioconda seqnado
 ```
+
+
+## Quickstart
 
 Generate a config and working directory for your assay:  
 
@@ -56,3 +65,7 @@ seqnado rna -c 8 --preset ss
 ```
 
 For full details and advanced options, see the [SeqNado documentation](https://alsmith151.github.io/SeqNado/docs/index.html#quick-start).
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
