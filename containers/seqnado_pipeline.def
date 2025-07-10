@@ -3,6 +3,8 @@ From: mambaorg/micromamba:alpine
 
 %files
   environment_pipeline.yml /opt/environment_pipeline.yml
+  multiqc_config.yaml /opt/seqnado/multiqc_config.yaml
+  seqnado.png /opt/seqnado/seqnado.png
   
 %post
   # Set up build environment
