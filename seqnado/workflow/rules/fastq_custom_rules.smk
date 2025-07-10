@@ -11,7 +11,7 @@ rule deduplicate_fastq_raw:
         mem="1GB",
     log:
         "seqnado_output/logs/deduplication/{sample}.log",
-    container:  "library://asmith151/seqnado/seqnado_mcc:latest"
+    container:  "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     script:
         "../scripts/deduplicate_fastq.py"
 
@@ -34,7 +34,7 @@ rule flash:
     threads: 16
     resources:
         mem_mb=1000,
-    container:  "library://asmith151/seqnado/seqnado_mcc:latest"
+    container:  "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/flash/{sample}.log",
     shell:

@@ -157,7 +157,7 @@ rule calculate_scaling_factors:
     output:
         scaling_factors="seqnado_output/resources/{group}_scaling_factors.tsv",
     container:
-        "library://asmith151/seqnado/seqnado_report:latest"
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     script:
         "../scripts/calculate_scaling_factors.R"
 
@@ -169,7 +169,7 @@ rule calculate_scaling_factors_spikein:
     output:
         size_factors="seqnado_output/resources/all_normalisation_factors.json"
     container:
-        "library://asmith151/seqnado/seqnado_report:latest"
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     params:
         spikein_genes=["AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq"],
     log:

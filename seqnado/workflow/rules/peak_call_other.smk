@@ -66,7 +66,7 @@ rule lanceotron_no_input:
         outdir=lambda wc, output: os.path.dirname(output.peaks),
     threads: 1
     container:
-        "library://asmith151/seqnado/seqnado_extra:latest"
+        "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt)}GB",
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
