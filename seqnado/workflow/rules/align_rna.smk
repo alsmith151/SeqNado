@@ -28,7 +28,7 @@ rule align_paired:
         --readFilesCommand zcat \
         --outSAMtype BAM SortedByCoordinate \
         --runThreadN {threads} \
-        --outSAMattrRGline ID:{wildcards.sample} \
+        --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
         --outFileNamePrefix {params.prefix} {params.options} > {log} 2>&1
         """
 
