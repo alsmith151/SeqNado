@@ -42,11 +42,8 @@ From: mambaorg/micromamba:latest
   find /opt/conda/ -name '__pycache__' -type d -exec rm -rf {} +
   find /opt/conda/ -name '*.egg-info' -type d -exec rm -rf {} +
   find /opt/conda/ -name 'tests' -type d -exec rm -rf {} +
-  find /opt/conda/ -name 'locale' -type d -exec rm -rf {} +
-  find /opt/conda/ -type d -name 'share' -exec rm -rf {} +
-  rm -rf /root/.cache /opt/conda/pkgs
-
-  micromamba clean -afy
+  rm -rf /root/.cache
+  micromamba clean -ay
 
 %environment
   export PATH="/opt/conda/bin:$PATH"
