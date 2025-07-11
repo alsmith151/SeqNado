@@ -58,6 +58,8 @@ rule macs2_with_input:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
+    container:
+        "docker://quay.io/biocontainers/macs2:latest"
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
@@ -81,6 +83,8 @@ rule macs2_no_input:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
+    container:
+        "docker://quay.io/biocontainers/macs2:latest"
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&

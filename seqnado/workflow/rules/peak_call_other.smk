@@ -25,6 +25,8 @@ rule macs2_no_input:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}.log",
+    container:
+        "docker://quay.io/biocontainers/macs2:latest"
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} -f BAMPE {params.options} > {log} 2>&1 &&
