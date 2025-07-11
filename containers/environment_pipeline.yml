@@ -20,7 +20,7 @@ dependencies:
 - macs3
 - minimap2
 - multiqc
-- picard-slim
+- picard
 - pyranges
 - qualimap
 - salmon
