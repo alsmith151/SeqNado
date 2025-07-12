@@ -59,44 +59,24 @@ jobs:
           # Install SeqNado package into the conda environment
           pip install .
 
-      - name: Create complete package installation artifact
+      - name: Create conda environment artifact
         shell: bash -el {0}
         run: |
-          # Create artifact directory
-          mkdir -p package_artifact
-          
-          # Get the conda environment site-packages directory
-          CONDA_SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
-          echo "Conda site-packages location: $CONDA_SITE_PACKAGES"
-          
-          # Copy the conda environment site-packages directory
-          if [ -d "$CONDA_SITE_PACKAGES" ]; then
-            cp -r "$CONDA_SITE_PACKAGES" package_artifact/conda-site-packages
-            echo "Copied conda site-packages"
-          else
-            echo "Conda site-packages directory not found"
-            mkdir -p package_artifact/conda-site-packages
-          fi
-          
-          # Also get conda environment info
-          echo "$CONDA_DEFAULT_ENV" > package_artifact/conda_env_name.txt
-          echo "$CONDA_PREFIX" > package_artifact/conda_prefix.txt
-          python -c "import sys; print(sys.executable)" > package_artifact/sys_executable.txt
-          python -c "import sys; print(sys.version)" > package_artifact/python_version.txt
-          python -c "import site; print('\\n'.join(site.getsitepackages()))" > package_artifact/all_site_packages_paths.txt
-          
           # Verify SeqNado is installed correctly
           python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
           which seqnado-init || echo "seqnado-init not found in PATH"
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
           
-          echo "Package installation artifact created"
-          ls -la package_artifact/
+          echo "Environment verification complete - ready to create artifact"
+          echo "Conda environment location: $CONDA_PREFIX"
+          ls -la $CONDA_PREFIX
 
-      - name: Upload complete package installation
+      - name: Upload complete conda environment
         uses: actions/upload-artifact@v4
         with:
-          name: seqnado-complete-install
-          path: package_artifact/
+          name: conda-environment-test
+          path: /usr/share/miniconda3/envs/test
+          retention-days: 1
 
   cache-containers:
     name: Cache Container Images
@@ -280,37 +260,36 @@ jobs:
             ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-
             ${{ runner.os }}-conda-
 
-      - name: Setup Conda environment
+      - name: Download complete conda environment
+        uses: actions/download-artifact@v4
+        with:
+          name: conda-environment-test
+          path: /usr/share/miniconda3/envs/test
+
+      - name: Setup Conda environment (use artifact)
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: test
           miniforge-version: latest
           use-mamba: true
 
-      - name: Download complete package installation
-        uses: actions/download-artifact@v4
-        with:
-          name: seqnado-complete-install
-          path: package_artifact/
-
-      - name: Restore SeqNado package from artifact
+      - name: Verify restored environment
         shell: bash -el {0}
         run: |
-          # Get the current conda environment site-packages directory
-          CONDA_SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
-          echo "Target conda site-packages: $CONDA_SITE_PACKAGES"
+          echo "Python environment verification:"
+          which python
+          python --version
+          echo "Conda environment: $CONDA_DEFAULT_ENV"
+          echo "Conda prefix: $CONDA_PREFIX"
           
-          # Restore the conda site-packages from artifact
-          if [ -d "package_artifact/conda-site-packages" ]; then
-            echo "Restoring conda site-packages installation..."
-            cp -r package_artifact/conda-site-packages/* "$CONDA_SITE_PACKAGES/" 2>/dev/null || echo "No conda site-packages to restore"
-          fi
+          echo "Checking for pytest:"
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
           
-          # Verify SeqNado is available
-          python -c "import seqnado; print(f'SeqNado restored successfully from: {seqnado.__file__}')" || echo "SeqNado not found, may need fallback installation"
-          which seqnado-init || echo "seqnado-init not found in PATH"
+          echo "Checking for SeqNado:"
+          which seqnado-init
+          python -c "import seqnado; print(f'SeqNado found at: {seqnado.__file__}')"
           
-          echo "Package restoration complete"
+          echo "Environment restoration verified successfully"
 
       - name: Setup Apptainer runtime
         uses: eWaterCycle/setup-apptainer@v2
@@ -362,25 +341,6 @@ jobs:
           else:
               print(f'⚠️  Warning: Expected {expected_count} containers but found {simg_count}')
           "
-
-      - name: Verify test environment
-        shell: bash -el {0}
-        run: |
-          echo "Python environment verification:"
-          which python
-          python --version
-          echo "Conda environment: $CONDA_DEFAULT_ENV"
-          echo "Conda prefix: $CONDA_PREFIX"
-          
-          echo "Checking for pytest:"
-          which pytest || echo "pytest not found - trying pip install"
-          python -c "import pytest; print(f'pytest version: {pytest.__version__}')" || pip install pytest
-          
-          echo "Checking for SeqNado:"
-          which seqnado-init || echo "seqnado-init not found"
-          python -c "import seqnado; print(f'SeqNado found at: {seqnado.__file__}')" || echo "SeqNado import failed"
-          
-          echo "Environment verification complete"
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
