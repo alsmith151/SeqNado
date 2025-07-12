@@ -35,13 +35,7 @@ jobs:
           environment-file: testing.yml
           miniforge-version: latest
           use-mamba: true
-
-      - name: Activate conda environment for package installation
-        uses: conda-incubator/setup-miniconda@v3
-        with:
           activate-environment: test
-          miniforge-version: latest
-          use-mamba: true
 
       - name: Install SeqNado package
         shell: bash -el {0}
@@ -49,13 +43,7 @@ jobs:
           # Verify conda environment is active
           echo "Active conda environment: $CONDA_DEFAULT_ENV"
           echo "Python executable: $(which python)"
-          
-          # Verify pytest is available (should be from testing.yml)
-          python -c "import pytest; print(f'pytest version: {pytest.__version__}')" || {
-            echo "pytest not found - installing via pip"
-            pip install pytest
-          }
-          
+
           # Install SeqNado package into the conda environment
           pip install .
 
