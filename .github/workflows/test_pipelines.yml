@@ -3,42 +3,60 @@ name: Python package
 on: [push]
 
 jobs:
-  cache-containers:
+  setup-and-cache:
+    name: Setup Environment and Cache Containers
     runs-on: ubuntu-latest
     outputs:
       cache-hit: ${{ steps.cache-singularity.outputs.cache-hit }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Setup conda
+      - name: Setup Conda environment
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
           miniforge-version: latest
 
-      - name: Install package
+      - name: Install SeqNado package
         shell: bash
         run: |
           pip install .
 
-      - name: Create package artifact
+      - name: Create complete package installation artifact
         shell: bash
         run: |
-          # Create a directory with the installed package info
-          mkdir -p package_install
-          pip freeze > package_install/requirements.txt
-          # Get the package install location
-          python -c "import seqnado; print(seqnado.__file__)" > package_install/install_path.txt
+          # Get the Python site-packages directory
+          SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          echo "Site-packages location: $SITE_PACKAGES"
+          
+          # Create artifact directory
+          mkdir -p package_artifact
+          
+          # Copy the entire site-packages directory
+          cp -r "$SITE_PACKAGES" package_artifact/site-packages
+          
+          # Save Python executable info and environment details
+          echo "$(which python)" > package_artifact/python_executable.txt
+          python -c "import sys; print(sys.executable)" > package_artifact/sys_executable.txt
+          python -c "import sys; print(sys.version)" > package_artifact/python_version.txt
+          python -c "import site; print(':'.join(site.getsitepackages()))" > package_artifact/site_packages_paths.txt
+          
+          # Save current working directory for reference
+          pwd > package_artifact/install_cwd.txt
+          
+          echo "Package installation artifact created"
+          ls -la package_artifact/
 
-      - name: Upload package installation
+      - name: Upload complete package installation
         uses: actions/upload-artifact@v4
         with:
-          name: seqnado-package
-          path: package_install/
+          name: seqnado-complete-install
+          path: package_artifact/
 
-      - name: Cache singularity
+      - name: Check for cached containers
         id: cache-singularity
         uses: actions/cache@v3
         with:
@@ -51,26 +69,27 @@ jobs:
             ${{ runner.os }}-apptainer-containers-v5-
             ${{ runner.os }}-apptainer-containers-
 
-      - uses: eWaterCycle/setup-apptainer@v2
+      - name: Setup Apptainer runtime
+        uses: eWaterCycle/setup-apptainer@v2
         if: steps.cache-singularity.outputs.cache-hit != 'true'
         with:
           apptainer-version: 1.3.4
 
-      - name: Add singularity hub remote
+      - name: Configure Sylabs Cloud remote
         if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Setup apptainer cache directory
+      - name: Create container cache directories
         if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         run: |
           mkdir -p ~/apptainer_images
           mkdir -p ~/.apptainer/cache
 
-      - name: Debug container hashing
+      - name: Calculate container hash mappings
         if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: python
         run: |
@@ -84,20 +103,20 @@ jobs:
               "library://asmith151/lanceotron/lanceotron-mcc:latest"
           ]
           
-          print("Snakemake container hashes:")
+          print("Snakemake container hash mappings:")
           for url in containers:
               md5hash = hashlib.md5(usedforsecurity=False)
               md5hash.update(url.encode())
               hash_value = md5hash.hexdigest()
               print(f"{url} -> {hash_value}.simg")
 
-      - name: Pull singularity images
+      - name: Download and cache container images
         if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         env:
           APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
-          echo "Pulling all required Apptainer images with Snakemake-compatible naming..."
+          echo "Downloading Apptainer images with Snakemake-compatible naming..."
           
           # Create the container directory that Snakemake expects
           mkdir -p $HOME/apptainer_images
@@ -122,22 +141,23 @@ jobs:
               hash_value = md5hash.hexdigest()
               output_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
               
-              print(f'Pulling {url} -> {hash_value}.simg')
+              print(f'Downloading {url} -> {hash_value}.simg')
               subprocess.run(['apptainer', 'pull', output_path, url], check=True)
           "
           
-          echo "Containers pulled with Snakemake-compatible hash names:"
+          echo "Container download complete:"
           ls -la $HOME/apptainer_images/
 
-      - name: Verify containers are cached
+      - name: Verify container cache integrity
         shell: bash
         run: |
+          echo "Verifying container cache integrity..."
           echo "Contents of ~/apptainer_images:"
           ls -la ~/apptainer_images/ || echo "Directory doesn't exist"
           echo "Contents of ~/.apptainer/cache:"
           ls -la ~/.apptainer/cache/ || echo "Directory doesn't exist"
           
-          # Verify specific hash-named containers exist
+          # Verify specific hash-named containers exist and count them dynamically
           python3 -c "
           import hashlib
           import os
@@ -150,7 +170,9 @@ jobs:
               ('library://asmith151/lanceotron/lanceotron-mcc:latest', 'Lanceotron-MCC')
           ]
           
+          expected_count = len(containers)
           found_count = 0
+          
           for url, name in containers:
               md5hash = hashlib.md5(usedforsecurity=False)
               md5hash.update(url.encode())
@@ -163,15 +185,20 @@ jobs:
               else:
                   print(f'✗ {name} container missing ({hash_value}.simg)')
           
-          print(f'Total containers found: {found_count}/5')
+          print(f'Container verification: {found_count}/{expected_count} containers found')
+          if found_count == expected_count:
+              print('✅ All expected containers are cached successfully')
+          else:
+              print(f'⚠️  Warning: Expected {expected_count} containers but found {found_count}')
           "
           
           # Count the number of .simg files as backup check
           simg_count=$(find ~/apptainer_images -name "*.simg" 2>/dev/null | wc -l)
-          echo "Total .simg files found: $simg_count"
+          echo "Total .simg files in cache: $simg_count"
 
-  Test:
-    needs: cache-containers
+  test-pipelines:
+    name: Test ${{ matrix.test }} - ${{ matrix.assay }}
+    needs: setup-and-cache
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
@@ -180,29 +207,40 @@ jobs:
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Setup conda
+      - name: Setup Conda environment
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
           miniforge-version: latest
 
-      - name: Download package installation
+      - name: Download complete package installation
         uses: actions/download-artifact@v4
         with:
-          name: seqnado-package
-          path: package_install/
+          name: seqnado-complete-install
+          path: package_artifact/
 
-      - name: Install package from cache
+      - name: Restore SeqNado package from artifact
         shell: bash
         run: |
-          # Install the exact same package versions as the cache job
-          pip install -r package_install/requirements.txt
+          # Get the current Python site-packages directory
+          CURRENT_SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          echo "Current site-packages: $CURRENT_SITE_PACKAGES"
+          
+          # Restore the complete site-packages from artifact
+          echo "Restoring complete package installation..."
+          cp -r package_artifact/site-packages/* "$CURRENT_SITE_PACKAGES/"
+          
+          # Verify SeqNado is available
+          python -c "import seqnado; print(f'SeqNado restored successfully from: {seqnado.__file__}')"
+          
+          echo "Package restoration complete"
 
-      - name: Restore cached containers
+      - name: Restore cached container images
         if: matrix.test == 'pipeline'
         id: cache-singularity
         uses: actions/cache@v3
@@ -216,29 +254,57 @@ jobs:
             ${{ runner.os }}-apptainer-containers-v5-
             ${{ runner.os }}-apptainer-containers-
 
-      - uses: eWaterCycle/setup-apptainer@v2
+      - name: Setup Apptainer runtime
+        uses: eWaterCycle/setup-apptainer@v2
         if: matrix.test == 'pipeline'
         with:
           apptainer-version: 1.3.4
 
-      - name: Verify cached containers available
+      - name: Verify cached containers are available
         if: matrix.test == 'pipeline'
         shell: bash
         run: |
-          echo "Verifying cached containers are available:"
+          echo "Verifying cached containers are available for pipeline tests:"
           ls -la ~/apptainer_images/ || echo "No containers found"
           
-          # Quick count check
-          simg_count=$(find ~/apptainer_images -name "*.simg" 2>/dev/null | wc -l)
-          echo "Found $simg_count .simg files"
+          # Dynamic container count verification
+          python3 -c "
+          import hashlib
+          import os
           
-          if [ "$simg_count" -lt 5 ]; then
-            echo "⚠️  Warning: Expected 5 containers but found $simg_count"
-          else
-            echo "✅ All containers appear to be cached"
-          fi
+          containers = [
+              ('oras://ghcr.io/alsmith151/seqnado_pipeline:latest', 'Main pipeline'),
+              ('oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 'ML'),
+              ('docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3', 'MACS2'),
+              ('library://asmith151/plotnado/plotnado:latest', 'Plotnado'),
+              ('library://asmith151/lanceotron/lanceotron-mcc:latest', 'Lanceotron-MCC')
+          ]
+          
+          expected_count = len(containers)
+          found_count = 0
+          
+          for url, name in containers:
+              md5hash = hashlib.md5(usedforsecurity=False)
+              md5hash.update(url.encode())
+              hash_value = md5hash.hexdigest()
+              container_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
+              
+              if os.path.exists(container_path):
+                  found_count += 1
+          
+          # Quick count check
+          simg_count = len([f for f in os.listdir(f'{os.environ[\"HOME\"]}/apptainer_images') if f.endswith('.simg')])
+          
+          print(f'Expected containers: {expected_count}')
+          print(f'Found .simg files: {simg_count}')
+          
+          if simg_count >= expected_count:
+              print('✅ All expected containers are available')
+          else:
+              print(f'⚠️  Warning: Expected {expected_count} containers but found {simg_count}')
+          "
 
-      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
+      - name: Run SeqNado ${{ matrix.test }} test for ${{ matrix.assay }}
         shell: pwsh
         env:
           TMPDIR: /tmp
