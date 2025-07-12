@@ -12,50 +12,72 @@ jobs:
         with:
           submodules: true
 
+      - name: Cache conda environment
+        id: cache-conda
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/conda_pkgs_dir
+            /usr/share/miniconda3/envs/test
+          key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-${{ github.run_number }}-${{ steps.get-date.outputs.date }}
+          restore-keys: |
+            ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-
+            ${{ runner.os }}-conda-
+
+      - name: Get current date
+        id: get-date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
       - name: Setup Conda environment
         uses: conda-incubator/setup-miniconda@v3
+        if: steps.cache-conda.outputs.cache-hit != 'true'
         with:
           environment-file: testing.yml
           miniforge-version: latest
+          use-mamba: true
+
+      - name: Activate conda environment for package installation
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: test
+          miniforge-version: latest
+          use-mamba: true
 
       - name: Install SeqNado package
-        shell: bash
+        shell: bash -el {0}
         run: |
-          # Install to user site-packages to avoid permission issues
-          pip install --user .
+          # Install SeqNado package into the conda environment
+          pip install .
 
       - name: Create complete package installation artifact
-        shell: bash
+        shell: bash -el {0}
         run: |
-          # Get the user site-packages directory (writable)
-          USER_SITE_PACKAGES=$(python -c "import site; print(site.getusersitepackages())")
-          echo "User site-packages location: $USER_SITE_PACKAGES"
-          
           # Create artifact directory
           mkdir -p package_artifact
           
-          # Copy the user site-packages directory if it exists
-          if [ -d "$USER_SITE_PACKAGES" ]; then
-            cp -r "$USER_SITE_PACKAGES" package_artifact/user-site-packages
-            echo "Copied user site-packages"
-          else
-            echo "User site-packages directory not found"
-            mkdir -p package_artifact/user-site-packages
-          fi
+          # Get the conda environment site-packages directory
+          CONDA_SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          echo "Conda site-packages location: $CONDA_SITE_PACKAGES"
           
-          # Also capture any conda environment site-packages
-          CONDA_SITE_PACKAGES=$(python -c "import site; print([p for p in site.getsitepackages() if 'conda' in p or 'miniconda' in p][0] if any('conda' in p or 'miniconda' in p for p in site.getsitepackages()) else '')")
-          if [ -n "$CONDA_SITE_PACKAGES" ] && [ -d "$CONDA_SITE_PACKAGES" ]; then
-            echo "Found conda site-packages: $CONDA_SITE_PACKAGES"
+          # Copy the conda environment site-packages directory
+          if [ -d "$CONDA_SITE_PACKAGES" ]; then
             cp -r "$CONDA_SITE_PACKAGES" package_artifact/conda-site-packages
+            echo "Copied conda site-packages"
+          else
+            echo "Conda site-packages directory not found"
+            mkdir -p package_artifact/conda-site-packages
           fi
           
-          # Save environment details
-          echo "$USER_SITE_PACKAGES" > package_artifact/user_site_packages_path.txt
-          echo "$CONDA_SITE_PACKAGES" > package_artifact/conda_site_packages_path.txt
+          # Also get conda environment info
+          echo "$CONDA_DEFAULT_ENV" > package_artifact/conda_env_name.txt
+          echo "$CONDA_PREFIX" > package_artifact/conda_prefix.txt
           python -c "import sys; print(sys.executable)" > package_artifact/sys_executable.txt
           python -c "import sys; print(sys.version)" > package_artifact/python_version.txt
           python -c "import site; print('\\n'.join(site.getsitepackages()))" > package_artifact/all_site_packages_paths.txt
+          
+          # Verify SeqNado is installed correctly
+          python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
+          which seqnado-init || echo "seqnado-init not found in PATH"
           
           echo "Package installation artifact created"
           ls -la package_artifact/
@@ -74,6 +96,29 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
+
+      - name: Get current date
+        id: get-date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Restore cached conda environment
+        id: cache-conda
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/conda_pkgs_dir
+            /usr/share/miniconda3/envs/test
+          key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-${{ github.run_number }}-${{ steps.get-date.outputs.date }}
+          restore-keys: |
+            ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-
+            ${{ runner.os }}-conda-
+
+      - name: Setup Conda environment
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: test
+          miniforge-version: latest
+          use-mamba: true
 
       - name: Cache container images
         id: cache-singularity
@@ -209,11 +254,28 @@ jobs:
         with:
           submodules: true
 
+      - name: Get current date
+        id: get-date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Restore cached conda environment
+        id: cache-conda
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/conda_pkgs_dir
+            /usr/share/miniconda3/envs/test
+          key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-${{ github.run_number }}-${{ steps.get-date.outputs.date }}
+          restore-keys: |
+            ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-
+            ${{ runner.os }}-conda-
+
       - name: Setup Conda environment
         uses: conda-incubator/setup-miniconda@v3
         with:
-          environment-file: testing.yml
+          activate-environment: test
           miniforge-version: latest
+          use-mamba: true
 
       - name: Download complete package installation
         uses: actions/download-artifact@v4
@@ -222,52 +284,23 @@ jobs:
           path: package_artifact/
 
       - name: Restore SeqNado package from artifact
-        shell: bash
+        shell: bash -el {0}
         run: |
-          # Get the current user site-packages directory
-          USER_SITE_PACKAGES=$(python -c "import site; print(site.getusersitepackages())")
-          echo "Target user site-packages: $USER_SITE_PACKAGES"
+          # Get the current conda environment site-packages directory
+          CONDA_SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          echo "Target conda site-packages: $CONDA_SITE_PACKAGES"
           
-          # Ensure the user site-packages directory exists
-          mkdir -p "$USER_SITE_PACKAGES"
-          
-          # Restore the user site-packages from artifact
-          if [ -d "package_artifact/user-site-packages" ]; then
-            echo "Restoring user site-packages installation..."
-            cp -r package_artifact/user-site-packages/* "$USER_SITE_PACKAGES/" 2>/dev/null || echo "No user site-packages to restore"
-          fi
-          
-          # Also restore conda site-packages if available
+          # Restore the conda site-packages from artifact
           if [ -d "package_artifact/conda-site-packages" ]; then
-            # Get the current conda site-packages path
-            CONDA_SITE_PACKAGES=$(python -c "import site; print([p for p in site.getsitepackages() if 'conda' in p or 'miniconda' in p][0] if any('conda' in p or 'miniconda' in p for p in site.getsitepackages()) else '')")
-            if [ -n "$CONDA_SITE_PACKAGES" ]; then
-              echo "Restoring conda site-packages to: $CONDA_SITE_PACKAGES"
-              cp -r package_artifact/conda-site-packages/* "$CONDA_SITE_PACKAGES/" 2>/dev/null || echo "No conda site-packages to restore"
-            fi
+            echo "Restoring conda site-packages installation..."
+            cp -r package_artifact/conda-site-packages/* "$CONDA_SITE_PACKAGES/" 2>/dev/null || echo "No conda site-packages to restore"
           fi
-          
-          # Enable user site-packages if not already enabled
-          export PYTHONNOUSERSITE=
           
           # Verify SeqNado is available
           python -c "import seqnado; print(f'SeqNado restored successfully from: {seqnado.__file__}')" || echo "SeqNado not found, may need fallback installation"
+          which seqnado-init || echo "seqnado-init not found in PATH"
           
           echo "Package restoration complete"
-
-      # Restore cached containers from the cache-containers job
-      - name: Restore cached container images
-        id: cache-singularity
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.apptainer
-            ~/.apptainer/cache
-            ~/apptainer_images
-          key: ${{ runner.os }}-apptainer-containers-v5-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
-          restore-keys: |
-            ${{ runner.os }}-apptainer-containers-v5-
-            ${{ runner.os }}-apptainer-containers-
 
       - name: Setup Apptainer runtime
         uses: eWaterCycle/setup-apptainer@v2
@@ -321,7 +354,7 @@ jobs:
           "
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
-        shell: pwsh
+        shell: bash -el {0}
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
