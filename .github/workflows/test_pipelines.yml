@@ -67,13 +67,12 @@ jobs:
           path: package_artifact/
 
   test-pipelines:
-    name: Test ${{ matrix.test }} - ${{ matrix.assay }}
+    name: Test Pipeline - ${{ matrix.assay }}
     needs: setup-package
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test: ["config", "design", "pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
 
     steps:
@@ -128,9 +127,8 @@ jobs:
           
           echo "Package restoration complete"
 
-      # Container setup only for pipeline tests
+      # Container setup for pipeline tests
       - name: Cache container images
-        if: matrix.test == 'pipeline'
         id: cache-singularity
         uses: actions/cache@v3
         with:
@@ -144,27 +142,26 @@ jobs:
             ${{ runner.os }}-apptainer-containers-
 
       - name: Setup Apptainer runtime
-        if: matrix.test == 'pipeline'
         uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.4
 
       - name: Configure Sylabs Cloud remote
-        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
       - name: Create container cache directories
-        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         run: |
           mkdir -p ~/apptainer_images
           mkdir -p ~/.apptainer/cache
 
       - name: Download and cache container images
-        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         env:
           APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
@@ -202,7 +199,6 @@ jobs:
           ls -la $HOME/apptainer_images/
 
       - name: Verify cached containers are available
-        if: matrix.test == 'pipeline'
         shell: bash
         run: |
           echo "Verifying cached containers are available for pipeline tests:"
@@ -248,11 +244,11 @@ jobs:
               print(f'⚠️  Warning: Expected {expected_count} containers but found {simg_count}')
           "
 
-      - name: Run SeqNado ${{ matrix.test }} test for ${{ matrix.assay }}
+      - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: pwsh
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
           APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
-          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+          pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4
