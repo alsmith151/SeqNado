@@ -66,9 +66,137 @@ jobs:
           name: seqnado-complete-install
           path: package_artifact/
 
+  cache-containers:
+    name: Cache Container Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Cache container images
+        id: cache-singularity
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.apptainer
+            ~/.apptainer/cache
+            ~/apptainer_images
+          key: ${{ runner.os }}-apptainer-containers-v5-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          restore-keys: |
+            ${{ runner.os }}-apptainer-containers-v5-
+            ${{ runner.os }}-apptainer-containers-
+
+      - name: Setup Apptainer runtime
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
+        uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.3.4
+
+      - name: Configure Sylabs Cloud remote
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+          apptainer remote use SylabsCloud
+
+      - name: Create container cache directories
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p ~/apptainer_images
+          mkdir -p ~/.apptainer/cache
+
+      - name: Download and cache container images
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
+        run: |
+          echo "Downloading Apptainer images with Snakemake-compatible naming..."
+          
+          # Create the container directory that Snakemake expects
+          mkdir -p $HOME/apptainer_images
+          
+          # Calculate MD5 hashes and pull containers with those names (using .simg extension)
+          python3 -c "
+          import hashlib
+          import subprocess
+          import os
+          
+          containers = [
+              'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
+              'oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 
+              'docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3',
+              'library://asmith151/plotnado/plotnado:latest',
+              'library://asmith151/lanceotron/lanceotron-mcc:latest'
+          ]
+          
+          for url in containers:
+              md5hash = hashlib.md5(usedforsecurity=False)
+              md5hash.update(url.encode())
+              hash_value = md5hash.hexdigest()
+              output_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
+              
+              print(f'Downloading {url} -> {hash_value}.simg')
+              subprocess.run(['apptainer', 'pull', output_path, url], check=True)
+          "
+          
+          echo "Container download complete:"
+          ls -la $HOME/apptainer_images/
+
+      - name: Verify container cache integrity
+        shell: bash
+        run: |
+          echo "Verifying container cache integrity..."
+          echo "Contents of ~/apptainer_images:"
+          ls -la ~/apptainer_images/ || echo "Directory doesn't exist"
+          echo "Contents of ~/.apptainer/cache:"
+          ls -la ~/.apptainer/cache/ || echo "Directory doesn't exist"
+          
+          # Verify specific hash-named containers exist and count them dynamically
+          python3 -c "
+          import hashlib
+          import os
+          
+          containers = [
+              ('oras://ghcr.io/alsmith151/seqnado_pipeline:latest', 'Main pipeline'),
+              ('oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 'ML'),
+              ('docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3', 'MACS2'),
+              ('library://asmith151/plotnado/plotnado:latest', 'Plotnado'),
+              ('library://asmith151/lanceotron/lanceotron-mcc:latest', 'Lanceotron-MCC')
+          ]
+          
+          expected_count = len(containers)
+          found_count = 0
+          
+          for url, name in containers:
+              md5hash = hashlib.md5(usedforsecurity=False)
+              md5hash.update(url.encode())
+              hash_value = md5hash.hexdigest()
+              container_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
+              
+              if os.path.exists(container_path):
+                  print(f'✓ {name} container found ({hash_value}.simg)')
+                  found_count += 1
+              else:
+                  print(f'✗ {name} container missing ({hash_value}.simg)')
+          
+          print(f'Container verification: {found_count}/{expected_count} containers found')
+          if found_count == expected_count:
+              print('✅ All expected containers are cached successfully')
+          else:
+              print(f'⚠️  Warning: Expected {expected_count} containers but found {found_count}')
+          "
+          
+          # Count the number of .simg files as backup check
+          simg_count=$(find ~/apptainer_images -name "*.simg" 2>/dev/null | wc -l)
+          echo "Total .simg files in cache: $simg_count"
+
   test-pipelines:
     name: Test Pipeline - ${{ matrix.assay }}
-    needs: setup-package
+    needs: [setup-package, cache-containers]
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
@@ -127,8 +255,8 @@ jobs:
           
           echo "Package restoration complete"
 
-      # Container setup for pipeline tests
-      - name: Cache container images
+      # Restore cached containers from the cache-containers job
+      - name: Restore cached container images
         id: cache-singularity
         uses: actions/cache@v3
         with:
@@ -145,58 +273,6 @@ jobs:
         uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.4
-
-      - name: Configure Sylabs Cloud remote
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-          apptainer remote use SylabsCloud
-
-      - name: Create container cache directories
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          mkdir -p ~/apptainer_images
-          mkdir -p ~/.apptainer/cache
-
-      - name: Download and cache container images
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        shell: bash
-        env:
-          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
-        run: |
-          echo "Downloading Apptainer images with Snakemake-compatible naming..."
-          
-          # Create the container directory that Snakemake expects
-          mkdir -p $HOME/apptainer_images
-          
-          # Calculate MD5 hashes and pull containers with those names (using .simg extension)
-          python3 -c "
-          import hashlib
-          import subprocess
-          import os
-          
-          containers = [
-              'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
-              'oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 
-              'docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3',
-              'library://asmith151/plotnado/plotnado:latest',
-              'library://asmith151/lanceotron/lanceotron-mcc:latest'
-          ]
-          
-          for url in containers:
-              md5hash = hashlib.md5(usedforsecurity=False)
-              md5hash.update(url.encode())
-              hash_value = md5hash.hexdigest()
-              output_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
-              
-              print(f'Downloading {url} -> {hash_value}.simg')
-              subprocess.run(['apptainer', 'pull', output_path, url], check=True)
-          "
-          
-          echo "Container download complete:"
-          ls -la $HOME/apptainer_images/
 
       - name: Verify cached containers are available
         shell: bash
