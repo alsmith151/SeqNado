@@ -75,6 +75,7 @@ def format_homer_make_bigwigs_options(wildcards):
 
 
 # CSAW Method
+# 
 rule tile_regions:
     input:
         chromsizes=config["genome"]["chromosome_sizes"],
@@ -82,17 +83,8 @@ rule tile_regions:
         genome_tiled="seqnado_output/resources/genome_tiled.gtf",
     params:
         tile_size=config["genome"].get("tile_size", 10_000),
-    run:
-        import pyranges as pr
-
-        chromsizes = (
-            pd.read_csv(input.chromsizes, sep="\t", header=None).set_index(0)[1].to_dict()
-        )
-        genome_tiled = pr.gf.tile_genome(chromsizes, tile_size=params.tile_size)
-        genome_tiled = genome_tiled.df.assign(
-            feature="tile", gene_id=lambda df: df.index.astype(str)
-        ).pipe(pr.PyRanges)
-        genome_tiled.to_gtf(output.genome_tiled)
+    script:
+        "../scripts/tile_genome.py",
 
 
 def get_count_files(wildcards):

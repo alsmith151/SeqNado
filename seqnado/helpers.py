@@ -351,16 +351,24 @@ def extract_viewpoints(viewpoints_path: str) -> List[str]:
     """
     Extracts the viewpoints from the config.
     """
-    import pyranges as pr
     import numpy as np
+    import pandas as pd
 
-    viewpoints = pr.read_bed(viewpoints_path)
-
-    df = viewpoints.df
+    # Read BED file using pandas (pyranges replacement)
+    bed_columns = ["Chromosome", "Start", "End", "Name", "Score", "Strand"]
+    try:
+        df = pd.read_csv(viewpoints_path, sep="\t", header=None, comment="#")
+        # Assign column names based on the number of columns
+        df.columns = bed_columns[:len(df.columns)]
+        # Ensure we have at least the minimum required columns
+        if "Name" not in df.columns:
+            df["Name"] = df["Chromosome"] + ":" + df["Start"].astype(str) + "-" + df["End"].astype(str)
+    except Exception as e:
+        raise ValueError(f"Error reading BED file {viewpoints_path}: {e}")
 
     df = df.assign(
         viewpoint=lambda df: np.where(
-            df["Name"].str.contains(r"-chr.*?-\d+-d+$"),
+            df["Name"].str.contains(r"-chr.*?-\d+-\d+$"),
             df["Name"],
             df["Name"]
             + "-"
