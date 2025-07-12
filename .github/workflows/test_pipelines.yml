@@ -46,6 +46,16 @@ jobs:
       - name: Install SeqNado package
         shell: bash -el {0}
         run: |
+          # Verify conda environment is active
+          echo "Active conda environment: $CONDA_DEFAULT_ENV"
+          echo "Python executable: $(which python)"
+          
+          # Verify pytest is available (should be from testing.yml)
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')" || {
+            echo "pytest not found - installing via pip"
+            pip install pytest
+          }
+          
           # Install SeqNado package into the conda environment
           pip install .
 
@@ -353,6 +363,25 @@ jobs:
               print(f'⚠️  Warning: Expected {expected_count} containers but found {simg_count}')
           "
 
+      - name: Verify test environment
+        shell: bash -el {0}
+        run: |
+          echo "Python environment verification:"
+          which python
+          python --version
+          echo "Conda environment: $CONDA_DEFAULT_ENV"
+          echo "Conda prefix: $CONDA_PREFIX"
+          
+          echo "Checking for pytest:"
+          which pytest || echo "pytest not found - trying pip install"
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')" || pip install pytest
+          
+          echo "Checking for SeqNado:"
+          which seqnado-init || echo "seqnado-init not found"
+          python -c "import seqnado; print(f'SeqNado found at: {seqnado.__file__}')" || echo "SeqNado import failed"
+          
+          echo "Environment verification complete"
+
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
@@ -360,4 +389,5 @@ jobs:
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
           APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
-          pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4
+          # Use python -m pytest to ensure proper module resolution
+          python -m pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4
