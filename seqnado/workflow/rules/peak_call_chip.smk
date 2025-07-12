@@ -59,7 +59,7 @@ rule macs2_with_input:
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     container:
-        "docker://quay.io/biocontainers/macs2:2.2.9.1--py311haab0aaa_3"
+        "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
@@ -84,7 +84,7 @@ rule macs2_no_input:
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
     container:
-        "docker://quay.io/biocontainers/macs2:2.2.9.1--py311haab0aaa_3"
+        "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&

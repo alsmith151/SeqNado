@@ -3,7 +3,6 @@ import glob
 import os
 import shutil
 import sys
-import pyranges as pr
 
 import pandas as pd
 from snakemake.utils import min_version
@@ -45,7 +44,7 @@ symlink_fastq_files(DESIGN, output_dir="seqnado_output/fastqs")
 # Define global variables
 SAMPLE_NAMES = DESIGN.sample_names
 SAMPLE_GROUPS = list(DESIGN.to_dataframe()['merge'].unique())
-VIEWPOINTS_FILE = ViewpointsFile.validate(pr.read_bed(config["viewpoints"]).df.assign(Score=0)) # Ignore score column
+VIEWPOINTS_FILE = ViewpointsFile.validate(pd.read_csv(config["viewpoints"], sep="\t", names=["Chromosome", "Start", "End", "Name"]).assign(Score=0)) # Ignore score column
 VIEWPOINT_OLIGOS = extract_viewpoints(config["viewpoints"])
 VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
 GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))

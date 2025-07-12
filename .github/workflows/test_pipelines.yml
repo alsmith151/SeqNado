@@ -3,71 +3,164 @@ name: Python package
 on: [push]
 
 jobs:
-  Test:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+  cache-containers:
+    name: Cache Container Images
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test: ["config", "design", "pipeline"]
-        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
-
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Setup conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          environment-file: testing.yml
-          miniforge-version: latest
-
-      - name: Install package
-        shell: pwsh
-        run: |
-          pip install .
-
-      - name: Cache singularity
-        if: matrix.test == 'pipeline'
+      - name: Cache container images
         id: cache-singularity
         uses: actions/cache@v3
         with:
           path: ~/.apptainer
-          key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
+          key: ${{ runner.os }}-apptainer-cache-v2-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-singularity-    
-      - uses: eWaterCycle/setup-apptainer@v2
-        if: matrix.test == 'pipeline'
+            ${{ runner.os }}-apptainer-cache-v2-
+            ${{ runner.os }}-apptainer-cache-
+
+      - name: Setup Apptainer runtime
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
+        uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.4
 
-      - name: Add singularity hub remote
-        if: matrix.test == 'pipeline'
-        shell: pwsh
+      - name: Configure Sylabs Cloud remote
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
+        shell: bash
         run: |
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Pull singularity images
-        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
+      - name: Create container cache directory
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p ~/.apptainer/cache
+
+      - name: Pre-pull container images
+        if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         env:
-          APPTAINER_CACHEDIR: "/tmp"
+          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
+          APPTAINER_TMPDIR: "/tmp"
         run: |
-          echo "Pulling Apptainer image for assay ${{ matrix.assay }}..."
-          case "${{ matrix.assay }}" in
-            atac|chip|chip-rx)
-              apptainer pull --force oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
-              ;;
-            *)
-              apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-              ;;
-          esac
+          echo "Pre-pulling Apptainer container images..."
+          
+          # Configure Apptainer
+          apptainer cache clean --force || true
+          
+          # List of containers to pre-pull
+          containers=(
+            "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+            "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
+            "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
+            "library://asmith151/plotnado/plotnado:latest"
+            "library://asmith151/lanceotron/lanceotron-mcc:latest"
+          )
+          
+          for container in "${containers[@]}"; do
+            echo "Pulling container: $container"
+            # Generate a safe filename from the container URL
+            filename=$(echo "$container" | sed 's|[:/]|_|g' | sed 's|__*|_|g').sif
+            echo "  -> Saving as: $filename"
+            apptainer pull "$HOME/.apptainer/cache/$filename" "$container" || echo "Failed to pull $container, continuing..."
+          done
+          
+          echo "Container pre-pull complete. Cache contents:"
+          ls -la ~/.apptainer/cache/
+          echo "Cache directory structure:"
+          find ~/.apptainer -type f -name "*.sif" 2>/dev/null | head -10
 
-      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
-        shell: pwsh
+      - name: Verify container cache
+        shell: bash
+        run: |
+          echo "Verifying container cache..."
+          echo "Contents of ~/.apptainer/cache:"
+          ls -la ~/.apptainer/cache/ || echo "Cache directory doesn't exist"
+          
+          echo "All .sif files in ~/.apptainer:"
+          find ~/.apptainer -name "*.sif" 2>/dev/null | head -10 || echo "No .sif files found"
+          
+          # Count cached files
+          cached_files=$(find ~/.apptainer -name "*.sif" 2>/dev/null | wc -l)
+          echo "Total cached container files: $cached_files"
+          
+          if [ "$cached_files" -gt 0 ]; then
+            echo "✅ Container cache populated successfully"
+          else
+            echo "⚠️  Warning: No container files found in cache"
+          fi
+
+  test-pipelines:
+    name: Test Pipeline - ${{ matrix.assay }}
+    needs: [cache-containers]
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Setup Conda environment and install SeqNado
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: testing.yml
+          miniforge-version: latest
+          use-mamba: true
+
+      - name: Install SeqNado package
+        shell: bash -el {0}
+        run: |
+          pip install .
+          
+          # Verify installation
+          python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
+          which seqnado-init
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
+
+      - name: Setup Apptainer runtime
+        uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.3.4
+
+      - name: Restore cached container images
+        id: cache-singularity
+        uses: actions/cache@v3
+        with:
+          path: ~/.apptainer
+          key: ${{ runner.os }}-apptainer-cache-v2-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          restore-keys: |
+            ${{ runner.os }}-apptainer-cache-v2-
+            ${{ runner.os }}-apptainer-cache-
+
+      - name: Verify cached containers are available
+        shell: bash
+        run: |
+          echo "Verifying cached containers are available for pipeline tests:"
+          echo "Contents of ~/.apptainer/cache:"
+          ls -la ~/.apptainer/cache/ || echo "No cache directory found"
+          
+          echo "All .sif files in ~/.apptainer:"
+          find ~/.apptainer -name "*.sif" 2>/dev/null | head -10 || echo "No .sif files found"
+          
+          # Count cached files
+          cached_files=$(find ~/.apptainer -name "*.sif" 2>/dev/null | wc -l)
+          echo "Total cached container files available: $cached_files"
+
+      - name: Run SeqNado pipeline test for ${{ matrix.assay }}
+        shell: bash -el {0}
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
+          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
-          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+          python -m pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4

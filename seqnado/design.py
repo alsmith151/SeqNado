@@ -1488,17 +1488,21 @@ class PlotFiles(BaseModel):
     plotting_format: Literal["svg", "png", "pdf"] = "svg"
 
     def get_plot_names(self):
-        import pyranges as pr
+        import pandas as pd
 
         plots = []
 
         try:
-            coords = pr.read_bed(str(self.plotting_coordinates))
+            # Read BED file using pandas (pyranges replacement)
+            bed_columns = ["Chromosome", "Start", "End", "Name", "Score", "Strand"]
+            coords_df = pd.read_csv(str(self.plotting_coordinates), sep="\t", header=None, comment="#")
+            coords_df.columns = bed_columns[:len(coords_df.columns)]
+            
             outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
-            for region in coords.df.itertuples():
+            for region in coords_df.itertuples():
                 fig_name = (
                     f"{region.Chromosome}-{region.Start}-{region.End}"
-                    if not hasattr(region, "Name") and not region.Name
+                    if not hasattr(region, "Name") or not region.Name
                     else region.Name
                 )
                 plots.append(outdir / f"{fig_name}.{self.plotting_format}")
