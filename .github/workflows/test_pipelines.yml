@@ -12,6 +12,10 @@ jobs:
         with:
           submodules: true
 
+      - name: Get current date
+        id: get-date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
       - name: Cache conda environment
         id: cache-conda
         uses: actions/cache@v3
@@ -24,10 +28,6 @@ jobs:
             ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-
             ${{ runner.os }}-conda-
 
-      - name: Get current date
-        id: get-date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
       - name: Setup Conda environment
         uses: conda-incubator/setup-miniconda@v3
         if: steps.cache-conda.outputs.cache-hit != 'true'
@@ -35,7 +35,13 @@ jobs:
           environment-file: testing.yml
           miniforge-version: latest
           use-mamba: true
+
+      - name: Activate conda environment for package installation
+        uses: conda-incubator/setup-miniconda@v3
+        with:
           activate-environment: test
+          miniforge-version: latest
+          use-mamba: true
 
       - name: Install SeqNado package
         shell: bash -el {0}
@@ -63,13 +69,20 @@ jobs:
           
           echo "Environment verification complete - ready to create artifact"
           echo "Conda environment location: $CONDA_PREFIX"
-          ls -la $CONDA_PREFIX
+          echo "Conda environment name: $CONDA_DEFAULT_ENV"
+          
+          # Create a temporary directory structure that mirrors what we need
+          mkdir -p /tmp/conda-env-artifact
+          cp -r "$CONDA_PREFIX"/* /tmp/conda-env-artifact/
+          
+          echo "Artifact preparation complete"
+          ls -la /tmp/conda-env-artifact
 
       - name: Upload complete conda environment
         uses: actions/upload-artifact@v4
         with:
           name: conda-environment-test
-          path: /usr/share/miniconda3/envs/test
+          path: /tmp/conda-env-artifact
           retention-days: 1
 
   cache-containers:
@@ -258,7 +271,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: conda-environment-test
-          path: /usr/share/miniconda3/envs/test
+          path: /tmp/conda-env-downloaded
+
+      - name: Restore conda environment to correct location
+        shell: bash
+        run: |
+          # Create the conda environment directory
+          sudo mkdir -p /usr/share/miniconda3/envs/test
+          
+          # Copy the downloaded environment to the correct location
+          sudo cp -r /tmp/conda-env-downloaded/* /usr/share/miniconda3/envs/test/
+          
+          echo "Conda environment restored to /usr/share/miniconda3/envs/test"
+          ls -la /usr/share/miniconda3/envs/test
 
       - name: Setup Conda environment (use artifact)
         uses: conda-incubator/setup-miniconda@v3
