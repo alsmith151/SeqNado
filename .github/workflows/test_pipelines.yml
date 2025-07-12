@@ -3,98 +3,8 @@ name: Python package
 on: [push]
 
 jobs:
-  cache-containers:
-    name: Cache Container Images
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-
-      - name: Check for cached container images
-        id: cache-singularity
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.apptainer/cache
-            !~/.apptainer/cache/*.simg
-          key: ${{ runner.os }}-apptainer-cache-v4-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
-          restore-keys: |
-            ${{ runner.os }}-apptainer-cache-v4-
-            ${{ runner.os }}-apptainer-cache-
-
-      - name: Setup Apptainer runtime
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.3.4
-
-      - name: Configure Sylabs Cloud remote
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-          apptainer remote use SylabsCloud
-
-      - name: Create container cache directory
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          mkdir -p ~/.apptainer/cache
-
-      - name: Pre-pull container images
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        shell: bash
-        env:
-          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
-          APPTAINER_TMPDIR: "/tmp"
-        run: |
-          echo "Pre-pulling Apptainer container images..."
-          
-          # List of containers to pre-pull (just to populate the cache)
-          containers=(
-            "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-            "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
-            "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
-            "library://asmith151/plotnado/plotnado:latest"
-            "library://asmith151/lanceotron/lanceotron-mcc:latest"
-          )
-          
-          for container in "${containers[@]}"; do
-            echo "Pulling container: $container"
-            # Pull to populate Apptainer's internal cache, then remove the .simg file
-            apptainer pull --disable-cache=false "$container" || echo "Failed to pull $container, continuing..."
-            # Remove the .simg file to save space - we only want the cache layers
-            rm -f *.simg
-          done
-          
-          echo "Apptainer cache structure:"
-          find ~/.apptainer/cache -type f 2>/dev/null | head -10 || echo "No cache files"
-          echo "Cache size: $(du -sh ~/.apptainer/cache 2>/dev/null | cut -f1 || echo '0')"
-
-      - name: Verify container cache
-        shell: bash
-        run: |
-          echo "Verifying container cache..."
-          echo "Cache directory structure:"
-          find ~/.apptainer/cache -type f 2>/dev/null | head -10 || echo "No cache files found"
-          
-          # Check cache size
-          cache_size=$(du -sh ~/.apptainer/cache 2>/dev/null | cut -f1 || echo "0")
-          cache_files=$(find ~/.apptainer/cache -type f 2>/dev/null | wc -l)
-          echo "Total cache files: $cache_files"
-          echo "Total cache size: $cache_size"
-          
-          if [ "$cache_files" -gt 0 ]; then
-            echo "✅ Container cache populated successfully with intermediate layers"
-          else
-            echo "⚠️  Warning: No container cache found"
-          fi
-
   test-pipelines:
     name: Test Pipeline - ${{ matrix.assay }}
-    needs: [cache-containers]
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
@@ -129,59 +39,10 @@ jobs:
         with:
           apptainer-version: 1.3.4
 
-      - name: Restore cached container images
-        id: cache-singularity
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.apptainer/cache
-            !~/.apptainer/cache/*.simg
-          key: ${{ runner.os }}-apptainer-cache-v4-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
-          restore-keys: |
-            ${{ runner.os }}-apptainer-cache-v4-
-            ${{ runner.os }}-apptainer-cache-
-
-      - name: Setup Apptainer runtime
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.3.4
-
-      - name: Verify cached containers are available
-        shell: bash
-        run: |
-          echo "Verifying cached containers are available for pipeline tests:"
-          echo "Cache directory structure:"
-          find ~/.apptainer/cache -type f 2>/dev/null | head -10 || echo "No cache files found"
-          
-          # Count cached files
-          cached_files=$(find ~/.apptainer/cache -type f 2>/dev/null | wc -l)
-          cache_size=$(du -sh ~/.apptainer/cache 2>/dev/null | cut -f1 || echo "0")
-          echo "Total cached files: $cached_files"
-          echo "Cache size: $cache_size"
-          
-          if [ "$cached_files" -gt 0 ]; then
-            echo "✅ Found cached container layers - pulls should be faster"
-          else
-            echo "⚠️  Warning: No cached container layers found"
-          fi
-
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
-          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
-          SINGULARITY_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
-          echo "Debug: Environment variables"
-          echo "TMPDIR: $TMPDIR"
-          echo "APPTAINER_CACHEDIR: $APPTAINER_CACHEDIR"
-          echo "SINGULARITY_CACHEDIR: $SINGULARITY_CACHEDIR"
-          echo "Current working directory: $(pwd)"
-          
-          echo "Debug: Cache status"
-          cache_files=$(find ~/.apptainer/cache -type f 2>/dev/null | wc -l)
-          echo "Cached files available: $cache_files"
-          
           python -m pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4
