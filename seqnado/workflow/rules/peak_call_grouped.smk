@@ -14,7 +14,7 @@ rule lanceotron_no_input_consensus:
         outdir="seqnado_output/peaks/merged/lanceotron",
         options=check_options(config["lanceotron"]["callpeak"])
     container:
-        "library://asmith151/seqnado/seqnado_extra:latest"
+        "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
     log:
         "seqnado_output/logs/lanceotron/{group}.log",
     shell:"""

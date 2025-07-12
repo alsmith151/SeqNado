@@ -1,18 +1,23 @@
-trim_galore:
-    threads: 4
-    options: --2colour 20 
+bamnado:
+    threads: 8
+    bamcoverage: --bin-size 10 --norm-method rpkm 
 
 bowtie2:
     threads: 8
     options:
 
-samtools:
+deeptools:
     threads: 8
-    filter_options: -f 2
+    alignmentsieve: --minMappingQuality 30 
+    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
 
-picard:
-    threads: 8
-    options:
+featurecounts:
+    threads: 16
+    options:  -p --countReadPairs
+
+heatmap:
+    options: -b 1000 -m 5000 -a 1000 --binSize 50
+    colormap: RdYlBu_r 
 
 homer:
     use_input: true
@@ -20,28 +25,27 @@ homer:
     makebigwig:
     findpeaks:
 
-deeptools:
-    threads: 8
-    alignmentsieve: --minMappingQuality 30 
-    bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
+lanceotron:
+    use_input: True
+    callpeak: -c 0.5
 
 macs:
     version: 2
     callpeak: -f BAMPE
 
-lanceotron:
-    use_input: True
-    callpeak: -c 0.5
+picard:
+    threads: 8
+    options:
+
+samtools:
+    threads: 8
+    filter_options: -f 2
 
 seacr:
     threshold: 0.01
     norm: non
     stringency: stringent
 
-heatmap:
-    options: -b 1000 -m 5000 -a 1000 --binSize 50
-    colormap: RdYlBu_r 
-
-featurecounts:
-    threads: 16
-    options:  -p --countReadPairs
+trim_galore:
+    threads: 4
+    options: --2colour 20 

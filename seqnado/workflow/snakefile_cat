@@ -18,7 +18,7 @@ from seqnado.helpers import format_config_dict, symlink_fastq_files, get_scale_m
 ASSAY = "CUT&TAG"
 SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 configfile: "config_cat.yml"
-container: "library://asmith151/seqnado/seqnado_pipeline:latest"
+container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
 
 ####################
 # Experiment config #

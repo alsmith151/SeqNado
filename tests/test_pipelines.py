@@ -431,12 +431,14 @@ def config_yaml_for_testing(config_yaml, assay):
         config["scale"] = "yes"
         config["library_complexity"] = False
     elif assay == "chip-rx":
-        config["peak_calling_method"] = "seacr"
+        config["peak_calling_method"] = ["seacr"]
     elif assay == "atac":
         config["pileup_method"] = ["deeptools", "homer"]
         config["call_peaks"] = True
         config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
         config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
+    if assay == "cat":
+        config["pileup_method"] = ["deeptools", "bamnado"]
 
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)

@@ -1,0 +1,60 @@
+BootStrap: docker
+From: python:3.12-bookworm
+
+%labels
+    Author "asmith"
+    Software "SeqNado"
+    Version "1.0"
+
+%files
+    repos/lanceotron-mcc /opt/repos/lanceotron-mcc
+    repos/QuantNado /opt/repos/quantnado
+
+%post
+
+    # Upgrade pip, setuptools, and wheel
+    python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+    # Install PyTorch and related packages from PyTorch index
+    python -m pip install --no-cache-dir --upgrade --no-input \
+        torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    
+    python -m pip install --no-cache-dir \
+        loguru \
+        pandas \
+        "polars<1.9" \
+        pydantic \
+        pyBigWig \
+        tqdm \
+        typer \
+        cyclopts \
+        joblib \
+        pyranges \
+        crested \
+        modisco-lite \
+        natsort \
+        tensorflow-cpu
+    
+    python -m pip install --no-cache-dir --no-deps \
+        /opt/repos/quantnado \
+        /opt/repos/lanceotron-mcc \
+        lanceotron
+
+    # Clean up to reduce image size
+    rm -rf /opt/repos
+    python -m pip cache purge
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%runscript
+    echo "SeqNado container ready."
+    exec /bin/bash "$@"
+
+%test
+    # Verify installations
+    python -c "import lanceotron"
+    python -c "import quantnado"
+    python -c "import torch"
+    python -c "import tensorflow as tf; print(tf.__version__)"
+    python -c "import lanceotron_mcc" 
+    echo "Container build test passed."

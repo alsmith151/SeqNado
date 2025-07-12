@@ -117,6 +117,65 @@ rule deeptools_make_bigwigs_rna_minus:
         bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse --scaleFactor -1 > {log} 2>&1
         """
 
+rule bamnado_bam_coverage:
+    input:
+        bam="seqnado_output/aligned/{sample}.bam",
+        bai="seqnado_output/aligned/{sample}.bam.bai",
+    output:
+        bigwig="seqnado_output/bigwigs/bamnado/unscaled/{sample}.bigWig",
+    params:
+        options=check_options(config["bamnado"]["bamcoverage"]),
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
+    threads: config["bamnado"]["threads"],
+    log:
+        "seqnado_output/logs/pileups/bamnado/{sample}.log",
+    shell:
+        """
+        export RAYON_NUM_THREADS={threads}
+        bamnado bam-coverage {params.options} -b {input.bam} -o {output.bigwig} > {log} 2>&1
+        """
+
+rule bamnado_bam_coverage_rna_plus:
+    input:
+        bam="seqnado_output/aligned/{sample}.bam",
+        bai="seqnado_output/aligned/{sample}.bam.bai",
+    output:
+        bigwig="seqnado_output/bigwigs/bamnado/{sample}_plus.bigWig",
+    params:
+        options=check_options(config["bamnado"]["bamcoverage"]),
+    threads: config["bamnado"]["threads"],
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    log:
+        "seqnado_output/logs/pileups/bamnado/{sample}_plus.log",
+    shell:
+        """
+        export RAYON_NUM_THREADS={threads}
+        bamnado bam-coverage {params.options} -b {input.bam} -o {output.bigwig} --strand forward > {log} 2>&1
+        """
+
+rule bamnado_bam_coverage_rna_minus:
+    input:
+        bam="seqnado_output/aligned/{sample}.bam",
+        bai="seqnado_output/aligned/{sample}.bam.bai",
+    output:
+        bigwig="seqnado_output/bigwigs/bamnado/{sample}_minus.bigWig",
+    params:
+        options=check_options(config["bamnado"]["bamcoverage"]),
+    threads: config["bamnado"]["threads"],
+    resources: 
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    log:
+        "seqnado_output/logs/pileups/bamnado/{sample}_minus.log",
+    shell:
+        """
+        export RAYON_NUM_THREADS={threads}
+        bamnado bam-coverage {params.options} -b {input.bam} -o {output.bigwig} --strand reverse --scale-factor -1 > {log} 2>&1
+        """
 
 rule fragment_bedgraph:
     input:

@@ -43,12 +43,24 @@ spikein_options:
 
 make_bigwigs: "{{make_bigwigs}}"  
 scale: "{{scale}}"
-pileup_method: "{{pileup_method}}"
+
+{% if pileup_method %}
+pileup_method: 
+    - "{{pileup_method}}"
+{% else %}
+pileup_method: []
+{% endif %}
+
 make_heatmaps: "{{make_heatmaps}}"
 
 {% if assay != "rna" %}
 call_peaks: "{{call_peaks}}"
-peak_calling_method: "{{peak_calling_method}}"
+{% if peak_calling_method %}
+peak_calling_method: 
+    - "{{peak_calling_method}}"
+{% else %}
+peak_calling_method: []
+{% endif %}
 {% endif %}
 
 consensus_counts: "{{consensus_counts}}"

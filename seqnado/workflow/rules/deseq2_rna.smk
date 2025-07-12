@@ -11,7 +11,7 @@ rule deseq2_report_rnaseq:
     log:
         "seqnado_output/logs/deseq2/deseq2.log",
     container:
-        "library://asmith151/seqnado/seqnado_report:latest"
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         """
         input_file=$(realpath "{input.qmd}")

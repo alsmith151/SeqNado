@@ -72,7 +72,7 @@ rule qualimap_bamqc:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: 16
-    container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:"seqnado_output/logs/qualimap_bamqc/{sample}.log",
     shell:"""
     qualimap --java-mem-size={resources.mem} bamqc \
@@ -97,7 +97,7 @@ rule qualimap_rnaseq:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: 16
-    container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/qualimap_rnaseq/{sample}.log",
     shell:"""
@@ -234,20 +234,20 @@ def get_qualimap_files(wildcards):
 
 
 def get_frip_files(wildcards):
-    if ASSAY in ["CAT", "ATAC"] and config["call_peaks"]:
-        peak_methods = OUTPUT.peak_calling_method
-        return expand(
-            "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
-            sample=SAMPLE_NAMES,
-            directory=peak_methods,
-        )
-    if ASSAY == "ChIP" and config["call_peaks"]:
-        peak_methods = OUTPUT.peak_calling_method
-        return expand(
-            "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
-            sample=SAMPLE_NAMES_IP,
-            directory=peak_methods,
-        )
+    if hasattr(OUTPUT, "peak_calling_method") and OUTPUT.peak_calling_method:
+        peak_methods = [m.value for m in OUTPUT.peak_calling_method]
+        if ASSAY in ["CUT&TAG", "ATAC"] and config["call_peaks"]:
+            return expand(
+                "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+                sample=SAMPLE_NAMES,
+                directory=peak_methods,
+            )
+        if ASSAY == "ChIP" and config["call_peaks"]:
+            return expand(
+                "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+                sample=SAMPLE_NAMES_IP,
+                directory=peak_methods,
+            )
     else:
         return []
 
@@ -305,7 +305,7 @@ rule seqnado_report:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "library://cchahrou/seqnado/seqnado_qc.sif:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:"""
     multiqc -o seqnado_output seqnado_output \
     --config {params.multiqc_config} \
