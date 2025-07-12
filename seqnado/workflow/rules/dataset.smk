@@ -25,7 +25,7 @@ rule make_dataset_regions:
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest",
+    container: "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest",
     log: "seqnado_output/logs/make_dataset_regions.log",
     shell:"""
     quantnado-make-dataset \
@@ -56,7 +56,7 @@ rule make_dataset_binsize:
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest",
+    container: "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest",
     log: "seqnado_output/logs/make_dataset_binsize.log",
     shell:"""
     quantnado-make-dataset \
