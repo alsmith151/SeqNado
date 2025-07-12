@@ -83,7 +83,7 @@ rule tile_regions:
     params:
         tile_size=config["genome"].get("tile_size", 10_000),
     script:
-        "../scripts/tile_genome.py",
+        "../scripts/tile_genome.py"
 
 
 def get_count_files(wildcards):
