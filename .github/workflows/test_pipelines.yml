@@ -190,5 +190,25 @@ jobs:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
           APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
+          SINGULARITY_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
+          echo "Debug: Environment variables"
+          echo "TMPDIR: $TMPDIR"
+          echo "APPTAINER_CACHEDIR: $APPTAINER_CACHEDIR"
+          echo "SINGULARITY_CACHEDIR: $SINGULARITY_CACHEDIR"
+          echo "Current working directory: $(pwd)"
+          
+          echo "Debug: Available cached containers"
+          ls -la "$APPTAINER_CACHEDIR"/*.simg 2>/dev/null || echo "No cached containers found"
+          
+          # Create symlinks in all possible locations where Snakemake might look
+          # This covers the pytest temp directory structure
+          mkdir -p .apptainer/cache
+          for img in "$APPTAINER_CACHEDIR"/*.simg; do
+            if [ -f "$img" ]; then
+              ln -sf "$img" ".apptainer/cache/$(basename "$img")"
+              echo "Linked: $img -> .apptainer/cache/$(basename "$img")"
+            fi
+          done
+          
           python -m pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4
