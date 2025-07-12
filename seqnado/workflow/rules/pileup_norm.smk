@@ -75,7 +75,6 @@ def format_homer_make_bigwigs_options(wildcards):
 
 
 # CSAW Method
-# 
 rule tile_regions:
     input:
         chromsizes=config["genome"]["chromosome_sizes"],
