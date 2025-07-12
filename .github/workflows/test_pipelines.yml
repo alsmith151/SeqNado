@@ -12,6 +12,32 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: testing.yml
+          miniforge-version: latest
+
+      - name: Install package
+        shell: bash
+        run: |
+          pip install .
+
+      - name: Create package artifact
+        shell: bash
+        run: |
+          # Create a directory with the installed package info
+          mkdir -p package_install
+          pip freeze > package_install/requirements.txt
+          # Get the package install location
+          python -c "import seqnado; print(seqnado.__file__)" > package_install/install_path.txt
+
+      - name: Upload package installation
+        uses: actions/upload-artifact@v3
+        with:
+          name: seqnado-package
+          path: package_install/
+
       - name: Cache singularity
         id: cache-singularity
         uses: actions/cache@v3
@@ -164,10 +190,17 @@ jobs:
           environment-file: testing.yml
           miniforge-version: latest
 
-      - name: Install package
-        shell: pwsh
+      - name: Download package installation
+        uses: actions/download-artifact@v3
+        with:
+          name: seqnado-package
+          path: package_install/
+
+      - name: Install package from cache
+        shell: bash
         run: |
-          pip install .
+          # Install the exact same package versions as the cache job
+          pip install -r package_install/requirements.txt
 
       - name: Restore cached containers
         if: matrix.test == 'pipeline'
