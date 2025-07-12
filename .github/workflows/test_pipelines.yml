@@ -168,6 +168,19 @@ jobs:
         with:
           apptainer-version: 1.3.4
 
+      - name: Restore cached container images
+        id: cache-singularity
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.apptainer
+            ~/.apptainer/cache
+            ~/apptainer_images
+          key: ${{ runner.os }}-apptainer-containers-v5-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          restore-keys: |
+            ${{ runner.os }}-apptainer-containers-v5-
+            ${{ runner.os }}-apptainer-containers-
+
       - name: Verify cached containers are available
         shell: bash
         run: |
