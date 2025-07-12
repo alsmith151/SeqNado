@@ -16,14 +16,11 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: |
-            ~/.apptainer
-            ~/.apptainer/cache
-            ~/apptainer_images
-          key: ${{ runner.os }}-apptainer-containers-v5-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          path: ~/.apptainer/cache
+          key: ${{ runner.os }}-apptainer-cache-v1-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-apptainer-containers-v5-
-            ${{ runner.os }}-apptainer-containers-
+            ${{ runner.os }}-apptainer-cache-v1-
+            ${{ runner.os }}-apptainer-cache-
 
       - name: Setup Apptainer runtime
         if: steps.cache-singularity.outputs.cache-hit != 'true'
@@ -38,98 +35,47 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
-      - name: Create container cache directories
+      - name: Create container cache directory
         if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          mkdir -p ~/apptainer_images
           mkdir -p ~/.apptainer/cache
 
-      - name: Download and cache container images
+      - name: Pre-pull container images
         if: steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         env:
           APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
-          echo "Downloading Apptainer images with Snakemake-compatible naming..."
+          echo "Pre-pulling Apptainer container images..."
           
-          # Create the container directory that Snakemake expects
-          mkdir -p $HOME/apptainer_images
+          # List of containers to pre-pull
+          containers=(
+            "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+            "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
+            "docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3"
+            "library://asmith151/plotnado/plotnado:latest"
+            "library://asmith151/lanceotron/lanceotron-mcc:latest"
+          )
           
-          # Calculate MD5 hashes and pull containers with those names (using .simg extension)
-          python3 -c "
-          import hashlib
-          import subprocess
-          import os
+          for container in "${containers[@]}"; do
+            echo "Pulling container: $container"
+            apptainer pull $container || echo "Failed to pull $container, continuing..."
+          done
           
-          containers = [
-              'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
-              'oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 
-              'docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3',
-              'library://asmith151/plotnado/plotnado:latest',
-              'library://asmith151/lanceotron/lanceotron-mcc:latest'
-          ]
-          
-          for url in containers:
-              md5hash = hashlib.md5(usedforsecurity=False)
-              md5hash.update(url.encode())
-              hash_value = md5hash.hexdigest()
-              output_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
-              
-              print(f'Downloading {url} -> {hash_value}.simg')
-              subprocess.run(['apptainer', 'pull', output_path, url], check=True)
-          "
-          
-          echo "Container download complete:"
-          ls -la $HOME/apptainer_images/
+          echo "Container pre-pull complete. Cache contents:"
+          ls -la ~/.apptainer/cache/
 
-      - name: Verify container cache integrity
+      - name: Verify container cache
         shell: bash
         run: |
-          echo "Verifying container cache integrity..."
-          echo "Contents of ~/apptainer_images:"
-          ls -la ~/apptainer_images/ || echo "Directory doesn't exist"
+          echo "Verifying container cache..."
           echo "Contents of ~/.apptainer/cache:"
-          ls -la ~/.apptainer/cache/ || echo "Directory doesn't exist"
+          ls -la ~/.apptainer/cache/ || echo "Cache directory doesn't exist"
           
-          # Verify specific hash-named containers exist and count them dynamically
-          python3 -c "
-          import hashlib
-          import os
-          
-          containers = [
-              ('oras://ghcr.io/alsmith151/seqnado_pipeline:latest', 'Main pipeline'),
-              ('oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 'ML'),
-              ('docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3', 'MACS2'),
-              ('library://asmith151/plotnado/plotnado:latest', 'Plotnado'),
-              ('library://asmith151/lanceotron/lanceotron-mcc:latest', 'Lanceotron-MCC')
-          ]
-          
-          expected_count = len(containers)
-          found_count = 0
-          
-          for url, name in containers:
-              md5hash = hashlib.md5(usedforsecurity=False)
-              md5hash.update(url.encode())
-              hash_value = md5hash.hexdigest()
-              container_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
-              
-              if os.path.exists(container_path):
-                  print(f'✓ {name} container found ({hash_value}.simg)')
-                  found_count += 1
-              else:
-                  print(f'✗ {name} container missing ({hash_value}.simg)')
-          
-          print(f'Container verification: {found_count}/{expected_count} containers found')
-          if found_count == expected_count:
-              print('✅ All expected containers are cached successfully')
-          else:
-              print(f'⚠️  Warning: Expected {expected_count} containers but found {found_count}')
-          "
-          
-          # Count the number of .simg files as backup check
-          simg_count=$(find ~/apptainer_images -name "*.simg" 2>/dev/null | wc -l)
-          echo "Total .simg files in cache: $simg_count"
+          # Count cached files
+          cached_files=$(find ~/.apptainer/cache -name "*.sif" 2>/dev/null | wc -l)
+          echo "Total cached container files: $cached_files"
 
   test-pipelines:
     name: Test Pipeline - ${{ matrix.assay }}
@@ -172,60 +118,21 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: |
-            ~/.apptainer
-            ~/.apptainer/cache
-            ~/apptainer_images
-          key: ${{ runner.os }}-apptainer-containers-v5-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          path: ~/.apptainer/cache
+          key: ${{ runner.os }}-apptainer-cache-v1-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-apptainer-containers-v5-
-            ${{ runner.os }}-apptainer-containers-
+            ${{ runner.os }}-apptainer-cache-v1-
+            ${{ runner.os }}-apptainer-cache-
 
       - name: Verify cached containers are available
         shell: bash
         run: |
           echo "Verifying cached containers are available for pipeline tests:"
-          ls -la ~/apptainer_images/ || echo "No containers found"
+          ls -la ~/.apptainer/cache/ || echo "No cache directory found"
           
-          # Dynamic container count verification
-          python3 -c "
-          import hashlib
-          import os
-          
-          containers = [
-              ('oras://ghcr.io/alsmith151/seqnado_pipeline:latest', 'Main pipeline'),
-              ('oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 'ML'),
-              ('docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3', 'MACS2'),
-              ('library://asmith151/plotnado/plotnado:latest', 'Plotnado'),
-              ('library://asmith151/lanceotron/lanceotron-mcc:latest', 'Lanceotron-MCC')
-          ]
-          
-          expected_count = len(containers)
-          found_count = 0
-          
-          for url, name in containers:
-              md5hash = hashlib.md5(usedforsecurity=False)
-              md5hash.update(url.encode())
-              hash_value = md5hash.hexdigest()
-              container_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
-              
-              if os.path.exists(container_path):
-                  found_count += 1
-          
-          # Quick count check
-          try:
-              simg_count = len([f for f in os.listdir(f'{os.environ[\"HOME\"]}/apptainer_images') if f.endswith('.simg')])
-          except FileNotFoundError:
-              simg_count = 0
-          
-          print(f'Expected containers: {expected_count}')
-          print(f'Found .simg files: {simg_count}')
-          
-          if simg_count >= expected_count:
-              print('✅ All expected containers are available')
-          else:
-              print(f'⚠️  Warning: Expected {expected_count} containers but found {simg_count}')
-          "
+          # Count cached files
+          cached_files=$(find ~/.apptainer/cache -name "*.sif" 2>/dev/null | wc -l)
+          echo "Total cached container files available: $cached_files"
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
