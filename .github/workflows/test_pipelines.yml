@@ -53,7 +53,7 @@ jobs:
           containers=(
             "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
             "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
-            "docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3"
+            "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
             "library://asmith151/plotnado/plotnado:latest"
             "library://asmith151/lanceotron/lanceotron-mcc:latest"
           )
