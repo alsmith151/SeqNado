@@ -17,9 +17,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.apptainer/cache
-          key: ${{ runner.os }}-apptainer-cache-v2-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          key: ${{ runner.os }}-apptainer-cache-v3-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-apptainer-cache-v2-
+            ${{ runner.os }}-apptainer-cache-v3-
             ${{ runner.os }}-apptainer-cache-
 
       - name: Setup Apptainer runtime
@@ -149,9 +149,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.apptainer/cache
-          key: ${{ runner.os }}-apptainer-cache-v2-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          key: ${{ runner.os }}-apptainer-cache-v3-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-apptainer-cache-v2-
+            ${{ runner.os }}-apptainer-cache-v3-
             ${{ runner.os }}-apptainer-cache-
 
       - name: Setup Apptainer runtime
