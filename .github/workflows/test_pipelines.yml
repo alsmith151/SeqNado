@@ -35,13 +35,7 @@ jobs:
           environment-file: testing.yml
           miniforge-version: latest
           use-mamba: true
-
-      - name: Activate conda environment for package installation
-        uses: conda-incubator/setup-miniconda@v3
-        with:
           activate-environment: test
-          miniforge-version: latest
-          use-mamba: true
 
       - name: Install SeqNado package
         shell: bash -el {0}
