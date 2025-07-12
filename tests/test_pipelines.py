@@ -508,6 +508,7 @@ def apptainer_args(index, test_data_path):
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
     apptainer_cache_dir = pathlib.Path.home() / ".apptainer"
+    apptainer_images_dir = pathlib.Path.home() / "apptainer_images"
     multiqc_config = (
         pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml")
         .absolute()
@@ -520,7 +521,8 @@ def apptainer_args(index, test_data_path):
         f"{test_data_path}:{test_data_path},"
         f"{indicies_mount}:{indicies_mount},"
         f"{tmpdir}:{tmpdir},"
-        f"{multiqc_config_parent}:{multiqc_config_parent}"
+        f"{multiqc_config_parent}:{multiqc_config_parent},"
+        f"{apptainer_images_dir}:{apptainer_images_dir}"
     )
 
     if not os.environ.get("APPTAINER_CACHEDIR"):
@@ -543,6 +545,10 @@ def test_pipeline(
     package_path,
     test_profile_path,
 ):
+    import pathlib
+    
+    apptainer_images_dir = pathlib.Path.home() / "apptainer_images"
+    
     subprocess.run(
         [
             "seqnado",
@@ -554,7 +560,7 @@ def test_pipeline(
             "--workflow-profile",
             test_profile_path,
             "--apptainer-prefix",
-            "/tmp",
+            str(apptainer_images_dir),
         ],
     )
 

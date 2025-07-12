@@ -32,10 +32,14 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: ~/.apptainer
-          key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
+          path: |
+            ~/.apptainer
+            ~/.apptainer/cache
+            ~/apptainer_images
+          key: ${{ runner.os }}-apptainer-containers-v5-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-singularity-    
+            ${{ runner.os }}-apptainer-containers-v5-
+            ${{ runner.os }}-apptainer-containers-    
       - uses: eWaterCycle/setup-apptainer@v2
         if: matrix.test == 'pipeline'
         with:
@@ -48,26 +52,126 @@ jobs:
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
+      - name: Setup apptainer cache directory
+        if: matrix.test == 'pipeline'
+        shell: bash
+        run: |
+          mkdir -p ~/apptainer_images
+          mkdir -p ~/.apptainer/cache
+
+      - name: Debug container hashing
+        if: matrix.test == 'pipeline'
+        shell: python
+        run: |
+          import hashlib
+          
+          containers = [
+              "oras://ghcr.io/alsmith151/seqnado_pipeline:latest",
+              "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest", 
+              "docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3",
+              "library://asmith151/plotnado/plotnado:latest",
+              "library://asmith151/lanceotron/lanceotron-mcc:latest"
+          ]
+          
+          print("Snakemake container hashes:")
+          for url in containers:
+              md5hash = hashlib.md5(usedforsecurity=False)
+              md5hash.update(url.encode())
+              hash_value = md5hash.hexdigest()
+              print(f"{url} -> {hash_value}.simg")
+
+      - name: List cached containers
+        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          echo "Cache hit! Listing cached containers:"
+          ls -la ~/apptainer_images/ || echo "No containers found in cache"
+
       - name: Pull singularity images
         if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
         shell: bash
         env:
-          APPTAINER_CACHEDIR: "/tmp"
+          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
-          echo "Pulling Apptainer image for assay ${{ matrix.assay }}..."
-          case "${{ matrix.assay }}" in
-            atac|chip|chip-rx)
-              apptainer pull --force oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
-              ;;
-            *)
-              apptainer pull --force oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-              ;;
-          esac
+          echo "Pulling all required Apptainer images with Snakemake-compatible naming..."
+          
+          # Create the container directory that Snakemake expects
+          mkdir -p $HOME/apptainer_images
+          
+          # Calculate MD5 hashes and pull containers with those names (using .simg extension)
+          python3 -c "
+          import hashlib
+          import subprocess
+          import os
+          
+          containers = [
+              'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
+              'oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 
+              'docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3',
+              'library://asmith151/plotnado/plotnado:latest',
+              'library://asmith151/lanceotron/lanceotron-mcc:latest'
+          ]
+          
+          for url in containers:
+              md5hash = hashlib.md5(usedforsecurity=False)
+              md5hash.update(url.encode())
+              hash_value = md5hash.hexdigest()
+              output_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
+              
+              print(f'Pulling {url} -> {hash_value}.simg')
+              subprocess.run(['apptainer', 'pull', output_path, url], check=True)
+          "
+          
+          echo "Containers pulled with Snakemake-compatible hash names:"
+          ls -la $HOME/apptainer_images/
+
+      - name: Verify containers are cached
+        if: matrix.test == 'pipeline'
+        shell: bash
+        run: |
+          echo "Contents of ~/apptainer_images:"
+          ls -la ~/apptainer_images/ || echo "Directory doesn't exist"
+          echo "Contents of ~/.apptainer/cache:"
+          ls -la ~/.apptainer/cache/ || echo "Directory doesn't exist"
+          
+          # Verify specific hash-named containers exist
+          python3 -c "
+          import hashlib
+          import os
+          
+          containers = [
+              ('oras://ghcr.io/alsmith151/seqnado_pipeline:latest', 'Main pipeline'),
+              ('oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest', 'ML'),
+              ('docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3', 'MACS2'),
+              ('library://asmith151/plotnado/plotnado:latest', 'Plotnado'),
+              ('library://asmith151/lanceotron/lanceotron-mcc:latest', 'Lanceotron-MCC')
+          ]
+          
+          found_count = 0
+          for url, name in containers:
+              md5hash = hashlib.md5(usedforsecurity=False)
+              md5hash.update(url.encode())
+              hash_value = md5hash.hexdigest()
+              container_path = f'{os.environ[\"HOME\"]}/apptainer_images/{hash_value}.simg'
+              
+              if os.path.exists(container_path):
+                  print(f'✓ {name} container found ({hash_value}.simg)')
+                  found_count += 1
+              else:
+                  print(f'✗ {name} container missing ({hash_value}.simg)')
+          
+          print(f'Total containers found: {found_count}/5')
+          "
+          
+          # Count the number of .simg files as backup check
+          simg_count=$(find ~/apptainer_images -name "*.simg" 2>/dev/null | wc -l)
+          echo "Total .simg files found: $simg_count"
 
       - name: Test ${{ matrix.test }} ${{ matrix.assay }}
         shell: pwsh
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
+          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
           pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
