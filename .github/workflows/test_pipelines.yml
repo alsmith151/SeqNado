@@ -16,10 +16,12 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: $HOME/.apptainer/cache
-          key: ${{ runner.os }}-apptainer-cache-v3-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          path: |
+            ~/.apptainer/cache
+            !~/.apptainer/cache/*.simg
+          key: ${{ runner.os }}-apptainer-cache-v4-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-apptainer-cache-v3-
+            ${{ runner.os }}-apptainer-cache-v4-
             ${{ runner.os }}-apptainer-cache-
 
       - name: Setup Apptainer runtime
@@ -50,10 +52,7 @@ jobs:
         run: |
           echo "Pre-pulling Apptainer container images..."
           
-          # Create the cache directory structure
-          mkdir -p "$APPTAINER_CACHEDIR"
-          
-          # List of containers to pre-pull
+          # List of containers to pre-pull (just to populate the cache)
           containers=(
             "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
             "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
@@ -64,50 +63,34 @@ jobs:
           
           for container in "${containers[@]}"; do
             echo "Pulling container: $container"
-            
-            # Calculate MD5 hash of the URL (matching the Image class logic)
-            hash=$(echo -n "$container" | md5sum | cut -d' ' -f1)
-            output_file="$APPTAINER_CACHEDIR/${hash}.simg"
-            
-            echo "  -> Hash: $hash"
-            echo "  -> Saving to: $output_file"
-            
-            # Pull container using apptainer/singularity with the same naming convention
-            apptainer pull --name "${hash}.simg" "$container" || echo "Failed to pull $container, continuing..."
-            
-            # Move to cache directory if not already there
-            if [ -f "${hash}.simg" ] && [ ! -f "$output_file" ]; then
-              mv "${hash}.simg" "$output_file"
-            fi
+            # Pull to populate Apptainer's internal cache, then remove the .simg file
+            apptainer pull --disable-cache=false "$container" || echo "Failed to pull $container, continuing..."
+            # Remove the .simg file to save space - we only want the cache layers
+            rm -f *.simg
           done
           
-          echo "Container cache contents:"
-          ls -la "$APPTAINER_CACHEDIR/" || echo "No cache directory"
-          echo "Total cached files: $(ls -1 "$APPTAINER_CACHEDIR"/*.simg 2>/dev/null | wc -l)"
+          echo "Apptainer cache structure:"
+          find ~/.apptainer/cache -type f 2>/dev/null | head -10 || echo "No cache files"
+          echo "Cache size: $(du -sh ~/.apptainer/cache 2>/dev/null | cut -f1 || echo '0')"
 
       - name: Verify container cache
         shell: bash
         run: |
           echo "Verifying container cache..."
-          echo "Contents of $APPTAINER_CACHEDIR:"
-          ls -la "$APPTAINER_CACHEDIR/" || echo "Cache directory doesn't exist"
+          echo "Cache directory structure:"
+          find ~/.apptainer/cache -type f 2>/dev/null | head -10 || echo "No cache files found"
           
-          echo "Container image files (.simg):"
-          find "$APPTAINER_CACHEDIR" -name "*.simg" 2>/dev/null || echo "No .simg files found"
-          
-          # Count cached container files
-          cached_files=$(find "$APPTAINER_CACHEDIR" -name "*.simg" 2>/dev/null | wc -l)
-          cache_size=$(du -sh "$APPTAINER_CACHEDIR" 2>/dev/null | cut -f1 || echo "0")
-          echo "Total cached container files: $cached_files"
+          # Check cache size
+          cache_size=$(du -sh ~/.apptainer/cache 2>/dev/null | cut -f1 || echo "0")
+          cache_files=$(find ~/.apptainer/cache -type f 2>/dev/null | wc -l)
+          echo "Total cache files: $cache_files"
           echo "Total cache size: $cache_size"
           
-          if [ "$cached_files" -gt 0 ]; then
-            echo "✅ Container cache populated successfully with $cached_files images"
+          if [ "$cache_files" -gt 0 ]; then
+            echo "✅ Container cache populated successfully with intermediate layers"
           else
-            echo "⚠️  Warning: No container files found in cache"
+            echo "⚠️  Warning: No container cache found"
           fi
-        env:
-          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
 
   test-pipelines:
     name: Test Pipeline - ${{ matrix.assay }}
@@ -150,10 +133,12 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: $HOME/.apptainer/cache
-          key: ${{ runner.os }}-apptainer-cache-v3-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          path: |
+            ~/.apptainer/cache
+            !~/.apptainer/cache/*.simg
+          key: ${{ runner.os }}-apptainer-cache-v4-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-apptainer-cache-v3-
+            ${{ runner.os }}-apptainer-cache-v4-
             ${{ runner.os }}-apptainer-cache-
 
       - name: Setup Apptainer runtime
@@ -166,23 +151,20 @@ jobs:
         shell: bash
         run: |
           echo "Verifying cached containers are available for pipeline tests:"
-          echo "Contents of $APPTAINER_CACHEDIR:"
-          ls -la "$APPTAINER_CACHEDIR/" || echo "No cache directory found"
-          
-          echo "Available container images (.simg):"
-          find "$APPTAINER_CACHEDIR" -name "*.simg" 2>/dev/null || echo "No .simg files found"
+          echo "Cache directory structure:"
+          find ~/.apptainer/cache -type f 2>/dev/null | head -10 || echo "No cache files found"
           
           # Count cached files
-          cached_files=$(find "$APPTAINER_CACHEDIR" -name "*.simg" 2>/dev/null | wc -l)
-          echo "Total cached container files available: $cached_files"
+          cached_files=$(find ~/.apptainer/cache -type f 2>/dev/null | wc -l)
+          cache_size=$(du -sh ~/.apptainer/cache 2>/dev/null | cut -f1 || echo "0")
+          echo "Total cached files: $cached_files"
+          echo "Cache size: $cache_size"
           
           if [ "$cached_files" -gt 0 ]; then
-            echo "✅ Found $cached_files cached container images"
+            echo "✅ Found cached container layers - pulls should be faster"
           else
-            echo "⚠️  Warning: No cached container images found"
+            echo "⚠️  Warning: No cached container layers found"
           fi
-        env:
-          APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
@@ -198,17 +180,8 @@ jobs:
           echo "SINGULARITY_CACHEDIR: $SINGULARITY_CACHEDIR"
           echo "Current working directory: $(pwd)"
           
-          echo "Debug: Available cached containers"
-          ls -la "$APPTAINER_CACHEDIR"/*.simg 2>/dev/null || echo "No cached containers found"
-          
-          # Create symlinks in all possible locations where Snakemake might look
-          # This covers the pytest temp directory structure
-          mkdir -p .apptainer/cache
-          for img in "$APPTAINER_CACHEDIR"/*.simg; do
-            if [ -f "$img" ]; then
-              ln -sf "$img" ".apptainer/cache/$(basename "$img")"
-              echo "Linked: $img -> .apptainer/cache/$(basename "$img")"
-            fi
-          done
+          echo "Debug: Cache status"
+          cache_files=$(find ~/.apptainer/cache -type f 2>/dev/null | wc -l)
+          echo "Cached files available: $cache_files"
           
           python -m pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4
