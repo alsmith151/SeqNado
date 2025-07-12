@@ -523,8 +523,13 @@ def apptainer_args(index, test_data_path):
         f"{multiqc_config_parent}:{multiqc_config_parent}"
     )
 
+    # Set APPTAINER_CACHEDIR if not already set
     if not os.environ.get("APPTAINER_CACHEDIR"):
         os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
+    
+    # Also set APPTAINER_TMPDIR for consistency
+    if not os.environ.get("APPTAINER_TMPDIR"):
+        os.environ["APPTAINER_TMPDIR"] = str(tmpdir)
 
 
 @pytest.fixture(scope="function")

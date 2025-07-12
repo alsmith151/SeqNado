@@ -16,10 +16,10 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: ~/.apptainer/cache
-          key: ${{ runner.os }}-apptainer-cache-v1-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          path: ~/.apptainer
+          key: ${{ runner.os }}-apptainer-cache-v2-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-apptainer-cache-v1-
+            ${{ runner.os }}-apptainer-cache-v2-
             ${{ runner.os }}-apptainer-cache-
 
       - name: Setup Apptainer runtime
@@ -46,8 +46,12 @@ jobs:
         shell: bash
         env:
           APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
+          APPTAINER_TMPDIR: "/tmp"
         run: |
           echo "Pre-pulling Apptainer container images..."
+          
+          # Configure Apptainer
+          apptainer cache clean --force || true
           
           # List of containers to pre-pull
           containers=(
@@ -60,11 +64,16 @@ jobs:
           
           for container in "${containers[@]}"; do
             echo "Pulling container: $container"
-            apptainer pull $container || echo "Failed to pull $container, continuing..."
+            # Generate a safe filename from the container URL
+            filename=$(echo "$container" | sed 's|[:/]|_|g' | sed 's|__*|_|g').sif
+            echo "  -> Saving as: $filename"
+            apptainer pull "$HOME/.apptainer/cache/$filename" "$container" || echo "Failed to pull $container, continuing..."
           done
           
           echo "Container pre-pull complete. Cache contents:"
           ls -la ~/.apptainer/cache/
+          echo "Cache directory structure:"
+          find ~/.apptainer -type f -name "*.sif" 2>/dev/null | head -10
 
       - name: Verify container cache
         shell: bash
@@ -73,9 +82,18 @@ jobs:
           echo "Contents of ~/.apptainer/cache:"
           ls -la ~/.apptainer/cache/ || echo "Cache directory doesn't exist"
           
+          echo "All .sif files in ~/.apptainer:"
+          find ~/.apptainer -name "*.sif" 2>/dev/null | head -10 || echo "No .sif files found"
+          
           # Count cached files
-          cached_files=$(find ~/.apptainer/cache -name "*.sif" 2>/dev/null | wc -l)
+          cached_files=$(find ~/.apptainer -name "*.sif" 2>/dev/null | wc -l)
           echo "Total cached container files: $cached_files"
+          
+          if [ "$cached_files" -gt 0 ]; then
+            echo "✅ Container cache populated successfully"
+          else
+            echo "⚠️  Warning: No container files found in cache"
+          fi
 
   test-pipelines:
     name: Test Pipeline - ${{ matrix.assay }}
@@ -118,20 +136,24 @@ jobs:
         id: cache-singularity
         uses: actions/cache@v3
         with:
-          path: ~/.apptainer/cache
-          key: ${{ runner.os }}-apptainer-cache-v1-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
+          path: ~/.apptainer
+          key: ${{ runner.os }}-apptainer-cache-v2-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
           restore-keys: |
-            ${{ runner.os }}-apptainer-cache-v1-
+            ${{ runner.os }}-apptainer-cache-v2-
             ${{ runner.os }}-apptainer-cache-
 
       - name: Verify cached containers are available
         shell: bash
         run: |
           echo "Verifying cached containers are available for pipeline tests:"
+          echo "Contents of ~/.apptainer/cache:"
           ls -la ~/.apptainer/cache/ || echo "No cache directory found"
           
+          echo "All .sif files in ~/.apptainer:"
+          find ~/.apptainer -name "*.sif" 2>/dev/null | head -10 || echo "No .sif files found"
+          
           # Count cached files
-          cached_files=$(find ~/.apptainer/cache -name "*.sif" 2>/dev/null | wc -l)
+          cached_files=$(find ~/.apptainer -name "*.sif" 2>/dev/null | wc -l)
           echo "Total cached container files available: $cached_files"
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
