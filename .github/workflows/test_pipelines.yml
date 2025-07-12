@@ -50,8 +50,8 @@ jobs:
         run: |
           echo "Pre-pulling Apptainer container images..."
           
-          # Configure Apptainer
-          apptainer cache clean --force || true
+          # Create the cache directory structure
+          mkdir -p "$APPTAINER_CACHEDIR"
           
           # List of containers to pre-pull
           containers=(
@@ -64,15 +64,26 @@ jobs:
           
           for container in "${containers[@]}"; do
             echo "Pulling container: $container"
-            # Pull without saving to explicit path - let Apptainer cache the layers
-            apptainer pull --disable-cache=false "$container" || echo "Failed to pull $container, continuing..."
-            # Remove the .sif file since we only want the cache
-            rm -f *.sif
+            
+            # Calculate MD5 hash of the URL (matching the Image class logic)
+            hash=$(echo -n "$container" | md5sum | cut -d' ' -f1)
+            output_file="$APPTAINER_CACHEDIR/${hash}.simg"
+            
+            echo "  -> Hash: $hash"
+            echo "  -> Saving to: $output_file"
+            
+            # Pull container using apptainer/singularity with the same naming convention
+            apptainer pull --name "${hash}.simg" "$container" || echo "Failed to pull $container, continuing..."
+            
+            # Move to cache directory if not already there
+            if [ -f "${hash}.simg" ] && [ ! -f "$output_file" ]; then
+              mv "${hash}.simg" "$output_file"
+            fi
           done
           
-          echo "Apptainer cache contents:"
-          ls -la ~/.apptainer/cache/ || echo "No cache directory"
-          du -sh ~/.apptainer/cache/* 2>/dev/null || echo "No cache files"
+          echo "Container cache contents:"
+          ls -la "$APPTAINER_CACHEDIR/" || echo "No cache directory"
+          echo "Total cached files: $(ls -1 "$APPTAINER_CACHEDIR"/*.simg 2>/dev/null | wc -l)"
 
       - name: Verify container cache
         shell: bash
@@ -81,17 +92,19 @@ jobs:
           echo "Contents of ~/.apptainer/cache:"
           ls -la ~/.apptainer/cache/ || echo "Cache directory doesn't exist"
           
-          echo "Cache subdirectories:"
-          find ~/.apptainer/cache -type d 2>/dev/null | head -10 || echo "No cache subdirectories found"
+          echo "Container image files (.simg):"
+          find ~/.apptainer/cache -name "*.simg" 2>/dev/null || echo "No .simg files found"
           
-          # Check cache size
+          # Count cached container files
+          cached_files=$(find ~/.apptainer/cache -name "*.simg" 2>/dev/null | wc -l)
           cache_size=$(du -sh ~/.apptainer/cache 2>/dev/null | cut -f1 || echo "0")
+          echo "Total cached container files: $cached_files"
           echo "Total cache size: $cache_size"
           
-          if [ -d ~/.apptainer/cache ] && [ "$(ls -A ~/.apptainer/cache 2>/dev/null)" ]; then
-            echo "✅ Container cache populated successfully"
+          if [ "$cached_files" -gt 0 ]; then
+            echo "✅ Container cache populated successfully with $cached_files images"
           else
-            echo "⚠️  Warning: No container cache found"
+            echo "⚠️  Warning: No container files found in cache"
           fi
 
   test-pipelines:
@@ -154,12 +167,18 @@ jobs:
           echo "Contents of ~/.apptainer/cache:"
           ls -la ~/.apptainer/cache/ || echo "No cache directory found"
           
-          echo "All .sif files in ~/.apptainer:"
-          find ~/.apptainer -name "*.sif" 2>/dev/null | head -10 || echo "No .sif files found"
+          echo "Available container images (.simg):"
+          find ~/.apptainer/cache -name "*.simg" 2>/dev/null || echo "No .simg files found"
           
           # Count cached files
-          cached_files=$(find ~/.apptainer -name "*.sif" 2>/dev/null | wc -l)
+          cached_files=$(find ~/.apptainer/cache -name "*.simg" 2>/dev/null | wc -l)
           echo "Total cached container files available: $cached_files"
+          
+          if [ "$cached_files" -gt 0 ]; then
+            echo "✅ Found $cached_files cached container images"
+          else
+            echo "⚠️  Warning: No cached container images found"
+          fi
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
