@@ -21,7 +21,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apptainer-cache-v2-
             ${{ runner.os }}-apptainer-cache-
-          lookup-only: true
 
       - name: Setup Apptainer runtime
         if: steps.cache-singularity.outputs.cache-hit != 'true'
@@ -75,13 +74,6 @@ jobs:
           ls -la ~/.apptainer/cache/
           echo "Cache directory structure:"
           find ~/.apptainer -type f -name "*.sif" 2>/dev/null | head -10
-
-      - name: Save container cache
-        if: steps.cache-singularity.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v3
-        with:
-          path: ~/.apptainer
-          key: ${{ runner.os }}-apptainer-cache-v2-${{ hashFiles('seqnado/workflow/snakefile_*', 'seqnado/workflow/rules/*.smk') }}
 
       - name: Verify container cache
         shell: bash
