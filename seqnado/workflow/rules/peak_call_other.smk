@@ -26,7 +26,7 @@ rule macs2_no_input:
     log:
         "seqnado_output/logs/macs/{sample}.log",
     container:
-        "docker://quay.io/biocontainers/macs2:2.2.9.1--py311haab0aaa_3"
+        "docker://quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_3"
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} -f BAMPE {params.options} > {log} 2>&1 &&
