@@ -3,76 +3,6 @@ name: Python package
 on: [push]
 
 jobs:
-  setup-package:
-    name: Setup SeqNado Package
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-
-      - name: Get current date
-        id: get-date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Cache conda environment
-        id: cache-conda
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            /usr/share/miniconda3/envs/test
-          key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-${{ github.run_number }}-${{ steps.get-date.outputs.date }}
-          restore-keys: |
-            ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-
-            ${{ runner.os }}-conda-
-
-      - name: Setup Conda environment
-        uses: conda-incubator/setup-miniconda@v3
-        if: steps.cache-conda.outputs.cache-hit != 'true'
-        with:
-          environment-file: testing.yml
-          miniforge-version: latest
-          use-mamba: true
-          activate-environment: test
-
-      - name: Install SeqNado package
-        shell: bash -el {0}
-        run: |
-          # Verify conda environment is active
-          echo "Active conda environment: $CONDA_DEFAULT_ENV"
-          echo "Python executable: $(which python)"
-
-          # Install SeqNado package into the conda environment
-          pip install .
-
-      - name: Create conda environment artifact
-        shell: bash -el {0}
-        run: |
-          # Verify SeqNado is installed correctly
-          python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
-          which seqnado-init || echo "seqnado-init not found in PATH"
-          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
-          
-          echo "Environment verification complete - ready to create artifact"
-          echo "Conda environment location: $CONDA_PREFIX"
-          echo "Conda environment name: $CONDA_DEFAULT_ENV"
-          
-          # Create a temporary directory structure that mirrors what we need
-          mkdir -p /tmp/conda-env-artifact
-          cp -r "$CONDA_PREFIX"/* /tmp/conda-env-artifact/
-          
-          echo "Artifact preparation complete"
-          ls -la /tmp/conda-env-artifact
-
-      - name: Upload complete conda environment
-        uses: actions/upload-artifact@v4
-        with:
-          name: conda-environment-test
-          path: /tmp/conda-env-artifact
-          retention-days: 1
-
   cache-containers:
     name: Cache Container Images
     runs-on: ubuntu-latest
@@ -81,29 +11,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
-
-      - name: Get current date
-        id: get-date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Restore cached conda environment
-        id: cache-conda
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            /usr/share/miniconda3/envs/test
-          key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-${{ github.run_number }}-${{ steps.get-date.outputs.date }}
-          restore-keys: |
-            ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-
-            ${{ runner.os }}-conda-
-
-      - name: Setup Conda environment
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          activate-environment: test
-          miniforge-version: latest
-          use-mamba: true
 
       - name: Cache container images
         id: cache-singularity
@@ -226,7 +133,7 @@ jobs:
 
   test-pipelines:
     name: Test Pipeline - ${{ matrix.assay }}
-    needs: [setup-package, cache-containers]
+    needs: [cache-containers]
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
@@ -239,64 +146,22 @@ jobs:
         with:
           submodules: true
 
-      - name: Get current date
-        id: get-date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Restore cached conda environment
-        id: cache-conda
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            /usr/share/miniconda3/envs/test
-          key: ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-${{ github.run_number }}-${{ steps.get-date.outputs.date }}
-          restore-keys: |
-            ${{ runner.os }}-conda-${{ hashFiles('testing.yml') }}-
-            ${{ runner.os }}-conda-
-
-      - name: Download complete conda environment
-        uses: actions/download-artifact@v4
-        with:
-          name: conda-environment-test
-          path: /tmp/conda-env-downloaded
-
-      - name: Restore conda environment to correct location
-        shell: bash
-        run: |
-          # Create the conda environment directory
-          sudo mkdir -p /usr/share/miniconda3/envs/test
-          
-          # Copy the downloaded environment to the correct location
-          sudo cp -r /tmp/conda-env-downloaded/* /usr/share/miniconda3/envs/test/
-          
-          echo "Conda environment restored to /usr/share/miniconda3/envs/test"
-          ls -la /usr/share/miniconda3/envs/test
-
-      - name: Setup Conda environment (use artifact)
+      - name: Setup Conda environment and install SeqNado
         uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-environment: test
+          environment-file: testing.yml
           miniforge-version: latest
           use-mamba: true
 
-      - name: Verify restored environment
+      - name: Install SeqNado package
         shell: bash -el {0}
         run: |
-          echo "Python environment verification:"
-          which python
-          python --version
-          echo "Conda environment: $CONDA_DEFAULT_ENV"
-          echo "Conda prefix: $CONDA_PREFIX"
+          pip install .
           
-          echo "Checking for pytest:"
-          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
-          
-          echo "Checking for SeqNado:"
+          # Verify installation
+          python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
           which seqnado-init
-          python -c "import seqnado; print(f'SeqNado found at: {seqnado.__file__}')"
-          
-          echo "Environment restoration verified successfully"
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
 
       - name: Setup Apptainer runtime
         uses: eWaterCycle/setup-apptainer@v2
@@ -356,5 +221,4 @@ jobs:
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
           APPTAINER_CACHEDIR: "$HOME/.apptainer/cache"
         run: |
-          # Use python -m pytest to ensure proper module resolution
           python -m pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4
