@@ -58,6 +58,8 @@ rule macs2_with_input:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
+    container:
+        "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
@@ -81,6 +83,8 @@ rule macs2_no_input:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/macs/{sample}_{treatment}.log",
+    container:
+        "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
     shell:
         """
         macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
@@ -146,7 +150,7 @@ rule lanceotron_with_input:
         outdir=lambda wc, output: os.path.dirname(output.peaks),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     container:
-        "library://asmith151/seqnado/seqnado_extra:latest"
+        "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
     threads: 1
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
@@ -172,7 +176,7 @@ rule lanceotron_no_input:
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
     container:
-        "library://asmith151/seqnado/seqnado_extra:latest"
+        "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),

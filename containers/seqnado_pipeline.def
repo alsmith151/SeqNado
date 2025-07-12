@@ -1,32 +1,82 @@
 BootStrap: docker
-From: mambaorg/micromamba:alpine
+From: mambaorg/micromamba:latest
 
 %files
-  environment_slim.yml /opt/environment_slim.yml
-  
+  environment_pipeline.yml /opt/environment_pipeline.yml
+  multiqc_config.yaml /opt/seqnado/multiqc_config.yaml
+  seqnado.png /opt/seqnado/seqnado.png
+
 %post
+  set -e
+
+  # Update and install minimal tools (only what's needed for Rust compilation)
+  apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    curl ca-certificates gcc libc6-dev pkg-config libssl-dev wget \
+    && rm -rf /var/lib/apt/lists/* 
   
-  # # Pre set up
-  cd /opt/
-  apk --no-cache add curl gcc git cmake make libtool g++ pkgconfig perl openssl-dev linux-headers
+  
+  # Install latest Quarto
+  QUARTO_VERSION=$(curl -s https://api.github.com/repos/quarto-dev/quarto-cli/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4 | sed 's/^v//')
+  wget https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.deb --no-check-certificate
+  dpkg -i quarto-${QUARTO_VERSION}-linux-amd64.deb
+  rm quarto-${QUARTO_VERSION}-linux-amd64.deb
+  
+  # Micromamba environment setup (ensure Python <3.12)
+  micromamba install -y -n base -f /opt/environment_pipeline.yml
+
+  # Install Rust
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  export PATH="/root/.cargo/bin:$PATH"
+  cargo install bamnado
+  
+  # Move bamnado binary to conda bin and cleanup Rust
+  mv /root/.cargo/bin/bamnado /opt/conda/bin/
+  rm -rf /root/.cargo /root/.rustup
+
+  # Ensure MCCNado is installed. If not install it using pip
+  if ! command -v mccnado &> /dev/null; then
+    /opt/conda/bin/python -m pip install mccnado
+  fi
 
 
-  # Mamba packages
-  micromamba install -y -n base -f /opt/environment_slim.yml
-  export PATH="/opt/conda/bin:$PATH"
+  # Remove build tools
+  apt-get purge -y wget gcc libc6-dev pkg-config libssl-dev && apt-get autoremove -y && apt-get clean
 
-  # Install using pip
-  /opt/conda/bin/python -m pip install wget tracknado
-
-  # Clean
-  apk del curl gcc git cmake make libtool g++ pkgconfig openssl-dev linux-headers
-  micromamba clean -afy 
-  /opt/conda/bin/python -m pip cache purge
-  find /opt/conda/ -follow -type f -name '*.a' -delete
-  find /opt/conda/ -follow -type f -name '*.pyc' -delete
-
+  # Remove unnecessary data and dev files
+  find /opt/conda/ -type f -name '*.a' -delete
+  find /opt/conda/ -type f -name '*.pyc' -delete
+  find /opt/conda/ -name '__pycache__' -type d -exec rm -rf {} +
+  find /opt/conda/ -name '*.egg-info' -type d -exec rm -rf {} +
+  find /opt/conda/ -name 'tests' -type d -exec rm -rf {} +
+  rm -rf /root/.cache
+  micromamba clean -ay
 
 %environment
-  export PATH=/opt/conda/bin:$PATH
+  export PATH="/opt/conda/bin:$PATH"
+  export CONDA_DEFAULT_ENV=base
+  export CONDA_PREFIX="/opt/conda"
+  export LD_LIBRARY_PATH="/usr/lib:/lib:$LD_LIBRARY_PATH"
+  export MAMBA_ROOT_PREFIX="/opt/conda"
 
-  
+%runscript
+  exec "$@"
+
+%test
+  echo "Testing minimal container..."
+  echo "$(python --version)"
+  echo "$(bamnado --help > /dev/null 2>&1 && echo "BamNado test passed" || exit 1)"
+  echo "All tests passed!"
+
+%labels
+  Author asmith
+  Version 0.4.0
+  Description Minimal SeqNado container with BamNado and Python tools
+  BamNado.Version dynamic
+  BuildDate $(date '+%Y-%m-%d')
+
+%help
+  This is a lightweight SeqNado container with:
+  - Python 3.x (glibc-based)
+  - Latest BamNado (downloaded at build)
+  - Core bioinformatics tools (from `environment_pipeline.yml`)
+  - MACS2, MultiQC, etc.

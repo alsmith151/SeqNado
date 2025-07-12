@@ -3,74 +3,46 @@ name: Python package
 on: [push]
 
 jobs:
-  Test:
+  test-pipelines:
+    name: Test Pipeline - ${{ matrix.assay }}
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test: ["config", "design", "pipeline"]
         assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Setup conda
+      - name: Setup Conda environment and install SeqNado
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml
           miniforge-version: latest
+          use-mamba: true
 
-      - name: Install package
-        shell: pwsh
+      - name: Install SeqNado package
+        shell: bash -el {0}
         run: |
           pip install .
+          
+          # Verify installation
+          python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
+          which seqnado-init
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
 
-      - name: Cache singularity
-        if: matrix.test == 'pipeline'
-        id: cache-singularity
-        uses: actions/cache@v3
-        with:
-          path: ~/.apptainer
-          key: ${{ runner.os }}-singularity-${{ hashFiles('tmp/*') }}
-          restore-keys: |
-            ${{ runner.os }}-singularity-    
-      - uses: eWaterCycle/setup-apptainer@v2
-        if: matrix.test == 'pipeline'
+      - name: Setup Apptainer runtime
+        uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.4
 
-      - name: Add singularity hub remote
-        if: matrix.test == 'pipeline'
-        shell: pwsh
-        run: |
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-          apptainer remote use SylabsCloud
-
-      - name: Pull singularity images
-        if: matrix.test == 'pipeline' && steps.cache-singularity.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          echo "Pulling singularity images from the remote repository..."
-          mkdir -p tmp
-          if [[ "${{ matrix.test }}" == "pipeline" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_pipeline:latest
-            apptainer pull --force library://cchahrou/seqnado/seqnado_qc.sif:latest
-          elif [[ "${{ matrix.assay }}" == "atac" || "${{ matrix.assay }}" == "chip" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_extra:latest
-          elif [[ "${{ matrix.assay }}" == "rna-rx" ]]; then
-            apptainer pull --force library://asmith151/seqnado/seqnado_report:latest
-          elif [[ "${{ matrix.assay }}" == "meth" ]]; then
-            apptainer pull --force library://cchahrou/seqnado/seqnado_meth.sif:latest
-          elif [[ "${{ matrix.assay }}" == "cat" ]]; then
-            apptainer pull --force library://cchahrou/seqnado/seqnado_quant:latest
-          fi
-
-      - name: Test ${{ matrix.test }} ${{ matrix.assay }}
-        shell: pwsh
+      - name: Run SeqNado pipeline test for ${{ matrix.assay }}
+        shell: bash -el {0}
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          pytest tests/test_pipelines.py::test_${{ matrix.test }}[${{ matrix.assay }}] -vv -s --cores 4
+          python -m pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4

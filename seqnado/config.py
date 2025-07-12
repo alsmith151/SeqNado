@@ -8,6 +8,7 @@ from typing import Literal, Optional, Dict, List
 from jinja2 import Environment, FileSystemLoader
 from loguru import logger
 from pydantic import BaseModel, field_validator, ValidationError
+from seqnado.design import PeakCallingMethod, PileupMethod, Assay
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(package_dir, "workflow/config")
@@ -24,7 +25,7 @@ class GenomeConfig(BaseModel):
 
 class WorkflowConfig(BaseModel):
     # Core Configuration
-    assay: Literal["rna", "chip", "atac", "snp", "cat", "meth", 'mcc', 'crispr']
+    assay: Assay
     username: str
     project_date: str
     project_name: str
@@ -52,10 +53,10 @@ class WorkflowConfig(BaseModel):
     reference_genome: Optional[str] = None
     spikein_genome: Optional[str] = None
     make_bigwigs: bool = False
-    pileup_method: Literal["deeptools", "homer", "False"] = "False"
+    pileup_method: Optional[PileupMethod | str] = None
     make_heatmaps: bool = False
     call_peaks: bool = False
-    peak_calling_method: Literal["lanceotron", "macs", "homer", "seacr", "False"] = "False"
+    peak_calling_method: Optional[PeakCallingMethod | str] = None
     consensus_counts: bool = False
     call_methylation: bool = False
     methylation_assay: Literal["bisulfite", "taps", "False"] = "False"
@@ -203,6 +204,7 @@ def build_workflow_config(assay: str, seqnado_version: str) -> WorkflowConfig:
     # Add conditional features
     config.update(get_conditional_features(assay, genome_config))
     try:
+        config["assay"] = Assay(assay)  # Ensure assay is a valid Assay enum
         workflow_config = WorkflowConfig(**config)
     except ValidationError as e:
         logger.error(f"Configuration validation error: {e}")
@@ -281,13 +283,13 @@ def get_conditional_features(assay: str, genome_config: dict) -> dict:
                 case _:
                     default = "lanceotron"
 
-            features["peak_calling_method"] = get_user_input("Peak calling method:", choices=["lanceotron", "macs", "homer", "seacr"], default=default)
-    
+            features["peak_calling_method"] = get_user_input("Peak calling method:", choices=[m.value for m in PeakCallingMethod], default=default)
+
     # Pileup method
     if assay != "snp":
         features['make_bigwigs'] = get_user_input("Make Bigwigs?", default="no", is_boolean=True)
         if features['make_bigwigs']:
-            features['pileup_method'] = get_user_input("Bigwig method:", choices=["deeptools", "homer"], default="deeptools")
+            features['pileup_method'] = get_user_input("Bigwig method:", choices=[m.value for m in PileupMethod], default="deeptools")
     
     # Heatmaps
     features["make_heatmaps"] = get_user_input("Make heatmaps?", default="no", is_boolean=True)
@@ -403,22 +405,25 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
     env = Environment(loader=FileSystemLoader(template_dir))
     workflow_config = build_workflow_config(assay, seqnado_version)
     
-    dir_name = os.getcwd() if rerun else f"{workflow_config.project_date}_{workflow_config.assay}_{workflow_config.project_name}"
+    dir_name = os.getcwd() if rerun else f"{workflow_config.project_date}_{workflow_config.assay.value}_{workflow_config.project_name}"
     os.makedirs(dir_name, exist_ok=True)
 
     fastq_dir = pathlib.Path(dir_name) / "fastq"
     fastq_dir.mkdir(exist_ok=True)
 
     template = env.get_template("config.yaml.jinja")
-    rendered = template.render(workflow_config.model_dump())
+    
+    # Convert the Pydantic model to a dictionary for rendering 
+    config_dict = workflow_config.model_dump()
+    # Ensure the 'assay' field is a string for rendering
+    config_dict['assay'] = workflow_config.assay.value
+    rendered = template.render(config_dict)
 
     # Remove consecutive empty lines
     cleaned = "\n".join([line for line in rendered.splitlines() if line.strip() != ""])
     with open(f"{dir_name}/config_{assay}.yml", "w") as f:
         f.write(cleaned)
-    # # Render main config
-    # with open(f"{dir_name}/config_{assay}.yml", "w") as f:
-    #     f.write(env.get_template("config.yaml.jinja").render(workflow_config.model_dump()))
+   
     
     # Additional RNA template
     if assay == "rna":
@@ -426,140 +431,3 @@ def create_config(assay: str, rerun: bool, seqnado_version: str, debug=False):
             f.write(env.get_template("deseq2.qmd.jinja").render(workflow_config.model_dump()))
 
     logger.success(f"Created configuration in {dir_name}")
-
-# # Preserve original tool option YAML strings
-# TOOL_OPTIONS = """
-# trim_galore:
-#     threads: 4
-#     options: --2colour 20 
-
-# bowtie2:
-#     threads: 8
-#     options:
-
-# samtools:
-#     threads: 16
-#     filter_options: -f 2
-
-# picard:
-#     threads: 8
-#     options:
-
-# homer:
-#     use_input: true
-#     maketagdirectory:
-#     makebigwig:
-#     findpeaks:
-
-# deeptools:
-#     threads: 8
-#     alignmentsieve: --minMappingQuality 30 
-#     bamcoverage: --extendReads -bs 1 --normalizeUsing RPKM --minMappingQuality 10
-
-# macs:
-#     version: 2
-#     callpeak: -f BAMPE
-
-# lanceotron:
-#     use_input: True
-#     callpeak: -c 0.5
-
-# seacr:
-#     threshold: 0.01
-#     norm: non
-#     stringency: stringent
-
-# heatmap:
-#     options: -b 1000 -m 5000 -a 1000 --binSize 50
-#     colormap: RdYlBu_r 
-
-# featurecounts:
-#     threads: 16
-#     options:  -p --countReadPairs
-    
-# """
-
-# TOOL_OPTIONS_RNA = """
-# trim_galore:
-#     threads: 4
-#     options: --2colour 20 
-
-# star:
-#     threads: 16
-#     options: --quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard
-
-# samtools:
-#     threads: 16
-#     filter_options: -f 2
-
-# picard:
-#     threads: 8
-#     options:
-
-# featurecounts:
-#     threads: 16
-#     options: -s 0 -p --countReadPairs -t exon -g gene_id
-
-# salmon:
-#     threads: 16
-#     options: --libType A
-    
-# homer:
-#     maketagdirectory:
-#     makebigwig:
-
-# deeptools:
-#     threads: 16
-#     alignmentsieve: --minMappingQuality 30 
-#     bamcoverage: -bs 1 --normalizeUsing CPM
-
-# heatmap:
-#     options: -b 1000 -m 5000 -a 1000 --binSize 50
-#     colormap: RdYlBu_r 
-# """
-
-# TOOL_OPTIONS_SNP = """
-# trim_galore:
-#     threads: 8
-#     options: --2colour 20 
-
-# bowtie2:
-#     threads: 8
-#     options:
-
-# samtools:
-#     threads: 16
-#     filter_options: -f 2
-    
-# picard:
-#     threads: 8
-#     options:
-
-# bcftools:
-#     threads: 16
-#     options:
-    
-# """
-
-# TOOL_OPTIONS_METH = """
-# trim_galore:
-#     threads: 8
-#     options: --2colour 20 
-
-# bowtie2:
-#     threads: 8
-#     options:
-
-# samtools:
-#     threads: 16
-#     filter_options: -f 2
-    
-# picard:
-#     threads: 8
-#     options:
-
-# methyldackel:
-#     threads: 16
-#     options:
-    
-# """

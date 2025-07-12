@@ -431,12 +431,14 @@ def config_yaml_for_testing(config_yaml, assay):
         config["scale"] = "yes"
         config["library_complexity"] = False
     elif assay == "chip-rx":
-        config["peak_calling_method"] = "seacr"
+        config["peak_calling_method"] = ["seacr"]
     elif assay == "atac":
         config["pileup_method"] = ["deeptools", "homer"]
         config["call_peaks"] = True
         config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
         config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
+    if assay == "cat":
+        config["pileup_method"] = ["deeptools", "bamnado"]
 
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)
@@ -505,7 +507,7 @@ def apptainer_args(index, test_data_path):
     indicies_mount = index.parent if not index.is_dir() else index
     tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = pathlib.Path(os.getcwd()).resolve()
-    apptainer_cache_dir = pathlib.Path.home() / ".apptainer"
+    apptainer_cache_dir = pathlib.Path.home() / ".apptainer" / "cache"
     multiqc_config = (
         pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml")
         .absolute()
@@ -521,8 +523,13 @@ def apptainer_args(index, test_data_path):
         f"{multiqc_config_parent}:{multiqc_config_parent}"
     )
 
+    # Set APPTAINER_CACHEDIR if not already set
     if not os.environ.get("APPTAINER_CACHEDIR"):
         os.environ["APPTAINER_CACHEDIR"] = str(apptainer_cache_dir)
+    
+    # Also set APPTAINER_TMPDIR for consistency
+    if not os.environ.get("APPTAINER_TMPDIR"):
+        os.environ["APPTAINER_TMPDIR"] = str(tmpdir)
 
 
 @pytest.fixture(scope="function")
@@ -551,8 +558,6 @@ def test_pipeline(
             str(config_yaml_for_testing),
             "--workflow-profile",
             test_profile_path,
-            "--apptainer-prefix",
-            "/tmp",
         ],
     )
 

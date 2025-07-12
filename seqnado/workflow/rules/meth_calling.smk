@@ -41,7 +41,7 @@ rule methyldackel_bias:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    container:"library://cchahrou/seqnado/seqnado_meth.sif:latest"
+    container:"oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:"seqnado_output/logs/methylation/methyldackel/bias/{sample}_{genome}.log"
     shell: """
         MethylDackel mbias -@ {threads} --txt {params.fasta} {input.bam} {params.prefix} > {output.bias} 2> {log}
@@ -73,7 +73,7 @@ rule methyldackel_extract:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "library://cchahrou/seqnado/seqnado_meth.sif:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/methylation/methyldackel/{sample}_{genome}.log"
     shell: """

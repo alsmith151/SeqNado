@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 from loguru import logger
 
-from seqnado.design import Design, DesignIP
+from seqnado.design import Design, DesignIP, ScaleMethod
 
 FILETYPE_TO_DIR_MAPPING = {
     "tag": "tag_dirs",
@@ -240,7 +240,7 @@ def format_config_dict(config: Dict) -> Dict:
             elif is_off(entry):
                 config[key] = False
             elif is_none(entry):
-                config[key] = False
+                config[key] = None
             else:
                 config[key] = entry
 
@@ -290,20 +290,18 @@ def get_group_for_sample(wildcards, design: Union[Design, DesignIP], strip: str 
         raise KeyError(f"Sample {wildcards.sample} not found in normalisation groups.")
 
 
-def get_scale_method(config: Dict) -> Optional[str]:
+def get_scale_method(config: Dict) -> List[str]:
     """
     Returns the scale method based on the config.
     """
 
+    method = [ScaleMethod.unscaled]
+
     if config.get("spikein"):
-        method = "spikein"
+        method.append(ScaleMethod.spikein)
     elif config.get("scale"):
-        method = "csaw"
-    else:
-        method = None
-
-    return method
-
+        method.append(ScaleMethod.csaw)
+    return [m.value for m in method]
 
 def remove_unwanted_run_files():
     import glob
@@ -353,16 +351,24 @@ def extract_viewpoints(viewpoints_path: str) -> List[str]:
     """
     Extracts the viewpoints from the config.
     """
-    import pyranges as pr
     import numpy as np
+    import pandas as pd
 
-    viewpoints = pr.read_bed(viewpoints_path)
-
-    df = viewpoints.df
+    # Read BED file using pandas (pyranges replacement)
+    bed_columns = ["Chromosome", "Start", "End", "Name", "Score", "Strand"]
+    try:
+        df = pd.read_csv(viewpoints_path, sep="\t", header=None, comment="#")
+        # Assign column names based on the number of columns
+        df.columns = bed_columns[:len(df.columns)]
+        # Ensure we have at least the minimum required columns
+        if "Name" not in df.columns:
+            df["Name"] = df["Chromosome"] + ":" + df["Start"].astype(str) + "-" + df["End"].astype(str)
+    except Exception as e:
+        raise ValueError(f"Error reading BED file {viewpoints_path}: {e}")
 
     df = df.assign(
         viewpoint=lambda df: np.where(
-            df["Name"].str.contains(r"-chr.*?-\d+-d+$"),
+            df["Name"].str.contains(r"-chr.*?-\d+-\d+$"),
             df["Name"],
             df["Name"]
             + "-"

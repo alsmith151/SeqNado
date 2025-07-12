@@ -82,17 +82,8 @@ rule tile_regions:
         genome_tiled="seqnado_output/resources/genome_tiled.gtf",
     params:
         tile_size=config["genome"].get("tile_size", 10_000),
-    run:
-        import pyranges as pr
-
-        chromsizes = (
-            pd.read_csv(input.chromsizes, sep="\t", header=None).set_index(0)[1].to_dict()
-        )
-        genome_tiled = pr.gf.tile_genome(chromsizes, tile_size=params.tile_size)
-        genome_tiled = genome_tiled.df.assign(
-            feature="tile", gene_id=lambda df: df.index.astype(str)
-        ).pipe(pr.PyRanges)
-        genome_tiled.to_gtf(output.genome_tiled)
+    script:
+        "../scripts/tile_genome.py"
 
 
 def get_count_files(wildcards):
@@ -157,7 +148,7 @@ rule calculate_scaling_factors:
     output:
         scaling_factors="seqnado_output/resources/{group}_scaling_factors.tsv",
     container:
-        "library://asmith151/seqnado/seqnado_report:latest"
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     script:
         "../scripts/calculate_scaling_factors.R"
 
@@ -169,7 +160,7 @@ rule calculate_scaling_factors_spikein:
     output:
         size_factors="seqnado_output/resources/all_normalisation_factors.json"
     container:
-        "library://asmith151/seqnado/seqnado_report:latest"
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     params:
         spikein_genes=["AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq"],
     log:

@@ -1,0 +1,39 @@
+Bootstrap: docker
+From: pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
+
+%labels
+    Author "asmith"
+    Software "SeqNado"
+    Version "1.0"
+
+%files
+    repos/lanceotron-mcc /opt/repos/lanceotron-mcc
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Update, install dependencies, and clean up in a single layer
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+    # Install python packages
+    # Using --no-cache-dir to reduce final image size
+    python -m pip install --no-cache-dir \
+        /opt/repos/lanceotron-mcc \
+        lanceotron \
+        quantnado
+
+%runscript
+    echo "SeqNado container ready."
+    echo "PyTorch CUDA available: $(python -c 'import torch; print(torch.cuda.is_available())')"
+    exec /bin/bash "$@"
+
+%test
+    # Verify installations
+    python3 -c "import torch; assert torch.cuda.is_available(), 'PyTorch CUDA not available'"
+    python3 -c "import lanceotron"
+    echo "Container build test passed."

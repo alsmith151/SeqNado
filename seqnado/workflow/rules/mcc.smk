@@ -89,7 +89,7 @@ rule minimap2_to_viewpoints:
     threads: 4
     resources:
         mem="4GB",
-    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/aligned/{sample}.log",
     shell:
@@ -112,7 +112,7 @@ rule split_reads_aligned_to_viewpoints:
         mem="1GB",
     log:
         "seqnado_output/logs/split_reads/{sample}.log",
-    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     script:
         "../scripts/mcc_split_reads_aligned_to_viewpoints.py"
 
@@ -183,7 +183,7 @@ rule identify_viewpoint_reads:
         mem="1GB",
     log:
         "seqnado_output/logs/identify_viewpoint_reads/{sample}.log",
-    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         """
         mccnado annotate-bam-file {input.bam} {output.bam} > {log} 2>&1
@@ -210,7 +210,7 @@ rule extract_ligation_stats:
         bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
     output:
         stats="seqnado_output/resources/{sample}_ligation_stats.json"
-    container: 'library://asmith151/seqnado/seqnado_mcc:latest'
+    container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest'
     shell:
         """
         mccnado extract-ligation-stats {input.bam} {output.stats} 
@@ -265,20 +265,19 @@ rule make_bigwigs_mcc_replicates:
     log:
         "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
     params:
-        bin_size=10,
+        options=check_options(config["bamnado"]["bamcoverage"]),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
-    container: 'library://asmith151/seqnado/seqnado_mcc:latest'
     shell:
         """
         bamnado \
         bam-coverage \
         -b {input.bam} \
         -o {output.bigwig} \
-        --bin-size {params.bin_size} \
         --scale-factor {params.scale_factor} \
         --blacklisted-locations {input.excluded_regions} \
         --min-mapq 0 \
-        --read-group {wildcards.viewpoint_group} > {log} 2>&1
+        --read-group {wildcards.viewpoint_group}
+        {params.options} > {log} 2>&1
         """
         
 def get_mcc_bam_files_for_merge(wildcards):
@@ -340,7 +339,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
     log:
         "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
-    container: 'library://asmith151/seqnado/seqnado_mcc:latest'
+    container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest'
 
 
 use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
@@ -369,7 +368,7 @@ rule identify_ligation_junctions:
     threads: 1
     resources:
         mem="1GB",
-    container: 'library://asmith151/seqnado/seqnado_mcc:latest',
+    container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
     params:
         outdir="seqnado_output/mcc/{group}/ligation_junctions/raw/",
     shell:
@@ -418,7 +417,7 @@ rule make_genomic_bins:
     log:
         "seqnado_output/logs/genomic_bins.log",
     container:
-        "library://asmith151/seqnado/seqnado_mcc:latest"
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -439,7 +438,7 @@ rule make_cooler:
     params:
         resolution=config.get("resolution", 100),
         genome=config["genome"]["name"],
-    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
@@ -465,7 +464,7 @@ rule zoomify_cooler:
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         """
         cooler zoomify {input.cooler} -r {params.resolutions} -o {output.cooler} > {log} 2>&1
@@ -484,7 +483,7 @@ rule aggregate_coolers:
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "library://asmith151/seqnado/seqnado_mcc:latest"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         """
         mccnado combine-ligation-junction-coolers \

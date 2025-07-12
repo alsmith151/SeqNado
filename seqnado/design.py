@@ -14,6 +14,16 @@ from pydantic import BaseModel, Field, computed_field, field_validator, validato
 from snakemake.io import expand
 
 
+class Assay(Enum):
+    RNA = "rna"
+    ATAC = "atac"
+    SNP = "snp"
+    ChIP = "chip"
+    CAT = "cat"
+    Methylation = "meth"
+    MCC = "mcc"
+    CRISPR = "crispr"
+
 def predict_organism(genome: str) -> str:
     if "hg" in genome:
         return "Homo sapiens"
@@ -1286,29 +1296,27 @@ class QCFiles(BaseModel):
         return files
 
 
+class PileupMethod(Enum):
+    deeptools = "deeptools"
+    homer = "homer"
+    bamnado = "bamnado"
+
+class ScaleMethod(Enum):
+    unscaled = "unscaled"
+    csaw = "csaw"
+    cpm = "cpm"
+    rpkm = "rpkm"
+    spikein = "spikein"
+    merged = "merged"
+
+
 class BigWigFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "RNA", "SNP", "CUT&TAG", "METH", "MCC", "CRISPR"]
     names: List[str]
-    pileup_method: Union[
-        Literal["deeptools", "homer", False], List[Literal["deeptools", "homer"]]
-    ] = None
+    pileup_method: Optional[List[PileupMethod]] = None
     make_bigwigs: bool = False
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw", "merged"]] = None
-    include_unscaled: bool = True
+    scale_method: List[ScaleMethod] = [ScaleMethod.unscaled]
     prefix: Optional[str] = "seqnado_output/bigwigs/"
-
-    def model_post_init(self, __context: Any) -> None:
-        if isinstance(self.pileup_method, str):
-            self.pileup_method = [self.pileup_method]
-
-        if self.include_unscaled and not self.scale_method:
-            self.scale_method = [
-                "unscaled",
-            ]
-        elif self.include_unscaled and self.scale_method:
-            self.scale_method = ["unscaled", self.scale_method]
-        else:
-            self.scale_method = [self.scale_method]
 
     def _filter_bigwigs(self, bigwigs: List[str]) -> List[str]:
         """
@@ -1321,6 +1329,7 @@ class BigWigFiles(BaseModel):
 
         pileup_to_scale_method_not_compatible = {
             "homer": ["csaw"],
+            "bamnado": ["csaw", "spikein"],
         }
 
         # Iterate over the bigwigs and filter out the incompatible ones
@@ -1345,8 +1354,8 @@ class BigWigFiles(BaseModel):
         bws = expand(
             self.prefix + "{method}/{scale}/{sample}.bigWig",
             sample=self.names,
-            scale=self.scale_method,
-            method=self.pileup_method,
+            scale=[m.value for m in self.scale_method],
+            method=[p.value for p in self.pileup_method],
         )
 
         return self._filter_bigwigs(bws)
@@ -1356,8 +1365,8 @@ class BigWigFiles(BaseModel):
         return expand(
             self.prefix + "{method}/{scale}/{sample}_{strand}.bigWig",
             sample=self.names,
-            scale=self.scale_method,
-            method=self.pileup_method,
+            scale=[m.value for m in self.scale_method],
+            method=[p.value for p in self.pileup_method],
             strand=["plus", "minus"],
         )
 
@@ -1373,13 +1382,21 @@ class BigWigFiles(BaseModel):
             return []
 
 
+class PeakCallingMethod(Enum):
+    macs = "macs"
+    homer = "homer"
+    lanceotron = "lanceotron"
+    seacr = "seacr"
+
+class PeakCallingMethodMCC(Enum):
+    lanceotron = "lanceotron"
+    lanceotron_mcc = "lanceotron-mcc"
+
+
 class PeakCallingFiles(BaseModel):
     assay: Literal["ChIP", "ATAC", "CUT&TAG"]
     names: List[str]
-    peak_calling_method: Union[
-        Literal["macs", "homer", "lanceotron", "seacr", False],
-        List[Literal["macs", "homer", "lanceotron", "seacr"]],
-    ] = None
+    peak_calling_method: Optional[List[PeakCallingMethod]] = None
     call_peaks: bool = False
     prefix: Optional[str] = "seqnado_output/peaks/"
 
@@ -1388,7 +1405,7 @@ class PeakCallingFiles(BaseModel):
         return expand(
             self.prefix + "{method}/{sample}.bed",
             sample=self.names,
-            method=self.peak_calling_method,
+            method=[m.value for m in self.peak_calling_method],
         )
 
     @computed_field
@@ -1471,17 +1488,21 @@ class PlotFiles(BaseModel):
     plotting_format: Literal["svg", "png", "pdf"] = "svg"
 
     def get_plot_names(self):
-        import pyranges as pr
+        import pandas as pd
 
         plots = []
 
         try:
-            coords = pr.read_bed(str(self.plotting_coordinates))
+            # Read BED file using pandas (pyranges replacement)
+            bed_columns = ["Chromosome", "Start", "End", "Name", "Score", "Strand"]
+            coords_df = pd.read_csv(str(self.plotting_coordinates), sep="\t", header=None, comment="#")
+            coords_df.columns = bed_columns[:len(coords_df.columns)]
+            
             outdir = pathlib.Path("seqnado_output/genome_browser_plots/")
-            for region in coords.df.itertuples():
+            for region in coords_df.itertuples():
                 fig_name = (
                     f"{region.Chromosome}-{region.Start}-{region.End}"
-                    if not hasattr(region, "Name") and not region.Name
+                    if not hasattr(region, "Name") or not region.Name
                     else region.Name
                 )
                 plots.append(outdir / f"{fig_name}.{self.plotting_format}")
@@ -1508,12 +1529,8 @@ class Output(BaseModel):
     sample_names: List[str]
 
     make_bigwigs: bool = False
-    pileup_method: Union[
-        Literal["deeptools", "homer", False],
-        List[Literal["deeptools", "homer"]],
-    ] = None
-
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
+    pileup_method: Optional[List[PileupMethod]] = None
+    scale_method: Optional[List[ScaleMethod]] = [ScaleMethod.unscaled]
 
     make_heatmaps: bool = False
     make_ucsc_hub: bool = False
@@ -1530,7 +1547,6 @@ class Output(BaseModel):
     plotting_coordinates: Optional[Union[str, pathlib.Path]] = None
 
     make_dataset: bool = False
-
 
     # Correct plotting_coordinates type as it may be False
     @validator("plotting_coordinates", pre=True)
@@ -1565,9 +1581,8 @@ class Output(BaseModel):
                 assay=self.assay,
                 names=self.design_dataframe["merge"].unique().tolist(),
                 make_bigwigs=self.make_bigwigs,
-                pileup_method="deeptools",
-                scale_method="merged",
-                include_unscaled=False,
+                pileup_method=[PileupMethod.deeptools],
+                scale_method=[ScaleMethod.merged],
             )
 
             files = bwf_samples.files + bwf_merged.files
@@ -1693,12 +1708,7 @@ class NonRNAOutput(Output):
     assay: Literal["ChIP", "ATAC", "CUT&TAG"]
     consensus_counts: bool = False
     call_peaks: bool = False
-    peak_calling_method: Optional[
-        Union[
-            Literal["macs", "homer", "lanceotron", False],
-            List[Literal["macs", "homer", "lanceotron"]],
-        ]
-    ] = None
+    peak_calling_method: Optional[List[PeakCallingMethod]] = None
 
     @property
     def merge_peaks(self):
@@ -1710,7 +1720,7 @@ class NonRNAOutput(Output):
             assay=self.assay,
             names=self.design_dataframe["merge"].unique().tolist(),
             call_peaks=self.call_peaks,
-            peak_calling_method="lanceotron",
+            peak_calling_method=[PeakCallingMethod.lanceotron],
             prefix="seqnado_output/peaks/merged/",
         )
 
@@ -1782,14 +1792,9 @@ class IPOutput(NonRNAOutput):
     ip_names: List[str]
     control_names: List[str]
     call_peaks: bool = False
-    peak_calling_method: Optional[
-        Union[
-            Literal["macs", "homer", "lanceotron", "seacr", False],
-            List[Literal["macs", "homer", "lanceotron", "seacr"]],
-        ]
-    ] = None
+    peak_calling_method: Optional[List[PeakCallingMethod]] = None
     chip_spikein_normalisation: bool = False
-    scale_method: Optional[Literal["cpm", "rpkm", "spikein", "csaw"]] = None
+    scale_method: List[ScaleMethod] = [ScaleMethod.unscaled]
 
     @property
     def peaks(self):
@@ -1850,6 +1855,8 @@ class SNPOutput(Output):
     annotate_snps: bool = False
     sample_names: List[str]
     make_ucsc_hub: bool = False
+    peak_calling_method: None
+    pileup_method: None
 
     @property
     def design(self):
@@ -1990,6 +1997,8 @@ class MCCOutput(Output):
 
     viewpoint_oligos: List[str]
     viewpoints_grouped: List[str]
+
+    peak_calling_method: Optional[List[PeakCallingMethodMCC]] = None
 
     config: dict
     make_ucsc_hub: bool = False
