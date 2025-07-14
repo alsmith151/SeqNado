@@ -10,11 +10,12 @@ build-backend = "setuptools.build_meta"
 name = "seqnado"
 authors = [
     {name = "Alastair Smith", email = "alastair.smith@ndcls.ox.ac.uk"},
-    {name = "Catherine Chahrour", email = "catherine.chahrour@msdtc.ox.ac.uk"}]
+    {name = "Catherine Chahrour", email = "catherine.chahrour@msdtc.ox.ac.uk"}
+]
 description = "Pipelines for genomics analysis"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "GNU GENERAL PUBLIC LICENSE Version 3"}
+license = {file = "LICENSE"}
 dynamic = ["version"]
 dependencies = [
     "click",
@@ -25,9 +26,8 @@ dependencies = [
     "pydantic",
     "pyyaml",
     "seaborn",
-    "setuptools_scm",
     "snakemake-wrapper-utils",
-    "snakemake>8,<9",
+    "snakemake>=8,<9",
     "snakemake-executor-plugin-slurm",
     "tracknado",
     "wget",
@@ -39,12 +39,12 @@ seqnado-design = "seqnado.cli:cli_design"
 seqnado-config = "seqnado.cli:cli_config"
 seqnado-init = "seqnado.cli:cli_init"
 
+[project.urls]
+Homepage = "https://github.com/alsmith151/seqnado"
+
 [tool.setuptools_scm]
 write_to = "seqnado/_version.py"
 local_scheme = "no-local-version"
 
-[tool.setuptools]
-packages = ["seqnado"]
-
-[project.urls]
-Homepage = "https://github.com/alsmith151/seqnado"
+[tool.setuptools.packages.find]
+where = ["."]
