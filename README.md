@@ -6,8 +6,9 @@
 [![Bioconda Updated](https://anaconda.org/bioconda/seqnado/badges/latest_release_date.svg)](https://anaconda.org/bioconda/seqnado)
 [![PyPI Downloads](https://static.pepy.tech/badge/seqnado)](https://pepy.tech/projects/seqnado)
 
-| ![SeqNado logo](https://raw.githubusercontent.com/alsmith151/SeqNado/master/containers/seqnado.png) |
-| :-: |
+<p align="center">
+  <img src="https://raw.githubusercontent.com/alsmith151/SeqNado/master/containers/seqnado.png" alt="SeqNado logo" />
+</p>
 
 *A unified, user-friendly collection of workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, WGS, Methylation (Bisulfite/TAPS), CRISPR screens & Micro-Capture-C.*
 
@@ -23,6 +24,7 @@
 *A unified, user-friendly collection of Snakemake-based workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, whole-genome sequencing (WGS), methylation (Bisulfite/TAPS), CRISPR screens, and Micro-Capture-C.*
 
 ---
+
 
 Empower your genomics research with modular, reproducible, and container-ready pipelines that take you from raw data to publication-ready results.
 
