@@ -1,4 +1,4 @@
-![Seqnado Logo](https://raw.githubusercontent.com/alsmith151/SeqNado/master/seqnado_logo.jpeg)
+![Seqnado Logo](https://raw.githubusercontent.com/alsmith151/SeqNado/main/seqnado_logo.jpeg)
 
 Pipeline based on snakemake to process ChIP-seq (with optional spike-in based normalisation), ATAC-seq, RNA-seq and short read WGS data for SNP calling. The defaults are optimised for the Milne group directory on the CCB cluster, but can be easily modified for other groups and clusters.
 

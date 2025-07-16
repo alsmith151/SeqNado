@@ -7,7 +7,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/seqnado)](https://pepy.tech/projects/seqnado)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/alsmith151/SeqNado/master/containers/seqnado.png" alt="SeqNado logo" />
+  <img src="https://raw.githubusercontent.com/alsmith151/SeqNado/main/containers/seqnado.png" alt="SeqNado logo" />
 </p>
 
 *A unified, user-friendly collection of workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, WGS, Methylation (Bisulfite/TAPS), CRISPR screens & Micro-Capture-C.*

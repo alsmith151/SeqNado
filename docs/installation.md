@@ -86,7 +86,7 @@ Alternatively, start a new terminal session.
 
 ### Install from GitHub directly
 
-To install the latest version of the pipeline from GitHub (master branch), use the following command:
+To install the latest version of the pipeline from GitHub (main branch), use the following command:
 
 ```bash
 pip install git+https://github.com/alsmith151/SeqNado.git
@@ -113,7 +113,7 @@ pip install .
 Assuming the conda environment is activated, install the dependencies using the following command:
 
 ```bash
-wget https://raw.githubusercontent.com/alsmith151/SeqNado/master/environment.yml
+wget https://raw.githubusercontent.com/alsmith151/SeqNado/main/environment.yml
 mamba env update -f environment.yml
 ```
 
