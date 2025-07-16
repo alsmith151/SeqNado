@@ -276,7 +276,7 @@ rule make_bigwigs_mcc_replicates:
         --scale-factor {params.scale_factor} \
         --blacklisted-locations {input.excluded_regions} \
         --min-mapq 0 \
-        --read-group {wildcards.viewpoint_group}
+        --read-group {wildcards.viewpoint_group} \
         {params.options} > {log} 2>&1
         """
         
@@ -333,10 +333,11 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
         excluded_regions="seqnado_output/resources/exclusion_regions.bed",
         cis_or_trans_stats="seqnado_output/resources/{group}_ligation_stats.json",
     output:
-        bigwig="seqnado_output/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig"
+        bigwig="seqnado_output/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig",
     params:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
+        options=check_options(config["bamnado"]["bamcoverage"]),
     log:
         "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
     container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest'
@@ -352,6 +353,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     params:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=1,
+        options=check_options(config["bamnado"]["bamcoverage"]),
     log:
         "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
 
