@@ -427,18 +427,25 @@ def config_yaml_for_testing(config_yaml, assay):
     with open(config_yaml, "r") as f:
         config = yaml.safe_load(f)
 
-    if assay == "chip":
-        config["scale"] = "yes"
-        config["library_complexity"] = False
-    elif assay == "chip-rx":
-        config["peak_calling_method"] = ["seacr"]
-    elif assay == "atac":
-        config["pileup_method"] = ["deeptools", "homer"]
-        config["call_peaks"] = True
-        config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
-        config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
-    if assay == "cat":
-        config["pileup_method"] = ["deeptools", "bamnado"]
+
+    match assay:
+        case "chip":
+            config["scale"] = "yes"
+            config["library_complexity"] = False
+        case "chip-rx":
+            config["peak_calling_method"] = ["seacr"]
+        case "atac":
+            config["pileup_method"] = ["deeptools", "homer"]
+            config["call_peaks"] = True
+            config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
+            config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
+        case "cat":
+            config["pileup_method"] = ["deeptools", "bamnado"]
+        case "mcc":
+            config['call_peaks'] = False
+            config["peak_calling_method"] = ["lanceotron-mcc"]
+        case _:
+            pass
 
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)
