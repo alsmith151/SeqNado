@@ -159,15 +159,15 @@ def get_fastqc_files_all(wildcards):
         "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
         sample=paired_end_assays,
         read=[1, 2],
-    ),
+    )
     fastqc_raw_single = expand(
         "seqnado_output/qc/fastqc_raw/{sample}_fastqc.html",
         sample=single_end_assays,
-    ),
+    )
     all_qc_files = []
     for files in [fastqc_raw_paired, fastqc_raw_single]:
         if files:
-            all_qc_files.extend(*files)
+            all_qc_files.extend(files)
     
     return all_qc_files
 
@@ -178,17 +178,17 @@ def get_fastq_screen_all(wildcards):
     fastq_screen_single = expand(
         "seqnado_output/qc/fastq_screen/{sample}_screen.txt",
         sample=single_end_assays,
-    ),
+    )
     fastq_screen_paired = expand(
         "seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
         sample=paired_end_assays,
         read=[1, 2],
-    ),
+    )
     all_fastq_screen_files = []
     if config["fastq_screen"]:
         for files in [fastq_screen_paired, fastq_screen_single]:
             if files:
-                all_fastq_screen_files.extend(*files)
+                all_fastq_screen_files.extend(files)
         
     return all_fastq_screen_files
 
@@ -234,7 +234,8 @@ def get_qualimap_files(wildcards):
 
 
 def get_frip_files(wildcards):
-    if hasattr(OUTPUT, "peak_calling_method") and OUTPUT.peak_calling_method:
+    # Check if OUTPUT has peak calling methods defined and if the assay is not MCC (doesn't make sense for MCC)
+    if hasattr(OUTPUT, "peak_calling_method") and OUTPUT.peak_calling_method and not ASSAY == "MCC":
         peak_methods = [m.value for m in OUTPUT.peak_calling_method]
         if ASSAY in ["CUT&TAG", "ATAC"] and config["call_peaks"]:
             return expand(
@@ -276,9 +277,10 @@ def get_snp_qc(wildcards):
             "seqnado_output/qc/variant/{sample}.stats.txt",
             sample=SAMPLE_NAMES,
         )
-    if ASSAY == "SNP" and config["annotate_snps"]:
+    elif ASSAY == "SNP" and config["annotate_snps"]:
         return expand(
             "seqnado_output/qc/variant/{sample}.anno.stats.txt",
+            sample=SAMPLE_NAMES,
         )
     else:
         return []
