@@ -1,1 +1,5 @@
-ASSAYS = ["atac", "chip", "rna", "snp", 'cat']
+from .design.core import Assay
+
+__all__ = [
+    "Assay",
+]

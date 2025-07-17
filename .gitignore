@@ -31,3 +31,4 @@ containers/*.sif
 .DS_Store
 containers/push_notes.txt
 paths.txt
+check_design.ipynb
