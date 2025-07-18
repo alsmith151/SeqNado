@@ -132,7 +132,7 @@ def cli_design(method, files, output="design.csv", merge=False):
     
     df = (
         design.to_dataframe()
-        .assign(scale_group="all")
+        .assign(norm_group="all")
         .sort_values("sample_name")
     )
 

@@ -66,16 +66,16 @@ colors_dict = dict(zip(names, sns.color_palette("tab20", n_colors=len(names))))
 for track in df.itertuples():
     if track.type == ".bed":
         track_type = "bed_simple"
-        autoscale_group = None
+        autonorm_group = None
         style = None
     elif track.type == ".bigWig":
         track_type = "bigwig"
         style = "stairsfilled"
 
         if ASSAY == "ChIP":
-            autoscale_group = f"{track.antibody}-{track.method}-{track.normalisation}"
+            autonorm_group = f"{track.antibody}-{track.method}-{track.normalisation}"
         else:
-            autoscale_group = f"{track.method}-{track.normalisation}"
+            autonorm_group = f"{track.method}-{track.normalisation}"
 
     t = pn.TrackWrapper(
         track_type,
@@ -88,7 +88,7 @@ for track in df.itertuples():
         data_range_location="right",
         label_on_track=True,
         label_loc="left",
-        autoscale_group=autoscale_group,
+        autonorm_group=autonorm_group,
     )
     fig.add_track(t)
 

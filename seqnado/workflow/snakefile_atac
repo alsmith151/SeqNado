@@ -53,7 +53,7 @@ OUTPUT = ATACOutput(
     **config
 )
 
-NORMALISATION_SCALING = NormGroups.from_design(DESIGN, subset_column="scale_group", include_controls=True)
+NORMALISATION_SCALING = NormGroups.from_design(DESIGN, subset_column="norm_group", include_controls=True)
 NORMALISATION_MERGING = NormGroups.from_design(DESIGN, subset_column="merge", include_controls=True)
 
 ###################

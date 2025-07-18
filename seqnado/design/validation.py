@@ -26,7 +26,7 @@ class ViewpointsFile(pa.DataFrameModel):
 class DesignDataFrame(pa.DataFrameModel):
     """Base class for design dataframes with common sample identification."""
     sample_name: Series[str] = pa.Field(coerce=True)
-    scale_group: Series[str] | None = pa.Field(coerce=True, default="all", description="Grouping variable for scaling samples")
+    norm_group: Series[str] | None = pa.Field(coerce=True, default="all", description="Grouping variable for scaling samples")
     merge: Series[str] | None = pa.Field(
         default=None,
         description="Grouping variable for merging samples",

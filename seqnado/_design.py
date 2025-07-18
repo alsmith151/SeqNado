@@ -197,7 +197,7 @@ class FastqFileIP(FastqFile):
 class Metadata(BaseModel):
     deseq2: Optional[str] = None
     merge: Optional[str] = None
-    scale_group: Union[str, int] = "all"
+    norm_group: Union[str, int] = "all"
 
     @field_validator("deseq2", "merge")
     @classmethod
@@ -312,7 +312,7 @@ class DataFrameDesign(pa.DataFrameModel):
     sample_name: Series[str]
     r1: Series[str] = pa.Field(coerce=True)
     r2: Series[str] = pa.Field(coerce=True, nullable=True)
-    scale_group: Series[str]
+    norm_group: Series[str]
     deseq2: Optional[Series[str]] = pa.Field()
     merge: Optional[Series[str]] = pa.Field()
 
@@ -325,7 +325,7 @@ class DataFrameDesignIP(pa.DataFrameModel):
     ip_r2: Series[str] = pa.Field(coerce=True, nullable=True)
     control_r1: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
     control_r2: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
-    scale_group: Series[str]
+    norm_group: Series[str]
 
 
 class Design(BaseModel):
@@ -397,7 +397,7 @@ class Design(BaseModel):
 
         return cls(
             fastq_sets=fastq_sets,
-            metadata=[Metadata(scale_group="all") for _ in fastq_sets],
+            metadata=[Metadata(norm_group="all") for _ in fastq_sets],
         )
 
     def to_dataframe(self) -> pd.DataFrame:
@@ -698,7 +698,7 @@ class DesignIP(BaseModel):
 
         return cls(
             experiments=experiments,
-            metadata=[Metadata(scale_group="all") for _ in experiments],
+            metadata=[Metadata(norm_group="all") for _ in experiments],
         )
 
     def to_dataframe(self) -> pd.DataFrame:
@@ -873,7 +873,7 @@ class NormGroup(BaseModel):
         cls,
         design: Union[Design, DesignIP],
         reference_sample: Optional[str] = None,
-        subset_column: Optional[str] = "scale_group",
+        subset_column: Optional[str] = "norm_group",
         subset_value: Optional[List[str]] = None,
         include_controls: bool = False,
     ):
@@ -929,7 +929,7 @@ class NormGroups(BaseModel):
         cls,
         design: Union[Design, DesignIP],
         reference_sample: Optional[str] = None,
-        subset_column: Optional[str] = "scale_group",
+        subset_column: Optional[str] = "norm_group",
         include_controls: bool = False,
     ):
         df = design.to_dataframe()

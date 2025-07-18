@@ -32,7 +32,7 @@ class BaseDesign(BaseModel):
         elif isinstance(metadata, Metadata):
             return metadata
         else:
-            return Metadata(scale_group="all")
+            return Metadata(norm_group="all")
 
     @classmethod
     def _discover_files(
@@ -55,7 +55,7 @@ class BaseDesign(BaseModel):
     ) -> Callable[[str], Metadata] | Metadata:
         """Prepare metadata parameter for directory-based construction."""
         if not callable(metadata) and not isinstance(metadata, Metadata):
-            metadata = Metadata(**{"scale_group": "all", **kwargs})
+            metadata = Metadata(**{"norm_group": "all", **kwargs})
         return metadata
 
     @property
@@ -138,7 +138,7 @@ class Design(BaseDesign):
             metadata:
                 - Callable(sample_name) → Metadata to customize per-sample metadata.
                 - Single Metadata instance applied to all.
-                - None → defaults to Metadata(scale_group="all").
+                - None → defaults to Metadata(norm_group="all").
             fastqset_kwargs: Extra fields forwarded to FastqSet constructor.
         """
         # Convert and sort
@@ -331,7 +331,7 @@ class DesignIP(BaseDesign):
             metadata:
                 - Callable(sample_name) → Metadata to customize per-sample metadata.
                 - Single Metadata instance applied to all.
-                - None → defaults to Metadata(scale_group="all").
+                - None → defaults to Metadata(norm_group="all").
             exp_kwargs: Extra fields forwarded to IPExperiment constructor.
         """
         # Convert and sort

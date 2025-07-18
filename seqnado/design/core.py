@@ -96,7 +96,7 @@ class Metadata(BaseModel):
         default=None,
         description="Grouping variable for merging samples, can be None if not applicable"
     )
-    scale_group: str = Field(
+    norm_group: str = Field(
         default="all",
         description="Grouping variable for scaling samples, defaults to 'all' if not specified"
     )
