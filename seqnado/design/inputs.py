@@ -3,10 +3,10 @@ from __future__ import annotations
 import pathlib
 from collections import defaultdict
 from itertools import chain
-from typing import Any, Callable, Iterable, Literal
+from typing import Any, Callable, Iterable
 import pandas as pd
 from pydantic import BaseModel, field_validator
-from pandera.typing import DataFrame, Series
+from pandera.typing import DataFrame
 from .fastq import FastqFile, FastqSet, FastqSetIP, FastqFileIP
 from .core import Metadata, Assay
 from .validation import DesignDataFrame
@@ -559,3 +559,286 @@ class MultiAssayDesign(BaseDesign):
     def split_by_assay(self) -> dict[Assay, Design | DesignIP]:
         """Return the individual designs by assay type."""
         return self.designs.copy()
+
+
+
+
+class NormGroup(BaseModel):
+    """
+    Represents a normalization group containing samples and an optional reference sample.
+    
+    Attributes:
+        group: Group identifier (name or number), defaults to "all"
+        samples: List of sample names in this group
+        reference_sample: Optional reference sample for normalization
+    """
+    group: str | int = "all"
+    samples: list[str]
+    reference_sample: str | None = None
+
+    @classmethod
+    def from_design(
+        cls,
+        design: Design | DesignIP,
+        reference_sample: str | None = None,
+        subset_column: str = "norm_group",
+        subset_value: list[str] | None = None,
+        include_controls: bool = False,
+    ) -> NormGroup:
+        """
+        Create a NormGroup from a design object.
+        
+        Args:
+            design: The design object (Design or DesignIP)
+            reference_sample: Optional reference sample name
+            subset_column: Column to use for subsetting (default: "norm_group")
+            subset_value: Values to filter by in the subset column
+            include_controls: Whether to include control samples (for DesignIP)
+            
+        Returns:
+            NormGroup instance
+            
+        Raises:
+            ValueError: If no samples found after filtering
+        """
+        df = cls._prepare_dataframe(design, include_controls)
+        
+        if subset_value:
+            df = df.query(f"{subset_column} in {subset_value}")
+        
+        samples = df.index.tolist()
+        if not samples:
+            raise ValueError(f"No samples found for group with {subset_column} in {subset_value}")
+        
+        final_reference = reference_sample or samples[0]
+        group_name = subset_value[0] if subset_value else "all"
+        
+        return cls(
+            samples=samples,
+            reference_sample=final_reference,
+            group=group_name,
+        )
+    
+    @staticmethod
+    def _prepare_dataframe(design: Design | DesignIP, include_controls: bool) -> pd.DataFrame:
+        """
+        Prepare a DataFrame from design with appropriate sample naming.
+        
+        Args:
+            design: The design object
+            include_controls: Whether to include control samples
+            
+        Returns:
+            DataFrame with sample_fullname as index
+        """
+        base_df = design.to_dataframe()
+        
+        if isinstance(design, Design):
+            return (
+                base_df
+                .assign(sample_fullname=lambda df: df.sample_name)
+                .set_index("sample_fullname")
+            )
+        
+        # Handle DesignIP
+        if not include_controls:
+            return (
+                base_df
+                .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
+                .set_index("sample_fullname")
+            )
+        
+        # Include both IP and control samples
+        df_ip = (
+            base_df
+            .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
+            .set_index("sample_fullname")
+        )
+        df_control = (
+            base_df
+            .query("control.notnull()")
+            .assign(sample_fullname=lambda df: df.sample_name + "_" + df.control)
+            .set_index("sample_fullname")
+        )
+        return pd.concat([df_ip, df_control])
+    
+    def __len__(self) -> int:
+        """Return the number of samples in this group."""
+        return len(self.samples)
+    
+    def __contains__(self, sample: str) -> bool:
+        """Check if a sample is in this group."""
+        return sample in self.samples
+    
+    def __str__(self) -> str:
+        """String representation of the group."""
+        return f"NormGroup(group='{self.group}', samples={len(self.samples)}, reference='{self.reference_sample}')"
+
+
+class NormGroups(BaseModel):
+    """
+    Collection of normalization groups with utilities for sample group management.
+    
+    Attributes:
+        groups: List of NormGroup objects
+    """
+    groups: list[NormGroup]
+
+    @classmethod
+    def from_design(
+        cls,
+        design: Design | DesignIP,
+        reference_sample: str | None = None,
+        subset_column: str = "norm_group",
+        include_controls: bool = False,
+    ) -> NormGroups:
+        """
+        Create NormGroups from a design object.
+        
+        Args:
+            design: The design object (Design or DesignIP)
+            reference_sample: Optional reference sample name
+            subset_column: Column to use for grouping (default: "norm_group")
+            include_controls: Whether to include control samples (for DesignIP)
+            
+        Returns:
+            NormGroups instance
+        """
+        df = design.to_dataframe()
+
+        # Create groups based on subset column if it exists
+        if subset_column in df.columns:
+            unique_values = df[subset_column].dropna().unique()
+            
+            groups = [
+                NormGroup.from_design(
+                    design=design,
+                    reference_sample=reference_sample,
+                    subset_column=subset_column,
+                    subset_value=[str(value)],
+                    include_controls=include_controls,
+                )
+                for value in unique_values
+            ]
+        else:
+            # Create single group with all samples
+            groups = [
+                NormGroup(
+                    group="all",
+                    samples=design.sample_names,
+                    reference_sample=reference_sample or design.sample_names[0],
+                )
+            ]
+
+        return cls(groups=groups)
+
+    @property
+    def sample_to_group_mapping(self) -> dict[str, str | int]:
+        """
+        Map each sample to its group identifier.
+        
+        Returns:
+            Dictionary mapping sample names to group identifiers
+        """
+        return {
+            sample: group.group 
+            for group in self.groups 
+            for sample in group.samples
+        }
+
+    @property
+    def group_to_samples_mapping(self) -> dict[str | int, list[str]]:
+        """
+        Map each group identifier to its samples.
+        
+        Returns:
+            Dictionary mapping group identifiers to lists of sample names
+        """
+        return {group.group: group.samples for group in self.groups}
+
+    def get_sample_group(self, sample: str) -> str | int:
+        """
+        Get the group identifier for a specific sample.
+        
+        Args:
+            sample: Sample name to look up
+            
+        Returns:
+            Group identifier
+            
+        Raises:
+            KeyError: If sample not found in any group
+        """
+        mapping = self.sample_to_group_mapping
+        if sample not in mapping:
+            raise KeyError(f"Sample '{sample}' not found in any normalization group")
+        return mapping[sample]
+
+    def get_samples_in_group(self, group: str | int) -> list[str]:
+        """
+        Get all samples in a specific group.
+        
+        Args:
+            group: Group identifier
+            
+        Returns:
+            List of sample names in the group
+            
+        Raises:
+            KeyError: If group not found
+        """
+        mapping = self.group_to_samples_mapping
+        if group not in mapping:
+            available_groups = list(mapping.keys())
+            raise KeyError(f"Group '{group}' not found. Available groups: {available_groups}")
+        return mapping[group]
+    
+    def get_group_by_name(self, group_name: str | int) -> NormGroup:
+        """
+        Get a NormGroup object by its group identifier.
+        
+        Args:
+            group_name: Group identifier to find
+            
+        Returns:
+            NormGroup object
+            
+        Raises:
+            KeyError: If group not found
+        """
+        for group in self.groups:
+            if group.group == group_name:
+                return group
+        raise KeyError(f"Group '{group_name}' not found")
+    
+    def __len__(self) -> int:
+        """Return the number of groups."""
+        return len(self.groups)
+    
+    def __iter__(self):
+        """Iterate over groups."""
+        return iter(self.groups)
+    
+    def __contains__(self, group_name: str | int) -> bool:
+        """Check if a group exists."""
+        return group_name in self.group_to_samples_mapping
+    
+    def __str__(self) -> str:
+        """String representation of the groups."""
+        group_info = [f"'{g.group}': {len(g.samples)} samples" for g in self.groups]
+        return f"NormGroups({len(self.groups)} groups: {', '.join(group_info)})"
+
+    # Backward compatibility properties
+    @property  
+    def sample_groups(self) -> dict[str | int, list[str]]:
+        """Backward compatibility alias for group_to_samples_mapping."""
+        return self.group_to_samples_mapping
+
+    @property
+    def group_samples(self) -> dict[str, str | int]:
+        """Backward compatibility alias for sample_to_group_mapping."""
+        return self.sample_to_group_mapping
+
+    def get_grouped_samples(self, group: str | int) -> list[str]:
+        """Backward compatibility alias for get_samples_in_group."""
+        return self.get_samples_in_group(group)
