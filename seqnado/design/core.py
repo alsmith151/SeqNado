@@ -92,9 +92,9 @@ class Metadata(BaseModel):
         default=None,
         description="Assay type, should be one of the Assay enum values"
     )
-    merge: str | None = Field(
+    consensus_group: str | None = Field(
         default=None,
-        description="Grouping variable for merging samples, can be None if not applicable"
+        description="Grouping variable for merging samples into consensus, can be None if not applicable"
     )
     norm_group: str = Field(
         default="all",
@@ -105,7 +105,7 @@ class Metadata(BaseModel):
         description="DESeq2 metadata for sample, can be None if not applicable"
     )
 
-    @field_validator("deseq2", "merge")
+    @field_validator("deseq2", "consensus_group")
     @classmethod
     def prevent_none(cls, v):
         import numpy as np

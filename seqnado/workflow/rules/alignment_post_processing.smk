@@ -259,7 +259,7 @@ rule prepare_stats_report:
 
 def get_bam_files_for_merge(wildcards):
     from seqnado.design import NormGroups
-    norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
+    norm_groups = NormGroups.from_design(DESIGN, subset_column="consensus_group")
 
     sample_names = norm_groups.get_grouped_samples(wildcards.group)
     bam_files = [
