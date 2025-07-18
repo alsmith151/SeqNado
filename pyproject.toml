@@ -48,3 +48,31 @@ local_scheme = "no-local-version"
 
 [tool.setuptools.packages.find]
 where = ["seqnado/"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=seqnado",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (slower, multiple components)",
+    "edge_case: Edge case tests",
+    "slow: Slow tests (may take significant time)",
+    "requires_data: Tests that require test data files",
+    "parametrize: Parametrized tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
