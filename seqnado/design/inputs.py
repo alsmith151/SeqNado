@@ -13,7 +13,62 @@ from .validation import DesignDataFrame
 from .experiment import IPExperiment
 
 
-class Design(BaseModel):
+class BaseDesign(BaseModel):
+    """
+    Base class for all design types providing common functionality.
+    """
+    assay: Assay
+    metadata: list[Metadata]
+
+    @classmethod
+    def _build_metadata(
+        cls,
+        sample_name: str,
+        metadata: Callable[[str], Metadata] | Metadata | None = None,
+    ) -> Metadata:
+        """Build metadata for a sample given the metadata parameter."""
+        if callable(metadata):
+            return metadata(sample_name)
+        elif isinstance(metadata, Metadata):
+            return metadata
+        else:
+            return Metadata(scale_group="all")
+
+    @classmethod
+    def _discover_files(
+        cls,
+        directory: str | pathlib.Path,
+        glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
+    ) -> list[pathlib.Path]:
+        """Discover FASTQ files in a directory using glob patterns."""
+        dir_path = pathlib.Path(directory)
+        files = list(chain.from_iterable(dir_path.glob(p) for p in glob_patterns))
+        if not files:
+            raise FileNotFoundError(f"No FASTQ files found in {dir_path}")
+        return files
+
+    @classmethod
+    def _prepare_metadata_for_directory(
+        cls,
+        metadata: Callable[[str], Metadata] | Metadata | None = None,
+        **kwargs: Any,
+    ) -> Callable[[str], Metadata] | Metadata:
+        """Prepare metadata parameter for directory-based construction."""
+        if not callable(metadata) and not isinstance(metadata, Metadata):
+            metadata = Metadata(**{"scale_group": "all", **kwargs})
+        return metadata
+
+    @property
+    def sample_names(self) -> list[str]:
+        """Returns all sample names in the design."""
+        raise NotImplementedError("Subclasses must implement sample_names")
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Export the design to a pandas DataFrame."""
+        raise NotImplementedError("Subclasses must implement to_dataframe")
+
+
+class Design(BaseDesign):
     """
     Represents a collection of sequencing samples (FASTQ files) grouped into named sets,
     with optional per-sample metadata.
@@ -22,9 +77,7 @@ class Design(BaseModel):
         fastq_sets: List of FastqSet objects (paired or single-end samples).
         metadata:  List of Metadata objects corresponding one-to-one with fastq_sets.
     """
-    assay: Assay
     fastq_sets: list[FastqSet]
-    metadata: list[Metadata]
 
     @field_validator("assay")
     @classmethod
@@ -111,14 +164,8 @@ class Design(BaseModel):
                 )
             _fastq_sets.append(fs)
 
-            # Build Metadata
-            if callable(metadata):
-                meta = metadata(sample)
-            elif isinstance(metadata, Metadata):
-                meta = metadata
-            else:
-                meta = Metadata(scale_group="all")
-            _metadata.append(meta)
+            # Build Metadata using base class method
+            _metadata.append(cls._build_metadata(sample, metadata))
 
         return cls(assay=assay, fastq_sets=_fastq_sets, metadata=_metadata)
 
@@ -140,15 +187,8 @@ class Design(BaseModel):
             metadata: Callable(sample_name) → Metadata or single Metadata instance.
             **kwargs: Extra fields converted directly to a shared Metadata.
         """
-        dir_path = pathlib.Path(directory)
-        files = list(chain.from_iterable(dir_path.glob(p) for p in glob_patterns))
-        if not files:
-            raise FileNotFoundError(f"No FASTQ files found in {dir_path}")
-
-        if not callable(metadata) and not isinstance(metadata, Metadata):
-            # If metadata is not callable, assume it's a single Metadata instance and add the kwargs to it
-            metadata = Metadata(**{"scale_group": "all", **kwargs})
-
+        files = cls._discover_files(directory, glob_patterns)
+        metadata = cls._prepare_metadata_for_directory(metadata, **kwargs)
         return cls.from_fastq_files(assay=assay, files=files, metadata=metadata)
 
     def to_dataframe(self) -> pd.DataFrame:
@@ -206,7 +246,7 @@ class Design(BaseModel):
         return cls(assay=assay, fastq_sets=fastq_sets, metadata=metadata)
 
 
-class DesignIP(BaseModel):
+class DesignIP(BaseDesign):
     """
     Represents an IP (e.g., ChIP/CAT) experiment design:
     paired IP/control FastqSetIP objects, plus per-experiment metadata.
@@ -216,9 +256,7 @@ class DesignIP(BaseModel):
         experiments: List of IPExperiment, each with .ip and optional .control FastqSetIP.
         metadata:    List of Metadata matching the experiments list.
     """
-    assay: Assay
     experiments: list[IPExperiment]
-    metadata: list[Metadata]
 
     @field_validator("assay")
     @classmethod
@@ -333,14 +371,8 @@ class DesignIP(BaseModel):
 
             experiments.append(IPExperiment(ip=ip_set, control=ctrl_set, **exp_kwargs))
             
-            # Build Metadata (following the same pattern as Design)
-            if callable(metadata):
-                meta = metadata(name)
-            elif isinstance(metadata, Metadata):
-                meta = metadata
-            else:
-                meta = Metadata(scale_group="all")
-            _metadata.append(meta)
+            # Build Metadata using base class method
+            _metadata.append(cls._build_metadata(name, metadata))
 
         return cls(assay=assay, experiments=experiments, metadata=_metadata)
 
@@ -354,7 +386,7 @@ class DesignIP(BaseModel):
         **kwargs: Any,
     ) -> DesignIP:  
         """
-       Scan a directory for IP/control FASTQ files and build a DesignIP.
+        Scan a directory for IP/control FASTQ files and build a DesignIP.
 
         Args:
             directory: Root path to search.
@@ -362,15 +394,8 @@ class DesignIP(BaseModel):
             metadata: Callable(sample_name) → Metadata or single Metadata instance.
             **kwargs: Extra fields converted directly to a shared Metadata.
         """
-        dir_path = pathlib.Path(directory)
-        files = list(chain.from_iterable(dir_path.glob(p) for p in glob_patterns))
-        if not files:
-            raise FileNotFoundError(f"No FASTQ files found in {dir_path}")
-
-        if not callable(metadata) and not isinstance(metadata, Metadata):
-            # If metadata is not callable, assume it's a single Metadata instance and add the kwargs to it
-            metadata = Metadata(**{"scale_group": "all", **kwargs})
-        
+        files = cls._discover_files(directory, glob_patterns)
+        metadata = cls._prepare_metadata_for_directory(metadata, **kwargs)
         return cls.from_fastq_files(assay=assay, files=files, metadata=metadata)
 
     def to_dataframe(self) -> pd.DataFrame:
@@ -401,3 +426,136 @@ class DesignIP(BaseModel):
 
         df = pd.DataFrame(rows).sort_values("sample_name")
         return DataFrame[DesignDataFrame](df)
+
+
+class MultiAssayDesign(BaseDesign):
+    """
+    Represents a design containing multiple assay types.
+    Can handle both regular and IP-based assays in a single design.
+    
+    Attributes:
+        designs: Dictionary mapping assay types to their respective Design/DesignIP objects.
+        metadata: Global metadata list (can be empty if each design has its own metadata).
+    """
+    designs: dict[Assay, Design | DesignIP]
+    
+    def __init__(self, designs: dict[Assay, Design | DesignIP], **kwargs):
+        # For multi-assay, we set a default assay but it's not really meaningful
+        # The real assay information is in the individual designs
+        super().__init__(assay=list(designs.keys())[0] if designs else Assay.RNA, 
+                        metadata=[], **kwargs)
+        self.designs = designs
+    
+    @property
+    def assays(self) -> list[Assay]:
+        """Returns all assay types in this multi-assay design."""
+        return list(self.designs.keys())
+    
+    @property
+    def sample_names(self) -> list[str]:
+        """Returns all sample names across all assays."""
+        all_names = []
+        for design in self.designs.values():
+            all_names.extend(design.sample_names)
+        return sorted(set(all_names))
+    
+    def get_design(self, assay: Assay) -> Design | DesignIP:
+        """Get the design for a specific assay type."""
+        if assay not in self.designs:
+            raise KeyError(f"Assay '{assay.value}' not found in MultiAssayDesign")
+        return self.designs[assay]
+    
+    def query(self, sample_name: str, assay: Assay | None = None) -> FastqSet | FastqSetIP | dict[Assay, FastqSet | FastqSetIP]:
+        """
+        Query for a sample across assays.
+        
+        Args:
+            sample_name: Name of the sample to find
+            assay: Specific assay to search in (if None, searches all)
+            
+        Returns:
+            If assay is specified: FastqSet/FastqSetIP for that sample in that assay
+            If assay is None: Dict mapping assays to FastqSet/FastqSetIP objects
+        """
+        if assay is not None:
+            return self.get_design(assay).query(sample_name)
+        
+        results = {}
+        for assay_type, design in self.designs.items():
+            try:
+                results[assay_type] = design.query(sample_name)
+            except (ValueError, KeyError):
+                continue  # Sample not found in this assay
+        
+        if not results:
+            raise ValueError(f"Sample '{sample_name}' not found in any assay")
+        
+        return results
+    
+    @classmethod
+    def from_designs(cls, designs: dict[Assay, Design | DesignIP]) -> MultiAssayDesign:
+        """Create a MultiAssayDesign from a dictionary of existing designs."""
+        return cls(designs=designs)
+    
+    @classmethod
+    def from_directories(
+        cls,
+        assay_directories: dict[Assay, str | pathlib.Path],
+        glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
+        metadata: Callable[[str], Metadata] | Metadata | None = None,
+        **kwargs: Any,
+    ) -> MultiAssayDesign:
+        """
+        Create a MultiAssayDesign by scanning multiple directories for different assays.
+        
+        Args:
+            assay_directories: Dictionary mapping assay types to their respective directories
+            glob_patterns: Filename patterns to include
+            metadata: Metadata function or instance to apply to all assays
+            **kwargs: Additional arguments passed to individual design constructors
+        """
+        designs = {}
+        
+        for assay, directory in assay_directories.items():
+            if assay in Assay.ip_assays():
+                design = DesignIP.from_directory(
+                    assay=assay, 
+                    directory=directory, 
+                    glob_patterns=glob_patterns,
+                    metadata=metadata,
+                    **kwargs
+                )
+            else:
+                design = Design.from_directory(
+                    assay=assay,
+                    directory=directory,
+                    glob_patterns=glob_patterns, 
+                    metadata=metadata,
+                    **kwargs
+                )
+            designs[assay] = design
+        
+        return cls(designs=designs)
+    
+    def to_dataframe(self) -> pd.DataFrame:
+        """
+        Export the multi-assay design to a pandas DataFrame.
+        Combines all assays into a single DataFrame with an 'assay' column.
+        """
+        import pandas as pd
+        
+        all_dfs = []
+        for assay, design in self.designs.items():
+            df = design.to_dataframe()
+            df['assay'] = assay.value
+            all_dfs.append(df)
+        
+        if not all_dfs:
+            return pd.DataFrame()
+        
+        combined_df = pd.concat(all_dfs, ignore_index=True)
+        return combined_df.sort_values(['assay', 'sample_name'])
+    
+    def split_by_assay(self) -> dict[Assay, Design | DesignIP]:
+        """Return the individual designs by assay type."""
+        return self.designs.copy()
