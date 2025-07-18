@@ -370,7 +370,7 @@ class DesignIP(BaseModel):
         if not callable(metadata) and not isinstance(metadata, Metadata):
             # If metadata is not callable, assume it's a single Metadata instance and add the kwargs to it
             metadata = Metadata(**{"scale_group": "all", **kwargs})
-
+        
         return cls.from_fastq_files(assay=assay, files=files, metadata=metadata)
 
     def to_dataframe(self) -> pd.DataFrame:
