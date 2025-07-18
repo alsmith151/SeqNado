@@ -8,11 +8,90 @@ from pydantic import BaseModel, Field, computed_field, field_validator
 
 
 # =============================================================================
+# ENUMS
+# =============================================================================
+
+class Assay(Enum):
+    """Supported sequencing assay types."""
+    RNA = "rna"
+    ATAC = "atac"
+    SNP = "snp"
+    CHIP = "chip"
+    CAT = "cat"
+    METH = "meth"
+    MCC = "mcc"
+    CRISPR = "crispr"
+    
+    @classmethod
+    def non_ip_assays(cls):
+        """Return assays that don't require IP (immunoprecipitation)."""
+        ip_assays = {cls.ChIP, cls.CAT}
+        return [assay for assay in cls if assay not in ip_assays]
+    
+    @classmethod
+    def ip_assays(cls):
+        """Return assays that require IP (immunoprecipitation)."""
+        return [cls.CHIP, cls.CAT]
+
+
+class PileupMethod(Enum):
+    """Methods for creating pileup files."""
+    DEEPTOOLS = "deeptools"
+    HOMER = "homer"
+    BAMNADO = "bamnado"
+
+
+class ScaleMethod(Enum):
+    """Methods for scaling genomic data."""
+    UNSCALED = "unscaled"
+    CSAW = "csaw"
+    CPM = "cpm"
+    RPKM = "rpkm"
+    SPIKEIN = "spikein"
+    MERGED = "merged"
+
+
+class PeakCallingMethod(Enum):
+    """Methods for calling peaks."""
+    MACS2 = "macs2"
+    MACS3 = "macs3"
+    HOMER = "homer"
+    LANCEOTRON = "lanceotron"
+    SEACR = "seacr"
+    LANCEOTRON_MCC = "lanceotron-mcc"
+
+
+# =============================================================================
+# CONSTANTS
+# =============================================================================
+ILLUMINA_FILENAME_PATTERNS = {
+    r"_S\d+_": "_",
+    r"_L00\d_": "_",
+    r"_R?[12](_001)?$": "_",
+    r"__": "_",
+    r"_$": "",
+}
+
+INPUT_CONTROL_SUBSTRINGS = ["input", "mock", "igg", "control"]
+
+NONE_VALUES = [
+    None, "None", "none", "null", "Null", "NULL", 
+    ".", "", "NA"
+]
+
+
+
+
+# =============================================================================
 # Models
 # =============================================================================
 
 class Metadata(BaseModel):
     """Metadata for samples. Optional fields can be set to None."""
+    assay: Assay | None = Field(
+        default=None,
+        description="Assay type, should be one of the Assay enum values"
+    )
     merge: str | None = Field(
         default=None,
         description="Grouping variable for merging samples, can be None if not applicable"
@@ -55,81 +134,6 @@ class Metadata(BaseModel):
             raise ValueError("None is not allowed when setting metadata")
         return v
 
-
-
-# =============================================================================
-# ENUMS
-# =============================================================================
-
-class Assay(Enum):
-    """Supported sequencing assay types."""
-    RNA = "rna"
-    ATAC = "atac"
-    SNP = "snp"
-    ChIP = "chip"
-    CAT = "cat"
-    METH = "meth"
-    MCC = "mcc"
-    CRISPR = "crispr"
-    
-    @classmethod
-    def non_ip_assays(cls):
-        """Return assays that don't require IP (immunoprecipitation)."""
-        ip_assays = {cls.ChIP, cls.CAT}
-        return [assay for assay in cls if assay not in ip_assays]
-    
-    @classmethod
-    def ip_assays(cls):
-        """Return assays that require IP (immunoprecipitation)."""
-        return [cls.ChIP, cls.CAT]
-
-
-# Remove the separate AssayNonIP enum as it's now redundant
-
-
-class PileupMethod(Enum):
-    """Methods for creating pileup files."""
-    deeptools = "deeptools"
-    homer = "homer"
-    bamnado = "bamnado"
-
-
-class ScaleMethod(Enum):
-    """Methods for scaling genomic data."""
-    unscaled = "unscaled"
-    csaw = "csaw"
-    cpm = "cpm"
-    rpkm = "rpkm"
-    spikein = "spikein"
-    merged = "merged"
-
-
-class PeakCallingMethod(Enum):
-    """Methods for calling peaks."""
-    macs = "macs"
-    homer = "homer"
-    lanceotron = "lanceotron"
-    seacr = "seacr"
-    lanceotron_mcc = "lanceotron-mcc"
-
-
-# =============================================================================
-# CONSTANTS
-# =============================================================================
-ILLUMINA_FILENAME_PATTERNS = {
-    r"_S\d+_": "_",
-    r"_L00\d_": "_",
-    r"_R?[12](_001)?$": "_",
-    r"__": "_",
-    r"_$": "",
-}
-
-INPUT_CONTROL_SUBSTRINGS = ["input", "mock", "igg", "control"]
-
-NONE_VALUES = [
-    None, "None", "none", "null", "Null", "NULL", 
-    ".", "", "NA"
-]
 
 
 # =============================================================================
