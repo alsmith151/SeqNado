@@ -9,7 +9,7 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, ATACOutput, SampleGroupCollection
+from seqnado.design import Design, ATACOutput, SampleGroups
 from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files, run_batch_job_on_error
 
 
@@ -53,8 +53,8 @@ OUTPUT = ATACOutput(
     **config
 )
 
-NORMALISATION_SCALING = SampleGroupCollection.from_design(DESIGN, subset_column="norm_group", include_controls=True)
-NORMALISATION_MERGING = SampleGroupCollection.from_design(DESIGN, subset_column="consensus_group", include_controls=True)
+NORMALISATION_SCALING = SampleGroups.from_design(DESIGN, subset_column="norm_group", include_controls=True)
+NORMALISATION_MERGING = SampleGroups.from_design(DESIGN, subset_column="consensus_group", include_controls=True)
 
 ###################
 # Pipeline config #

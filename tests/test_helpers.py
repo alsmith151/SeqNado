@@ -422,7 +422,7 @@ class TestGetGroupForSample:
         """Test successful group retrieval."""
         wildcards = mock_wildcards("sample1")
         
-        with patch('seqnado.helpers.SampleGroupCollection') as mock_norm_groups:
+        with patch('seqnado.helpers.SampleGroups') as mock_norm_groups:
             mock_groups_instance = MagicMock()
             mock_groups_instance.get_sample_group.return_value = "control"
             mock_norm_groups.from_design.return_value = mock_groups_instance
@@ -434,7 +434,7 @@ class TestGetGroupForSample:
         """Test group retrieval when sample not found."""
         wildcards = mock_wildcards("nonexistent_sample")
         
-        with patch('seqnado.helpers.SampleGroupCollection') as mock_norm_groups:
+        with patch('seqnado.helpers.SampleGroups') as mock_norm_groups:
             mock_groups_instance = MagicMock()
             mock_groups_instance.get_sample_group.side_effect = KeyError("Sample not found")
             mock_norm_groups.from_design.return_value = mock_groups_instance

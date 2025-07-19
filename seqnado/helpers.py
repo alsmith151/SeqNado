@@ -278,9 +278,9 @@ def pepe_silvia():
 
 
 def get_group_for_sample(wildcards, design: Union[SampleCollection, IPSampleCollection], strip: str = ""):
-    from seqnado.design import SampleGroupCollection
+    from seqnado.design import SampleGroups
 
-    norm_groups = SampleGroupCollection.from_design(design, include_controls=True)
+    norm_groups = SampleGroups.from_design(design, include_controls=True)
 
     try:
         group = norm_groups.get_sample_group(wildcards.sample.strip(strip))

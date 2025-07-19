@@ -1,5 +1,5 @@
 from .core import Assay, Metadata, PeakCallingMethod, PileupMethod, ScaleMethod
-from .collections import SampleCollection, IPSampleCollection, MultiAssayDesign, SampleGroup, SampleGroupCollection
+from .collections import SampleCollection, IPSampleCollection, MultiAssayDesign, SampleGroup, SampleGroups
 
 __all__ = [
     "Assay",
@@ -11,5 +11,5 @@ __all__ = [
     "IPSampleCollection", 
     "MultiAssayDesign",
     "SampleGroup",
-    "SampleGroupCollection",
+    "SampleGroups",
 ]

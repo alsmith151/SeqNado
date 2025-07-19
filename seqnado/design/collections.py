@@ -678,7 +678,7 @@ class SampleGroup(BaseModel):
         return f"SampleGroup(group='{self.group}', samples={len(self.samples)}, reference='{self.reference_sample}')"
 
 
-class SampleGroupCollection(BaseModel):
+class SampleGroups(BaseModel):
     """
     Collection of normalization groups with utilities for sample group management.
     
@@ -694,9 +694,9 @@ class SampleGroupCollection(BaseModel):
         reference_sample: str | None = None,
         subset_column: str = "norm_group",
         include_controls: bool = False,
-    ) -> SampleGroupCollection:
+    ) -> SampleGroups:
         """
-        Create SampleGroupCollection from a design object.
+        Create SampleGroups from a design object.
         
         Args:
             design: The design object (SampleCollection or IPSampleCollection)
@@ -705,7 +705,7 @@ class SampleGroupCollection(BaseModel):
             include_controls: Whether to include control samples (for DesignIP)
             
         Returns:
-            SampleGroupCollection instance
+            SampleGroups instance
         """
         df = design.to_dataframe()
 
@@ -829,7 +829,7 @@ class SampleGroupCollection(BaseModel):
     def __str__(self) -> str:
         """String representation of the groups."""
         group_info = [f"'{g.group}': {len(g.samples)} samples" for g in self.groups]
-        return f"SampleGroupCollection({len(self.groups)} groups: {', '.join(group_info)})"
+        return f"SampleGroups({len(self.groups)} groups: {', '.join(group_info)})"
 
     # Backward compatibility properties
     @property  

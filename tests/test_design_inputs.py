@@ -1,7 +1,7 @@
 """Tests for the design.inputs module."""
 import pytest
 import pathlib
-from design.collections import SampleGroup, SampleGroupCollection, SampleCollection, IPSampleCollection
+from design.collections import SampleGroup, SampleGroups, SampleCollection, IPSampleCollection
 from seqnado.design.core import Assay, Metadata
 from seqnado.design.fastq import FastqFile, FastqSet, FastqSetIP, FastqFileIP
 from seqnado.design.experiment import ExperimentIP
@@ -243,28 +243,28 @@ class TestSampleGroup:
 
 
 @pytest.mark.unit
-class TestSampleGroupCollection:
-    """Test cases for the SampleGroupCollection class."""
+class TestSampleGroups:
+    """Test cases for the SampleGroups class."""
 
     def test_norm_groups_creation(self):
-        """Test basic SampleGroupCollection creation."""
+        """Test basic SampleGroups creation."""
         group1 = SampleGroup(group="control", samples=["sample1"])
         group2 = SampleGroup(group="treatment", samples=["sample2", "sample3"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         assert len(groups) == 2
         assert len(groups.groups) == 2
 
     def test_from_design_no_groups_column(self, mock_design):
-        """Test creating SampleGroupCollection when no grouping column exists."""
-        groups = SampleGroupCollection.from_design(mock_design)
+        """Test creating SampleGroups when no grouping column exists."""
+        groups = SampleGroups.from_design(mock_design)
         assert len(groups) == 1
         assert groups.groups[0].group == "all"
         assert set(groups.groups[0].samples) == {"sample1", "sample2", "sample3"}
 
     def test_from_design_with_groups_column(self, mock_design_with_groups):
-        """Test creating SampleGroupCollection with grouping column."""
-        groups = SampleGroupCollection.from_design(
+        """Test creating SampleGroups with grouping column."""
+        groups = SampleGroups.from_design(
             mock_design_with_groups,
             subset_column="norm_group"
         )
@@ -277,7 +277,7 @@ class TestSampleGroupCollection:
         """Test sample to group mapping property."""
         group1 = SampleGroup(group="A", samples=["sample1", "sample2"])
         group2 = SampleGroup(group="B", samples=["sample3"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         mapping = groups.sample_to_group_mapping
         assert mapping["sample1"] == "A"
@@ -288,7 +288,7 @@ class TestSampleGroupCollection:
         """Test group to samples mapping property."""
         group1 = SampleGroup(group="A", samples=["sample1", "sample2"])
         group2 = SampleGroup(group="B", samples=["sample3"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         mapping = groups.group_to_samples_mapping
         assert mapping["A"] == ["sample1", "sample2"]
@@ -298,7 +298,7 @@ class TestSampleGroupCollection:
         """Test getting group for a sample."""
         group1 = SampleGroup(group="control", samples=["sample1"])
         group2 = SampleGroup(group="treatment", samples=["sample2"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         assert groups.get_sample_group("sample1") == "control"
         assert groups.get_sample_group("sample2") == "treatment"
@@ -306,7 +306,7 @@ class TestSampleGroupCollection:
     def test_get_sample_group_not_found(self):
         """Test getting group for nonexistent sample raises KeyError."""
         group = SampleGroup(group="test", samples=["sample1"])
-        groups = SampleGroupCollection(groups=[group])
+        groups = SampleGroups(groups=[group])
         
         with pytest.raises(KeyError, match="Sample 'nonexistent' not found"):
             groups.get_sample_group("nonexistent")
@@ -315,7 +315,7 @@ class TestSampleGroupCollection:
         """Test getting samples in a group."""
         group1 = SampleGroup(group="A", samples=["sample1", "sample2"])
         group2 = SampleGroup(group="B", samples=["sample3"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         assert groups.get_samples_in_group("A") == ["sample1", "sample2"]
         assert groups.get_samples_in_group("B") == ["sample3"]
@@ -323,7 +323,7 @@ class TestSampleGroupCollection:
     def test_get_samples_in_group_not_found(self):
         """Test getting samples for nonexistent group raises KeyError."""
         group = SampleGroup(group="test", samples=["sample1"])
-        groups = SampleGroupCollection(groups=[group])
+        groups = SampleGroups(groups=[group])
         
         with pytest.raises(KeyError, match="Group 'nonexistent' not found"):
             groups.get_samples_in_group("nonexistent")
@@ -332,7 +332,7 @@ class TestSampleGroupCollection:
         """Test getting SampleGroup object by name."""
         group1 = SampleGroup(group="control", samples=["sample1"])
         group2 = SampleGroup(group="treatment", samples=["sample2"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         retrieved = groups.get_group_by_name("control")
         assert retrieved == group1
@@ -341,7 +341,7 @@ class TestSampleGroupCollection:
     def test_get_group_by_name_not_found(self):
         """Test getting nonexistent group by name raises KeyError."""
         group = SampleGroup(group="test", samples=["sample1"])
-        groups = SampleGroupCollection(groups=[group])
+        groups = SampleGroups(groups=[group])
         
         with pytest.raises(KeyError, match="Group 'nonexistent' not found"):
             groups.get_group_by_name("nonexistent")
@@ -350,7 +350,7 @@ class TestSampleGroupCollection:
         """Test iterating over groups."""
         group1 = SampleGroup(group="A", samples=["sample1"])
         group2 = SampleGroup(group="B", samples=["sample2"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         iterated = list(groups)
         assert len(iterated) == 2
@@ -361,20 +361,20 @@ class TestSampleGroupCollection:
         """Test group membership testing."""
         group1 = SampleGroup(group="control", samples=["sample1"])
         group2 = SampleGroup(group="treatment", samples=["sample2"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         assert "control" in groups
         assert "treatment" in groups
         assert "nonexistent" not in groups
 
     def test_groups_str(self):
-        """Test SampleGroupCollection string representation."""
+        """Test SampleGroups string representation."""
         group1 = SampleGroup(group="A", samples=["s1", "s2"])
         group2 = SampleGroup(group="B", samples=["s3"])
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         result = str(groups)
-        assert "SampleGroupCollection(2 groups:" in result
+        assert "SampleGroups(2 groups:" in result
         assert "'A': 2 samples" in result
         assert "'B': 1 samples" in result
 
@@ -382,7 +382,7 @@ class TestSampleGroupCollection:
     def test_backward_compatibility_sample_groups(self):
         """Test backward compatibility sample_groups property."""
         group1 = SampleGroup(group="A", samples=["sample1"])
-        groups = SampleGroupCollection(groups=[group1])
+        groups = SampleGroups(groups=[group1])
         
         # Should be alias for group_to_samples_mapping
         assert groups.sample_groups == groups.group_to_samples_mapping
@@ -390,7 +390,7 @@ class TestSampleGroupCollection:
     def test_backward_compatibility_group_samples(self):
         """Test backward compatibility group_samples property."""
         group1 = SampleGroup(group="A", samples=["sample1"])
-        groups = SampleGroupCollection(groups=[group1])
+        groups = SampleGroups(groups=[group1])
         
         # Should be alias for sample_to_group_mapping
         assert groups.group_samples == groups.sample_to_group_mapping
@@ -398,15 +398,15 @@ class TestSampleGroupCollection:
     def test_backward_compatibility_get_grouped_samples(self):
         """Test backward compatibility get_grouped_samples method."""
         group1 = SampleGroup(group="A", samples=["sample1", "sample2"])
-        groups = SampleGroupCollection(groups=[group1])
+        groups = SampleGroups(groups=[group1])
         
         # Should be alias for get_samples_in_group
         assert groups.get_grouped_samples("A") == groups.get_samples_in_group("A")
 
 
 @pytest.mark.integration
-class TestSampleGroupCollectionIntegration:
-    """Integration tests for SampleGroupCollection with real design objects."""
+class TestSampleGroupsIntegration:
+    """Integration tests for SampleGroups with real design objects."""
     
     @pytest.fixture
     def sample_design_data(self, tmp_path):
@@ -416,7 +416,7 @@ class TestSampleGroupCollectionIntegration:
         pytest.skip("Integration tests require full design objects")
 
     def test_integration_with_real_design(self, sample_design_data):
-        """Test SampleGroupCollection with real Design objects."""
+        """Test SampleGroups with real Design objects."""
         # This would test the full integration
         pass
 
@@ -441,8 +441,8 @@ def test_norm_group_parametrized_creation(group_name, samples, reference):
 
 
 @pytest.mark.edge_case
-class TestSampleGroupCollectionEdgeCases:
-    """Test edge cases for SampleGroup and SampleGroupCollection."""
+class TestSampleGroupsEdgeCases:
+    """Test edge cases for SampleGroup and SampleGroups."""
 
     def test_empty_samples_list(self):
         """Test SampleGroup with empty samples list."""
@@ -463,8 +463,8 @@ class TestSampleGroupCollectionEdgeCases:
         assert isinstance(group.group, int)
 
     def test_empty_norm_groups(self):
-        """Test SampleGroupCollection with no groups."""
-        groups = SampleGroupCollection(groups=[])
+        """Test SampleGroups with no groups."""
+        groups = SampleGroups(groups=[])
         assert len(groups) == 0
         assert list(groups) == []
         assert groups.sample_to_group_mapping == {}
@@ -474,7 +474,7 @@ class TestSampleGroupCollectionEdgeCases:
         """Test behavior with duplicate samples across groups."""
         group1 = SampleGroup(group="A", samples=["sample1", "sample2"])
         group2 = SampleGroup(group="B", samples=["sample1", "sample3"])  # sample1 duplicated
-        groups = SampleGroupCollection(groups=[group1, group2])
+        groups = SampleGroups(groups=[group1, group2])
         
         # The mapping should contain the last occurrence
         mapping = groups.sample_to_group_mapping

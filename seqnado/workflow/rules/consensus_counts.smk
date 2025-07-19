@@ -2,8 +2,8 @@ from seqnado.helpers import check_options, define_time_requested, define_memory_
 
 
 def get_bam_files_for_counts(wildcards):
-    from seqnado.design import SampleGroupCollection
-    norm_groups = SampleGroupCollection.from_design(DESIGN, subset_column="merge")
+    from seqnado.design import SampleGroups
+    norm_groups = SampleGroups.from_design(DESIGN, subset_column="merge")
     sample_names = norm_groups.get_grouped_samples(wildcards.group)
     bam_files = [
         f"seqnado_output/aligned/{sample}.bam" for sample in sample_names
@@ -12,8 +12,8 @@ def get_bam_files_for_counts(wildcards):
 
 
 def get_bai_files_for_counts(wildcards):
-    from seqnado.design import SampleGroupCollection
-    norm_groups = SampleGroupCollection.from_design(DESIGN, subset_column="merge")
+    from seqnado.design import SampleGroups
+    norm_groups = SampleGroups.from_design(DESIGN, subset_column="merge")
 
     sample_names = norm_groups.get_grouped_samples(wildcards.group)
     bai_files = [

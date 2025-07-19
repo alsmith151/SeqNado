@@ -8,7 +8,7 @@ import pandas as pd
 from snakemake.utils import min_version
 
 
-from seqnado.design import Design, SampleGroupCollection, MCCOutput, ViewpointsFile
+from seqnado.design import Design, SampleGroups, MCCOutput, ViewpointsFile
 from seqnado.helpers import format_config_dict, symlink_fastq_files, remove_unwanted_run_files, extract_viewpoints, viewpoint_to_grouped_viewpoint
 
 
