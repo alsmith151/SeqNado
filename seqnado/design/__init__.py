@@ -1,4 +1,4 @@
-from .core import Assay, Metadata, PeakCallingMethod, PileupMethod, ScaleMethod
+from .core import Assay, Metadata
 from .collections import SampleCollection, IPSampleCollection, MultiAssayDesign, SampleGroup, SampleGroups
 
 __all__ = [

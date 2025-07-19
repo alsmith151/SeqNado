@@ -74,17 +74,48 @@ def cli_init(preset):
 # Config
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(ASSAYS))
-@click.option("-r", "--rerun", is_flag=True, help="Re-run the config")
-def cli_config(method, rerun=False):
+@click.option('--dont-make-directories', is_flag=True, help="Do not create directories for the workflow")
+def cli_config(method, dont_make_directories):
     """
     Runs the config for the data processing pipeline.
     """
     from importlib.metadata import version
-    import seqnado.config as config
+    from seqnado.design import Assay
+    from seqnado.config.user_input import build_workflow_config
+    from pathlib import Path
+    import yaml
 
     seqnado_version = version("seqnado")
+    assay = Assay(method)
+    workflow_config = build_workflow_config(assay, seqnado_version)
+    if not workflow_config:
+        logger.error("Failed to build workflow configuration.")
+        sys.exit(1)
+    
+    if not dont_make_directories:
+        dirname = f'{workflow_config.project.date}_{assay.value}_{workflow_config.project.name}'
+        outdir = Path(dirname)
+        outdir.mkdir(parents=True, exist_ok=True)
 
-    config.create_config(method, rerun, seqnado_version=seqnado_version)
+        fastq_dir = outdir / "fastqs"
+        fastq_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Created output directory: {fastq_dir}")
+
+        config_output = outdir / f'config_{assay.value}.yaml'
+        with open(config_output, "w") as f:
+            yaml.dump(workflow_config.model_dump(), f, default_flow_style=True)
+        logger.success(f"Configuration file saved to {config_output}")
+    
+    else:
+        config_output = Path(f'config_{assay.value}.yaml')
+        with open(config_output, "w") as f:
+            yaml.dump(workflow_config.model_dump(), f, default_flow_style=True)
+        logger.success(f"Configuration file saved to {config_output}")
+
+            
+
+
+
 
 
 # Design

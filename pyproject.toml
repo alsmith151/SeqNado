@@ -27,7 +27,7 @@ dependencies = [
     "pyyaml",
     "seaborn",
     "snakemake-wrapper-utils",
-    "snakemake>=8,<9",
+    "snakemake>=9.8.0,<10",
     "snakemake-executor-plugin-slurm",
     "tracknado",
     "wget",
@@ -47,7 +47,7 @@ write_to = "seqnado/_version.py"
 local_scheme = "no-local-version"
 
 [tool.setuptools.packages.find]
-where = ["seqnado/"]
+where = ["."]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
