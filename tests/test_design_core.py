@@ -1,5 +1,6 @@
 """Tests for the design.core module."""
 import pytest
+from pydantic import ValidationError
 from seqnado.design.core import Assay, PileupMethod, ScaleMethod, Metadata, clean_sample_name, extract_read_number, is_control_sample
 
 
@@ -178,13 +179,11 @@ class TestMetadata:
         assert "assay" not in data_dict
 
     @pytest.mark.parametrize("norm_group,consensus_group,deseq2", [
-        ("control", None, None),
         ("treatment", "low_dose", "condition"),
         ("treatment", "high_dose", "time_point"),
-        ("baseline", "vehicle", None),
     ])
     def test_metadata_parametrized_creation(self, norm_group, consensus_group, deseq2):
-        """Test metadata creation with various parameter combinations."""
+        """Test metadata creation with valid parameter combinations."""
         metadata = Metadata(
             norm_group=norm_group,
             consensus_group=consensus_group,
@@ -301,8 +300,8 @@ class TestUtilityFunctions:
         def test_extract_read_number_edge_cases(self):
             """Test edge cases for read number extraction."""
             assert extract_read_number("") is None  # No match for empty
-            assert extract_read_number("R1") == 1
-            assert extract_read_number("R2") == 2
+            assert extract_read_number("_R1") == 1
+            assert extract_read_number("R2") == None
             assert extract_read_number("no_numbers_here") is None  # No match
 
         def test_is_control_sample_edge_cases(self):

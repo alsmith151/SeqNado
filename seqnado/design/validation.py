@@ -55,7 +55,7 @@ class DesignDataFrame(pa.DataFrameModel):
     )
 
     @pa.dataframe_check
-    def check_sample_name(cls, df: pd.DataFrame) -> Series[bool]:
+    def check_sample_name_is_unique(cls, df: pd.DataFrame) -> Series[bool]:
         """Ensure that either the sample_name or sample_name + 'ip' is unique."""
         
         if 'ip' in df.columns:
@@ -65,6 +65,13 @@ class DesignDataFrame(pa.DataFrameModel):
         else:
             # If 'ip' column does not exist, check uniqueness of sample_name
             return df['sample_name'].is_unique
+    
+    @pa.check("sample_name")
+    def check_sample_name(cls, s: Series[str]) -> Series[bool]:
+        """Ensure sample names do not contain spaces or special characters."""
+        # Check that the sample names do not contain spaces or special characters
+        allowed_chars = r"^[a-zA-Z0-9_]+$"
+        return s.str.match(allowed_chars)
 
 
         

@@ -3,7 +3,7 @@ from .fastq import FastqSetIP
 
 
 
-class IPExperiment(BaseModel):
+class ExperimentIP(BaseModel):
     ip: FastqSetIP
     control: FastqSetIP | None = None
 
@@ -13,19 +13,19 @@ class IPExperiment(BaseModel):
 
     @property
     def ip_set_fullname(self) -> str:
-        return self.ip.sample_name
+        return self.ip.full_sample_name
 
     @property
     def control_fullname(self) -> str:
-        return self.control.sample_name
+        return self.control.full_sample_name if self.control else None
 
     @property
     def ip_performed(self) -> str:
-        return self.ip.ip_or_control_name
+        return self.ip.antibody
 
     @property
     def control_performed(self) -> str:
-        return self.control.ip_or_control_name
+        return self.control.antibody if self.control else None
 
     @property
     def fastqs_are_paired(self) -> bool:

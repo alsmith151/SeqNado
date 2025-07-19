@@ -281,8 +281,8 @@ rule make_bigwigs_mcc_replicates:
         """
         
 def get_mcc_bam_files_for_merge(wildcards):
-    from seqnado.design import NormGroups
-    norm_groups = NormGroups.from_design(DESIGN, subset_column="merge")
+    from seqnado.design import SampleGroupCollection
+    norm_groups = SampleGroupCollection.from_design(DESIGN, subset_column="merge")
 
     sample_names = norm_groups.get_grouped_samples(wildcards.group)
     bam_files = [

@@ -258,8 +258,8 @@ rule prepare_stats_report:
         "../scripts/alignment_stats.py"
 
 def get_bam_files_for_merge(wildcards):
-    from seqnado.design import NormGroups
-    norm_groups = NormGroups.from_design(DESIGN, subset_column="consensus_group")
+    from seqnado.design import SampleGroupCollection
+    norm_groups = SampleGroupCollection.from_design(DESIGN, subset_column="consensus_group")
 
     sample_names = norm_groups.get_grouped_samples(wildcards.group)
     bam_files = [

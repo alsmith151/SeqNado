@@ -45,8 +45,8 @@ class FastqFile(BaseModel):
 
     @computed_field
     @property
-    def sample_name(self) -> str:
-        """Extract clean sample name from filename."""
+    def filename_base(self) -> str:
+        """Extract base filename identifier by removing common suffixes."""
         name = self.stem
         if name.endswith("_001"):
             name = name.removesuffix("_001")
@@ -56,16 +56,16 @@ class FastqFile(BaseModel):
     @property
     def sample_base(self) -> str:
         """Extract base sample name by cleaning Illumina patterns."""
-        return clean_sample_name(self.sample_name)
+        return clean_sample_name(self.filename_base)
 
     @computed_field
     @property
     def read_number(self) -> int | None:
         """Extract read number (1 or 2) from filename."""
-        read_num = extract_read_number(self.sample_name)
+        read_num = extract_read_number(self.filename_base)
         if read_num is None:
             logger.debug(
-                f"Could not extract read number from '{self.sample_name}', "
+                f"Could not extract read number from '{self.filename_base}', "
                 f"assuming single-end sequencing"
             )
         return read_num
@@ -80,7 +80,7 @@ class FastqFile(BaseModel):
     @property
     def is_lane(self) -> bool:
         """Check if file is lane-split."""
-        return "_L00" in self.sample_name
+        return "_L00" in self.filename_base
 
     def __lt__(self, other: FastqFile) -> bool:
         """Compare FastqFile objects by path."""
@@ -144,7 +144,7 @@ class FastqFileIP(FastqFile):
             
         # Remove IP and common Illumina suffixes
         pattern = rf"(_{re.escape(self.ip)})?(_S\d+)?(_L00\d)?(_R?[12])?(_001)?"
-        return re.sub(pattern, "", self.sample_name)
+        return re.sub(pattern, "", self.filename_base)
 
     @field_validator("ip")
     @classmethod
@@ -164,12 +164,12 @@ class FastqFileIP(FastqFile):
 class FastqSet(BaseModel):
     """Represents a set of FASTQ files for a single sample."""
     
-    name: str = Field(default=None, description="Sample name")
+    sample_id: str = Field(default=None, description="Base sample identifier")
     r1: FastqFile
     r2: FastqFile | None = None
 
     @property
-    def fastq_paths(self) -> list[pathlib.Path]:
+    def file_paths(self) -> list[pathlib.Path]:
         """Get list of FASTQ file paths."""
         paths = [self.r1.path]
         if self.is_paired and self.r2:
@@ -191,16 +191,16 @@ class FastqSet(BaseModel):
         if not fq:
             raise ValueError("No FASTQ files provided")
             
-        sample_name = fq[0].sample_base
+        sample_id = fq[0].sample_base
 
         match len(fq):
             case 1:
-                return cls(name=sample_name, r1=fq[0], **kwargs)
+                return cls(sample_id=sample_id, r1=fq[0], **kwargs)
             case 2:
-                return cls(name=sample_name, r1=fq[0], r2=fq[1], **kwargs)
+                return cls(sample_id=sample_id, r1=fq[0], r2=fq[1], **kwargs)
             case _:
                 raise ValueError(
-                    f"Invalid number of FASTQ files for {sample_name}: {len(fq)}. "
+                    f"Invalid number of FASTQ files for {sample_id}: {len(fq)}. "
                     f"Expected 1 or 2 files."
                 )
 
@@ -210,21 +210,27 @@ class FastqSetIP(FastqSet):
     
     r1: FastqFileIP
     r2: FastqFileIP | None = None
-    ip: str = Field(default=None, description="IP antibody performed")
+    antibody: str = Field(default=None, description="IP antibody performed")
+
+    def model_post_init(self, __context: dict[str, any] | None) -> None:
+        """Initialize and predict antibody information."""
+        super().model_post_init(__context)
+        
+        if self.antibody is None:
+            self.antibody = self._predict_antibody()
+
+    def _predict_antibody(self) -> str:
+        """Predict the target antibody from the r1 file."""
+        return self.r1.ip
 
     @property
-    def ip_or_control_name(self) -> str:
-        """Get IP or control name."""
-        return self.ip if self.ip else self.r1.ip
+    def full_sample_name(self) -> str:
+        """Get complete sample name including antibody/control information."""
+        return f"{self.sample_id}_{self.antibody}"
 
     @property
-    def sample_name(self) -> str:
-        """Get full sample name including IP."""
-        return f"{self.name}_{self.ip_or_control_name}"
-
-    @property
-    def sample_name_base(self) -> str:
-        """Get base sample name without IP."""
+    def base_sample_name(self) -> str:
+        """Get base sample name without antibody/IP information."""
         return self.r1.sample_base_without_ip
 
     @property

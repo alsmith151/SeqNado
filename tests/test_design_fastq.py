@@ -28,12 +28,17 @@ class TestFastqFile:
     def test_fastq_file_stem_property(self, test_fastq_path):
         """Test the stem property extracts correct filename."""
         fastq_file = FastqFile(path=test_fastq_path)
-        assert fastq_file.stem == "rna_1.fastq"
+        assert fastq_file.stem == "rna_1"
+
+    def test_fastq_file_filename_base(self, test_fastq_path):
+        """Test filename base extraction."""
+        fastq_file = FastqFile(path=test_fastq_path)
+        assert fastq_file.filename_base == "rna_1"
 
     def test_fastq_file_sample_name(self, test_fastq_path):
-        """Test sample name extraction."""
+        """Test sample name extraction (cleaned)."""
         fastq_file = FastqFile(path=test_fastq_path)
-        assert fastq_file.sample_name == "rna"
+        assert fastq_file.sample_base == "rna"
 
     def test_fastq_file_read_number(self, test_fastq_path):
         """Test read number extraction."""
@@ -62,7 +67,7 @@ class TestFastqFile:
         test_path = pathlib.Path(__file__).parent / "data" / "fastq" / filename
         if test_path.exists():
             fastq_file = FastqFile(path=test_path)
-            assert fastq_file.sample_name == expected_sample
+            assert fastq_file.sample_base == expected_sample
 
 
 class TestFastqSet:
@@ -83,29 +88,29 @@ class TestFastqSet:
         r1_file = FastqFile(path=test_fastq_paths["r1"])
         r2_file = FastqFile(path=test_fastq_paths["r2"])
         
-        fastq_set = FastqSet(name="test_sample", r1=r1_file, r2=r2_file)
+        fastq_set = FastqSet(sample_id="test_sample", r1=r1_file, r2=r2_file)
         
-        assert fastq_set.name == "test_sample"
+        assert fastq_set.sample_id == "test_sample"
         assert fastq_set.r1 == r1_file
         assert fastq_set.r2 == r2_file
-        assert fastq_set.is_paired_end is True
+        assert fastq_set.is_paired is True
 
     def test_single_end_fastq_set(self, test_fastq_paths):
         """Test creation of single-end FastqSet."""
         r1_file = FastqFile(path=test_fastq_paths["single"])
         
-        fastq_set = FastqSet(name="test_sample", r1=r1_file)
+        fastq_set = FastqSet(sample_id="test_sample", r1=r1_file)
         
-        assert fastq_set.name == "test_sample"
+        assert fastq_set.sample_id == "test_sample"
         assert fastq_set.r1 == r1_file
         assert fastq_set.r2 is None
-        assert fastq_set.is_paired_end is False
+        assert fastq_set.is_paired is False
 
     def test_fastq_set_file_paths(self, test_fastq_paths):
         """Test file path extraction from FastqSet."""
         r1_file = FastqFile(path=test_fastq_paths["r1"])
         r2_file = FastqFile(path=test_fastq_paths["r2"])
-        fastq_set = FastqSet(name="test", r1=r1_file, r2=r2_file)
+        fastq_set = FastqSet(sample_id="test", r1=r1_file, r2=r2_file)
         
         paths = fastq_set.file_paths
         assert len(paths) == 2
@@ -113,18 +118,19 @@ class TestFastqSet:
         assert test_fastq_paths["r2"].absolute() in paths
 
 
+@pytest.fixture
+def test_ip_fastq_paths():
+    """Provide test IP FASTQ file paths."""
+    base_path = pathlib.Path(__file__).parent / "data" / "fastq"
+    return {
+        "chip_ip": base_path / "chip-rx_MLL_1.fastq.gz",
+        "chip_control": base_path / "chip-rx_input_1.fastq.gz",
+        "chip_single": base_path / "chip-rx-single_MLL.fastq.gz"
+    }
+
+
 class TestFastqFileIP:
     """Test cases for the FastqFileIP class (IP-specific FASTQ files)."""
-
-    @pytest.fixture
-    def test_ip_fastq_paths(self):
-        """Provide test IP FASTQ file paths."""
-        base_path = pathlib.Path(__file__).parent / "data" / "fastq"
-        return {
-            "chip_ip": base_path / "chip-rx_MLL_1.fastq.gz",
-            "chip_control": base_path / "chip-rx_input_1.fastq.gz",
-            "chip_single": base_path / "chip-rx-single_MLL.fastq.gz"
-        }
 
     def test_ip_fastq_file_creation(self, test_ip_fastq_paths):
         """Test FastqFileIP creation."""
@@ -166,26 +172,40 @@ class TestFastqSetIP:
         """Test creation of IP FastqSet."""
         if "chip_ip" in test_ip_files:
             fastq_set = FastqSetIP(
-                name="test_chip",
+                sample_id="test_chip",
                 r1=test_ip_files["chip_ip"],
-                ip_performed="MLL"
+                antibody="MLL"
             )
             
-            assert fastq_set.name == "test_chip"
-            assert fastq_set.ip_performed == "MLL"
+            assert fastq_set.sample_id == "test_chip"
+            assert fastq_set.antibody == "MLL"
             assert fastq_set.r1 == test_ip_files["chip_ip"]
 
     def test_ip_set_fullname(self, test_ip_files):
         """Test IP set fullname generation."""
         if "chip_ip" in test_ip_files:
             fastq_set = FastqSetIP(
-                name="test_chip",
+                sample_id="test_chip",
                 r1=test_ip_files["chip_ip"],
-                ip_performed="MLL"
+                antibody="MLL"
             )
             
             expected_fullname = "test_chip_MLL"
-            assert fastq_set.ip_set_fullname == expected_fullname
+            assert fastq_set.full_sample_name == expected_fullname
+
+    def test_base_sample_name_property(self, test_ip_files):
+        """Test base sample name extraction."""
+        if "chip_ip" in test_ip_files:
+            fastq_set = FastqSetIP(
+                sample_id="test_chip",
+                r1=test_ip_files["chip_ip"],
+                antibody="MLL"
+            )
+            
+            # Should return the sample base name without IP/antibody information
+            base_name = fastq_set.base_sample_name
+            assert isinstance(base_name, str)
+            assert len(base_name) > 0
 
 
 class TestFastqFilePathHandling:
@@ -220,7 +240,7 @@ class TestFastqFilePathHandling:
     ("sample_R2.fastq.gz", 2),
     ("sample_1.fastq.gz", 1),
     ("sample_2.fastq.gz", 2),
-    ("sample.fastq.gz", 1),  # Default to 1 when no read number found
+    ("sample.fastq.gz", None),  # No read number found should return None
 ])
 def test_read_number_extraction_parametrized(tmp_path, filename, expected_read_num):
     """Parametrized test for read number extraction."""

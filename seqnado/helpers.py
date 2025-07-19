@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 from loguru import logger
 
-from seqnado.design import Design, DesignIP, ScaleMethod
+from seqnado.design import SampleCollection, IPSampleCollection, ScaleMethod
 
 FILETYPE_TO_DIR_MAPPING = {
     "tag": "tag_dirs",
@@ -115,7 +115,7 @@ def symlink_file(
 
 
 def symlink_fastq_files(
-    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
+    design: Union[SampleCollection, IPSampleCollection], output_dir: str = "seqnado_output/fastqs/"
 ):
     """
     Symlink the fastq files to the output directory.
@@ -123,7 +123,7 @@ def symlink_fastq_files(
     output_dir = pathlib.Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    if isinstance(design, Design):
+    if isinstance(design, SampleCollection):
         for fastq_set in design.fastq_sets:
             if fastq_set.is_paired:
                 symlink_file(
@@ -137,7 +137,7 @@ def symlink_fastq_files(
                     output_dir, fastq_set.r1.path, f"{fastq_set.name}.fastq.gz"
                 )
 
-    elif isinstance(design, DesignIP):
+    elif isinstance(design, IPSampleCollection):
         for experiment in design.experiments:
             if experiment.fastqs_are_paired:
                 symlink_file(
@@ -207,7 +207,7 @@ def is_off(param: str):
 
 def is_none(param: str) -> bool:
     """Returns True if parameter is none"""
-    values = ["", "none"]
+    values = ["", "none", ".", "null"]
     if str(param).lower() in values:
         return True
     else:
@@ -277,10 +277,10 @@ def pepe_silvia():
     return _pepe_silvia
 
 
-def get_group_for_sample(wildcards, design: Union[Design, DesignIP], strip: str = ""):
-    from seqnado.design import NormGroups
+def get_group_for_sample(wildcards, design: Union[SampleCollection, IPSampleCollection], strip: str = ""):
+    from seqnado.design import SampleGroupCollection
 
-    norm_groups = NormGroups.from_design(design, include_controls=True)
+    norm_groups = SampleGroupCollection.from_design(design, include_controls=True)
 
     try:
         group = norm_groups.get_sample_group(wildcards.sample.strip(strip))

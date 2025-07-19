@@ -8,7 +8,9 @@ from typing import Literal, Optional, Dict, List
 from jinja2 import Environment, FileSystemLoader
 from loguru import logger
 from pydantic import BaseModel, field_validator, ValidationError
-from seqnado.design import PeakCallingMethod, PileupMethod, Assay
+
+from seqnado.design import Assay, PileupMethod, PeakCallingMethod
+
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(package_dir, "workflow/config")

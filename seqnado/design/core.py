@@ -25,7 +25,7 @@ class Assay(Enum):
     @classmethod
     def non_ip_assays(cls):
         """Return assays that don't require IP (immunoprecipitation)."""
-        ip_assays = {cls.ChIP, cls.CAT}
+        ip_assays = {cls.CHIP, cls.CAT}
         return [assay for assay in cls if assay not in ip_assays]
     
     @classmethod

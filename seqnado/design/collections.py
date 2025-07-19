@@ -1,4 +1,3 @@
-# refactored_design.py
 from __future__ import annotations
 import pathlib
 from collections import defaultdict
@@ -10,10 +9,10 @@ from pandera.typing import DataFrame
 from .fastq import FastqFile, FastqSet, FastqSetIP, FastqFileIP
 from .core import Metadata, Assay
 from .validation import DesignDataFrame
-from .experiment import IPExperiment
+from .experiment import ExperimentIP
 
 
-class BaseDesign(BaseModel):
+class BaseFastqCollection(BaseModel):
     """
     Base class for all design types providing common functionality.
     """
@@ -68,7 +67,7 @@ class BaseDesign(BaseModel):
         raise NotImplementedError("Subclasses must implement to_dataframe")
 
 
-class Design(BaseDesign):
+class SampleCollection(BaseFastqCollection):
     """
     Represents a collection of sequencing samples (FASTQ files) grouped into named sets,
     with optional per-sample metadata.
@@ -84,7 +83,7 @@ class Design(BaseDesign):
     def validate_non_ip_assay(cls, v: Assay) -> Assay:
         """Ensure the assay doesn't require IP (immunoprecipitation)."""
         if v in Assay.ip_assays():
-            raise ValueError(f"Assay '{v.value}' requires IP and should use DesignIP instead")
+            raise ValueError(f"Assay '{v.value}' requires IP and should use IPSampleCollection instead")
         return v
 
     @property
@@ -115,7 +114,7 @@ class Design(BaseDesign):
         try:
             return next(fs for fs in self.fastq_sets if fs.name == sample_name)
         except StopIteration:
-            raise ValueError(f"Sample '{sample_name}' not found in Design")
+            raise ValueError(f"Sample '{sample_name}' not found in SampleCollection")
 
     @classmethod
     def from_fastq_files(
@@ -124,9 +123,9 @@ class Design(BaseDesign):
         files: Iterable[str | pathlib.Path],
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **fastqset_kwargs: Any,
-    ) -> Design:
+    ) -> SampleCollection:
         """
-        Build a Design by scanning a list of FASTQ paths:
+        Build a SampleCollection by scanning a list of FASTQ paths:
 
         1. Convert raw paths to FastqFile.
         2. Group by `sample_base` and sort by read_number.
@@ -177,9 +176,9 @@ class Design(BaseDesign):
         glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **kwargs: Any,
-    ) -> Design:
+    ) -> SampleCollection:
         """
-        Recursively scan a directory for FASTQ files and build a Design.
+        Recursively scan a directory for FASTQ files and build a SampleCollection.
 
         Args:
             directory: Root path to search.
@@ -202,7 +201,7 @@ class Design(BaseDesign):
         rows: list[dict[str, Any]] = []
         for fs, md in zip(self.fastq_sets, self.metadata):
             row: dict[str, Any] = {
-                "sample_name": fs.name,
+                "sample_name": fs.sample_id,
                 "r1": fs.r1.path,
                 "r2": fs.r2.path if fs.r2 else None,
             }
@@ -217,9 +216,9 @@ class Design(BaseDesign):
         return DataFrame[DesignDataFrame](df)
 
     @classmethod
-    def from_dataframe(cls, assay: Assay, df: pd.DataFrame, **fastqset_kwargs: Any) -> Design:
+    def from_dataframe(cls, assay: Assay, df: pd.DataFrame, **fastqset_kwargs: Any) -> SampleCollection:
         """
-        Build a Design from a DataFrame, validated by DataFrameDesign.
+        Build a SampleCollection from a DataFrame, validated by DataFrameDesign.
 
         Expects columns: sample_name, r1, r2, plus any metadata fields.
         """
@@ -246,7 +245,7 @@ class Design(BaseDesign):
         return cls(assay=assay, fastq_sets=fastq_sets, metadata=metadata)
 
 
-class DesignIP(BaseDesign):
+class IPSampleCollection(BaseFastqCollection):
     """
     Represents an IP (e.g., ChIP/CAT) experiment design:
     paired IP/control FastqSetIP objects, plus per-experiment metadata.
@@ -256,13 +255,13 @@ class DesignIP(BaseDesign):
         experiments: List of IPExperiment, each with .ip and optional .control FastqSetIP.
         metadata:    List of Metadata matching the experiments list.
     """
-    experiments: list[IPExperiment]
+    experiments: list[ExperimentIP]
 
     @field_validator("assay")
     @classmethod
     def validate_assay(cls, assay: Assay) -> Assay:
         if assay not in Assay.ip_assays():
-            raise ValueError(f"Assay '{assay.value}' should use `Design` instead")
+            raise ValueError(f"Assay '{assay.value}' should use `SampleCollection` instead")
         return assay
 
     @property
@@ -310,7 +309,7 @@ class DesignIP(BaseDesign):
             if exp.has_control and exp.control_fullname == sample_name:
                 out = {"ip": exp.ip, "control": exp.control}
                 return out if full else exp.control
-        raise KeyError(f"Sample '{sample_name}' not found in DesignIP")
+        raise KeyError(f"Sample '{sample_name}' not found in IPSampleCollection")
 
     @classmethod
     def from_fastq_files(
@@ -319,9 +318,9 @@ class DesignIP(BaseDesign):
         files: Iterable[str | pathlib.Path],
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **exp_kwargs: Any,
-    ) -> DesignIP:
+    ) -> IPSampleCollection:
         """
-        Build DesignIP from a mixture of IP/control FASTQ paths.
+        Build IPSampleCollection from a mixture of IP/control FASTQ paths.
 
         Groups by FastqFileIP.sample_base_without_ip and read number.
 
@@ -344,7 +343,7 @@ class DesignIP(BaseDesign):
             side = "control" if f.is_control else "ip"
             buckets[key][side].append(f)
 
-        experiments: list[IPExperiment] = []
+        experiments: list[ExperimentIP] = []
         _metadata: list[Metadata] = []
         for name, sides in buckets.items():
             # Sort by read_number
@@ -369,7 +368,7 @@ class DesignIP(BaseDesign):
                 else None
             )
 
-            experiments.append(IPExperiment(ip=ip_set, control=ctrl_set, **exp_kwargs))
+            experiments.append(ExperimentIP(ip=ip_set, control=ctrl_set, **exp_kwargs))
             
             # Build Metadata using base class method
             _metadata.append(cls._build_metadata(name, metadata))
@@ -384,9 +383,9 @@ class DesignIP(BaseDesign):
         glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **kwargs: Any,
-    ) -> DesignIP:  
+    ) -> IPSampleCollection:  
         """
-        Scan a directory for IP/control FASTQ files and build a DesignIP.
+        Scan a directory for IP/control FASTQ files and build a IPSampleCollection.
 
         Args:
             directory: Root path to search.
@@ -408,7 +407,7 @@ class DesignIP(BaseDesign):
 
         rows: list[dict[str, Any]] = []
         for exp, md in zip(self.experiments, self.metadata):
-            base = exp.ip.name
+            base = exp.ip.sample_id
             row: dict[str, Any] = {
                 "sample_name": base,
                 # IP reads
@@ -428,18 +427,18 @@ class DesignIP(BaseDesign):
         return DataFrame[DesignDataFrame](df)
 
 
-class MultiAssayDesign(BaseDesign):
+class MultiAssayDesign(BaseFastqCollection):
     """
     Represents a design containing multiple assay types.
     Can handle both regular and IP-based assays in a single design.
     
     Attributes:
-        designs: Dictionary mapping assay types to their respective Design/DesignIP objects.
+        designs: Dictionary mapping assay types to their respective SampleCollection/IPSampleCollection objects.
         metadata: Global metadata list (can be empty if each design has its own metadata).
     """
-    designs: dict[Assay, Design | DesignIP]
+    designs: dict[Assay, SampleCollection | IPSampleCollection]
     
-    def __init__(self, designs: dict[Assay, Design | DesignIP], **kwargs):
+    def __init__(self, designs: dict[Assay, SampleCollection | IPSampleCollection], **kwargs):
         # For multi-assay, we set a default assay but it's not really meaningful
         # The real assay information is in the individual designs
         super().__init__(assay=list(designs.keys())[0] if designs else Assay.RNA, 
@@ -459,7 +458,7 @@ class MultiAssayDesign(BaseDesign):
             all_names.extend(design.sample_names)
         return sorted(set(all_names))
     
-    def get_design(self, assay: Assay) -> Design | DesignIP:
+    def get_design(self, assay: Assay) -> SampleCollection | IPSampleCollection:
         """Get the design for a specific assay type."""
         if assay not in self.designs:
             raise KeyError(f"Assay '{assay.value}' not found in MultiAssayDesign")
@@ -493,7 +492,7 @@ class MultiAssayDesign(BaseDesign):
         return results
     
     @classmethod
-    def from_designs(cls, designs: dict[Assay, Design | DesignIP]) -> MultiAssayDesign:
+    def from_designs(cls, designs: dict[Assay, SampleCollection | IPSampleCollection]) -> MultiAssayDesign:
         """Create a MultiAssayDesign from a dictionary of existing designs."""
         return cls(designs=designs)
     
@@ -518,7 +517,7 @@ class MultiAssayDesign(BaseDesign):
         
         for assay, directory in assay_directories.items():
             if assay in Assay.ip_assays():
-                design = DesignIP.from_directory(
+                design = IPSampleCollection.from_directory(
                     assay=assay, 
                     directory=directory, 
                     glob_patterns=glob_patterns,
@@ -526,7 +525,7 @@ class MultiAssayDesign(BaseDesign):
                     **kwargs
                 )
             else:
-                design = Design.from_directory(
+                design = SampleCollection.from_directory(
                     assay=assay,
                     directory=directory,
                     glob_patterns=glob_patterns, 
@@ -556,14 +555,14 @@ class MultiAssayDesign(BaseDesign):
         combined_df = pd.concat(all_dfs, ignore_index=True)
         return combined_df.sort_values(['assay', 'sample_name'])
     
-    def split_by_assay(self) -> dict[Assay, Design | DesignIP]:
+    def split_by_assay(self) -> dict[Assay, SampleCollection | IPSampleCollection]:
         """Return the individual designs by assay type."""
         return self.designs.copy()
 
 
 
 
-class NormGroup(BaseModel):
+class SampleGroup(BaseModel):
     """
     Represents a normalization group containing samples and an optional reference sample.
     
@@ -579,24 +578,24 @@ class NormGroup(BaseModel):
     @classmethod
     def from_design(
         cls,
-        design: Design | DesignIP,
+        design: SampleCollection | IPSampleCollection,
         reference_sample: str | None = None,
         subset_column: str = "norm_group",
         subset_value: list[str] | None = None,
         include_controls: bool = False,
-    ) -> NormGroup:
+    ) -> SampleGroup:
         """
-        Create a NormGroup from a design object.
+        Create a SampleGroup from a design object.
         
         Args:
-            design: The design object (Design or DesignIP)
+            design: The design object (SampleCollection or IPSampleCollection)
             reference_sample: Optional reference sample name
             subset_column: Column to use for subsetting (default: "norm_group")
             subset_value: Values to filter by in the subset column
             include_controls: Whether to include control samples (for DesignIP)
             
         Returns:
-            NormGroup instance
+            SampleGroup instance
             
         Raises:
             ValueError: If no samples found after filtering
@@ -604,6 +603,10 @@ class NormGroup(BaseModel):
         df = cls._prepare_dataframe(design, include_controls)
         
         if subset_value:
+            # Check if subset_column exists in the DataFrame
+            if subset_column not in df.columns:
+                raise ValueError(f"No samples found for group with {subset_column} in {subset_value}")
+            
             df = df.query(f"{subset_column} in {subset_value}")
         
         samples = df.index.tolist()
@@ -620,7 +623,7 @@ class NormGroup(BaseModel):
         )
     
     @staticmethod
-    def _prepare_dataframe(design: Design | DesignIP, include_controls: bool) -> pd.DataFrame:
+    def _prepare_dataframe(design: SampleCollection | IPSampleCollection, include_controls: bool) -> pd.DataFrame:
         """
         Prepare a DataFrame from design with appropriate sample naming.
         
@@ -633,14 +636,14 @@ class NormGroup(BaseModel):
         """
         base_df = design.to_dataframe()
         
-        if isinstance(design, Design):
+        if isinstance(design, SampleCollection):
             return (
                 base_df
                 .assign(sample_fullname=lambda df: df.sample_name)
                 .set_index("sample_fullname")
             )
         
-        # Handle DesignIP
+        # Handle IPSampleCollection
         if not include_controls:
             return (
                 base_df
@@ -672,37 +675,37 @@ class NormGroup(BaseModel):
     
     def __str__(self) -> str:
         """String representation of the group."""
-        return f"NormGroup(group='{self.group}', samples={len(self.samples)}, reference='{self.reference_sample}')"
+        return f"SampleGroup(group='{self.group}', samples={len(self.samples)}, reference='{self.reference_sample}')"
 
 
-class NormGroups(BaseModel):
+class SampleGroupCollection(BaseModel):
     """
     Collection of normalization groups with utilities for sample group management.
     
     Attributes:
-        groups: List of NormGroup objects
+        groups: List of SampleGroup objects
     """
-    groups: list[NormGroup]
+    groups: list[SampleGroup]
 
     @classmethod
     def from_design(
         cls,
-        design: Design | DesignIP,
+        design: SampleCollection | IPSampleCollection,
         reference_sample: str | None = None,
         subset_column: str = "norm_group",
         include_controls: bool = False,
-    ) -> NormGroups:
+    ) -> SampleGroupCollection:
         """
-        Create NormGroups from a design object.
+        Create SampleGroupCollection from a design object.
         
         Args:
-            design: The design object (Design or DesignIP)
+            design: The design object (SampleCollection or IPSampleCollection)
             reference_sample: Optional reference sample name
             subset_column: Column to use for grouping (default: "norm_group")
             include_controls: Whether to include control samples (for DesignIP)
             
         Returns:
-            NormGroups instance
+            SampleGroupCollection instance
         """
         df = design.to_dataframe()
 
@@ -711,7 +714,7 @@ class NormGroups(BaseModel):
             unique_values = df[subset_column].dropna().unique()
             
             groups = [
-                NormGroup.from_design(
+                SampleGroup.from_design(
                     design=design,
                     reference_sample=reference_sample,
                     subset_column=subset_column,
@@ -723,7 +726,7 @@ class NormGroups(BaseModel):
         else:
             # Create single group with all samples
             groups = [
-                NormGroup(
+                SampleGroup(
                     group="all",
                     samples=design.sample_names,
                     reference_sample=reference_sample or design.sample_names[0],
@@ -793,15 +796,15 @@ class NormGroups(BaseModel):
             raise KeyError(f"Group '{group}' not found. Available groups: {available_groups}")
         return mapping[group]
     
-    def get_group_by_name(self, group_name: str | int) -> NormGroup:
+    def get_group_by_name(self, group_name: str | int) -> SampleGroup:
         """
-        Get a NormGroup object by its group identifier.
+        Get a SampleGroup object by its group identifier.
         
         Args:
             group_name: Group identifier to find
             
         Returns:
-            NormGroup object
+            SampleGroup object
             
         Raises:
             KeyError: If group not found
@@ -826,7 +829,7 @@ class NormGroups(BaseModel):
     def __str__(self) -> str:
         """String representation of the groups."""
         group_info = [f"'{g.group}': {len(g.samples)} samples" for g in self.groups]
-        return f"NormGroups({len(self.groups)} groups: {', '.join(group_info)})"
+        return f"SampleGroupCollection({len(self.groups)} groups: {', '.join(group_info)})"
 
     # Backward compatibility properties
     @property  
