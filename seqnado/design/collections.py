@@ -12,7 +12,7 @@ from .validation import DesignDataFrame
 from .experiment import ExperimentIP
 
 
-class BaseFastqCollection(BaseModel):
+class BaseSampleCollection(BaseModel):
     """
     Base class for all design types providing common functionality.
     """
@@ -67,7 +67,7 @@ class BaseFastqCollection(BaseModel):
         raise NotImplementedError("Subclasses must implement to_dataframe")
 
 
-class SampleCollection(BaseFastqCollection):
+class SampleCollection(BaseSampleCollection):
     """
     Represents a collection of sequencing samples (FASTQ files) grouped into named sets,
     with optional per-sample metadata.
@@ -245,7 +245,7 @@ class SampleCollection(BaseFastqCollection):
         return cls(assay=assay, fastq_sets=fastq_sets, metadata=metadata)
 
 
-class IPSampleCollection(BaseFastqCollection):
+class IPSampleCollection(BaseSampleCollection):
     """
     Represents an IP (e.g., ChIP/CAT) experiment design:
     paired IP/control FastqSetIP objects, plus per-experiment metadata.
@@ -427,7 +427,7 @@ class IPSampleCollection(BaseFastqCollection):
         return DataFrame[DesignDataFrame](df)
 
 
-class MultiAssayDesign(BaseFastqCollection):
+class MultiAssayDesign(BaseSampleCollection):
     """
     Represents a design containing multiple assay types.
     Can handle both regular and IP-based assays in a single design.
@@ -688,7 +688,7 @@ class SampleGroups(BaseModel):
     groups: list[SampleGroup]
 
     @classmethod
-    def from_design(
+    def from_sample_collection(
         cls,
         design: SampleCollection | IPSampleCollection,
         reference_sample: str | None = None,

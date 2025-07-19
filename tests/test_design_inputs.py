@@ -257,14 +257,14 @@ class TestSampleGroups:
 
     def test_from_design_no_groups_column(self, mock_design):
         """Test creating SampleGroups when no grouping column exists."""
-        groups = SampleGroups.from_design(mock_design)
+        groups = SampleGroups.from_sample_collection(mock_design)
         assert len(groups) == 1
         assert groups.groups[0].group == "all"
         assert set(groups.groups[0].samples) == {"sample1", "sample2", "sample3"}
 
     def test_from_design_with_groups_column(self, mock_design_with_groups):
         """Test creating SampleGroups with grouping column."""
-        groups = SampleGroups.from_design(
+        groups = SampleGroups.from_sample_collection(
             mock_design_with_groups,
             subset_column="norm_group"
         )
