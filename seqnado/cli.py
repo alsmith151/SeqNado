@@ -75,13 +75,14 @@ def cli_init(preset):
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("method", type=click.Choice(Assay.all_assay_clean_names()))
 @click.option('--dont-make-directories', is_flag=True, help="Do not create directories for the workflow")
-def cli_config(method, dont_make_directories):
+@click.option('--all-options', is_flag=True, help="Write all options to the config file, even if they are not used in the workflow")
+def cli_config(method, dont_make_directories, all_options):
     """
     Runs the config for the data processing pipeline.
     """
     from importlib.metadata import version
     from seqnado.inputs import Assay
-    from seqnado.config.user_input import build_workflow_config
+    from seqnado.config.user_input import build_workflow_config, render_config
     from pathlib import Path
     import yaml
 
@@ -103,19 +104,11 @@ def cli_config(method, dont_make_directories):
         logger.info(f"Created output directory: {fastq_dir}")
 
         config_output = outdir / f'config_{assay.value}.yaml'
-        with open(config_output, "w") as f:
-            yaml.dump(workflow_config.model_dump(), f, default_flow_style=True)
-        logger.success(f"Configuration file saved to {config_output}")
     
     else:
         config_output = Path(f'config_{assay.value}.yaml')
-        with open(config_output, "w") as f:
-            yaml.dump(workflow_config.model_dump(), f, default_flow_style=True)
-        logger.success(f"Configuration file saved to {config_output}")
 
-            
-
-
+    render_config(template=Path("template.jinja"), workflow_config=workflow_config, outfile=config_output, all_options=all_options)
 
 
 

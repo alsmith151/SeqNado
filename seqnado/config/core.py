@@ -1,5 +1,5 @@
-from pydantic import BaseModel, field_validator, computed_field
-from datetime import datetime
+from pydantic import BaseModel, field_validator, computed_field, Field
+from datetime import date as _date
 from typing import Union, Literal
 from pathlib import Path
 from enum import Enum
@@ -196,7 +196,8 @@ class ProjectConfig(BaseModel):
     """Configuration for the SeqNado project."""
 
     name: str
-    date: datetime
+    date: _date = Field(default_factory=_date.today)
+    description: str | None = None
     directory: Path
 
 

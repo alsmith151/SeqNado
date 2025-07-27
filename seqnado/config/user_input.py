@@ -163,8 +163,8 @@ def load_genome_configs(assay: Assay) -> Dict[str, BowtieIndex | STARIndex]:
 def get_project_config() -> ProjectConfig:
     """Get project configuration from user input."""
     username = os.getenv("USER", "unknown_user")
-    today = datetime.now()
-    
+    today = datetime.strftime(datetime.today(), "%Y-%m-%d")
+
     project_name = get_user_input(
         "Project name?", 
         default=f"{username}_project"
@@ -470,7 +470,6 @@ def build_assay_config(assay: Assay, genome_config: GenomeConfig) -> Optional[As
         "ucsc_hub": ucsc_hub,
         "create_heatmaps": create_heatmaps,
         "create_geo_submission_files": geo_files,
-        "options": get_tool_options(assay),
     }
     
     if assay == Assay.ATAC:
@@ -616,7 +615,8 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> WorkflowConfig:
             project=project,
             genome=genome,
             metadata=pathlib.Path(metadata_path),
-            assay_config=assay_config
+            assay_config=assay_config,
+            options=get_tool_options(assay),
         )
         return workflow_config
     
@@ -626,50 +626,24 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> WorkflowConfig:
 
 
 
-
-def make_serializable(item: Path | Enum | Any) -> str | Any:
-    """
-    Convert Python objects to a serializable string format.
-    Handles Path, Enum, and other types.
-    """
-    match item:
-        case Path():
-            return str(item)
-        case Enum():
-            return item.value
-        case _:
-            return item
-
-
-def recursive_serialize(obj):
-    if isinstance(obj, dict):
-        return {k: recursive_serialize(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [recursive_serialize(v) for v in obj]
-    else:
-        return make_serializable(obj)
-
-
-
-def render_config(template: Path, workflow_config: WorkflowConfig, outfile: Path) -> None:
+def render_config(template: Path, workflow_config: WorkflowConfig, outfile: Path, all_options: bool = False) -> None:
     """Render the workflow configuration to a file."""
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template.parent))
     template = env.get_template(template.name)
 
     # Convert the Pydantic model to a dictionary for rendering 
-    config_dict = workflow_config.model_dump()
+    config_dict = workflow_config.model_dump(mode="json", exclude_none=not all_options)
 
-    # Render the template with the configuration dictionary
-    rendered = template.render(config_dict)
-    rendered = "\n".join([line for line in rendered.splitlines() if line.strip() != ""])
-
-    with open(outfile, 'w') as f:
-        f.write(rendered)
+    try:
+        rendered_content = template.render(**config_dict)
+    except jinja2.TemplateError as e:
+        logger.error(f"Template rendering error: {e}")
+        sys.exit(1) 
     
-    logger.info(f"Configuration rendered to {outfile}")
-
-
+    with open(outfile, "w") as f:
+        f.write(rendered_content)
+    
 
 
 
