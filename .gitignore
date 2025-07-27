@@ -32,3 +32,4 @@ containers/*.sif
 containers/push_notes.txt
 paths.txt
 check_design.ipynb
+output.yml

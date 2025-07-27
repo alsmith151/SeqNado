@@ -6,11 +6,11 @@ import sys
 
 import click
 from loguru import logger
+from seqnado import Assay
 
 
 FILE = os.path.abspath(__file__)
 PACKAGE_DIR = os.path.dirname(FILE)
-ASSAYS = ["atac", "chip", "rna", "snp", 'cat', 'meth', 'mcc', 'crispr']
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
@@ -73,7 +73,7 @@ def cli_init(preset):
 
 # Config
 @click.command(context_settings=dict(ignore_unknown_options=True))
-@click.argument("method", type=click.Choice(ASSAYS))
+@click.argument("method", type=click.Choice(Assay.all_assay_clean_names()))
 @click.option('--dont-make-directories', is_flag=True, help="Do not create directories for the workflow")
 def cli_config(method, dont_make_directories):
     """
@@ -86,8 +86,9 @@ def cli_config(method, dont_make_directories):
     import yaml
 
     seqnado_version = version("seqnado")
-    assay = Assay(method)
+    assay = Assay.from_clean_name(method)
     workflow_config = build_workflow_config(assay, seqnado_version)
+    
     if not workflow_config:
         logger.error("Failed to build workflow configuration.")
         sys.exit(1)
@@ -120,7 +121,7 @@ def cli_config(method, dont_make_directories):
 
 # Design
 @click.command()
-@click.argument("method", type=click.Choice(ASSAYS))
+@click.argument("method", type=click.Choice(Assay.all_assay_clean_names()))
 @click.argument("files", nargs=-1)
 @click.option("-o", "--output", default="design.csv", help="Output file name")
 @click.option("--merge", is_flag=True, help="Generate a 'merge' column in the design file")
@@ -181,7 +182,7 @@ def cli_design(method, files, output="design.csv", merge=False):
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument(
     "method",
-    type=click.Choice(ASSAYS),
+    type=click.Choice(Assay.all_assay_clean_names()),
 )
 @click.option("--version", help="Print version and exit", is_flag=True)
 @click.option(

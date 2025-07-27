@@ -44,6 +44,8 @@ from seqnado.config.core import (
     RNAQuantificationMethod,
     MethylationMethod,
     AssaySpecificConfig,
+    BowtieIndex,
+    STARIndex
 )
 from seqnado.config.core import PileupMethod, PeakCallingMethod
 
@@ -104,7 +106,7 @@ def get_user_input(
         return user_input
 
 
-def load_genome_configs() -> Dict[str, GenomeConfig]:
+def load_genome_configs(assay: Assay) -> Dict[str, BowtieIndex | STARIndex]:
     """Load genome configurations from the config file."""
     config_path = pathlib.Path(os.getenv("SEQNADO_CONFIG", pathlib.Path.home())) / ".config/seqnado/genome_config.json"
     if not config_path.exists():
@@ -113,20 +115,22 @@ def load_genome_configs() -> Dict[str, GenomeConfig]:
     
     with open(config_path) as f:
         genome_data = json.load(f)
-    
+
+
     # Convert to GenomeConfig objects
     genome_configs = {}
-    for name, config_dict in genome_data.items():
-        # Determine index type and create appropriate index object
-        if "star" in config_dict.get("index", "").lower():
-            index = GenomeIndex.STAR
-        else:
-            index = GenomeIndex.BOWTIE2
-        
+    for name, config_dict in genome_data.items(): 
+
+        genome_index = BowtieIndex if assay != Assay.RNA else STARIndex
+        index_key = 'bt2_index' if assay != Assay.RNA else 'star_index'
+        if index_key not in config_dict:
+            print(f"\n❌ Configuration error for genome '{name}': Missing '{index_key}' key.\n")
+            sys.exit(1)
+
         try:
             genome_configs[name] = GenomeConfig(
                 name=name,
-                index=index,
+                index=genome_index(prefix=config_dict.get(index_key)),
                 fasta=pathlib.Path(config_dict["fasta"]),
                 chromosome_sizes=pathlib.Path(config_dict["chromosome_sizes"]) if config_dict.get("chromosome_sizes") else None,
                 gtf=pathlib.Path(config_dict["gtf"]) if config_dict.get("gtf") else None,
@@ -588,7 +592,7 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> WorkflowConfig:
     logger.debug(f"Assay: {assay}, SeqNado version: {seqnado_version}")
     
     # Load available genome configurations
-    genome_configs = load_genome_configs()
+    genome_configs = load_genome_configs(assay)
     
     # Get project configuration
     project = get_project_config()

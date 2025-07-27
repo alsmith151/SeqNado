@@ -14,14 +14,52 @@ NONE_VALUES = [None, "None", "none", "null", "Null", "NULL", ".", "", "NA"]
 class Assay(Enum):
     """Supported sequencing assay types."""
 
-    RNA = "rna"
-    ATAC = "atac"
-    SNP = "snp"
-    CHIP = "chip"
-    CAT = "cat"
-    METH = "meth"
-    MCC = "mcc"
-    CRISPR = "crispr"
+    RNA = "RNA"
+    ATAC = "ATAC"
+    SNP = "SNP"
+    CHIP = "ChIP"
+    CAT = "CUT&TAG"
+    METH = "METH"
+    MCC = "MCC"
+    CRISPR = "CRISPR"
+
+    @classmethod
+    def all_assays(cls):
+        """Return all supported assays."""
+        return list(cls)
+    
+    @property
+    def clean_name(self):
+        """Return a short name for the assay."""
+        short_names = {
+            self.RNA: "rna",
+            self.ATAC: "atac",
+            self.SNP: "snp",
+            self.CHIP: "chip",
+            self.CAT: "cat",
+            self.METH: "meth",
+            self.MCC: "mcc",
+            self.CRISPR: "crispr",
+        }
+        
+        if self in short_names:
+            return short_names[self]
+        else:
+            raise ValueError(f"Unknown assay type: {self}")
+    
+    @classmethod
+    def from_clean_name(cls, clean_name):
+        """Return the assay type from a short name."""
+        for assay in cls:
+            if assay.clean_name == clean_name:
+                return assay
+        raise ValueError(f"Unknown clean name: {clean_name}")
+    
+    @classmethod
+    def all_assay_clean_names(cls):
+        """Return a list of all clean names for assays."""
+        return [assay.clean_name for assay in cls]
+
 
     @classmethod
     def non_ip_assays(cls):

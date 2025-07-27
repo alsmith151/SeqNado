@@ -516,8 +516,7 @@ class WorkflowConfig(BaseModel):
     assay: Assay
     project: ProjectConfig
     genome: GenomeConfig
-    metadata: Path
-
+    metadata: Path 
     pcr_duplicates: PCRDuplicatesConfig = PCRDuplicatesConfig()
     qc: QCConfig = QCConfig()
     assay_config: AssaySpecificConfig | None = None
