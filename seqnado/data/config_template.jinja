@@ -1,0 +1,49 @@
+{% macro render_kv(key, value, indent=0) %}
+{%- set space = '  ' * indent -%}
+{%- if value is mapping -%}
+{{ space }}{{ key }}:
+{%- for subkey, subvalue in value.items() %}
+{{ render_kv(subkey, subvalue, indent + 1) }}
+{%- endfor %}
+{%- elif value is iterable and value is not string -%}
+{{ space }}{{ key }}:
+{%- for item in value %}
+{{ space }}  - {{ item }}
+{%- endfor %}
+{%- else -%}
+{{ space }}{{ key }}: "{{ value }}"
+{%- endif %}
+{% endmacro %}
+###################################
+# Project Metadata
+###################################
+{{ render_kv("user", user) }}
+{{ render_kv("project_date", project.date) }}
+{{ render_kv("project_name", project.name) }}
+{{ render_kv("seqnado_version", seqnado_version) }}
+design: "design.csv"
+{{ render_kv("project_directory", project.directory) }}
+
+###################################
+# Genome Configuration
+###################################
+{{ render_kv("genome", genome) }}
+
+###################################
+# PCR Duplicates
+###################################
+{{ render_kv("pcr_duplicates", pcr_duplicates) }}
+
+###################################
+# QC Settings
+###################################
+{{ render_kv("qc", qc) }}
+
+###################################
+# Assay Configuration
+###################################
+{{ render_kv("assay", assay) }}
+{{ render_kv("metadata", metadata) }}
+{% if assay_config %}
+{{ render_kv("assay_config", assay_config) }}
+{% endif %}

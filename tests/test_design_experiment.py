@@ -1,7 +1,7 @@
 """Tests for the design.experiment module."""
 import pytest
-from seqnado.design.experiment import ExperimentIP
-from seqnado.design.fastq import FastqSetIP, FastqFileIP
+from seqnado.inputs.experiment import ExperimentIP
+from seqnado.inputs.fastq import FastqSetIP, FastqFileIP
 import pathlib
 
 

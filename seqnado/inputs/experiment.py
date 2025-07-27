@@ -1,8 +1,6 @@
 from pydantic import BaseModel
 from .fastq import FastqSetIP
 
-
-
 class ExperimentIP(BaseModel):
     ip: FastqSetIP
     control: FastqSetIP | None = None

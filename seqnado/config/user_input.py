@@ -7,17 +7,19 @@ import os
 import pathlib
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
+from pathlib import Path
+from enum import Enum
 
 from loguru import logger
 from pydantic import ValidationError
+import jinja2
 
-from seqnado.design import Assay
-from seqnado.config.configs import (
+from seqnado.inputs import Assay
+from seqnado.config.core import (
     WorkflowConfig,
     GenomeConfig,
     ProjectConfig,
-    GenomeIndex,
     BigwigConfig,
     PlottingConfig,
     PeakCallingConfig,
@@ -458,6 +460,7 @@ def build_assay_config(assay: Assay, genome_config: GenomeConfig) -> Optional[As
     geo_files = get_user_input("Generate GEO submission files?", default="no", is_boolean=True)
     
     base_config = {
+        "genome": genome_config,
         "bigwigs": bigwigs,
         "plotting": plotting,
         "ucsc_hub": ucsc_hub,
@@ -559,17 +562,17 @@ def get_tool_options(assay: Assay) -> str:
 
     match assay:
         case Assay.RNA:
-            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_rna.yml'
+            tool_file = importlib.resources.files(seqnado.data) / 'tool_options_rna.yml'
         case Assay.SNP:
-            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_snp.yml'
+            tool_file = importlib.resources.files(seqnado.data) / 'tool_options_snp.yml'
         case Assay.METH:
-            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_meth.yml'
+            tool_file = importlib.resources.files(seqnado.data) / 'tool_options_meth.yml'
         case Assay.MCC:
-            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_mcc.yml'
+            tool_file = importlib.resources.files(seqnado.data) / 'tool_options_mcc.yml'
         case Assay.CRISPR:
-            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_crispr.yml'
+            tool_file = importlib.resources.files(seqnado.data) / 'tool_options_crispr.yml'
         case _:
-            tool_file = importlib.resources.files(seqnado.workflow.config) / 'tool_options_base.yml'
+            tool_file = importlib.resources.files(seqnado.data) / 'tool_options_base.yml'
     
     with open(tool_file) as f:
         tool_options = yaml.safe_load(f)
@@ -618,4 +621,51 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> WorkflowConfig:
         sys.exit(1)
 
 
-def render_config()
+
+
+def make_serializable(item: Path | Enum | Any) -> str | Any:
+    """
+    Convert Python objects to a serializable string format.
+    Handles Path, Enum, and other types.
+    """
+    match item:
+        case Path():
+            return str(item)
+        case Enum():
+            return item.value
+        case _:
+            return item
+
+
+def recursive_serialize(obj):
+    if isinstance(obj, dict):
+        return {k: recursive_serialize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [recursive_serialize(v) for v in obj]
+    else:
+        return make_serializable(obj)
+
+
+
+def render_config(template: Path, workflow_config: WorkflowConfig, outfile: Path) -> None:
+    """Render the workflow configuration to a file."""
+
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template.parent))
+    template = env.get_template(template.name)
+
+    # Convert the Pydantic model to a dictionary for rendering 
+    config_dict = workflow_config.model_dump()
+
+    # Render the template with the configuration dictionary
+    rendered = template.render(config_dict)
+    rendered = "\n".join([line for line in rendered.splitlines() if line.strip() != ""])
+
+    with open(outfile, 'w') as f:
+        f.write(rendered)
+    
+    logger.info(f"Configuration rendered to {outfile}")
+
+
+
+
+

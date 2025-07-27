@@ -1,7 +1,7 @@
 """Tests for the design.fastq module."""
 import pathlib
 import pytest
-from seqnado.design.fastq import FastqFile, FastqSet, FastqFileIP, FastqSetIP
+from seqnado.inputs.fastq import FastqFile, FastqSet, FastqFileIP, FastqSetIP
 
 
 @pytest.mark.unit

@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 from loguru import logger
 
-from seqnado.design import SampleCollection, IPSampleCollection, ScaleMethod
+from seqnado.inputs import SampleCollection, IPSampleCollection, ScaleMethod
 
 FILETYPE_TO_DIR_MAPPING = {
     "tag": "tag_dirs",
@@ -278,7 +278,7 @@ def pepe_silvia():
 
 
 def get_group_for_sample(wildcards, design: Union[SampleCollection, IPSampleCollection], strip: str = ""):
-    from seqnado.design import SampleGroups
+    from seqnado.inputs import SampleGroups
 
     norm_groups = SampleGroups.from_sample_collection(design, include_controls=True)
 

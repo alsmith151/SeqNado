@@ -80,7 +80,7 @@ def cli_config(method, dont_make_directories):
     Runs the config for the data processing pipeline.
     """
     from importlib.metadata import version
-    from seqnado.design import Assay
+    from seqnado.inputs import Assay
     from seqnado.config.user_input import build_workflow_config
     from pathlib import Path
     import yaml
@@ -130,7 +130,7 @@ def cli_design(method, files, output="design.csv", merge=False):
     """
     import pathlib
 
-    from seqnado.design import SampleCollection, IPSampleCollection
+    from seqnado.inputs import SampleCollection, IPSampleCollection
 
     if not files:
         potential_file_locations = [

@@ -9,7 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 from loguru import logger
 from pydantic import BaseModel, field_validator, ValidationError
 
-from seqnado.design import Assay, PileupMethod, PeakCallingMethod
+from seqnado.inputs import Assay, PileupMethod, PeakCallingMethod
 
 
 package_dir = os.path.dirname(os.path.abspath(__file__))

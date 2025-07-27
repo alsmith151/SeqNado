@@ -1,7 +1,7 @@
 """Tests for the design.validation module."""
 import pytest
 import pandas as pd
-from seqnado.design.validation import DesignDataFrame
+from seqnado.inputs.validation import DesignDataFrame
 
 
 @pytest.mark.unit

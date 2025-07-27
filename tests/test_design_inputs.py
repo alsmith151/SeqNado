@@ -2,9 +2,9 @@
 import pytest
 import pathlib
 from design.collections import SampleGroup, SampleGroups, SampleCollection, IPSampleCollection
-from seqnado.design.core import Assay, Metadata
-from seqnado.design.fastq import FastqFile, FastqSet, FastqSetIP, FastqFileIP
-from seqnado.design.experiment import ExperimentIP
+from seqnado.inputs.core import Assay, Metadata
+from seqnado.inputs.fastq import FastqFile, FastqSet, FastqSetIP, FastqFileIP
+from seqnado.inputs.experiment import ExperimentIP
 
 
 @pytest.fixture

@@ -5,38 +5,12 @@ import re
 from enum import Enum
 from typing import Optional, Union
 from pydantic import BaseModel, Field, computed_field, field_validator
-
-
-# =============================================================================
-# ENUMS
-# =============================================================================
-
-class Assay(Enum):
-    """Supported sequencing assay types."""
-    RNA = "rna"
-    ATAC = "atac"
-    SNP = "snp"
-    CHIP = "chip"
-    CAT = "cat"
-    METH = "meth"
-    MCC = "mcc"
-    CRISPR = "crispr"
-    
-    @classmethod
-    def non_ip_assays(cls):
-        """Return assays that don't require IP (immunoprecipitation)."""
-        ip_assays = {cls.CHIP, cls.CAT}
-        return [assay for assay in cls if assay not in ip_assays]
-    
-    @classmethod
-    def ip_assays(cls):
-        """Return assays that require IP (immunoprecipitation)."""
-        return [cls.CHIP, cls.CAT]
-
+from seqnado import Assay
 
 # =============================================================================
 # CONSTANTS
 # =============================================================================
+
 ILLUMINA_FILENAME_PATTERNS = {
     r"_S\d+_": "_",
     r"_L00\d_": "_",
@@ -46,13 +20,6 @@ ILLUMINA_FILENAME_PATTERNS = {
 }
 
 INPUT_CONTROL_SUBSTRINGS = ["input", "mock", "igg", "control"]
-
-NONE_VALUES = [
-    None, "None", "none", "null", "Null", "NULL", 
-    ".", "", "NA"
-]
-
-
 
 
 # =============================================================================

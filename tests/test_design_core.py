@@ -1,7 +1,7 @@
 """Tests for the design.core module."""
 import pytest
 from pydantic import ValidationError
-from seqnado.design.core import Assay, PileupMethod, ScaleMethod, Metadata, clean_sample_name, extract_read_number, is_control_sample
+from seqnado.inputs.core import Assay, PileupMethod, ScaleMethod, Metadata, clean_sample_name, extract_read_number, is_control_sample
 
 
 # Test fixtures
@@ -210,7 +210,7 @@ class TestMetadata:
 
     def test_metadata_with_assay(self):
         """Test metadata creation with assay field."""
-        from seqnado.design.core import Assay
+        from seqnado.inputs.core import Assay
         metadata = Metadata(assay=Assay.RNA, norm_group="test")
         assert metadata.assay == Assay.RNA
         assert metadata.norm_group == "test"

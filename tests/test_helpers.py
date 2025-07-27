@@ -23,9 +23,9 @@ from seqnado.helpers import (
     extract_viewpoints,
     viewpoint_to_grouped_viewpoint,
 )
-from seqnado.design import SampleCollection, IPSampleCollection, Assay, Metadata
-from seqnado.design.fastq import FastqFile, FastqSet, FastqSetIP
-from seqnado.design.experiment import ExperimentIP
+from seqnado.inputs import SampleCollection, IPSampleCollection, Assay, Metadata
+from seqnado.inputs.fastq import FastqFile, FastqSet, FastqSetIP
+from seqnado.inputs.experiment import ExperimentIP
 
 
 # Test fixtures

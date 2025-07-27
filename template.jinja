@@ -1,0 +1,50 @@
+{% macro render_kv(key, value, indent=0) -%}
+{%- set space = '  ' * indent -%}
+{%- if value is mapping -%}
+{{ space }}{{ key }}:
+{%- for subkey, subvalue in value.items() %}
+{{ render_kv(subkey, subvalue, indent + 1) }}
+{%- endfor %}
+{%- elif value is iterable and value is not string -%}
+{{ space }}{{ key }}:
+{%- for item in value %}
+{{ space }}  - {{ item }}
+{%- endfor -%}
+{%- else -%}
+{{ space }}{{ key }}: "{{ value }}"
+{%- endif -%}
+{% endmacro %}
+###################################
+# Project Metadata
+###################################
+{{ render_kv("project", project) }}
+
+####################################
+# Experiment Metadata
+####################################
+metadata: {{ metadata }}
+
+####################################
+# {{assay}} Configuration
+####################################
+{{ render_kv("assay_config", assay_config) }}
+
+###################################
+# Genome Configuration
+###################################
+{{ render_kv("genome", genome) }}
+
+###################################
+# QC Settings
+###################################
+{{ render_kv("qc", qc) }}
+
+##################################
+# PCR Duplicates
+##################################
+{{ render_kv("pcr_duplicates", pcr_duplicates) }}
+
+##################################
+# Individual Tool Configuration
+##################################
+{{ options }}
