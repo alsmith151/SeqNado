@@ -4,7 +4,7 @@ from collections import defaultdict
 from itertools import chain
 from typing import Any, Callable, Iterable
 import pandas as pd
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 from pandera.typing import DataFrame
 from .fastq import FastqFile, FastqSet, FastqSetIP, FastqFileIP
 from .core import Metadata, Assay
@@ -580,285 +580,100 @@ class MultiAssayDesign(BaseSampleCollection):
 
 
 class SampleGroup(BaseModel):
-    """
-    Represents a normalization group containing samples and an optional reference sample.
-    
-    Attributes:
-        group: Group identifier (name or number), defaults to "all"
-        samples: List of sample names in this group
-        reference_sample: Optional reference sample for normalization
-    """
-    group: str | int = "all"
+    """A single group of samples with an optional reference sample."""
+    name: str
     samples: list[str]
     reference_sample: str | None = None
 
-    @classmethod
-    def from_design(
-        cls,
-        design: SampleCollection | IPSampleCollection,
-        reference_sample: str | None = None,
-        subset_column: str = "norm_group",
-        subset_value: list[str] | None = None,
-        include_controls: bool = False,
-    ) -> SampleGroup:
-        """
-        Create a SampleGroup from a design object.
-        
-        Args:
-            design: The design object (SampleCollection or IPSampleCollection)
-            reference_sample: Optional reference sample name
-            subset_column: Column to use for subsetting (default: "norm_group")
-            subset_value: Values to filter by in the subset column
-            include_controls: Whether to include control samples (for DesignIP)
-            
-        Returns:
-            SampleGroup instance
-            
-        Raises:
-            ValueError: If no samples found after filtering
-        """
-        df = cls._prepare_dataframe(design, include_controls)
-        
-        if subset_value:
-            # Check if subset_column exists in the DataFrame
-            if subset_column not in df.columns:
-                raise ValueError(f"No samples found for group with {subset_column} in {subset_value}")
-            
-            df = df.query(f"{subset_column} in {subset_value}")
-        
-        samples = df.index.tolist()
-        if not samples:
-            raise ValueError(f"No samples found for group with {subset_column} in {subset_value}")
-        
-        final_reference = reference_sample or samples[0]
-        group_name = subset_value[0] if subset_value else "all"
-        
-        return cls(
-            samples=samples,
-            reference_sample=final_reference,
-            group=group_name,
-        )
-    
-    @staticmethod
-    def _prepare_dataframe(design: SampleCollection | IPSampleCollection, include_controls: bool) -> pd.DataFrame:
-        """
-        Prepare a DataFrame from design with appropriate sample naming.
-        
-        Args:
-            design: The design object
-            include_controls: Whether to include control samples
-            
-        Returns:
-            DataFrame with sample_fullname as index
-        """
-        base_df = design.to_dataframe()
-        
-        if isinstance(design, SampleCollection):
-            return (
-                base_df
-                .assign(sample_fullname=lambda df: df.sample_name)
-                .set_index("sample_fullname")
-            )
-        
-        # Handle IPSampleCollection
-        if not include_controls:
-            return (
-                base_df
-                .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
-                .set_index("sample_fullname")
-            )
-        
-        # Include both IP and control samples
-        df_ip = (
-            base_df
-            .assign(sample_fullname=lambda df: df.sample_name + "_" + df.ip)
-            .set_index("sample_fullname")
-        )
-        df_control = (
-            base_df
-            .query("control.notnull()")
-            .assign(sample_fullname=lambda df: df.sample_name + "_" + df.control)
-            .set_index("sample_fullname")
-        )
-        return pd.concat([df_ip, df_control])
-    
-    def __len__(self) -> int:
-        """Return the number of samples in this group."""
-        return len(self.samples)
-    
-    def __contains__(self, sample: str) -> bool:
-        """Check if a sample is in this group."""
-        return sample in self.samples
-    
-    def __str__(self) -> str:
-        """String representation of the group."""
-        return f"SampleGroup(group='{self.group}', samples={len(self.samples)}, reference='{self.reference_sample}')"
+    def __len__(self): return len(self.samples)
+    def __contains__(self, sample): return sample in self.samples
+    def __str__(self): return f"{self.name}: {len(self.samples)} samples (ref={self.reference_sample})"
 
 
 class SampleGroups(BaseModel):
     """
-    Collection of normalization groups with utilities for sample group management.
-    
-    Attributes:
-        groups: List of SampleGroup objects
+    A collection of SampleGroup instances that represent one grouping scheme
+    (e.g., for normalization or scaling).
     """
     groups: list[SampleGroup]
 
     @classmethod
-    def from_sample_collection(
+    def from_dataframe(
         cls,
-        design: SampleCollection | IPSampleCollection,
-        reference_sample: str | None = None,
+        df: pd.DataFrame,
         subset_column: str = "norm_group",
+        *,
+        reference_sample: str | None = None,
         include_controls: bool = False,
-    ) -> SampleGroups:
+    ) -> "SampleGroups":
         """
-        Create SampleGroups from a design object.
-        
-        Args:
-            design: The design object (SampleCollection or IPSampleCollection)
-            reference_sample: Optional reference sample name
-            subset_column: Column to use for grouping (default: "norm_group")
-            include_controls: Whether to include control samples (for DesignIP)
-            
-        Returns:
-            SampleGroups instance
+        Build multiple SampleGroups from a DataFrame based on a grouping column.
         """
-        df = design.to_dataframe()
+        if subset_column not in df.columns:
+            raise ValueError(f"Column '{subset_column}' not found in design.")
 
-        # Create groups based on subset column if it exists
-        if subset_column in df.columns:
-            unique_values = df[subset_column].dropna().unique()
-            
-            groups = [
-                SampleGroup.from_design(
-                    design=design,
-                    reference_sample=reference_sample,
-                    subset_column=subset_column,
-                    subset_value=[str(value)],
-                    include_controls=include_controls,
-                )
-                for value in unique_values
-            ]
-        else:
-            # Create single group with all samples
-            groups = [
-                SampleGroup(
-                    group="all",
-                    samples=design.sample_names,
-                    reference_sample=reference_sample or design.sample_names[0],
-                )
-            ]
+        groups = []
+        for group_value, group_df in df.groupby(subset_column):
+            sample_names = group_df.index.tolist()
+            ref_sample = reference_sample if reference_sample in sample_names else sample_names[0]
+            groups.append(SampleGroup(name=str(group_value), samples=sample_names, reference_sample=ref_sample))
 
         return cls(groups=groups)
 
-    @property
-    def sample_to_group_mapping(self) -> dict[str, str | int]:
-        """
-        Map each sample to its group identifier.
-        
-        Returns:
-            Dictionary mapping sample names to group identifiers
-        """
-        return {
-            sample: group.group 
-            for group in self.groups 
-            for sample in group.samples
-        }
+    def sample_to_group(self) -> dict[str, str]:
+        return {sample: g.name for g in self.groups for sample in g.samples}
 
-    @property
-    def group_to_samples_mapping(self) -> dict[str | int, list[str]]:
-        """
-        Map each group identifier to its samples.
-        
-        Returns:
-            Dictionary mapping group identifiers to lists of sample names
-        """
-        return {group.group: group.samples for group in self.groups}
+    def group_to_samples(self) -> dict[str, list[str]]:
+        return {g.name: g.samples for g in self.groups}
 
-    def get_sample_group(self, sample: str) -> str | int:
-        """
-        Get the group identifier for a specific sample.
-        
-        Args:
-            sample: Sample name to look up
-            
-        Returns:
-            Group identifier
-            
-        Raises:
-            KeyError: If sample not found in any group
-        """
-        mapping = self.sample_to_group_mapping
-        if sample not in mapping:
-            raise KeyError(f"Sample '{sample}' not found in any normalization group")
-        return mapping[sample]
-
-    def get_samples_in_group(self, group: str | int) -> list[str]:
-        """
-        Get all samples in a specific group.
-        
-        Args:
-            group: Group identifier
-            
-        Returns:
-            List of sample names in the group
-            
-        Raises:
-            KeyError: If group not found
-        """
-        mapping = self.group_to_samples_mapping
-        if group not in mapping:
-            available_groups = list(mapping.keys())
-            raise KeyError(f"Group '{group}' not found. Available groups: {available_groups}")
-        return mapping[group]
-    
-    def get_group_by_name(self, group_name: str | int) -> SampleGroup:
-        """
-        Get a SampleGroup object by its group identifier.
-        
-        Args:
-            group_name: Group identifier to find
-            
-        Returns:
-            SampleGroup object
-            
-        Raises:
-            KeyError: If group not found
-        """
+    def get_group(self, name: str) -> SampleGroup:
         for group in self.groups:
-            if group.group == group_name:
+            if group.name == name:
                 return group
-        raise KeyError(f"Group '{group_name}' not found")
-    
-    def __len__(self) -> int:
-        """Return the number of groups."""
-        return len(self.groups)
-    
-    def __iter__(self):
-        """Iterate over groups."""
-        return iter(self.groups)
-    
-    def __contains__(self, group_name: str | int) -> bool:
-        """Check if a group exists."""
-        return group_name in self.group_to_samples_mapping
-    
-    def __str__(self) -> str:
-        """String representation of the groups."""
-        group_info = [f"'{g.group}': {len(g.samples)} samples" for g in self.groups]
-        return f"SampleGroups({len(self.groups)} groups: {', '.join(group_info)})"
+        raise KeyError(f"Group '{name}' not found.")
 
-    # Backward compatibility properties
-    @property  
-    def sample_groups(self) -> dict[str | int, list[str]]:
-        """Backward compatibility alias for group_to_samples_mapping."""
-        return self.group_to_samples_mapping
-
+    def get_samples(self, group_name: str) -> list[str]:
+        return self.get_group(group_name).samples
+    
     @property
-    def group_samples(self) -> dict[str, str | int]:
-        """Backward compatibility alias for sample_to_group_mapping."""
-        return self.sample_to_group_mapping
+    def empty(self) -> bool:
+        """Check if there are no groups defined."""
+        return len(self.groups) == 0
 
-    def get_grouped_samples(self, group: str | int) -> list[str]:
-        """Backward compatibility alias for get_samples_in_group."""
-        return self.get_samples_in_group(group)
+    def __str__(self):
+        return f"SampleGroups({len(self.groups)} groups: {', '.join(g.name for g in self.groups)})"
+    
+    def __len__(self):
+        return len(self.groups)
+
+
+class SampleGroupings(BaseModel):
+    """
+    A container for multiple named SampleGroups sets,
+    e.g., for 'normalization', 'scaling', 'visualization', etc.
+    """
+    groupings: dict[str, SampleGroups] = Field(default_factory=dict)
+
+    def add_grouping(self, name: str, groups: SampleGroups):
+        self.groupings[name] = groups
+
+    def get_grouping(self, name: str) -> SampleGroups:
+        if name not in self.groupings:
+            raise KeyError(f"Grouping '{name}' not found.")
+        return self.groupings[name]
+
+    def __contains__(self, name: str) -> bool:
+        return name in self.groupings
+
+    def __str__(self):
+        return f"SampleGroupings({', '.join(self.groupings)})"
+
+    def all_samples(self) -> list[str]:
+        """Return all unique samples across all groupings."""
+        return list({sample for g in self.groupings.values() for group in g.groups for sample in group.samples})
+    
+    @property
+    def empty(self) -> bool:
+        """Check if there are no groupings defined."""
+        return len(self.groupings) == 0
+

@@ -1,5 +1,5 @@
 from .core import Assay, Metadata
-from .collections import SampleCollection, IPSampleCollection, MultiAssayDesign, SampleGroup, SampleGroups
+from .collections import SampleCollection, IPSampleCollection, MultiAssayDesign, SampleGroups, SampleGroupings
 
 __all__ = [
     "Assay",
@@ -10,6 +10,6 @@ __all__ = [
     "SampleCollection",
     "IPSampleCollection", 
     "MultiAssayDesign",
-    "SampleGroup",
     "SampleGroups",
+    "SampleGroupings",
 ]

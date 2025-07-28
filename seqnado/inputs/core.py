@@ -5,7 +5,7 @@ import re
 from enum import Enum
 from typing import Optional, Union
 from pydantic import BaseModel, Field, computed_field, field_validator
-from seqnado import Assay
+from seqnado import Assay, Organism
 
 # =============================================================================
 # CONSTANTS
@@ -80,14 +80,14 @@ class Metadata(BaseModel):
 # UTILITY FUNCTIONS
 # =============================================================================
 
-def predict_organism(genome: str) -> str:
+def predict_organism(genome: str) -> Organism:
     """Predict organism from genome identifier."""
     if "hg" in genome:
-        return "Homo sapiens"
+        return Organism.HUMAN
     elif "mm" in genome:
-        return "Mus musculus"
+        return Organism.MOUSE
     else:
-        return "Unknown"
+        return Organism.UNKNOWN
 
 
 def is_valid_path(path: Optional[Union[str, pathlib.Path]]) -> bool:

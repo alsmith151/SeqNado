@@ -11,7 +11,7 @@ from seqnado import (
     Assay,
 )
 from seqnado.config import SeqnadoConfig
-from seqnado.inputs import IPSampleCollection, SampleCollection, SampleGroups
+from seqnado.inputs import IPSampleCollection, SampleCollection, SampleGroupings, SampleGroups
 from seqnado.outputs.files import (
     BigWigFiles,
     FileCollection,
@@ -62,14 +62,14 @@ class SeqnadoOutputBuilder:
         assay: Assay,
         samples: SampleCollection | IPSampleCollection,
         config: SeqnadoConfig,
-        sample_groups: SampleGroups | None = None,
+        sample_groups: SampleGroupings | None = None,
     ):
         """Initializes the SeqnadoOutputBuilder with the given assay, samples, and configuration.
         Args:
             assay (Assay): The type of assay being processed.
             samples (SampleCollection | IPSampleCollection): The collection of samples to process.
             config (SeqnadoConfig): The configuration for the SeqNado project.
-            sample_groups (Optional[SampleGroups]): Optional groups of samples for merging.
+            sample_groups (Optional[SampleGroupings]): Optional groups of samples for merging.
                 If provided, will be used to create grouped bigwig files and grouped peak files.
         Raises:
             ValueError: If the provided assay is not supported or if sample groups are provided
@@ -98,11 +98,14 @@ class SeqnadoOutputBuilder:
         self.file_collections.append(bigwig_files)
 
     def add_grouped_bigwig_files(self) -> None:
-        for group in self.sample_groups.groups:
-            bigwig_files = BigWigFiles(
-                assay=self.assay,
-                names=[group.name],
-                pileup_methods=self.config.assay_config.bigwigs.pileup_method,
+        """Add grouped bigwig files to the output collection."""
+
+        for group_name, sample_groups in self.sample_groups.groupings.items():
+            for group in sample_groups.groups:
+                bigwig_files = BigWigFiles(
+                    assay=self.assay,
+                    names=[group.name],
+                    pileup_methods=self.config.assay_config.bigwigs.pileup_method,
                 scale_methods=self.config.assay_config.bigwigs.scale_methods,
             )
             self.file_collections.append(bigwig_files)
@@ -118,16 +121,15 @@ class SeqnadoOutputBuilder:
     
     def add_grouped_peak_files(self) -> None:
         """Add grouped peak files to the output collection."""
-        if not self.sample_groups:
-            raise ValueError("Sample groups must be defined to create grouped peak files.")
         
-        for group in self.sample_groups.groups:
-            peaks = PeakCallingFiles(
-                assay=self.assay,
-                names=[group.name],
-                peak_calling_method=self.config.assay_config.peak_calling_methods,
-            )
-            self.file_collections.append(peaks)
+        for group_name, sample_groups in self.sample_groups.groupings.items():
+            for group in sample_groups.groups:
+                peaks = PeakCallingFiles(
+                    assay=self.assay,
+                    names=[group.name],
+                    peak_calling_method=self.config.assay_config.peak_calling_methods,
+                )
+                self.file_collections.append(peaks)
     
     def add_bigbed_files(self) -> None:
         """Add bigBed files to the output collection."""

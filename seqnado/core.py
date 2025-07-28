@@ -169,6 +169,7 @@ class Organism(Enum):
     ZEBRAFISH = "Danio rerio"
     DROSOPHILA = "Drosophila melanogaster"
     C_ELEGANS = "Caenorhabditis elegans"
+    UNKNOWN = "Unknown"
 
 class LibraryType(Enum):
     """Supported library types."""

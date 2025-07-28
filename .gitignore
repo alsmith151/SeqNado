@@ -33,3 +33,5 @@ containers/push_notes.txt
 paths.txt
 check_design.ipynb
 output.yml
+check_outputs.ipynb
+metadata.csv
