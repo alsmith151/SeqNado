@@ -1,6 +1,6 @@
 from .core import (
     AssayConfig,
-    WorkflowConfig,
+    SeqnadoConfig,
     GenomeConfig,
     ProjectConfig,
     PCRDuplicatesConfig,
@@ -17,7 +17,7 @@ from .core import (
 __all__ = [
     "ASSAY_CONFIG_MAP",
     "AssaySpecificConfig",
-    "WorkflowConfig",
+    "SeqnadoConfig",
     "GenomeIndex",
     "BowtieIndex",
     "STARIndex",

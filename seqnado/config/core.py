@@ -9,7 +9,7 @@ from seqnado import (
     PCRDuplicateTool,
     PCRDuplicateHandling,
     PeakCallingMethod,
-    RNAQuantificationMethod,
+    QuantificationMethod,
     SNPCallingMethod,
     MethylationMethod,
     SpikeInMethod,
@@ -330,6 +330,8 @@ class UCSCHubConfig(BaseModel):
     """Configuration for UCSC Hub generation."""
 
     directory: str = "seqnado_output/hub/"
+    name: str = "seqnado_hub"
+    genome: str = "hg38"
     email: str
     color_by: str = "samplename"
 
@@ -337,7 +339,7 @@ class UCSCHubConfig(BaseModel):
 class RNAQuantificationConfig(BaseModel, PathValidatorMixin):
     """Configuration for RNA quantification."""
 
-    method: RNAQuantificationMethod
+    method: QuantificationMethod
     salmon_index: str | None = None
     run_deseq2: bool = False
 
@@ -350,13 +352,17 @@ class SNPCallingConfig(BaseModel, PathValidatorMixin):
     """Configuration for SNP calling."""
 
     method: SNPCallingMethod
-    annotate_snps: bool = False
     snp_database: str | None = None
 
     @field_validator("snp_database")
     def validate_snp_database(cls, v: str | None, info) -> str | None:
-        annotate_snps = info.data.get("annotate_snps", False)
-        return cls.validate_required_when(v, annotate_snps, "snp_database")
+        return cls.validate_required_when(v, False, "snp_database")
+    
+    @computed_field
+    @property
+    def annotate_snps(self) -> bool:
+        """Whether to annotate SNPs (computed from snp_database presence)."""
+        return getattr(self, "snp_database", None) is not None
 
 
 class MCCConfig(BaseModel, PathValidatorMixin):
@@ -381,7 +387,8 @@ class MCCConfig(BaseModel, PathValidatorMixin):
 class MethylationConfig(BaseModel):
     """Configuration for methylation calling."""
 
-    assay: MethylationMethod
+    method: MethylationMethod
+
 
 
 class MLDatasetConfig(BaseModel, PathValidatorMixin):
@@ -511,7 +518,7 @@ class AssayConfig(Enum):
     CRISPR = CRISPRAssayConfig
 
 
-class WorkflowConfig(BaseModel):
+class SeqnadoConfig(BaseModel):
     """Configuration for the SeqNado workflow."""
 
     assay: Assay

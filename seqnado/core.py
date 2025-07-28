@@ -1,3 +1,4 @@
+from ctypes import Union
 from enum import Enum
 
 
@@ -73,6 +74,11 @@ class Assay(Enum):
         return [cls.CHIP, cls.CAT]
 
 
+
+AssaysWithPeakCalling = Union[Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.MCC]
+AssaysWithHeatmaps = Union[Assay.ATAC, Assay.CHIP, Assay.RNA, Assay.CAT]
+AssaysWithSpikein = Union[Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.RNA]
+
 class PileupMethod(Enum):
     """Methods for creating pileup files."""
 
@@ -131,8 +137,8 @@ class SNPCallingMethod(Enum):
     DEEPVARIANT = "deepvariant"
 
 
-class RNAQuantificationMethod(Enum):
-    """Methods for RNA quantification."""
+class QuantificationMethod(Enum):
+    """Methods for quantification."""
 
     FEATURE_COUNTS = "feature_counts"
     SALMON = "salmon"
@@ -143,3 +149,28 @@ class MethylationMethod(Enum):
 
     TAPS = "taps"
     BISULFITE = "bisulfite"
+
+
+class Molecule(Enum):
+    rna_total = "total RNA"
+    rna_polya = "polyA RNA"
+    rna_cytoplasmic = "cytoplasmic RNA"
+    rna_nuclear = "nuclear RNA"
+    dna_genomic = "genomic DNA"
+    protein = "protein"
+    other = "other"
+
+class Organism(Enum):
+    """Supported organisms."""
+
+    HUMAN = "Homo sapiens"
+    MOUSE = "Mus musculus"
+    RAT = "Rattus norvegicus"
+    ZEBRAFISH = "Danio rerio"
+    DROSOPHILA = "Drosophila melanogaster"
+    C_ELEGANS = "Caenorhabditis elegans"
+
+class LibraryType(Enum):
+    """Supported library types."""
+    SINGLE = "single-end"
+    PAIRED = "paired-end"

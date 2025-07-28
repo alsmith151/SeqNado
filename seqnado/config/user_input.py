@@ -17,7 +17,7 @@ import jinja2
 
 from seqnado.inputs import Assay
 from seqnado.config.core import (
-    WorkflowConfig,
+    SeqnadoConfig,
     GenomeConfig,
     ProjectConfig,
     BigwigConfig,
@@ -583,7 +583,7 @@ def get_tool_options(assay: Assay) -> str:
     return yaml.dump(tool_options)
 
 
-def build_workflow_config(assay: Assay, seqnado_version: str) -> WorkflowConfig:
+def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
     """Build complete workflow configuration from user input."""
 
     logger.info(f"Building workflow configuration for {assay.value} assay with SeqNado version {seqnado_version}")
@@ -610,7 +610,7 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> WorkflowConfig:
     assay_config = build_assay_config(assay, genome)
     
     try:
-        workflow_config = WorkflowConfig(
+        workflow_config = SeqnadoConfig(
             assay=assay,
             project=project,
             genome=genome,
@@ -626,7 +626,7 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> WorkflowConfig:
 
 
 
-def render_config(template: Path, workflow_config: WorkflowConfig, outfile: Path, all_options: bool = False) -> None:
+def render_config(template: Path, workflow_config: SeqnadoConfig, outfile: Path, all_options: bool = False) -> None:
     """Render the workflow configuration to a file."""
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template.parent))

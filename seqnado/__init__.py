@@ -8,8 +8,13 @@ from .core import (
     PeakCallingMethod,
     SpikeInMethod,
     SNPCallingMethod,
-    RNAQuantificationMethod,
+    QuantificationMethod,
     MethylationMethod,
+    AssaysWithPeakCalling,
+    AssaysWithHeatmaps,
+    AssaysWithSpikein,
+    Molecule,
+    Organism
 )
 
 from . import data, config, inputs, outputs
@@ -28,10 +33,15 @@ __all__ = [
     "PeakCallingMethod",
     "SpikeInMethod",
     "SNPCallingMethod",
-    "RNAQuantificationMethod",
+    "QuantificationMethod",
     "MethylationMethod",
     "data",
     "config",
     "inputs",
     "outputs",
+    "AssaysWithPeakCalling",
+    "AssaysWithHeatmaps",
+    "AssaysWithSpikein",
+    "Molecule",
+    "Organism"
 ]

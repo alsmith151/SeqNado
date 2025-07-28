@@ -61,10 +61,17 @@ class BaseSampleCollection(BaseModel):
     def sample_names(self) -> list[str]:
         """Returns all sample names in the design."""
         raise NotImplementedError("Subclasses must implement sample_names")
+    
+    @classmethod
+    def from_csv(cls, file_path: str | pathlib.Path) -> SampleCollection:
+        """Build a SampleCollection from a CSV file."""
+        df = pd.read_csv(file_path)
+        return cls.from_dataframe(df)
 
     def to_dataframe(self) -> pd.DataFrame:
         """Export the design to a pandas DataFrame."""
         raise NotImplementedError("Subclasses must implement to_dataframe")
+    
 
 
 class SampleCollection(BaseSampleCollection):
@@ -247,13 +254,23 @@ class SampleCollection(BaseSampleCollection):
 
 class IPSampleCollection(BaseSampleCollection):
     """
-    Represents an IP (e.g., ChIP/CAT) experiment design:
-    paired IP/control FastqSetIP objects, plus per-experiment metadata.
-
-    Attributes:
-        assay:       Assay type (e.g., ChIP, CAT).
-        experiments: List of IPExperiment, each with .ip and optional .control FastqSetIP.
-        metadata:    List of Metadata matching the experiments list.
+    Represents an IP (e.g., ChIP/CAT) experiment design, consisting of paired IP/control FastqSetIP objects and per-experiment metadata.
+        assay (Assay): Assay type (e.g., ChIP, CAT).
+        experiments (list[ExperimentIP]): List of IPExperiment objects, each containing .ip and optional .control FastqSetIP.
+        metadata (list[Metadata]): List of Metadata objects matching the experiments list.
+        sample_names (list[str]): All unique IP and control set names, sorted.
+        ips_performed (list[str]): Unique IP antibodies/proteins used across experiments.
+        controls_performed (list[str]): Unique control antibodies used across experiments.
+        query(sample_name, full=False):
+            Scan a directory for IP/control FASTQ files and build an IPSampleCollection.
+        to_dataframe():
+    Example:
+        >>> collection = IPSampleCollection.from_directory(
+        ...     assay=Assay.CHIP,
+        ...     directory="/data/fastq",
+        ...     glob_patterns=["*.fastq.gz"]
+        ... )
+        >>> df = collection.to_dataframe()
     """
     experiments: list[ExperimentIP]
 

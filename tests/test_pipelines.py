@@ -15,7 +15,7 @@ from loguru import logger
 
 from seqnado.config import (
     GenomeConfig,
-    WorkflowConfig,
+    SeqnadoConfig,
     build_workflow_config,
     create_config,
     load_genome_config,
