@@ -378,7 +378,76 @@ class QuantificationFiles(BaseModel):
             
     
 
+class GeoSubmissionFiles(BaseModel):
+    """Class to handle files for GEO submission."""
     
+    assay: Assay
+    names: list[str]
+    seqnado_files: list[str] = Field(default_factory=list, description="Unfiltered list of files. Will be filtered based on allowed extensions and added.")
+    allowed_extensions: list[str] = Field(default_factory=lambda: [".bigWig", ".bed", ".tsv", ".vcf.gz"])
+    
+    @property
+    def default_files(self):
+        return [
+            "seqnado_output/geo_submission/md5sums.txt",
+            "seqnado_output/geo_submission/raw_data_checksums.txt",
+            "seqnado_output/geo_submission/processed_data_checksums.txt",
+            "seqnado_output/geo_submission/samples_table.txt",
+            "seqnado_output/geo_submission/protocol.txt",
+        ]
+    
+    @property
+    def upload_directory(self) -> Path:
+        return Path("seqnado_output/geo_submission") / self.assay.clean_name
+
+    @property
+    def upload_instructions(self) -> Path:
+        return Path("seqnado_output/geo_submission") / "upload_instructions.txt"
+    
+
+    @property
+    def raw_files(self) -> list[str]:
+        """Return FASTQ files for raw data."""
+        return expand(
+            str(self.upload_directory / "{sample}_{read}.fastq.gz"),
+            sample=self.names,
+            read=["1", "2"],
+        )
+    
+    @property
+    def processed_data_files(self) -> list[str]:
+        """Return processed files for GEO submission."""
+        files = []
+        for file in self.seqnado_files:
+            if Path(file).suffix in self.allowed_extensions:
+                # Need to flatten the file un-nest the directory structure
+                # e.g. seqnado_output/bigwigs/METHOD/SCALE/NAME.bigWig
+                file = Path(file)
+                basename = file.stem
+                ext = ''.join(file.suffixes)
+                scale_method = file.parent.name
+                method = file.parent.parent.name
+                
+                files.append(
+                    str(self.upload_directory / f"{basename}_{method}_{scale_method}{ext}")
+                )
+
+        return files
+    
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        """Return a list of all files for GEO submission."""
+        return [*self.default_files, *self.raw_files, *self.processed_data_files]
+    
+    
+        
+        
+
+    
+
+
+
 
 
 

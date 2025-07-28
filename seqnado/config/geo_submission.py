@@ -24,6 +24,12 @@ class GEOSample(BaseModel):
     processed_data_file: list[str] = Field(default_factory=list)
     raw_file: list[str] = Field(default_factory=list)
 
+    @computed_field
+    @property
+    def library_strategy(self) -> str:
+        """Return the library strategy based on the assay."""
+        return self.assay.value
+
     @field_validator("antibody", mode="before")
     def validate_antibody_with_assay(cls, v: Optional[str], values: dict[str, Any]) -> Optional[str]:
         """Ensure antibody is set for ChIP and CUT&TAG assays."""
@@ -47,25 +53,55 @@ class GEOSample(BaseModel):
                 return Molecule.dna_genomic
 
     def to_series(self) -> pd.Series:
-        """Convert the GEOSample to a pandas Series."""
-        
+        """Convert the GEOSample to a pandas Series with dynamic file columns."""
 
-        model_data = self.model_dump(exclude_none=True)        
-        processed_data = {
-            f"processed data file {i}": f
-            for i, f in enumerate(self.processed_data_file)
-        }
-        raw_data = {f"raw file {i}": f for i, f in enumerate(self.raw_file)}
+        # Static fields
+        data = self.model_dump(exclude_none=True)
 
         if self.assay in Assay.ip_assays():
-            model_data["ChIP antibody"] = self.antibody
-            del model_data["antibody"]
-        
-        return pd.Series(
-            {
-                **model_data,
-                **processed_data,
-                **raw_data,
-                "molecule": self.molecule.value,
-            }
+            data['ChIP antibody'] = self.antibody
+            del data['antibody']
+    
+        # Add processed data files dynamically
+        processed_files = self.processed_data_file
+        for i, file in enumerate(processed_files):
+            key = "processed data file" if i == 0 else f"processed data file {i}"
+            data[key] = file
+
+        # Add raw files dynamically
+        raw_files = self.raw_file
+        for i, file in enumerate(raw_files):
+            key = "raw file" if i == 0 else f"raw file {i}"
+            data[key] = file
+
+        return pd.Series(data)
+    
+    @classmethod
+    def from_series(cls, series: pd.Series) -> "GEOSample":
+        """Create a GEOSample instance from a pandas Series."""
+        data = series.to_dict()
+
+        # Extract dynamic file columns
+        processed_files = [data.pop(key) for key in list(data.keys()) if key.startswith("processed data file")]
+        raw_files = [data.pop(key) for key in list(data.keys()) if key.startswith("raw file")]
+
+        # Create the GEOSample instance
+        return cls(
+            **data,
+            processed_data_file=processed_files,
+            raw_file=raw_files
         )
+
+
+class GEOSamples(BaseModel):
+    samples: list[GEOSample]
+
+    def to_dataframe(self):
+        df = pd.concat([s.to_series() for s in self.samples], axis=1).T
+        df.columns = df.columns.str.replace(r"\s\d+$", "", regex=True).str.strip()
+        return df 
+   
+
+
+        
+        
