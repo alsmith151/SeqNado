@@ -40,20 +40,33 @@ class SeqnadoOutputFiles(BaseModel):
         """Return all files in the output collection."""
         return self.files
 
-    @property
-    def bigwig_files(self) -> List[str]:
-        """Return only bigwig files."""
-        return [f for f in self.files if f.endswith(".bigWig")]
+    def _filter_by_suffix(self, suffix: str, contains: str | None = None):
+        """Filter files by suffix and optional substring.
+
+        Args:
+            suffix (str): The file suffix to filter by.
+            contains (str, optional): A substring that must be present in the file name.
+                Defaults to None, meaning no additional filtering.
+
+        Returns:
+            List[str]: A list of files that match the criteria.
+        """
+        return [
+            f for f in self.files
+            if f.endswith(suffix) and (contains in f if contains else True)
+        ]
 
     @property
-    def peak_files(self) -> List[str]:
-        """Return only peak calling files."""
-        return [f for f in self.files if f.endswith(".bed")]
+    def bigwig_files(self):
+        return self._filter_by_suffix(".bigWig")
 
     @property
-    def heatmap_files(self) -> List[str]:
-        """Return only heatmap files."""
-        return [f for f in self.files if f.endswith(".pdf") and "heatmap" in f]
+    def peak_files(self):
+        return self._filter_by_suffix(".bed")
+
+    @property
+    def heatmap_files(self):
+        return self._filter_by_suffix(".pdf", "heatmap")
 
 
 class SeqnadoOutputBuilder:
@@ -124,7 +137,7 @@ class SeqnadoOutputBuilder:
     def add_grouped_peak_files(self) -> None:
         """Add grouped peak files to the output collection."""
         
-        for group_name, sample_groups in self.sample_groups.groupings.items():
+        for _, sample_groups in self.sample_groups.groupings.items():
             for group in sample_groups.groups:
                 peaks = PeakCallingFiles(
                     assay=self.assay,

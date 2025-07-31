@@ -6,8 +6,6 @@ from .core import (
     PCRDuplicatesConfig,
     QCConfig,
     BigwigConfig,
-    BowtieIndex,
-    STARIndex,
     PeakCallingConfig,
     PlottingConfig,
     SpikeInConfig,
@@ -15,12 +13,8 @@ from .core import (
 )
 
 __all__ = [
-    "ASSAY_CONFIG_MAP",
-    "AssaySpecificConfig",
+    "AssayConfig",
     "SeqnadoConfig",
-    "GenomeIndex",
-    "BowtieIndex",
-    "STARIndex",
     "GenomeConfig",
     "ProjectConfig",
     "PCRDuplicatesConfig",
