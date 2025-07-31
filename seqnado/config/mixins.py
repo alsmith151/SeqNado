@@ -31,6 +31,16 @@ class CommonComputedFieldsMixin:
     def create_ucsc_hub(self) -> bool:
         """Whether to make UCSC hub (computed from ucsc_hub config presence)."""
         return getattr(self, "ucsc_hub", None) is not None
+    
+    @computed_field
+    def has_spikein(self) -> bool:
+        """Whether to use spike-in normalization (computed from spikein config presence)."""
+        return getattr(self, "spikein", None) is not None
+    
+    @field_validator("create_geo_submission_files", mode="before")
+    def validate_geo_submission_files(cls, v):
+        """Ensure geo submission files are created only if the config is set."""
+        return v if v else False
 
 
 class PeakCallingMixin:
@@ -85,13 +95,3 @@ class PathValidatorMixin:
         if condition and not v:
             raise ValueError(f"{field_name} must be provided when condition is met.")
         return v
-
-
-class SpikeInMixin:
-    """Mixin for assays that support spike-in normalization."""
-
-    @computed_field
-    @property
-    def has_spikein(self) -> bool:
-        """Whether to use spike-in normalization (computed from spikein config presence)."""
-        return getattr(self, "spikein", None) is not None

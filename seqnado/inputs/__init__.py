@@ -1,5 +1,5 @@
 from .core import Assay, Metadata
-from .collections import SampleCollection, IPSampleCollection, MultiAssayDesign, SampleGroups, SampleGroupings
+from .collections import SampleCollection, SampleCollectionForIP, MultiAssayCollection, SampleGroups, SampleGroupings, SampleCollectionType, select_sample_collection
 
 __all__ = [
     "Assay",
@@ -8,8 +8,10 @@ __all__ = [
     "PileupMethod",
     "ScaleMethod",
     "SampleCollection",
-    "IPSampleCollection", 
-    "MultiAssayDesign",
+    "SampleCollectionForIP", 
+    "MultiAssayCollection",
     "SampleGroups",
     "SampleGroupings",
+    "SampleCollectionType",
+    "select_sample_collection",
 ]

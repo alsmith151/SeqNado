@@ -23,7 +23,6 @@ from .mixins import (
     PeakCallingMixin,
     SNPCallingMixin,
     MethylationMixin,
-    SpikeInMixin,
 )
 
 
@@ -40,7 +39,7 @@ class BaseAssayConfig(BaseModel, CommonComputedFieldsMixin):
     create_geo_submission_files: bool = False
 
 
-class ATACAssayConfig(BaseAssayConfig, PeakCallingMixin, SpikeInMixin):
+class ATACAssayConfig(BaseAssayConfig, PeakCallingMixin):
     """Configuration specific to ATAC-seq assays."""
 
     tn5_shift: bool = False
@@ -48,7 +47,7 @@ class ATACAssayConfig(BaseAssayConfig, PeakCallingMixin, SpikeInMixin):
     create_heatmaps: bool = False
 
 
-class ChIPAssayConfig(BaseAssayConfig, PeakCallingMixin, SpikeInMixin):
+class ChIPAssayConfig(BaseAssayConfig, PeakCallingMixin):
     """Configuration specific to ChIP-seq assays."""
 
     spikein: SpikeInConfig | None = None
@@ -56,7 +55,7 @@ class ChIPAssayConfig(BaseAssayConfig, PeakCallingMixin, SpikeInMixin):
     create_heatmaps: bool = False
 
 
-class CATAssayConfig(BaseAssayConfig, PeakCallingMixin, SpikeInMixin):
+class CATAssayConfig(BaseAssayConfig, PeakCallingMixin):
     """Configuration specific to CAT-seq assays."""
 
     spikein: SpikeInConfig | None = None
@@ -65,7 +64,7 @@ class CATAssayConfig(BaseAssayConfig, PeakCallingMixin, SpikeInMixin):
     create_heatmaps: bool = False
 
 
-class RNAAssayConfig(BaseAssayConfig, SpikeInMixin):
+class RNAAssayConfig(BaseAssayConfig):
     """Configuration specific to RNA-seq assays."""
 
     rna_quantification: RNAQuantificationConfig | None = None
@@ -145,7 +144,7 @@ class SeqnadoConfig(BaseModel):
     pcr_duplicates: PCRDuplicatesConfig = PCRDuplicatesConfig()
     qc: QCConfig = QCConfig()
     assay_config: AssaySpecificConfig | None = None
-    options: str | None = None
+    tool_options: str | None = None
 
     @field_validator("assay_config", mode="before")
     def validate_assay_config_matches_assay(cls, v, info):

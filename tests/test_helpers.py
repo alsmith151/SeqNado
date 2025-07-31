@@ -23,7 +23,7 @@ from seqnado.helpers import (
     extract_viewpoints,
     viewpoint_to_grouped_viewpoint,
 )
-from seqnado.inputs import SampleCollection, IPSampleCollection, Assay, Metadata
+from seqnado.inputs import SampleCollection, SampleCollectionForIP, Assay, Metadata
 from seqnado.inputs.fastq import FastqFile, FastqSet, FastqSetIP
 from seqnado.inputs.experiment import ExperimentIP
 
@@ -91,7 +91,7 @@ def mock_ip_sample_collection():
     # Create metadata
     metadata = [Metadata(norm_group="all")]
     
-    return IPSampleCollection(
+    return SampleCollectionForIP(
         assay=Assay.CHIP,
         experiments=[experiment],
         metadata=metadata

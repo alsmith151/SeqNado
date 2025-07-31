@@ -2,7 +2,7 @@ from __future__ import annotations
 import pathlib
 from collections import defaultdict
 from itertools import chain
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Union
 import pandas as pd
 from pydantic import BaseModel, field_validator, Field
 from pandera.typing import DataFrame
@@ -56,11 +56,6 @@ class BaseSampleCollection(BaseModel):
         if not callable(metadata) and not isinstance(metadata, Metadata):
             metadata = Metadata(**{"norm_group": "all", **kwargs})
         return metadata
-
-    @property
-    def sample_names(self) -> list[str]:
-        """Returns all sample names in the design."""
-        raise NotImplementedError("Subclasses must implement sample_names")
     
     @classmethod
     def from_csv(cls, file_path: str | pathlib.Path) -> SampleCollection:
@@ -72,6 +67,34 @@ class BaseSampleCollection(BaseModel):
         """Export the design to a pandas DataFrame."""
         raise NotImplementedError("Subclasses must implement to_dataframe")
     
+    @property
+    def sample_names(self) -> list[str]:
+        raise NotImplementedError("Subclasses must implement sample_names")
+    
+    @property
+    def fastq_pairs(self) -> dict[str, list[pathlib.Path]]:
+        """Returns a dictionary mapping sample names to their FASTQ file paths."""
+        raise NotImplementedError("Subclasses must implement fastq_pairs")
+
+    @property
+    def fastq_paths(self) -> list[pathlib.Path]:
+        """Flattened list of FASTQ paths from all samples (subclasses must implement get_fastq_files)."""
+        return list(chain.from_iterable(self.fastq_pairs.values()))
+
+
+    def symlink_fastq_files(self, output_dir: str | pathlib.Path) -> None:
+        """Symlink FASTQ files to a specified output directory.
+        Args:
+            output_dir: Directory to create symlinks in.
+        """
+        output_dir = pathlib.Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        for sample_name, paths in self.fastq_pairs.items():
+            for read_number, path in enumerate(paths, start=1):
+                symlink_path = output_dir / f"{sample_name}_{read_number}.fastq.gz"
+                if not symlink_path.exists():
+                    symlink_path.symlink_to(path.resolve().absolute())
 
 
 class SampleCollection(BaseSampleCollection):
@@ -110,6 +133,16 @@ class SampleCollection(BaseSampleCollection):
             for fs in self.fastq_sets
             for path in (fs.r1.path, *(fs.r2.path if fs.r2 else []))
         ]
+    
+    @property
+    def fastq_pairs(self) -> dict[str, list[pathlib.Path]]:
+        """
+        Returns a dictionary mapping sample names to their FASTQ file paths.
+        """
+        return {
+            fs.name: [fs.r1.path, fs.r2.path] if fs.r2 else [fs.r1.path]
+            for fs in self.fastq_sets
+        }
 
     def query(self, sample_name: str) -> FastqSet:
         """
@@ -252,7 +285,7 @@ class SampleCollection(BaseSampleCollection):
         return cls(assay=assay, fastq_sets=fastq_sets, metadata=metadata)
 
 
-class IPSampleCollection(BaseSampleCollection):
+class SampleCollectionForIP(BaseSampleCollection):
     """
     Represents an IP (e.g., ChIP/CAT) experiment design, consisting of paired IP/control FastqSetIP objects and per-experiment metadata.
         assay (Assay): Assay type (e.g., ChIP, CAT).
@@ -303,6 +336,18 @@ class IPSampleCollection(BaseSampleCollection):
         Unique control antibodies used across experiments.
         """
         return list({exp.control_performed for exp in self.experiments if exp.has_control})
+    
+    @property
+    def fastq_pairs(self) -> dict[str, list[pathlib.Path]]:
+        """
+        Returns a dictionary mapping sample names to their FASTQ file paths.
+        """
+        files = dict()
+        for exp in self.experiments:
+            files[exp.ip_set_fullname] = [exp.ip.r1.path, exp.ip.r2.path] if exp.ip.r2 else [exp.ip.r1.path]
+            if exp.has_control:
+                files[exp.control_fullname] = [exp.control.r1.path, exp.control.r2.path] if exp.control.r2 else [exp.control.r1.path]
+        return files
 
     def query(
         self,
@@ -335,7 +380,7 @@ class IPSampleCollection(BaseSampleCollection):
         files: Iterable[str | pathlib.Path],
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **exp_kwargs: Any,
-    ) -> IPSampleCollection:
+    ) -> SampleCollectionForIP:
         """
         Build IPSampleCollection from a mixture of IP/control FASTQ paths.
 
@@ -400,7 +445,7 @@ class IPSampleCollection(BaseSampleCollection):
         glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **kwargs: Any,
-    ) -> IPSampleCollection:  
+    ) -> SampleCollectionForIP:  
         """
         Scan a directory for IP/control FASTQ files and build a IPSampleCollection.
 
@@ -444,7 +489,7 @@ class IPSampleCollection(BaseSampleCollection):
         return DataFrame[DesignDataFrame](df)
 
 
-class MultiAssayDesign(BaseSampleCollection):
+class MultiAssayCollection(BaseSampleCollection):
     """
     Represents a design containing multiple assay types.
     Can handle both regular and IP-based assays in a single design.
@@ -453,9 +498,9 @@ class MultiAssayDesign(BaseSampleCollection):
         designs: Dictionary mapping assay types to their respective SampleCollection/IPSampleCollection objects.
         metadata: Global metadata list (can be empty if each design has its own metadata).
     """
-    designs: dict[Assay, SampleCollection | IPSampleCollection]
+    designs: dict[Assay, SampleCollection | SampleCollectionForIP]
     
-    def __init__(self, designs: dict[Assay, SampleCollection | IPSampleCollection], **kwargs):
+    def __init__(self, designs: dict[Assay, SampleCollection | SampleCollectionForIP], **kwargs):
         # For multi-assay, we set a default assay but it's not really meaningful
         # The real assay information is in the individual designs
         super().__init__(assay=list(designs.keys())[0] if designs else Assay.RNA, 
@@ -475,7 +520,7 @@ class MultiAssayDesign(BaseSampleCollection):
             all_names.extend(design.sample_names)
         return sorted(set(all_names))
     
-    def get_design(self, assay: Assay) -> SampleCollection | IPSampleCollection:
+    def get_design(self, assay: Assay) -> SampleCollection | SampleCollectionForIP:
         """Get the design for a specific assay type."""
         if assay not in self.designs:
             raise KeyError(f"Assay '{assay.value}' not found in MultiAssayDesign")
@@ -509,7 +554,7 @@ class MultiAssayDesign(BaseSampleCollection):
         return results
     
     @classmethod
-    def from_designs(cls, designs: dict[Assay, SampleCollection | IPSampleCollection]) -> MultiAssayDesign:
+    def from_designs(cls, designs: dict[Assay, SampleCollection | SampleCollectionForIP]) -> MultiAssayCollection:
         """Create a MultiAssayDesign from a dictionary of existing designs."""
         return cls(designs=designs)
     
@@ -520,7 +565,7 @@ class MultiAssayDesign(BaseSampleCollection):
         glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **kwargs: Any,
-    ) -> MultiAssayDesign:
+    ) -> MultiAssayCollection:
         """
         Create a MultiAssayDesign by scanning multiple directories for different assays.
         
@@ -534,7 +579,7 @@ class MultiAssayDesign(BaseSampleCollection):
         
         for assay, directory in assay_directories.items():
             if assay in Assay.ip_assays():
-                design = IPSampleCollection.from_directory(
+                design = SampleCollectionForIP.from_directory(
                     assay=assay, 
                     directory=directory, 
                     glob_patterns=glob_patterns,
@@ -572,9 +617,31 @@ class MultiAssayDesign(BaseSampleCollection):
         combined_df = pd.concat(all_dfs, ignore_index=True)
         return combined_df.sort_values(['assay', 'sample_name'])
     
-    def split_by_assay(self) -> dict[Assay, SampleCollection | IPSampleCollection]:
+    def split_by_assay(self) -> dict[Assay, SampleCollection | SampleCollectionForIP]:
         """Return the individual designs by assay type."""
         return self.designs.copy()
+
+
+
+SampleCollectionType = Union[SampleCollection, SampleCollectionForIP, MultiAssayCollection]
+
+def select_sample_collection(
+    assay: Assay,
+    **kwargs: Any,
+) -> SampleCollectionType:
+    """
+    Select the appropriate SampleCollection type based on the assay.
+    Args:
+        assay: The assay type (e.g., Assay.RNA, Assay.CHIP).
+        **kwargs: Additional parameters passed to the collection constructor.
+    
+    Returns:
+        An instance of SampleCollection, SampleCollectionForIP, or MultiAssayCollection.
+    """
+    if assay in Assay.ip_assays():
+        return SampleCollectionForIP(assay=assay, **kwargs)
+    else:
+        return SampleCollection(assay=assay, **kwargs)
 
 
 

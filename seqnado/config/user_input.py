@@ -616,7 +616,7 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
             genome=genome,
             metadata=pathlib.Path(metadata_path),
             assay_config=assay_config,
-            options=get_tool_options(assay),
+            tool_options=get_tool_options(assay),
         )
         return workflow_config
     

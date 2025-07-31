@@ -11,7 +11,7 @@ from seqnado import (
     Assay,
 )
 from seqnado.config import SeqnadoConfig
-from seqnado.inputs import IPSampleCollection, SampleCollection, SampleGroupings, SampleGroups
+from seqnado.inputs import SampleCollectionForIP, SampleCollection, SampleGroupings, SampleGroups
 from seqnado.outputs.files import (
     BigWigFiles,
     FileCollection,
@@ -73,7 +73,7 @@ class SeqnadoOutputBuilder:
     def __init__(
         self,
         assay: Assay,
-        samples: SampleCollection | IPSampleCollection,
+        samples: SampleCollection | SampleCollectionForIP,
         config: SeqnadoConfig,
         sample_groups: SampleGroupings | None = None,
     ):
@@ -260,7 +260,7 @@ class SeqnadoOutputFactory:
     def __init__(
         self,
         assay: Assay,
-        samples: SampleCollection | IPSampleCollection,
+        samples: SampleCollection | SampleCollectionForIP,
         config: SeqnadoConfig,
         sample_groups: SampleGroupings | None = None,
     ):
@@ -271,6 +271,14 @@ class SeqnadoOutputFactory:
         self.assay_config = config.assay_config
 
     def create_output_builder(self) -> SeqnadoOutputBuilder:
+        """Creates a SeqnadoOutputBuilder instance with the provided assay, samples, and configuration.
+        
+        Returns:
+            SeqnadoOutputBuilder: An instance of SeqnadoOutputBuilder configured with the provided parameters.
+        Raises:
+            ValueError: If the provided assay is not supported or if sample groups are provided
+                but not defined in the configuration.
+        """
         builder = SeqnadoOutputBuilder(
             assay=self.assay,
             samples=self.samples,

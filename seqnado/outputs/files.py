@@ -17,7 +17,7 @@ from seqnado import (
     QuantificationMethod,
 )
 from seqnado.core import AssaysWithHeatmaps, AssaysWithSpikein
-from seqnado.inputs import SampleCollection, IPSampleCollection, SampleGroups
+from seqnado.inputs import SampleCollection, SampleCollectionForIP, SampleGroups
 from seqnado.config import SeqnadoConfig
 
 
@@ -30,7 +30,7 @@ class FileCollection(Protocol):
 
 class QCFiles(BaseModel):
     assay: Assay
-    samples: SampleCollection | IPSampleCollection
+    samples: SampleCollection | SampleCollectionForIP
 
     @property
     def default_files(self) -> list[str]:

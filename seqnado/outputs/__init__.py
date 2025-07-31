@@ -1,3 +1,9 @@
 from .core import (
-    SeqnadoOutputBuilder
+    SeqnadoOutputFactory,
+    SeqnadoOutputFiles
 )
+
+__all__ = [
+    "SeqnadoOutputFactory",
+    "SeqnadoOutputFiles"
+]
