@@ -85,10 +85,12 @@ class SeqnadoOutputBuilder:
         self.file_collections: list[FileCollection] = []
 
     def add_qc_files(self) -> None:
+        """Add quality control files to the output collection."""
         qc_files = QCFiles(assay=self.assay, samples=self.samples)
         self.file_collections.append(qc_files)
 
     def add_individual_bigwig_files(self) -> None:
+        """Add individual bigwig files to the output collection."""
         bigwig_files = BigWigFiles(
             assay=self.assay,
             names=self.samples.sample_names,
@@ -164,12 +166,12 @@ class SeqnadoOutputBuilder:
         self.file_collections.append(spikein_files)
 
     def add_plot_files(
-        self, coordinates: Path, file_format: Literal["svg", "png", "pdf"] = "svg"
+        self
     ) -> None:
         """Add plot files to the output collection."""
         plot_files = PlotFiles(
-            coordinates=coordinates,
-            file_format=file_format,
+            coordinates=self.config.assay_config.plotting.coordinates,
+            file_format=self.config.assay_config.plotting.file_format,
         )
         self.file_collections.append(plot_files)
     
@@ -239,3 +241,70 @@ class SeqnadoOutputBuilder:
             chain.from_iterable(p.files for p in self.file_collections if p.files)
         )
         return SeqnadoOutputFiles(files=all_files)
+
+
+class SeqnadoOutputFactory:
+    def __init__(
+        self,
+        assay: Assay,
+        samples: SampleCollection | IPSampleCollection,
+        config: SeqnadoConfig,
+        sample_groups: SampleGroupings | None = None,
+    ):
+        self.assay = assay
+        self.samples = samples
+        self.config = config
+        self.sample_groups = sample_groups
+        self.assay_config = config.assay_config
+
+    def create_output_builder(self) -> SeqnadoOutputBuilder:
+        builder = SeqnadoOutputBuilder(
+            assay=self.assay,
+            samples=self.samples,
+            config=self.config,
+            sample_groups=self.sample_groups,
+        )
+
+        builder.add_qc_files()
+
+        if self.assay_config.create_bigwigs:
+            builder.add_individual_bigwig_files()
+            if self.sample_groups:
+                builder.add_grouped_bigwig_files()
+
+        if self.assay_config.call_peaks:
+            builder.add_peak_files()
+            if self.sample_groups:
+                builder.add_grouped_peak_files()
+
+        if self.assay_config.create_heatmaps:
+            builder.add_heatmap_files()
+
+        if self.assay_config.create_ucsc_hub:
+            builder.add_hub_files()
+
+        if self.assay_config.create_geo_submission_files:
+            builder.add_geo_submission_files()
+
+        if getattr(self.assay_config, "has_spikein", False):
+            builder.add_spikein_files()
+        
+        if getattr(self.assay_config, "create_quantification_files", False):
+            builder.add_quantification_files()
+
+        
+        # Add additional files based on the assay type
+        match self.assay:
+            case Assay.ATAC | Assay.CHIP | Assay.CAT | Assay.RNA:
+                if self.assay_config.plot_with_plotnado:
+                    builder.add_plot_files()
+            case Assay.SNP:
+                builder.add_snp_files()
+            case Assay.METH:
+                builder.add_methylation_files()
+            case Assay.MCC:
+                builder.add_contact_files()
+            case _:
+                logger.debug(f"No additional files to add for assay {self.assay}")
+
+        return builder

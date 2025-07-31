@@ -40,7 +40,6 @@ output_builder = SeqnadoOutputBuilder(
 )
 
 output_builder.add_qc_files()
-
 if CONFIG.assay_config.create_bigwigs:
     output_builder.add_bigwig_files()
     if not SAMPLE_GROUPINGS.empty:
@@ -50,6 +49,14 @@ if CONFIG.assay_config.create_peaks:
     output_builder.add_peak_files()
     if not SAMPLE_GROUPINGS.empty:
         output_builder.add_grouped_peak_files()
+
+if CONFIG.assay_config.create_heatmaps:
+    output_builder.add_heatmap_files()
+
+if CONFIG.assay_config.create_dataset:
+    output_builder.add_dataset_files()
+
+
 
     
 

@@ -37,7 +37,7 @@ from seqnado.config.core import (
     RNAAssayConfig,
     SNPAssayConfig,
     MCCAssayConfig,
-    METHAssayConfig,
+    MethylationAssayConfig,
     CRISPRAssayConfig,
     SpikeInMethod,
     SNPCallingMethod,
@@ -537,7 +537,7 @@ def build_assay_config(assay: Assay, genome_config: GenomeConfig) -> Optional[As
     elif assay == Assay.METH:
         methylation = get_methylation_config()
         
-        return METHAssayConfig(
+        return MethylationAssayConfig(
             **base_config,
             methylation=methylation
         )
