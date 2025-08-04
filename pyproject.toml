@@ -22,7 +22,7 @@ dependencies = [
     "cookiecutter",
     "pandas",
     "pandera",
-    "pulp<=3.2.1",
+    "pulp<=3.2.2",
     "pydantic",
     "pyyaml",
     "seaborn",
