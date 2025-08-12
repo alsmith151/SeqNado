@@ -1,26 +1,18 @@
-from seqnado.helpers import check_options, get_scale_method, define_memory_requested, define_time_requested
-
-if ASSAY == "ChIP":
-    prefix = SAMPLE_NAMES_IP
-elif ASSAY == "RNA":
-    prefix = [x + y for x in SAMPLE_NAMES for y in ["_plus", "_minus"]]
-else:
-    prefix = SAMPLE_NAMES
+from seqnado.helpers import define_memory_requested, define_time_requested
 
 
 rule heatmap_matrix:
     input:
-        bigwigs=expand(
-            "seqnado_output/bigwigs/deeptools/{method}/{sample}.bigWig",
-            method=get_scale_method(config) or "unscaled",
-            sample=prefix,
+        bigwigs=OUTPUTS.select_bigwig_subtype(
+            method=PileupMethod.DEEPTOOLS,
+            scale=ScaleMethod.UNSCALED
         ),
     output:
         matrix=temp("seqnado_output/heatmap/heatmap_matrix.mat.gz"),
     params:
-        gtf=config["genome"]["gtf"],
-        options=check_options(config["heatmap"]["options"]),
-    threads: config["deeptools"]["threads"]
+        gtf=CONFIG.genome.gtf,
+        options=str(CONFIG.third_party_tools.deeptools.compute_matrix.command_line_arguments),
+    threads: CONFIG.third_party_tools.deeptools.compute_matrix.threads
     resources:
         runtime=lambda wildcards, attempt: f"{1 * 2**attempt}h",
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -36,13 +28,13 @@ rule heatmap_plot:
     output:
         heatmap="seqnado_output/heatmap/heatmap.pdf",
     params:
-        colormap=check_options(config["heatmap"]["colormap"]),
+        options=str(CONFIG.third_party_tools.deeptools.plot_heatmap.command_line_arguments),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/heatmap/heatmap.log",
     shell:
-        """plotHeatmap -m {input.matrix} -out {output.heatmap} --colorMap {params.colormap} --boxAroundHeatmaps no"""
+        """plotHeatmap -m {input.matrix} -out {output.heatmap} {params.options}"""
 
 
 rule heatmap_metaplot:

@@ -38,6 +38,7 @@ class SeqnadoOutputFiles(BaseModel):
 
     files: list[str] = Field(default_factory=list)
     sample_names: List[str] = Field(default_factory=list)
+    sample_groups: SampleGroupings | None = None
 
     @property
     def all_files(self) -> List[str]:
@@ -88,6 +89,11 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def peak_files(self):
         return self._filter_by_suffix(".bed")
+
+    @property
+    def has_consensus_peaks(self):
+        """Check if consensus peaks are present in the output files."""
+        
 
     @property
     def heatmap_files(self):
@@ -274,7 +280,9 @@ class SeqnadoOutputBuilder:
             chain.from_iterable(p.files for p in self.file_collections if p.files)
         )
         return SeqnadoOutputFiles(
-            files=all_files, sample_names=self.samples.sample_names
+            files=all_files,
+            sample_names=self.samples.sample_names,
+            sample_groups=self.sample_groups,
         )
 
 

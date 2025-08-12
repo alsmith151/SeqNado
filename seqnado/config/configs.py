@@ -3,7 +3,7 @@ from datetime import date as _date
 from typing import Union, Literal
 from pathlib import Path
 from enum import Enum
-from seqnado.inputs import Assay
+from seqnado import Assay
 from seqnado import (
     PileupMethod,
     PCRDuplicateTool,
@@ -252,6 +252,34 @@ class SpikeInConfig(BaseModel):
     endogenous_genome: str | None = None
 
 
+class GenomicCoordinate(BaseModel):
+    """Configuration for genomic coordinates."""
+
+    chromosome: str
+    start: int
+    end: int
+
+    @field_validator("start", "end")
+    def validate_coordinates(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Genomic coordinates must be non-negative.")
+        return v
+
+    # Check that end is greater than start
+    @field_validator("end")
+    def validate_end(cls, v: int, values: dict[str, int]) -> int:
+        if v < values.get("start", 0):
+            raise ValueError("End coordinate must be greater than start coordinate.")
+        return v
+
+    @classmethod
+    def from_string(cls, coord_str: str) -> "GenomicCoordinate":
+        """
+        Create a GenomicCoordinate instance from a string representation.
+        """
+        chromosome, positions = coord_str.split(":")
+        start, end = map(int, positions.split("-"))
+        return cls(chromosome=chromosome, start=start, end=end)
 
 class UCSCHubConfig(BaseModel):
     """Configuration for UCSC Hub generation."""
@@ -259,9 +287,33 @@ class UCSCHubConfig(BaseModel):
     directory: str = "seqnado_output/hub/"
     name: str = "seqnado_hub"
     genome: str = "hg38"
-    email: str
-    color_by: str = "samplename"
+    email: str = "test@example.com"
+    two_bit: str | None = None
+    organism: str | None = None
+    default_position: GenomicCoordinate = Field(default_factory=GenomicCoordinate.from_string("chr1:100-200"), description="Default genomic position")
+    color_by: Field(default_factory=list, description="List of fields to color the bigwigs") = ['samplename']
+    overlay_by: Field(default_factory=list, description="List of fields to overlay the bigwigs") = []
+    subgroup_by: Field(default_factory=list, description="List of fields to subgroup the bigwigs") = ['method', "norm"]
+    supergroup_by: Field(default_factory=list, description="List of fields to supergroup the bigwigs") = []
 
+    @classmethod
+    def for_assay(cls, assay: Assay) -> "UCSCHubConfig":
+        
+        match assay:
+            case Assay.RNA:
+                return cls(
+                    subgroup_by=["method", "norm", "strand"],
+                    overlay_by=["samplename", "method", "norm"],
+                )
+            
+            case Assay.MCC:
+                return cls(
+                    color_by = ['viewpoint'],
+                    subgroup_by = ['norm', 'viewpoint']
+                )
+            
+            case _:
+                return cls()    
 
 class RNAQuantificationConfig(BaseModel, PathValidatorMixin):
     """Configuration for RNA quantification."""

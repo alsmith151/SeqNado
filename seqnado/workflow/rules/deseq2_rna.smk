@@ -1,5 +1,4 @@
-import pathlib
-
+from pathlib import Path
 
 rule deseq2_report_rnaseq:
     input:
@@ -28,7 +27,7 @@ rule deseq2_params:
     params:
         spikein_genes=["AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq"],
         size_factors_out="seqnado_output/resources/all_normalisation_factors.json",
-        de_dir=str(pathlib.Path(rules.deseq2_report_rnaseq.output.deseq2).parent),
+        de_dir=str(Path(rules.deseq2_report_rnaseq.output.deseq2).parent),
         counts=rules.deseq2_report_rnaseq.input.counts,
     container: None
     run:

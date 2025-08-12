@@ -3,12 +3,13 @@ from typing import Union, Optional
 from enum import Enum
 from pydantic import BaseModel, computed_field, field_validator
 from seqnado import Assay, Organism
-from .configs import (    BigwigConfig,
+from .configs import (
+    BigwigConfig,
     PlottingConfig,
     UCSCHubConfig,
     MLDatasetConfig,
     RNAQuantificationConfig,
-    PCRDuplicatesConfig,    
+    PCRDuplicatesConfig,
     QCConfig,
     GenomeConfig,
     ProjectConfig,
@@ -25,7 +26,6 @@ from .mixins import (
     MethylationMixin,
 )
 from .third_party_tools import ThirdPartyToolsConfig
-
 
 
 class BaseAssayConfig(BaseModel, CommonComputedFieldsMixin):
@@ -141,7 +141,7 @@ class SeqnadoConfig(BaseModel):
     assay: Assay
     project: ProjectConfig
     genome: GenomeConfig
-    metadata: Path 
+    metadata: Path
     qc: QCConfig = QCConfig()
     pcr_duplicates: PCRDuplicatesConfig = PCRDuplicatesConfig()
     remove_blacklist: bool = False
@@ -149,21 +149,22 @@ class SeqnadoConfig(BaseModel):
 
     @computed_field
     def shift_for_tn5_insertion(self) -> bool:
-        """Return the TN5 shift configuration for the specified assay."""
+        """Return the Tn5 shift configuration for the specified assay."""
         return hasattr(self.assay_config, "tn5_shift") and self.assay_config.tn5_shift
 
     @field_validator("remove_blacklist")
     def validate_remove_blacklist(cls, v):
         """Can only be set to True if genome blacklist is provided."""
         if v and not cls.genome.blacklist:
-            raise ValueError("remove_blacklist can only be True if genome blacklist is provided.")
+            raise ValueError(
+                "remove_blacklist can only be True if genome blacklist is provided."
+            )
         return v
 
     @computed_field
     def third_party_tools(self) -> ThirdPartyToolsConfig:
         """Return the third-party tools configuration for the specified assay."""
         return ThirdPartyToolsConfig.for_assay(self.assay)
-    
 
     @field_validator("assay_config", mode="before")
     def validate_assay_config_matches_assay(cls, v, info):

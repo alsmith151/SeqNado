@@ -1,11 +1,13 @@
 import shlex
 from typing import Optional, Literal, Any, Annotated
 from enum import Enum
+from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic.functional_serializers import PlainSerializer
 
 from seqnado import Assay
+from .mixins import PathValidatorMixin
 
 
 # =============================================================================
@@ -236,7 +238,7 @@ class Deeptools(BaseModel):
         default_factory=lambda: ToolConfig(
             threads=8,
             command_line_arguments=CommandLineArguments(
-                value="--colorMap RdYlBu --whatToShow 'heatmap and colorbar'"
+                value="--colorMap RdYlBu --whatToShow 'heatmap and colorbar' --boxAroundHeatmaps no"
             ),
         ),
         description="Plot heatmap configuration"
@@ -409,6 +411,16 @@ class Seacr(BaseModel):
     )
 
 
+class FastqScreen(BaseModel):
+    """FastqScreen tool configuration."""
+    
+    threads: int = Field(default=4, description="Number of threads to use")
+    config: Path = Field(default=Path("fastq_screen_config.yaml"), description="Path to the FastqScreen config file")
+    command_line_arguments: CommandLineArguments = Field(
+        default_factory=lambda: CommandLineArguments()
+    )
+
+
 # =============================================================================
 # Main Configuration Class
 # =============================================================================
@@ -432,7 +444,7 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
         Assay.ATAC: generic_dna_tools,
         Assay.CHIP: generic_dna_tools,
         Assay.CAT: generic_dna_tools + [Seacr],
-        Assay.RNA: [Star, Deeptools, Samtools, Trimgalore],
+        Assay.RNA: [Star, Deeptools, Samtools, Trimgalore, Salmon],
         Assay.SNP: [Bowtie2, Trimgalore, Samtools, BcfTools],
         Assay.METH: [Bowtie2, Methyldackel, Samtools, Picard],
         Assay.CRISPR: [Cutadapt, Bowtie2, Subread, Samtools],

@@ -1,6 +1,4 @@
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
-
-
+from seqnado.helpers import  define_time_requested, define_memory_requested
 
 rule fastq_screen_paired:
     input:
@@ -11,7 +9,7 @@ rule fastq_screen_paired:
         fq_screen_txt="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
     params:
         outdir=temp("seqnado_output/qc/fastq_screen"),
-        conf=config["fastq_screen_config"],
+        conf=CONFIG.third_party_tools.fastq_screen.config,
     threads: 4,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

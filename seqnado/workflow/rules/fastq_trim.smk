@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
+from seqnado.helpers import define_time_requested, define_memory_requested
 
 
 rule trimgalore_paired:
@@ -9,12 +9,12 @@ rule trimgalore_paired:
     output:
         trimmed1=temp("seqnado_output/trimmed/{sample}_1.fastq.gz"),
         trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
-    threads: config["trim_galore"]["threads"]
+    threads: CONFIG.third_party_tools.trim_galore.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     params:
-        options=check_options(config["trim_galore"]["options"]),
+        options=str(CONFIG.third_party_tools.trim_galore.command_line_arguments),
         trim_dir="seqnado_output/trimmed",
     log:
         "seqnado_output/logs/trimming/{sample}.log",
@@ -32,12 +32,12 @@ rule trimgalore_single:
         fq="seqnado_output/fastqs/{sample}.fastq.gz",
     output:
         trimmed=temp("seqnado_output/trimmed/{sample}.fastq.gz"),
-    threads: config["trim_galore"]["threads"]
+    threads: CONFIG.third_party_tools.trim_galore.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     params:
-        options=check_options(config["trim_galore"]["options"]),
+        options=str(CONFIG.third_party_tools.trim_galore.command_line_arguments),
         trim_dir="seqnado_output/trimmed",
     log:
         "seqnado_output/logs/trimming/{sample}.log",

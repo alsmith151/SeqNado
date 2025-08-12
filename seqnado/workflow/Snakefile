@@ -103,13 +103,13 @@ include: "rules/crispr.smk"
 # Rule Ordering
 ################################
 if CONFIG.has_spikein:
-
     ruleorder: move_ref_bam > align_paired > align_single
     ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
+    ruleorder: align_paired_spikein > align_paired > align_single_spikein > align_single
 
 else:
-
     ruleorder: align_paired > align_single > move_ref_bam
+    ruleorder: align_paired > align_paired_spikein > align_single > align_single_spikein 
 
 
 ################################

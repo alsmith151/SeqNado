@@ -3,46 +3,6 @@ import re
 import numpy as np
 
 
-
-def get_hub_params(config):
-    hub_params = {
-        "hub_name": config["ucsc_hub_details"]["name"],
-        "hub_email": config["ucsc_hub_details"]["email"],
-        "genome": config["genome"]["name"],
-        "custom_genome": config["genome"].get("custom_genome", False),
-        "genome_twobit": config["genome"].get("twobit"),
-        "genome_organism": config["genome"].get("organism"),
-        "genome_default_position": config["genome"].get(
-            "default_pos", "chr1:1-1000000"
-        ),
-        "color_by": config["ucsc_hub_details"].get(
-            "color_by",
-            [
-                "samplename",
-            ],
-        ),
-        "overlay_by": config["ucsc_hub_details"].get("overlay_by", None),
-        "subgroup_by": config["ucsc_hub_details"].get(
-            "subgroup_by",
-            [
-                "method",
-                "norm"
-            ],
-        ),
-        "supergroup_by": config["ucsc_hub_details"].get("supergroup_by", None),
-    }
-
-    if ASSAY == "RNA":
-        hub_params["overlay_by"] = ["samplename", "method", "norm"]
-        hub_params["subgroup_by"] = ["method", "norm", "strand"]
-    
-    elif ASSAY == 'MCC':
-        hub_params["subgroup_by"] = ["norm", "viewpoint"]
-        hub_params["color_by"] = ["viewpoint"]
-        
-    return hub_params
-
-
 rule validate_peaks:
     input:
         peaks=OUTPUT.peaks,
@@ -101,8 +61,8 @@ rule generate_hub:
     container:
         None
     params:
-        **get_hub_params(config),
         assay=ASSAY,
+        params=CONFIG.assay_config.ucsc_hub,
         has_consensus_peaks="merge" in DESIGN.to_dataframe().columns,
     script:
         "../scripts/create_hub.py"
