@@ -1,4 +1,3 @@
-
 rule save_design:
     output:
         "seqnado_output/design.csv",

@@ -9,8 +9,6 @@ import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pathlib import Path
-from enum import Enum
-
 from loguru import logger
 from pydantic import ValidationError
 import jinja2

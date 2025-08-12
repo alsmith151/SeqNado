@@ -1,25 +1,5 @@
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
-
-
-def get_bam_files_for_counts(wildcards):
-    from seqnado.design import SampleGroups
-    norm_groups = SampleGroups.from_design(DESIGN, subset_column="merge")
-    sample_names = norm_groups.get_grouped_samples(wildcards.group)
-    bam_files = [
-        f"seqnado_output/aligned/{sample}.bam" for sample in sample_names
-    ]
-    return bam_files
-
-
-def get_bai_files_for_counts(wildcards):
-    from seqnado.design import SampleGroups
-    norm_groups = SampleGroups.from_design(DESIGN, subset_column="merge")
-
-    sample_names = norm_groups.get_grouped_samples(wildcards.group)
-    bai_files = [
-        f"seqnado_output/aligned/{sample}.bam.bai" for sample in sample_names
-    ]
-    return bai_files
+from pathlib import Path
+from seqnado.helpers import define_time_requested, define_memory_requested
 
 rule merged_saf:
     input:
@@ -36,14 +16,14 @@ rule merged_saf:
 
 rule merged_counts:
     input:
-        bam=get_bam_files_for_counts,
-        bai=get_bai_files_for_counts,
+        bam=get_bam_files_for_consensus,
+        bai=lambda wildcards: [Path(b).with_suffix(".bai") for b in get_bam_files_for_consensus(wildcards)],
         saf=rules.merged_saf.output.saf,
     output:
         counts="seqnado_output/readcounts/featurecounts/{group}_counts.tsv",
     params:
-        options=config["featurecounts"]["options"],
-    threads: config["featurecounts"]["threads"],
+        options=str(CONFIG.third_party_tools.subread.feature_counts.command_line_arguments),
+    threads: CONFIG.third_party_tools.subread.feature_counts.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),

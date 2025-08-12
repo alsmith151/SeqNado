@@ -1,26 +1,19 @@
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
-
-if ASSAY == "ChIP":
-    prefix = SAMPLE_NAMES_IP
-else:
-    prefix = SAMPLE_NAMES
-
+from seqnado.helpers import define_time_requested, define_memory_requested
 
 rule make_dataset_regions:
     """Create a dataset from bigWig files using either a BED file."""
     input:
-        bigwigs=expand(
-            "seqnado_output/bigwigs/deeptools/{method}/{sample}.bigWig",
-            method=get_scale_method(config) or "unscaled",
-            sample=prefix,
+        bigwigs=OUTPUTS.select_bigwig_subtype(
+            method=PileupMethod.DEEPTOOLS,
+            scale=ScaleMethod.UNSCALED
         ),
     output:
         dataset="seqnado_output/dataset/dataset_regions.h5ad",
     params:
         bigwig_dir="seqnado_output/bigwigs/deeptools/unscaled/",
-        chromosome_sizes=config['genome']['chromosome_sizes'],
-        blacklist=check_options(config["blacklist"]),
-        regions=check_options(config["dataset"]["regions_bed"]),
+        chromosome_sizes=CONFIG.genome.chromosome_sizes,
+        blacklist=CONFIG.genome.blacklist,
+        regions=CONFIG.assay_config.dataset_for_ml.regions_bed,
     threads: 1
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
@@ -40,18 +33,17 @@ rule make_dataset_regions:
 rule make_dataset_binsize:
     """Create a dataset from bigWig files using bin size."""
     input:
-        bigwigs=expand(
-            "seqnado_output/bigwigs/deeptools/{method}/{sample}.bigWig",
-            method=get_scale_method(config) or "unscaled",
-            sample=prefix,
+        bigwigs=OUTPUTS.select_bigwig_subtype(
+            method=PileupMethod.DEEPTOOLS,
+            scale=ScaleMethod.UNSCALED
         ),
     output:
         dataset="seqnado_output/dataset/dataset_bins.h5ad",
     params:
         bigwig_dir="seqnado_output/bigwigs/deeptools/unscaled/",
-        chromosome_sizes=config['genome']['chromosome_sizes'],
-        blacklist=check_options(config["blacklist"]),
-        binsize=check_options(config["dataset"]["binsize"]),
+        chromosome_sizes=CONFIG.genome.chromosome_sizes,
+        blacklist=CONFIG.genome.blacklist,
+        binsize=CONFIG.assay_config.dataset_for_ml.binsize,
     threads: 1
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),

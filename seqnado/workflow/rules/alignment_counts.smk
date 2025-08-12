@@ -1,15 +1,16 @@
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
+from seqnado.helpers import define_time_requested, define_memory_requested
 
 rule feature_counts:
     input:
         bam=expand("seqnado_output/aligned/{sample}.bam", sample=SAMPLE_NAMES),
         bai=expand("seqnado_output/aligned/{sample}.bam.bai", sample=SAMPLE_NAMES),
-        annotation=config["genome"]["gtf"],
+        annotation=CONFIG.genome.gtf,
     output:
         counts="seqnado_output/readcounts/feature_counts/read_counts.tsv",
     params:
-        options=check_options(config["featurecounts"]["options"]),
-    threads: config["featurecounts"]["threads"]
+        options=str(CONFIG.third_party_tools.subread.feature_counts.command_line_arguments),
+    threads: 
+        CONFIG.third_party_tools.subread.feature_counts.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -38,9 +39,10 @@ rule salmon_counts_paired:
         counts="seqnado_output/readcounts/salmon/salmon_{sample}/quant.sf",
         out_dir=temp(directory("seqnado_output/readcounts/salmon/salmon_{sample}"))
     params:
-        index=config["salmon_index"],
-        options=check_options(config["salmon"]["options"]),
-    threads: config["salmon"]["threads"]
+        index=CONFIG.genome.index.prefix,
+        options=str(CONFIG.third_party_tools.salmon.quant.command_line_arguments),
+    threads:
+        CONFIG.third_party_tools.salmon.quant.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -58,9 +60,9 @@ rule salmon_counts_single:
         counts="seqnado_output/readcounts/salmon/salmon_{sample}/quant.sf",
         out_dir=temp(directory("seqnado_output/readcounts/salmon/salmon_{sample}"))
     params:
-        index=config["salmon_index"],
-        options=check_options(config["salmon"]["options"]),
-    threads: config["salmon"]["threads"]
+        index=CONFIG.genome.index.prefix,
+        options=str(CONFIG.third_party_tools.salmon.quant.command_line_arguments),
+    threads: CONFIG.third_party_tools.salmon.quant.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),

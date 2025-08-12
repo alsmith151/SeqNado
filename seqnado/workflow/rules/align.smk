@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
+from seqnado.helpers import define_time_requested, define_memory_requested
 
 
 
@@ -7,8 +7,8 @@ rule align_paired:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     params:
-        index=config["genome"]["index"],
-        options=check_options(config["bowtie2"]["options"]),
+        index=CONFIG.genome.index.prefix,
+        options=str(CONFIG.third_party_tools.bowtie2.command_line_arguments),
         rg="--rg-id {sample} --rg SM:{sample}",
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
@@ -19,16 +19,24 @@ rule align_paired:
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
-        """bowtie2 -p {threads} -x {params.index} -1 {input.fq1} -2 {input.fq2} {params.rg} {params.options} 2> {log} |
-           samtools view -bS - > {output.bam}
+        """
+        bowtie2 \
+            -p {threads} \
+            -x {params.index} \
+            -1 {input.fq1} \
+            -2 {input.fq2} \
+            {params.rg} \
+            {params.options} \
+            2> {log} \
+        | samtools view -bS - > {output.bam}
         """
 
 rule align_single:
     input:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
     params:
-        index=config["genome"]["index"],
-        options=check_options(config["bowtie2"]["options"]),
+        index=CONFIG.genome.index.prefix,
+        options=str(CONFIG.third_party_tools.bowtie2.command_line_arguments),
         rg="--rg-id {sample} --rg SM:{sample}",
     threads: config["bowtie2"]["threads"],
     resources:
@@ -39,8 +47,15 @@ rule align_single:
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
     shell:
-        """bowtie2 -p {threads} -x {params.index} -U {input.fq1} {params.rg} {params.options} 2> {log} |
-            samtools view -bS - > {output.bam}
+        """
+        bowtie2 \
+            -p {threads} \
+            -x {params.index} \
+            -U {input.fq1} \
+            {params.rg} \
+            {params.options} \
+            2> {log} \
+        | samtools view -bS - > {output.bam}
         """
 
 

@@ -1,6 +1,5 @@
-from ctypes import Union
 from enum import Enum
-
+from typing import Union
 
 # =============================================================================
 # CONSTANTS
@@ -75,9 +74,9 @@ class Assay(Enum):
 
 
 
-AssaysWithPeakCalling = Union[Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.MCC]
-AssaysWithHeatmaps = Union[Assay.ATAC, Assay.CHIP, Assay.RNA, Assay.CAT]
-AssaysWithSpikein = Union[Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.RNA]
+AssaysWithPeakCalling = (Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.MCC)
+AssaysWithHeatmaps = (Assay.ATAC, Assay.CHIP, Assay.RNA, Assay.CAT)
+AssaysWithSpikein = (Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.RNA)
 
 class PileupMethod(Enum):
     """Methods for creating pileup files."""

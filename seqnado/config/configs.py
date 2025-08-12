@@ -19,7 +19,6 @@ from .mixins import (
     PeakCallingMixin,
     SNPCallingMixin,
     MethylationMixin,
-    SpikeInMixin,
     PathValidatorMixin,
 )
 
@@ -206,7 +205,6 @@ class ProjectConfig(BaseModel):
     name: str
     date: _date = Field(default_factory=_date.today)
     description: str | None = None
-    directory: Path
 
 
 class PCRDuplicatesConfig(BaseModel):

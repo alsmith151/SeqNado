@@ -11,12 +11,11 @@ from seqnado import (
     Assay,
     PileupMethod,
     ScaleMethod,
-    AssaysWithPeakCalling,
     PeakCallingMethod,
     MethylationMethod,
     QuantificationMethod,
 )
-from seqnado.core import AssaysWithHeatmaps, AssaysWithSpikein
+from seqnado.core import AssaysWithHeatmaps, AssaysWithSpikein, AssaysWithPeakCalling
 from seqnado.inputs import SampleCollection, SampleCollectionForIP, SampleGroups
 from seqnado.config import SeqnadoConfig
 
@@ -108,10 +107,16 @@ class BigWigFiles(BaseModel):
 
 
 class PeakCallingFiles(BaseModel):
-    assay: AssaysWithPeakCalling
+    assay: Assay
     names: list[str]
     peak_calling_method: list[PeakCallingMethod]
     prefix: Optional[str] = "seqnado_output/peaks/"
+
+    @field_validator("assay")
+    def validate_assay(cls, value):
+        if value not in AssaysWithPeakCalling:
+            raise ValueError(f"Invalid assay for peak calling: {value}")
+        return value
 
     @property
     def peak_files(self) -> list[str]:
@@ -129,7 +134,13 @@ class PeakCallingFiles(BaseModel):
 
 
 class HeatmapFiles(BaseModel):
-    assay: AssaysWithHeatmaps
+    assay: Assay
+
+    @field_validator("assay")
+    def validate_assay(cls, value):
+        if value not in AssaysWithHeatmaps:
+            raise ValueError(f"Invalid assay for heatmap: {value}")
+        return value
 
     @property
     def heatmap_files(self) -> list[str]:
@@ -159,8 +170,14 @@ class HubFiles(BaseModel):
 
 
 class SpikeInFiles(BaseModel):
-    assay: AssaysWithSpikein
+    assay: Assay
     names: list[str]
+
+    @field_validator("assay")
+    def validate_assay(cls, value):
+        if value not in AssaysWithSpikein:
+            raise ValueError(f"Invalid assay for spike-in: {value}")
+        return value
 
     @property
     def norm_factors(self):

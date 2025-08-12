@@ -1,12 +1,12 @@
-from seqnado.helpers import check_options, define_memory_requested, define_time_requested
+from seqnado.helpers import define_memory_requested, define_time_requested
 
 rule align_paired:
     input:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     params:
-        index=config["genome"]["index"],
-        options=check_options(config["star"]["options"]),
+        index=CONFIG.genome.index.prefix,
+        options=str(CONFIG.third_party_tools.star.command_line_arguments),
         prefix="seqnado_output/aligned/star/{sample}_",
     output:
         bam=temp("seqnado_output/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),
@@ -29,7 +29,9 @@ rule align_paired:
         --outSAMtype BAM SortedByCoordinate \
         --runThreadN {threads} \
         --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
-        --outFileNamePrefix {params.prefix} {params.options} > {log} 2>&1
+        --outFileNamePrefix {params.prefix} \
+        {params.options} \
+        > {log} 2>&1
         """
 
 

@@ -24,6 +24,7 @@ from .mixins import (
     SNPCallingMixin,
     MethylationMixin,
 )
+from .third_party_tools import ThirdPartyToolsConfig
 
 
 
@@ -141,10 +142,28 @@ class SeqnadoConfig(BaseModel):
     project: ProjectConfig
     genome: GenomeConfig
     metadata: Path 
-    pcr_duplicates: PCRDuplicatesConfig = PCRDuplicatesConfig()
     qc: QCConfig = QCConfig()
+    pcr_duplicates: PCRDuplicatesConfig = PCRDuplicatesConfig()
+    remove_blacklist: bool = False
     assay_config: AssaySpecificConfig | None = None
-    tool_options: str | None = None
+
+    @computed_field
+    def shift_for_tn5_insertion(self) -> bool:
+        """Return the TN5 shift configuration for the specified assay."""
+        return hasattr(self.assay_config, "tn5_shift") and self.assay_config.tn5_shift
+
+    @field_validator("remove_blacklist")
+    def validate_remove_blacklist(cls, v):
+        """Can only be set to True if genome blacklist is provided."""
+        if v and not cls.genome.blacklist:
+            raise ValueError("remove_blacklist can only be True if genome blacklist is provided.")
+        return v
+
+    @computed_field
+    def third_party_tools(self) -> ThirdPartyToolsConfig:
+        """Return the third-party tools configuration for the specified assay."""
+        return ThirdPartyToolsConfig.for_assay(self.assay)
+    
 
     @field_validator("assay_config", mode="before")
     def validate_assay_config_matches_assay(cls, v, info):

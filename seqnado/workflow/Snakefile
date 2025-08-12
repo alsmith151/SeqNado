@@ -1,3 +1,6 @@
+################################
+# Imports
+################################
 import os
 import shutil
 from seqnado.config import SeqnadoConfig
@@ -9,57 +12,71 @@ from seqnado.inputs import (
 from seqnado.outputs import SeqnadoOutputFactory, SeqnadoOutputFiles
 from seqnado.helpers import remove_unwanted_run_files
 
-####################
-# Hardcoded config #
-####################
+
+################################
+# Hardcoded Config
+################################
 SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
+
+
 container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
 
 
-########################
-# Config               #
-########################
-
-## Load configuration
+################################
+# Load Configuration
+################################
 CONFIG = SeqnadoConfig(**config)  # pyright: ignore[reportUndefinedVariable]
 ASSAY = CONFIG.assay
 INPUT_FILES = select_sample_collection(ASSAY).from_csv(CONFIG.metadata)
 
-## Define sample groupings
+
+################################
+# Define Sample Groupings
+################################
 SAMPLE_GROUPINGS = SampleGroupings()
+
 normalisation_groups = SampleGroups.from_dataframe(
-    INPUT_FILES.to_dataframe(), subset_column="norm_group", include_controls=True
+    INPUT_FILES.to_dataframe(),
+    subset_column="norm_group",
+    include_controls=True,
 )
+
 scaling_groups = SampleGroups.from_dataframe(
-    INPUT_FILES.to_dataframe(), subset_column="consensus_group", include_controls=True
+    INPUT_FILES.to_dataframe(),
+    subset_column="consensus_group",
+    include_controls=True,
 )
+
 SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
 SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
 
-########################
-# Define Outputs       #
-########################
 
+################################
+# Define Outputs
+################################
 OUTPUTS: SeqnadoOutputFiles = (
     SeqnadoOutputFactory(
-        assay=ASSAY, samples=INPUT_FILES, config=CONFIG, sample_groupings=SAMPLE_GROUPINGS
+        assay=ASSAY,
+        samples=INPUT_FILES,
+        config=CONFIG,
+        sample_groupings=SAMPLE_GROUPINGS,
     )
     .create_output_builder()
     .build()
 )
 
-########################
-# Set-Up Workflow      #
-########################
+SAMPLE_NAMES = OUTPUTS.sample_names
 
+
+################################
+# Set-Up Workflow
+################################
 INPUT_FILES.symlink_fastq_files(output_dir="seqnado_output/fastq/")
 
 
-####################
-# Workflow rules     #
-####################
-
-
+################################
+# Include Rules
+################################
 include: "rules/common.smk"
 include: "rules/align.smk"
 include: "rules/alignment_post_processing.smk"
@@ -82,6 +99,9 @@ include: "rules/peak_call_chip.smk"
 include: "rules/crispr.smk"
 
 
+################################
+# Rule Ordering
+################################
 if CONFIG.has_spikein:
 
     ruleorder: move_ref_bam > align_paired > align_single
@@ -92,18 +112,24 @@ else:
     ruleorder: align_paired > align_single > move_ref_bam
 
 
+################################
+# Final Aggregation Rule
+################################
 rule all:
     input:
         OUTPUTS.all_files,
 
 
+################################
+# Workflow Hooks
+################################
 onsuccess:
     remove_unwanted_run_files()
 
 
 onerror:
     log_out = "seqnado_error.log"
-    shutil.copyfile(log, log_out)
+    shutil.copyfile(log, log_out)  # pyright: ignore[reportUndefinedVariable]
     print(
         f"An error occurred. Please check the log file {log_out} for more information."
     )

@@ -1,262 +1,385 @@
-
 import shlex
-from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Literal, Any
+from typing import Optional, Literal, Any, Annotated
 from enum import Enum
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic.functional_serializers import PlainSerializer
 
 from seqnado import Assay
 
-class Options(BaseModel):
-    """Pydantic model for validating CLI options."""
+
+# =============================================================================
+# Core Configuration Classes
+# =============================================================================
+
+class CommandLineArguments(BaseModel):
+    """Base class for CLI options with validation and filtering capabilities."""
     
     value: str = Field(default="", description="CLI options string")
-    exclude: set[str] = Field(default_factory=set, description="Options to exclude from the final command")
+    exclude: set[str] = Field(
+        default_factory=set, description="Options to exclude from the final command"
+    )
 
     @field_validator("value", mode="before")
     @classmethod
     def validate_options_syntax(cls, v: str) -> str:
         if not isinstance(v, str):
             raise ValueError("Value must be a string")
-        
         try:
-            # Check that it's safely tokenizable like a CLI
             shlex.split(v)
         except ValueError as e:
             raise ValueError(f"Invalid CLI option string: {e}")
-    
-        # Optional: Reject unsafe characters
         if any(c in v for c in ["\n", "\r", "\x00"]):
             raise ValueError("Value string contains unsafe characters")
-
         return v
 
     @model_validator(mode="after")
-    def ensure_leading_space(self) -> "Options":
-        """Ensure options have a leading space if not empty."""
+    def ensure_leading_space(self) -> "CommandLineArguments":
         if self.value and not self.value.startswith(" "):
             self.value = " " + self.value
         return self
-    
+
     def _filter_excluded_options(self, options_str: str) -> str:
-        """Remove excluded options from the options string."""
         if not self.exclude:
             return options_str
-            
         try:
             tokens = shlex.split(options_str.strip())
             filtered_tokens = []
             i = 0
-            
             while i < len(tokens):
                 token = tokens[i]
-                
-                # Check if this token is an excluded option
                 excluded = False
                 for exclude_pattern in self.exclude:
-                    if token == exclude_pattern or token.startswith(exclude_pattern + "="):
+                    if token == exclude_pattern or token.startswith(
+                        exclude_pattern + "="
+                    ):
                         excluded = True
-                        # If it's a flag with separate value, skip the next token too
-                        if (token == exclude_pattern and 
-                            i + 1 < len(tokens) and 
-                            not tokens[i + 1].startswith("-")):
-                            i += 1  # Skip the value token
+                        if (
+                            token == exclude_pattern
+                            and i + 1 < len(tokens)
+                            and not tokens[i + 1].startswith("-")
+                        ):
+                            i += 1
                         break
-                
                 if not excluded:
                     filtered_tokens.append(token)
-                
                 i += 1
-            
-            return " " + " ".join(filtered_tokens) if filtered_tokens else ""
+            return " " + shlex.join(filtered_tokens) if filtered_tokens else ""
         except ValueError:
-            # If parsing fails, return original
             return options_str
-    
-    def __str__(self) -> str:
-        """Return options without leading space for display, with exclusions applied."""
-        filtered = self._filter_excluded_options(self.value)
-        return filtered.strip()
-    
+
     @property
-    def raw(self) -> str:
-        """Return raw options string with leading space for CLI usage, with exclusions applied."""
+    def option_string_filtered(self) -> str:
         return self._filter_excluded_options(self.value)
-    
+
     @property
-    def raw_unfiltered(self) -> str:
-        """Return raw options string without applying exclusions."""
+    def option_string_raw(self) -> str:
         return self.value
     
-    def model_dump_string(self) -> str:
-        """Serialize to string for easy CLI usage, with exclusions applied."""
-        return self.raw
-    
-    @classmethod
-    def __get_pydantic_json_schema__(cls, core_schema, handler):
-        """Make this serialize as a string in JSON schema."""
-        json_schema = handler(core_schema)
-        json_schema.update(type="string")
-        return json_schema
-    
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler):
-        """Define core schema for serialization."""
-        from pydantic_core import core_schema
-        
-        def serialize_options(instance, _info):
-            if isinstance(instance, Options):
-                return instance.raw  # Use filtered version for serialization
-            return str(instance)
-            
-        def validate_options(value):
-            if isinstance(value, Options):
-                return value
-            return cls(value=value)
-        
-        return core_schema.no_info_after_validator_function(
-            validate_options,
-            core_schema.str_schema(),
-            serialization=core_schema.to_string_ser_schema(
-                when_used='json'
-            )
-        )
+    def __str__(self) -> str:
+        return self._filter_excluded_options(self.value).strip()
+
+
+def serialize_options_to_string(options: CommandLineArguments) -> str:
+    """Custom serializer that returns only the filtered option string."""
+    return options.option_string_filtered.strip()
+
+
+# Create the annotated Options type with custom serialization
+CommandLineArgumentsType = Annotated[
+    CommandLineArguments,
+    PlainSerializer(serialize_options_to_string, return_type=str)
+]
+
 
 class ToolConfig(BaseModel):
-    """Base model for CLI-based tools."""
-    threads: int = Field(default=1, ge=1)
-    options: Options = Field(default_factory=Options)
+    """Base configuration for a tool with threads and CLI options."""
+    
+    threads: int = Field(default=1, ge=1, description="Number of threads to use")
+    command_line_arguments: CommandLineArgumentsType = Field(default_factory=CommandLineArguments, description="CLI options")
 
-
-    @field_validator("options", mode="before")
+    @field_validator("command_line_arguments", mode="before")
     @classmethod
-    def ensure_options(cls, v):
-        if isinstance(v, Options):
+    def validate_command_line_arguments(cls, v):
+        if isinstance(v, CommandLineArguments):
             return v
         if isinstance(v, str):
-            return Options(value=v)
+            return CommandLineArguments(value=v)
         if isinstance(v, dict):
-            return Options(**v)
-        raise TypeError("options must be a string, dict, or Options instance")
-
-    @model_validator(mode="after")
-    def coerce_options(self) -> "ToolConfig":
-        if not isinstance(self.options, Options):
-            if isinstance(self.options, str):
-                self.options = Options(value=self.options)
-            elif isinstance(self.options, dict):
-                self.options = Options(**self.options)
-            else:
-                raise TypeError("options must be a string, dict, or Options instance")
-        return self
-    
+            return CommandLineArguments(**v)
+        raise TypeError("command_line_arguments must be a string, dict, or CommandLineArguments instance")
 
 
+# =============================================================================
+# Enums
+# =============================================================================
 
+class CutadaptMode(Enum):
+    DEFAULT = "default"
+    CRISPR = "crispr"
 
-class Bowtie2(BaseModel):
-    """Configuration for Bowtie2 tool."""
-    align: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="--very-sensitive")
-        )
-    )
-    index: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="--threads {threads} --quiet")
-        )
-    )
-
-class Subread(BaseModel):
-    """Configuration for Subread tool."""
-    feature_counts: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=16,
-            options=Options(value="-p --countReadPairs")
-        )
-    )
-    
-
-class Bamnado(BaseModel):
-    """Configuration for Bamnado tool."""
-    bam_coverage: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="--bin-size 10 --norm-method rpkm")
-        )
-    )
-
-class Deeptools(BaseModel):
-    """Configuration for Deeptools tool."""
-    bam_coverage: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="--binSize 10 --normalizeUsing RPKM")
-        )
-    )
-    compute_matrix: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="")
-        )
-    )
-    plot_heatmap: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="--colorMap RdYlBu --whatToShow 'heatmap and colorbar'")
-        )
-    )
-
-
-class Homer(BaseModel):
-    make_tag_directory: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            options=Options(value="")
-        )
-    )
-    make_bigwig: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            options=Options(value="")
-        )
-    )
-    annotate_peaks: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            options=Options(value="")
-        )
-    )
-    find_peaks: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            options=Options(value="")
-        )
-    )
-
-class Lanceotron(BaseModel):
-    """Configuration for Lanceotron tool."""
-    call_peak: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="-c 0.5")
-        )
-    )
 
 class MacsMode(Enum):
-    """Enum for MACS modes."""
     ATAC = "atac"
     CHIP_BROAD = "chip_broad"
     CHIP_TF = "chip_tf"
     GENERIC = "generic"
 
 
+# =============================================================================
+# Simple Tool Configurations (single ToolConfig)
+# =============================================================================
+
+class Cutadapt(ToolConfig):
+    """Cutadapt adapter trimming tool configuration."""
+    
+    mode: CutadaptMode = Field(default=CutadaptMode.CRISPR)
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 4)
+        data.setdefault(
+            "options",
+            CommandLineArguments(value="-g 'ACACCG' --cut 0 -l 20 -m 20 -M 20 --discard-untrimmed"),
+        )
+        return data
+
+
+class LanceotronMCC(ToolConfig):
+    """Lanceotron MCC peak calling tool configuration."""
+    
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 8)
+        data.setdefault(
+            "options",
+            CommandLineArguments(
+                value="--max-peak-size 2000 --no-mcc-filter-enriched-regions --no-mcc-filter-background"
+            ),
+        )
+        return data
+
+
+class Methyldackel(ToolConfig):
+    """Methyldackel methylation analysis tool configuration."""
+    
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 8)
+        data.setdefault("options", CommandLineArguments(value=""))
+        return data
+
+
+# =============================================================================
+# Complex Tool Configurations (multiple sub-tools)
+# =============================================================================
+
+class Bowtie2(BaseModel):
+    """Bowtie2 alignment tool configuration."""
+    
+    align: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="--very-sensitive")
+        ),
+        description="Alignment configuration"
+    )
+    index: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="--threads {threads} --quiet")
+        ),
+        description="Index building configuration"
+    )
+
+
+class Samtools(BaseModel):
+    """Samtools suite configuration."""
+    
+    sort: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="-@ {threads} -m 2G")
+        ),
+        description="Sort configuration"
+    )
+    index: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(threads=8, command_line_arguments=CommandLineArguments(value="")),
+        description="Index configuration"
+    )
+    view: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(threads=8, command_line_arguments=CommandLineArguments(value="-bS")),
+        description="View configuration"
+    )
+
+
+class Deeptools(BaseModel):
+    """Deeptools suite configuration."""
+    
+    bam_coverage: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(
+                value="--binSize 10 --normalizeUsing RPKM", 
+                exclude={"-e", "--extendReads"}
+            )
+        ),
+        description="BAM coverage configuration"
+    )
+    compute_matrix: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(threads=8, command_line_arguments=CommandLineArguments(value="")),
+        description="Compute matrix configuration"
+    )
+    plot_heatmap: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8,
+            command_line_arguments=CommandLineArguments(
+                value="--colorMap RdYlBu --whatToShow 'heatmap and colorbar'"
+            ),
+        ),
+        description="Plot heatmap configuration"
+    )
+
+
+class Homer(BaseModel):
+    """HOMER motif analysis suite configuration."""
+    
+    make_tag_directory: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
+        description="Tag directory creation configuration"
+    )
+    make_bigwig: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
+        description="BigWig creation configuration"
+    )
+    annotate_peaks: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
+        description="Peak annotation configuration"
+    )
+    find_peaks: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
+        description="Peak finding configuration"
+    )
+
+
+class Star(BaseModel):
+    """STAR RNA-seq aligner configuration."""
+    
+    align: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8,
+            command_line_arguments=CommandLineArguments(
+                value="--quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard"
+            ),
+        ),
+        description="Alignment configuration"
+    )
+    index: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8,
+            command_line_arguments=CommandLineArguments(value="--runThreadN {threads} --genomeSAindexNbases 14"),
+        ),
+        description="Index building configuration"
+    )
+
+
+class BcfTools(BaseModel):
+    """BCFtools variant calling suite configuration."""
+    
+    call: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="-c -v -f GQ,DP")
+        ),
+        description="Variant calling configuration"
+    )
+    consensus: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(threads=8, command_line_arguments=CommandLineArguments(value="-s -c")),
+        description="Consensus calling configuration"
+    )
+
+class Salmon(BaseModel):
+    """Salmon quantification tool configuration."""
+
+    quant: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="-p {threads} -o {output.dir}")
+        ),
+        description="Quantification configuration"
+    )
+
+
+# =============================================================================
+# Single-purpose Tool Configurations
+# =============================================================================
+
+class Bamnado(BaseModel):
+    """Bamnado coverage analysis tool configuration."""
+    
+    bam_coverage: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="--bin-size 10 --norm-method rpkm")
+        ),
+        description="BAM coverage analysis configuration"
+    )
+
+
+class Subread(BaseModel):
+    """Subread feature counting tool configuration."""
+    
+    feature_counts: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=16, command_line_arguments=CommandLineArguments(value="-p --countReadPairs")
+        ),
+        description="Feature counting configuration"
+    )
+
+
+class Lanceotron(BaseModel):
+    """Lanceotron peak calling tool configuration."""
+    
+    call_peak: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(threads=8, command_line_arguments=CommandLineArguments(value="-c 0.5")),
+        description="Peak calling configuration"
+    )
+
+
+class Picard(BaseModel):
+    """Picard tools configuration."""
+    
+    mark_duplicates: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="REMOVE_DUPLICATES=true")
+        ),
+        description="Mark duplicates configuration"
+    )
+
+
+class Trimgalore(BaseModel):
+    """Trim Galore adapter trimming tool configuration."""
+    
+    trim: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=4, command_line_arguments=CommandLineArguments(value="--2colour 20")
+        ),
+        description="Trimming configuration"
+    )
+
+
+# =============================================================================
+# Special Configuration Classes
+# =============================================================================
 
 class Macs(BaseModel):
-    """Configuration for MACS tool."""
-    version: Literal[2, 3] = 3
-    mode: MacsMode = MacsMode.GENERIC
-    call_peak: ToolConfig = Field(default=None)
+    """MACS peak calling tool configuration with mode-specific defaults."""
+    
+    version: Literal[2, 3] = Field(default=3, description="MACS version to use")
+    mode: MacsMode = Field(default=MacsMode.GENERIC, description="Analysis mode")
+    call_peak: Optional[ToolConfig] = Field(default=None, description="Peak calling configuration")
 
     def _get_options_for_mode(self) -> str:
-        """Get options string based on the mode."""
+        """Get default options based on the analysis mode."""
         match self.mode:
             case MacsMode.ATAC:
                 return "--nomodel --shift -100 --extsize 200"
@@ -269,145 +392,42 @@ class Macs(BaseModel):
 
     @model_validator(mode="after")
     def set_default_call_peak(self) -> "Macs":
-        """Set default call_peak configuration based on mode if not provided."""
         if self.call_peak is None:
             self.call_peak = ToolConfig(
-                options=Options(value=self._get_options_for_mode())
+                command_line_arguments=CommandLineArguments(value=self._get_options_for_mode())
             )
         return self
 
-class Picard(BaseModel):
-    """Configuration for Picard tool."""
-    mark_duplicates: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="REMOVE_DUPLICATES=true")
-        )
-    )
-
-class Samtools(BaseModel):
-    """Configuration for Samtools tool."""
-    sort: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="-@ {threads} -m 2G")
-        )
-    )
-    index: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="")
-        )
-    )
-    view: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="-bS")
-        )
-    )
-
-class Trimgalore(BaseModel):
-    """Configuration for Trim Galore tool."""
-    trim: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=4,
-            options=Options(value="--2colour 20")
-        )
-    )
 
 class Seacr(BaseModel):
-    """Configuration for Seacr tool."""
-    threshold: float = Field(default=0.01)
-    normalization: str | None = Field(
-        default="non",
-        description="Normalization method to use, e.g., 'RPKM', 'CPM', etc."
-    )
+    """SEACR peak calling tool configuration (non-ToolConfig based)."""
+    
+    threshold: float = Field(default=0.01, ge=0, le=1, description="Peak calling threshold")
+    normalization: Optional[str] = Field(default="non", description="Normalization method")
     stringency: Literal["stringent", "relaxed"] = Field(
-        default="stringent",
-        description="Stringency level to use, e.g., 'stringent', 'relaxed', etc."
+        default="stringent", description="Peak calling stringency"
     )
 
 
-class CutadaptMode(Enum):
-    """Enum for Cutadapt modes."""
-    DEFAULT = "default"
-    CRISPR = "crispr"
+# =============================================================================
+# Main Configuration Class
+# =============================================================================
 
-
-class Cutadapt(ToolConfig):
-    """Configuration for Cutadapt tool."""
-    mode: CutadaptMode = Field(default=CutadaptMode.CRISPR)
-    
-    def __init__(self, **data):
-        if 'options' not in data:
-            data['options'] = Options(value="-g 'ACACCG' --cut 0 -l 20 -m 20 -M 20 --discard-untrimmed")
-        if 'threads' not in data:
-            data['threads'] = 4
-        super().__init__(**data)
-
-
-class LanceotronMCC(ToolConfig):
-    """Configuration for Lanceotron MCC tool."""
-    
-    def __init__(self, **data):
-        if 'options' not in data:
-            data['options'] = Options(value="--max-peak-size 2000 --no-mcc-filter-enriched-regions --no-mcc-filter-background")
-        if 'threads' not in data:
-            data['threads'] = 8
-        super().__init__(**data)
-
-
-class Methyldackel(ToolConfig):
-    """Configuration for Methyldackel tool."""
-    
-    def __init__(self, **data):
-        if 'options' not in data:
-            data['options'] = Options(value="")
-        if 'threads' not in data:
-            data['threads'] = 8
-        super().__init__(**data)
-
-class Star(BaseModel):
-    """Configuration for STAR aligner."""
-    align: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="--quantMode TranscriptomeSAM GeneCounts --outSAMunmapped Within --outSAMattributes Standard")
-        )
-    )
-    index: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="--runThreadN {threads} --genomeSAindexNbases 14")
-        )
-    )
-
-
-class BcfTools(BaseModel):
-    """Configuration for BCFtools."""
-    call: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="-c -v -f GQ,DP")
-        )
-    )
-    consensus: ToolConfig = Field(
-        default_factory=lambda: ToolConfig(
-            threads=8,
-            options=Options(value="-s -c")
-        )
-    )
-
-
-
-def get_assay_specific_tools(assay: Assay) -> list[BaseModel]:
-    """Get the specific tools configuration based on the assay type."""
-
+def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
+    """Get the list of tool classes appropriate for a given assay type."""
     generic_dna_tools = [
-        Bowtie2, Bamnado, Deeptools, Homer, Lanceotron, Macs, Picard, Samtools, Trimgalore, Subread
+        Bowtie2,
+        Bamnado,
+        Deeptools,
+        Homer,
+        Lanceotron,
+        Macs,
+        Picard,
+        Samtools,
+        Trimgalore,
+        Subread,
     ]
-
-
+    
     tools = {
         Assay.ATAC: generic_dna_tools,
         Assay.CHIP: generic_dna_tools,
@@ -417,53 +437,79 @@ def get_assay_specific_tools(assay: Assay) -> list[BaseModel]:
         Assay.METH: [Bowtie2, Methyldackel, Samtools, Picard],
         Assay.CRISPR: [Cutadapt, Bowtie2, Subread, Samtools],
     }
+    return tools.get(assay, [])
 
-    return tools.get(assay)
 
 class ThirdPartyToolsConfig(BaseModel):
-    """Configuration for third-party tools used in SeqNado."""
+    """Configuration for all third-party bioinformatics tools."""
+    
+    # Alignment tools
+    bowtie2: Optional[Bowtie2] = Field(default=None, description="Bowtie2 aligner configuration")
+    star: Optional[Star] = Field(default=None, description="STAR RNA-seq aligner configuration")
 
-    assay: Assay
-    bowtie2: Bowtie2 | None = None
-    bamnado: Bamnado | None = None
-    deeptools: Deeptools | None = None
-    homer: Homer | None = None
-    lanceotron: Lanceotron | None = None
-    macs: Macs | None = None
-    picard: Picard | None = None
-    samtools: Samtools | None = None
-    subread: Subread | None = None
-    trimgalore: Trimgalore | None = None
-    seacr: Seacr | None = None
-    cutadapt: Cutadapt | None = None
-    lanceotronmcc: LanceotronMCC | None = None
-    methyldackel: Methyldackel | None = None
-    star: Star | None = None
-    bcftools: BcfTools | None = None
+    # Processing tools
+    samtools: Optional[Samtools] = Field(default=None, description="Samtools suite configuration")
+    picard: Optional[Picard] = Field(default=None, description="Picard tools configuration")
+    
+    # Trimming tools
+    cutadapt: Optional[Cutadapt] = Field(default=None, description="Cutadapt trimming configuration")
+    trimgalore: Optional[Trimgalore] = Field(default=None, description="Trim Galore configuration")
+    
+    # Peak calling tools
+    macs: Optional[Macs] = Field(default=None, description="MACS peak caller configuration")
+    lanceotron: Optional[Lanceotron] = Field(default=None, description="Lanceotron peak caller configuration")
+    lanceotronmcc: Optional[LanceotronMCC] = Field(default=None, description="Lanceotron MCC configuration")
+    seacr: Optional[Seacr] = Field(default=None, description="SEACR peak caller configuration")
+    
+    # Analysis tools
+    deeptools: Optional[Deeptools] = Field(default=None, description="Deeptools suite configuration")
+    homer: Optional[Homer] = Field(default=None, description="HOMER suite configuration")
+    bamnado: Optional[Bamnado] = Field(default=None, description="Bamnado coverage analysis configuration")
+    subread: Optional[Subread] = Field(default=None, description="Subread feature counting configuration")
+    salmon: Optional[Salmon] = Field(default=None, description="Salmon quantification configuration")
 
+    
+    # Specialized tools
+    methyldackel: Optional[Methyldackel] = Field(default=None, description="Methyldackel methylation analysis configuration")
+    bcftools: Optional[BcfTools] = Field(default=None, description="BCFtools variant calling suite configuration")
 
-    def model_post_init(self, context: Any) -> None:
-        """Set default tools based on assay type if not provided."""
-
-        assay_tools = get_assay_specific_tools(self.assay)
-        if assay_tools is None:
-            raise ValueError(f"No tools configured for assay {self.assay.value}")
+    @classmethod
+    def for_assay(cls, assay: Assay, **overrides) -> "ThirdPartyToolsConfig":
+        """
+        Factory method to create a configuration with defaults based on assay type.
         
+        Args:
+            assay: The assay type to configure tools for
+            **overrides: Override configurations for specific tools
+            
+        Returns:
+            ThirdPartyToolsConfig: Configured instance with assay-appropriate defaults
+            
+        Raises:
+            ValueError: If no tools are configured for the given assay type
+        """
+        assay_tools = get_assay_specific_tools(assay)
+        if not assay_tools:
+            raise ValueError(f"No tools configured for assay {assay.value}")
+        
+        # Create default instances for the assay's tools
+        defaults = {}
         for tool_class in assay_tools:
             tool_name = tool_class.__name__.lower()
-            if getattr(self, tool_name) is None:
-                setattr(self, tool_name, tool_class())
-
-
-
+            defaults[tool_name] = tool_class()
         
+        # Merge with any user overrides
+        defaults.update(overrides)
+        
+        return cls(**defaults)
 
+    def get_configured_tools(self) -> dict[str, BaseModel]:
+        """Get a dictionary of all configured (non-None) tools."""
+        return {
+            name: tool for name, tool in self.model_dump(exclude_none=True).items()
+            if tool is not None
+        }
 
-
-
-
-
-
-
-
-
+    def has_tool(self, tool_name: str) -> bool:
+        """Check if a specific tool is configured."""
+        return getattr(self, tool_name, None) is not None

@@ -1,27 +1,20 @@
-from .core import (
-    AssayConfig,
-    SeqnadoConfig,
+from .configs import (
+    BowtieIndex,
+    STARIndex,
     GenomeConfig,
     ProjectConfig,
-    PCRDuplicatesConfig,
-    QCConfig,
-    BigwigConfig,
-    PeakCallingConfig,
-    PlottingConfig,
-    SpikeInConfig,
-    UCSCHubConfig,
+    PCRDuplicatesConfig
+    
+)
+from .core import (
+    SeqnadoConfig,
 )
 
 __all__ = [
-    "AssayConfig",
-    "SeqnadoConfig",
+    "BowtieIndex",
+    "STARIndex",
     "GenomeConfig",
-    "ProjectConfig",
+    "SeqnadoConfig",
+    "ProjectConfig"
     "PCRDuplicatesConfig",
-    "QCConfig",
-    "BigwigConfig",
-    "PeakCallingConfig",
-    "PlottingConfig",
-    "SpikeInConfig",
-    "UCSCHubConfig",
 ]

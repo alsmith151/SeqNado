@@ -109,6 +109,38 @@ rule qualimap_rnaseq:
     > {log} 2>&1    
     """
 
+##############################################
+#            BAM filtering stats             #
+##############################################
+
+rule bam_stats:
+    input: 
+        sort="seqnado_output/qc/alignment_post_process/{sample}_sort.tsv",
+        blacklist="seqnado_output/qc/alignment_post_process/{sample}_blacklist.tsv",
+        remove_duplicates="seqnado_output/qc/alignment_post_process/{sample}_remove_duplicates.tsv",
+        atac_shift="seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv",
+        filtered="seqnado_output/qc/alignment_post_process/{sample}_filter.tsv",
+        final="seqnado_output/qc/alignment_post_process/{sample}_final.tsv",
+    output: temp("seqnado_output/qc/alignment_post_process/{sample}_alignment_stats.tsv")
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    shell: """
+        cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
+    """
+
+rule prepare_stats_report:
+    input:
+        expand(
+            "seqnado_output/qc/alignment_post_process/{sample}_alignment_stats.tsv",
+            sample=SAMPLE_NAMES,
+        ),
+    output:
+        "seqnado_output/qc/alignment_stats.tsv",
+    log:
+        "seqnado_output/logs/alignment_stats.log",
+    script:
+        "../scripts/alignment_stats.py"
 
 
 ##############################################
@@ -284,6 +316,7 @@ def get_snp_qc(wildcards):
         )
     else:
         return []
+
 
 ##############################################
 #                  MultiQC                   #

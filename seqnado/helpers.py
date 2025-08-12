@@ -94,8 +94,6 @@ def define_time_requested(
     return f"{time}h"
 
 
-
-
 def pepe_silvia():
     print("PEPE SILVIA")
     _pepe_silvia = "https://relix.com/wp-content/uploads/2017/03/tumblr_o16n2kBlpX1ta3qyvo1_1280.jpg"
