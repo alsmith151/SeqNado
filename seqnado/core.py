@@ -78,6 +78,19 @@ AssaysWithPeakCalling = (Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.MCC)
 AssaysWithHeatmaps = (Assay.ATAC, Assay.CHIP, Assay.RNA, Assay.CAT)
 AssaysWithSpikein = (Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.RNA)
 
+
+class FileType(Enum):
+    """Supported file types."""
+    BAM = "bam"
+    BED = "bed"
+    BIGWIG = "bigwig"
+    FASTQ = "fastq"
+    FASTA = "fasta"
+    TXT = "txt"
+    TSV = "tsv"
+    XLSX = "xlsx"
+    TAG_DIRECTORY = "homer_tag_directory"
+
 class PileupMethod(Enum):
     """Methods for creating pileup files."""
 

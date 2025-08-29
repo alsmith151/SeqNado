@@ -23,7 +23,7 @@ from seqnado.helpers import (
     extract_viewpoints,
     viewpoint_to_grouped_viewpoint,
 )
-from seqnado.inputs import SampleCollection, SampleCollectionForIP, Assay, Metadata
+from seqnado.inputs import FastqCollection, FastqCollectionForIP, Assay, Metadata
 from seqnado.inputs.fastq import FastqFile, FastqSet, FastqSetIP
 from seqnado.inputs.experiment import ExperimentIP
 
@@ -65,7 +65,7 @@ def mock_sample_collection():
         Metadata(norm_group="treatment")
     ]
     
-    return SampleCollection(
+    return FastqCollection(
         assay=Assay.RNA,
         fastq_sets=[paired_set, single_set],
         metadata=metadata
@@ -91,7 +91,7 @@ def mock_ip_sample_collection():
     # Create metadata
     metadata = [Metadata(norm_group="all")]
     
-    return SampleCollectionForIP(
+    return FastqCollectionForIP(
         assay=Assay.CHIP,
         experiments=[experiment],
         metadata=metadata

@@ -1,17 +1,24 @@
 from .core import Assay, Metadata
-from .collections import SampleCollection, SampleCollectionForIP, MultiAssayCollection, SampleGroups, SampleGroupings, SampleCollectionType, select_sample_collection
+from .collections import (
+    FastqCollection,
+    FastqCollectionForIP,
+    )
+from .grouping import SampleGroupings, SampleGroups
+from .bam import BamCollection, BamFile
+from .bigwigs import BigWigCollection, BigWigFile
+from .interfaces import CollectionLike, ensure_collection
 
 __all__ = [
     "Assay",
-    "Metadata", 
-    "PeakCallingMethod",
-    "PileupMethod",
-    "ScaleMethod",
-    "SampleCollection",
-    "SampleCollectionForIP", 
-    "MultiAssayCollection",
+    "Metadata",
+    "FastqCollection",
+    "FastqCollectionForIP",
     "SampleGroups",
     "SampleGroupings",
-    "SampleCollectionType",
-    "select_sample_collection",
+    "BamFile",
+    "BamCollection",
+    "BigWigFile",
+    "BigWigCollection",
+    "CollectionLike",
+    "ensure_collection",
 ]

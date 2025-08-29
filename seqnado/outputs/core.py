@@ -7,13 +7,15 @@ from loguru import logger
 from pydantic import BaseModel, Field, computed_field
 from snakemake.io import expand
 
-from seqnado import Assay, PileupMethod, DataScalingTechnique
+from seqnado import Assay, PileupMethod, DataScalingTechnique, PeakCallingMethod
 from seqnado.config import SeqnadoConfig
 from seqnado.inputs import (
-    SampleCollectionForIP,
-    SampleCollection,
+    FastqCollectionForIP,
+    FastqCollection,
     SampleGroupings,
-    SampleGroups,
+    CollectionLike,
+    BamCollection,
+    BigWigCollection
 )
 from seqnado.outputs.files import (
     BigWigFiles,
@@ -111,7 +113,7 @@ class SeqnadoOutputBuilder:
     def __init__(
         self,
         assay: Assay,
-        samples: SampleCollection | SampleCollectionForIP,
+        samples: CollectionLike,
         config: SeqnadoConfig,
         sample_groups: SampleGroupings | None = None,
     ):
@@ -165,6 +167,12 @@ class SeqnadoOutputBuilder:
 
     def add_peak_files(self) -> None:
         """Add peak files to the output collection."""
+
+        # If starting from bigwigs, only lanceotron is allowed any other raises an error
+        if isinstance(self.samples, BigWigCollection):
+            if self.config.assay_config.peak_calling_methods != [PeakCallingMethod.LANCEOTRON]:
+                raise ValueError(f"For BigWigCollection, only {PeakCallingMethod.LANCEOTRON} is allowed.")
+
         peaks = PeakCallingFiles(
             assay=self.assay,
             names=self.samples.sample_names,
@@ -275,6 +283,10 @@ class SeqnadoOutputBuilder:
         and appends it to the file_collections list. So it should be called
         after all other file collections have been added if you want to include GEO files in the final output.
         """
+
+        if isinstance(self.samples, (BamCollection, BigWigCollection)):
+            raise ValueError("GEO submission files can only be generated from FASTQ inputs.")
+
         outfiles = self.build().all_files
         geo_files = GeoSubmissionFiles(
             assay=self.assay, names=self.samples.sample_names, outfiles=outfiles
@@ -297,7 +309,7 @@ class SeqnadoOutputFactory:
     def __init__(
         self,
         assay: Assay,
-        samples: SampleCollection | SampleCollectionForIP,
+        samples: FastqCollection | FastqCollectionForIP,
         config: SeqnadoConfig,
         sample_groups: SampleGroupings | None = None,
     ):

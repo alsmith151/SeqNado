@@ -16,7 +16,7 @@ from seqnado import (
     QuantificationMethod,
 )
 from seqnado.core import AssaysWithHeatmaps, AssaysWithSpikein, AssaysWithPeakCalling
-from seqnado.inputs import SampleCollection, SampleCollectionForIP, SampleGroups
+from seqnado.inputs import FastqCollection, FastqCollectionForIP, SampleGroups, CollectionLike, BamCollection, BigWigCollection
 from seqnado.config import SeqnadoConfig
 
 
@@ -29,7 +29,7 @@ class FileCollection(Protocol):
 
 class QCFiles(BaseModel):
     assay: Assay
-    samples: SampleCollection | SampleCollectionForIP
+    samples: FastqCollection | FastqCollectionForIP | BamCollection | BigWigCollection
 
     @property
     def default_files(self) -> list[str]:
@@ -39,17 +39,18 @@ class QCFiles(BaseModel):
 
     @property
     def qualimap_files(self) -> list[str]:
-        match self.assay:
-            case Assay.RNA:
-                return expand(
-                    "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
-                    sample=self.samples.sample_names,
-                )
-            case _:
-                return expand(
-                    "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
-                    sample=self.samples.sample_names,
-                )
+        if not isinstance(self.samples, (BigWigCollection)):
+            match self.assay:
+                case Assay.RNA:
+                    return expand(
+                        "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
+                        sample=self.samples.sample_names,
+                    )
+                case _:
+                    return expand(
+                        "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+                        sample=self.samples.sample_names,
+                    )
 
     @computed_field
     @property

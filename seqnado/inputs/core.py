@@ -1,10 +1,11 @@
 """Core enums, constants, and utility functions for SeqNado design module."""
 
-import pathlib
+from pathlib import Path 
 import re
 from enum import Enum
 from typing import Optional, Union
-from pydantic import BaseModel, Field, computed_field, field_validator
+from abc import ABC, abstractmethod
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 from seqnado import Assay, Organism
 
 # =============================================================================
@@ -90,13 +91,13 @@ def predict_organism(genome: str) -> Organism:
         return Organism.UNKNOWN
 
 
-def is_valid_path(path: Optional[Union[str, pathlib.Path]]) -> bool:
+def is_valid_path(path: str | Path | None) -> bool:
     """Check if a path is valid and exists."""
     if path is None:
         return False
     
     try:
-        p = pathlib.Path(path)
+        p = Path(path)
         return p.exists() and str(p) not in ["-", ".", "", "None"]
     except (TypeError, ValueError):
         return False

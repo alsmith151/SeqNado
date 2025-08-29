@@ -124,7 +124,7 @@ def cli_design(method, files, output="design.csv", merge=False):
     """
     import pathlib
 
-    from seqnado.inputs import SampleCollection, SampleCollectionForIP
+    from seqnado.inputs import FastqCollection, FastqCollectionForIP
 
     if not files:
         potential_file_locations = [
@@ -150,9 +150,9 @@ def cli_design(method, files, output="design.csv", merge=False):
 
 
     if method in ['chip', 'cat']:
-        design = SampleCollectionForIP.from_fastq_files(files)
+        design = FastqCollectionForIP.from_fastq_files(files)
     else:
-        design = SampleCollection.from_fastq_files(files)
+        design = FastqCollection.from_fastq_files(files)
 
     
     df = (

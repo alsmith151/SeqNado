@@ -14,7 +14,8 @@ from .core import (
     AssaysWithHeatmaps,
     AssaysWithSpikein,
     Molecule,
-    Organism
+    Organism,
+    FileType
 )
 
 from . import data, config, inputs, outputs
@@ -43,5 +44,6 @@ __all__ = [
     "AssaysWithHeatmaps",
     "AssaysWithSpikein",
     "Molecule",
-    "Organism"
+    "Organism",
+    "FileType"
 ]
