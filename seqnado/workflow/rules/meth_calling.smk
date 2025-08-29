@@ -1,5 +1,3 @@
-from seqnado.helpers import check_options
-
 checkpoint methylation_split_bams:
     input:
         "seqnado_output/aligned/{sample}.bam"
@@ -35,9 +33,9 @@ rule methyldackel_bias:
     output:
         bias="seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",
     params:
-        fasta=config["fasta"],
+        fasta=CONFIG.genome.fasta,
         prefix="seqnado_output/methylation/methyldackel/bias/{sample}_{genome}"
-    threads: config["methyldackel"]["threads"]
+    threads: CONFIG.third_party_tools.methyldackel.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -54,7 +52,7 @@ rule calculate_conversion:
         conversion="seqnado_output/methylation/methylation_conversion.tsv",
         plot="seqnado_output/methylation/methylation_conversion.png"
     params:
-        assay=config["methylation_assay"],
+        assay=CONFIG.methylation.method,
     log:
         "seqnado_output/logs/methylation/conversion.log"
     script: "../scripts/methylation_conversion.py"
@@ -66,10 +64,10 @@ rule methyldackel_extract:
     output:
         bdg="seqnado_output/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
     params:
-        fasta=config["fasta"],
-        options=check_options(config["methyldackel"]["options"]),
+        fasta=CONFIG.genome.fasta,
+        options=CONFIG.third_party_tools.methyldackel.options,
         prefix="seqnado_output/methylation/methyldackel/{sample}_{genome}"
-    threads: config["methyldackel"]["threads"]
+    threads: CONFIG.third_party_tools.methyldackel.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

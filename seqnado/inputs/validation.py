@@ -25,8 +25,13 @@ class ViewpointsFile(pa.DataFrameModel):
 
 class DesignDataFrame(pa.DataFrameModel):
     """Base class for design dataframes with common sample identification."""
-    sample_name: Series[str] = pa.Field(coerce=True)
+    sample_id: Series[str] = pa.Field(coerce=True)
     norm_group: Series[str] | None = pa.Field(coerce=True, default="all", description="Grouping variable for scaling samples")
+    scaling_group: Series[str] | None = pa.Field(
+        default=None,
+        description="Grouping variable for scaling samples",
+        nullable=False,
+    )
     consensus_group: Series[str] | None = pa.Field(
         default=None,
         description="Grouping variable for merging samples into consensus",
@@ -59,18 +64,18 @@ class DesignDataFrame(pa.DataFrameModel):
         """Ensure that either the sample_name or sample_name + 'ip' is unique."""
         
         if 'ip' in df.columns:
-            # If 'ip' column exists, check uniqueness of sample_name + ip
-            unique_combination = df['sample_name'] + df['ip'].fillna('')
+            # If 'ip' column exists, check uniqueness of sample_id + ip
+            unique_combination = df['sample_id'] + df['ip'].fillna('')
             return unique_combination.is_unique
         else:
-            # If 'ip' column does not exist, check uniqueness of sample_name
-            return df['sample_name'].is_unique
+            # If 'ip' column does not exist, check uniqueness of sample_id
+            return df['sample_id'].is_unique
     
-    @pa.check("sample_name")
-    def check_sample_name(cls, s: Series[str]) -> Series[bool]:
-        """Ensure sample names do not contain spaces or special characters."""
-        # Check that the sample names do not contain spaces or special characters
-        allowed_chars = r"^[a-zA-Z0-9_]+$"
+    @pa.check("sample_id")
+    def check_sample_id(cls, s: Series[str]) -> Series[bool]:
+        """Ensure sample IDs do not contain spaces or special characters."""
+        # Check that the sample IDs do not contain spaces or special characters
+        allowed_chars = r"^[a-zA-Z0-9_-]+$"
         return s.str.match(allowed_chars)
 
 

@@ -86,7 +86,7 @@ class PileupMethod(Enum):
     BAMNADO = "bamnado"
 
 
-class ScaleMethod(Enum):
+class DataScalingTechnique(Enum):
     """Methods for scaling genomic data."""
 
     UNSCALED = "unscaled"

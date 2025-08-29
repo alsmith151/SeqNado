@@ -1,5 +1,3 @@
-
-
 def identify_extracted_bam_files(wildcards):
     import pathlib
 
@@ -37,8 +35,8 @@ def redefine_viewpoints(samples):
 
 rule viewpoints_to_fasta:
     input:
-        bed=config["viewpoints"],
-        genome=config["fasta"],
+        bed=CONFIG.mcc_viewpoints,
+        genome=CONFIG.genome.fasta,
     output:
         fasta="seqnado_output/resources/viewpoints.fa",
     log:
@@ -66,14 +64,14 @@ rule fasta_index:
 
 rule exclusion_regions:
     input:
-        bed=config['viewpoints'],
+        bed=CONFIG.mcc_viewpoints,
     output:
         bed="seqnado_output/resources/exclusion_regions.bed"
     log:
         "seqnado_output/logs/exclusion_regions.log"
     params:
-        genome=config['genome']['chromosome_sizes'],
-        exclusion_zone=config.get("exclusion_zone", 500)
+        genome=CONFIG.genome.chromosome_sizes,
+        exclusion_zone=CONFIG.assay_config.mcc.exclusion_zone
     shell:
         """
         bedtools slop -i {input.bed} -g {params.genome}  -b {params.exclusion_zone} > {output.bed}
@@ -130,15 +128,15 @@ rule align_unmapped_reads_to_genome:
     output:
         bam=temp("seqnado_output/aligned/second_alignment/{sample}.bam"),
         bai=temp("seqnado_output/aligned/second_alignment/{sample}.bam.bai"),
-    threads: config["samtools"]["threads"]
+    threads: CONFIG.third_party_tools.bowtie2.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/realign/{sample}.log",
     params:
-        index=config["genome"]["index"],
-        options=check_options(config["bowtie2"]["options"]),
+        index=CONFIG.genome.index.prefix,
+        options=str(CONFIG.third_party_tools.bowtie2.command_line_arguments),
 
     shell:
         """
@@ -155,7 +153,7 @@ rule combine_genome_mapped_reads:
         bam2=rules.align_unmapped_reads_to_genome.output.bam,
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
-    threads: config["samtools"]["threads"]
+    threads: CONFIG.third_party_tools.bowtie2.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
@@ -231,8 +229,8 @@ def get_n_cis_scaling_factor(wc):
     # Create Path object and ensure the file exists
     stats_path = Path(stats_file)
     if not stats_path.exists():
-       # raise FileNotFoundError(f"Stats file not found: {stats_file}")
-       return 1
+        # raise FileNotFoundError(f"Stats file not found: {stats_file}")
+        return 1
         
     with open(stats_path, 'r') as r:
         stats = json.load(r)
@@ -265,7 +263,7 @@ rule make_bigwigs_mcc_replicates:
     log:
         "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
     params:
-        options=check_options(config["bamnado"]["bamcoverage"]),
+        options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
     shell:
         """
@@ -281,10 +279,9 @@ rule make_bigwigs_mcc_replicates:
         """
         
 def get_mcc_bam_files_for_merge(wildcards):
-    from seqnado.design import SampleGroups
-    norm_groups = SampleGroups.from_design(DESIGN, subset_column="merge")
-
-    sample_names = norm_groups.get_grouped_samples(wildcards.group)
+    """Get BAM files for merging based on sample names."""
+    groups = SAMPLE_GROUPINGS.groupings.get(wildcards.group)
+    sample_names = groups.get_samples() if groups else []
     bam_files = [
         f"seqnado_output/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
     ]
@@ -296,7 +293,7 @@ rule merge_mcc_bams:
         bams=get_mcc_bam_files_for_merge,
     output:
         "seqnado_output/mcc/{group}/{group}.bam",
-    threads: config["samtools"]["threads"]
+    threads: CONFIG.third_party_tools.samtools.merge.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -335,9 +332,8 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     output:
         bigwig="seqnado_output/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig",
     params:
-        bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
-        options=check_options(config["bamnado"]["bamcoverage"]),
+        options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
     log:
         "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
     container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest'
@@ -411,9 +407,9 @@ rule bgzip_pairs:
 
 rule make_genomic_bins:
     input:
-        chrom_sizes=config["genome"]["chromosome_sizes"],
+        chrom_sizes=CONFIG.genome.chromosome_sizes,
     params:
-        bin_size=config["resolution"],
+        bin_size=CONFIG.genome.bin_size,
     output:
         bed="seqnado_output/resources/genomic_bins.bed",
     log:
@@ -438,8 +434,8 @@ rule make_cooler:
     log:
         "seqnado_output/logs/make_cooler/{group}_{viewpoint}.log",
     params:
-        resolution=config.get("resolution", 100),
-        genome=config["genome"]["name"],
+        resolution=CONFIG.assay_config.mcc.resolution,
+        genome=CONFIG.genome.name,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
@@ -462,7 +458,7 @@ rule zoomify_cooler:
     log:
         "seqnado_output/logs/zoomify_cooler/{group}_{viewpoint}.log",
     params:
-        resolutions=",".join([str(r) for r in config.get("resolutions", [100, 1000, 10000])]),
+        resolutions=CONFIG.assay_config.mcc.resolutions,
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
@@ -476,8 +472,8 @@ rule zoomify_cooler:
 rule aggregate_coolers:
     input:
         mcools=expand("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool", 
-                     group=SAMPLE_GROUPS, 
-                     viewpoint=GROUPED_VIEWPOINT_OLIGOS),
+                    group=SAMPLE_GROUPINGS.groupings.keys(), 
+                    viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     output:
         mcool="seqnado_output/mcc/{group}/{group}.mcool",
     log:
@@ -502,7 +498,7 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     log:
         "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
     params:
-        options=check_options(config["lanceotron_mcc"]["options"]),
+        options=str(CONFIG.third_party_tools.lanceotron_mcc.call_peaks.command_line_arguments),
     container: None
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
@@ -519,9 +515,6 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
         --outfile {output.peaks} \
         {params.options} > {log} 2>&1
         """
-
-
-
 
 
 ruleorder:

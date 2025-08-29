@@ -6,7 +6,7 @@ rule get_fasta:
         fasta="seqnado_output/motifs/fasta/{sample}.fa",
         bed=temp("motifs/fasta/{sample}_clean.bed"),
     params:
-        genome=config["genome"]["fasta"],
+        genome=CONFIG.genome.fasta,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
@@ -43,16 +43,16 @@ rule motif_homer:
     output:
         homer="seqnado_output/motifs/homer/{sample}/homerResults.html",
     params:
+        genome=CONFIG.genome.fasta,
         homer_dir="seqnado_output/motifs/homer/{sample}/",
-        homer_params=config["homer"]["homer_params"],
-        homer_bg=config["homer"]["homer_bg"],
+        homer_params=CONFIG.third_party_tools.homer.find_motifs_genome.command_line_arguments,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     log:
         "seqnado_output/logs/motifs/homer/{sample}.log",
     shell:
         """
-        findMotifsGenome.pl {input.fasta} {params.homer_bg} {params.homer_dir} {params.homer_params}
+        findMotifsGenome.pl {input.fasta} {params.genome} {params.homer_dir} {params.homer_params}
         """
 
 

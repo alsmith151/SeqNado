@@ -10,7 +10,7 @@ from loguru import logger
 from seqnado import (
     Assay,
     PileupMethod,
-    ScaleMethod,
+    DataScalingTechnique,
     PeakCallingMethod,
     MethylationMethod,
     QuantificationMethod,
@@ -61,7 +61,7 @@ class BigWigFiles(BaseModel):
     assay: Assay
     names: list[str] = Field(default_factory=list)
     pileup_methods: list[PileupMethod]
-    scale_methods: list[ScaleMethod] = [ScaleMethod.UNSCALED]
+    scale_methods: list[DataScalingTechnique] = [DataScalingTechnique.UNSCALED]
     prefix: Path | None = "seqnado_output/bigwigs/"
 
     @property
@@ -69,13 +69,13 @@ class BigWigFiles(BaseModel):
         return self.assay == Assay.RNA
 
     @property
-    def incompatible_methods(self) -> dict[PileupMethod, list[ScaleMethod]]:
+    def incompatible_methods(self) -> dict[PileupMethod, list[DataScalingTechnique]]:
         return {
-            PileupMethod.HOMER: [ScaleMethod.CSAW, ScaleMethod.SPIKEIN],
-            PileupMethod.BAMNADO: [ScaleMethod.CSAW, ScaleMethod.SPIKEIN],
+            PileupMethod.HOMER: [DataScalingTechnique.CSAW, DataScalingTechnique.SPIKEIN],
+            PileupMethod.BAMNADO: [DataScalingTechnique.CSAW, DataScalingTechnique.SPIKEIN],
         }
 
-    def _is_compatible(self, method: PileupMethod, scale: ScaleMethod) -> bool:
+    def _is_compatible(self, method: PileupMethod, scale: DataScalingTechnique) -> bool:
         return scale not in self.incompatible_methods.get(method, [])
 
     def generate_bigwig_paths(self) -> list[str]:

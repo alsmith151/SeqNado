@@ -1,3 +1,4 @@
+import re
 from pydantic import BaseModel, field_validator, computed_field, Field
 from datetime import date as _date
 from typing import Union, Literal
@@ -110,9 +111,14 @@ class GenomeConfig(BaseModel):
     gtf: Path | None = None
     genes: Path | None = None
     blacklist: Path | None = None
-
+    bin_size: int | None = None
     organism: str | None = None
     version: str | None = None
+
+
+    def model_post_init(self, context):
+        if not self.organism:
+            self.organism = self.predict_organism()
 
     @field_validator("fasta", "chromosome_sizes", "gtf", "genes", "blacklist")
     def validate_paths_exist(cls, v: Path | None) -> Path | None:
@@ -198,6 +204,13 @@ class GenomeConfig(BaseModel):
             raise UserFriendlyError(error_msg)
         return v
 
+    def predict_organism(self) -> str:
+        if "hg" in self.name:
+            return "Homo sapiens"
+        elif "mm" in self.name:
+            return "Mus musculus"
+        else:
+            return "Unknown"
 
 class ProjectConfig(BaseModel):
     """Configuration for the SeqNado project."""
@@ -267,8 +280,8 @@ class GenomicCoordinate(BaseModel):
 
     # Check that end is greater than start
     @field_validator("end")
-    def validate_end(cls, v: int, values: dict[str, int]) -> int:
-        if v < values.get("start", 0):
+    def validate_end_greater_than_start(cls, v: int, info) -> int:
+        if v < info.data["start"]:
             raise ValueError("End coordinate must be greater than start coordinate.")
         return v
 
@@ -291,10 +304,30 @@ class UCSCHubConfig(BaseModel):
     two_bit: str | None = None
     organism: str | None = None
     default_position: GenomicCoordinate = Field(default_factory=GenomicCoordinate.from_string("chr1:100-200"), description="Default genomic position")
-    color_by: Field(default_factory=list, description="List of fields to color the bigwigs") = ['samplename']
-    overlay_by: Field(default_factory=list, description="List of fields to overlay the bigwigs") = []
-    subgroup_by: Field(default_factory=list, description="List of fields to subgroup the bigwigs") = ['method', "norm"]
-    supergroup_by: Field(default_factory=list, description="List of fields to supergroup the bigwigs") = []
+    color_by: list[str] = Field(default_factory=lambda: ['samplename'], description="List of fields to color the bigwigs")
+    overlay_by: list[str] = Field(default_factory=list, description="List of fields to overlay the bigwigs")
+    subgroup_by: list[str] = Field(default_factory=lambda: ['method', "norm"], description="List of fields to subgroup the bigwigs")
+    supergroup_by: list[str] = Field(default_factory=list, description="List of fields to supergroup the bigwigs")
+
+    @field_validator("directory")
+    def validate_directory(cls, v: str) -> str:
+        """
+        Make sure that at least the parent directory exists.
+        """
+        parent = Path(v).parent
+        if not parent.is_dir():
+            raise ValueError(f"Parent directory {parent} does not exist.")
+        return v
+
+    @field_validator("name")
+    def validate_name(cls, v: str) -> str:
+        if not v:
+            raise ValueError("Name must not be empty.")
+
+        if not re.match(r"^[a-zA-Z0-9_.-]+$", v):
+            raise ValueError("Name must only contain alphanumeric characters, underscores, dashes, and periods.")
+        
+        return v
 
     @classmethod
     def for_assay(cls, assay: Assay) -> "UCSCHubConfig":

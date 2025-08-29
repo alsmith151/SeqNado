@@ -117,11 +117,11 @@ class SampleCollection(BaseSampleCollection):
         return v
 
     @property
-    def sample_names(self) -> list[str]:
+    def sample_ids(self) -> list[str]:
         """
-        Returns all sample names in the design.
+        Returns all sample IDs in the design.
         """
-        return [fs.name for fs in self.fastq_sets]
+        return [fs.sample_id for fs in self.fastq_sets]
 
     @property
     def fastq_paths(self) -> list[pathlib.Path]:
@@ -194,9 +194,9 @@ class SampleCollection(BaseSampleCollection):
         for sample, fqs in groups.items():
             # Build FastqSet
             if len(fqs) == 1:
-                fs = FastqSet(name=sample, r1=fqs[0], **fastqset_kwargs)
+                fs = FastqSet(sample_id=sample, r1=fqs[0], **fastqset_kwargs)
             elif len(fqs) == 2:
-                fs = FastqSet(name=sample, r1=fqs[0], r2=fqs[1], **fastqset_kwargs)
+                fs = FastqSet(sample_id=sample, r1=fqs[0], r2=fqs[1], **fastqset_kwargs)
             else:
                 raise ValueError(
                     f"Unexpected number of FASTQ files for '{sample}': {len(fqs)}"
@@ -230,7 +230,7 @@ class SampleCollection(BaseSampleCollection):
         metadata = cls._prepare_metadata_for_directory(metadata, **kwargs)
         return cls.from_fastq_files(assay=assay, files=files, metadata=metadata)
 
-    def to_dataframe(self) -> pd.DataFrame:
+    def to_dataframe(self, validate: bool = True) -> pd.DataFrame:
         """
         Export the design to a pandas DataFrame, validated by DataFrameDesign.
 
@@ -241,7 +241,7 @@ class SampleCollection(BaseSampleCollection):
         rows: list[dict[str, Any]] = []
         for fs, md in zip(self.fastq_sets, self.metadata):
             row: dict[str, Any] = {
-                "sample_name": fs.sample_id,
+                "sample_id": fs.sample_id,
                 "r1": fs.r1.path,
                 "r2": fs.r2.path if fs.r2 else None,
             }
@@ -252,8 +252,11 @@ class SampleCollection(BaseSampleCollection):
             row.update(metadata_dict)
             rows.append(row)
 
-        df = pd.DataFrame(rows).sort_values("sample_name")
-        return DataFrame[DesignDataFrame](df)
+        df = pd.DataFrame(rows).sort_values("sample_id")
+        if validate:
+            return DataFrame[DesignDataFrame](df)
+        else:
+            return df
 
     @classmethod
     def from_dataframe(cls, assay: Assay, df: pd.DataFrame, **fastqset_kwargs: Any) -> SampleCollection:
@@ -315,9 +318,9 @@ class SampleCollectionForIP(BaseSampleCollection):
         return assay
 
     @property
-    def sample_names(self) -> list[str]:
+    def sample_ids(self) -> list[str]:
         """
-        All unique IP and control set names, sorted.
+        All unique IP and control set IDs, sorted.
         """
         ip_names = [exp.ip_set_fullname for exp in self.experiments]
         ctrl_names = [exp.control_fullname for exp in self.experiments if exp.has_control]

@@ -7,7 +7,7 @@ from loguru import logger
 from pydantic import BaseModel, Field, computed_field
 from snakemake.io import expand
 
-from seqnado import Assay, PileupMethod, ScaleMethod
+from seqnado import Assay, PileupMethod, DataScalingTechnique
 from seqnado.config import SeqnadoConfig
 from seqnado.inputs import (
     SampleCollectionForIP,
@@ -69,7 +69,7 @@ class SeqnadoOutputFiles(BaseModel):
     def select_bigwig_subtype(
         self,
         method: PileupMethod = PileupMethod.DEEPTOOLS,
-        scale: ScaleMethod = ScaleMethod.UNSCALED,
+        scale: DataScalingTechnique = DataScalingTechnique.UNSCALED,
     ):
         """Select bigWig files of a specific subtype.
 
@@ -89,11 +89,18 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def peak_files(self):
         return self._filter_by_suffix(".bed")
+    
+    @property
+    def bigbed_files(self):
+        return self._filter_by_suffix(".bigBed")
 
     @property
     def has_consensus_peaks(self):
         """Check if consensus peaks are present in the output files."""
-        
+        return any(
+            f.endswith(".bed") and DataScalingTechnique.MERGED.value in f
+            for f in self.files
+        )
 
     @property
     def heatmap_files(self):

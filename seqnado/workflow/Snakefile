@@ -43,12 +43,19 @@ normalisation_groups = SampleGroups.from_dataframe(
 
 scaling_groups = SampleGroups.from_dataframe(
     INPUT_FILES.to_dataframe(),
+    subset_column="scaling_group",
+    include_controls=True,
+)
+
+consensus_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
     subset_column="consensus_group",
     include_controls=True,
 )
 
 SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
 SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
+SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
 
 
 ################################

@@ -1,7 +1,7 @@
 from .core import (
     Assay,
     NONE_VALUES,
-    ScaleMethod,
+    DataScalingTechnique,
     PileupMethod,
     PCRDuplicateHandling,
     PCRDuplicateTool,
@@ -25,7 +25,7 @@ __all__ = [
     "Assay",
     "ILLUMINA_FILENAME_PATTERNS",
     "NONE_VALUES",
-    "ScaleMethod",
+    "DataScalingTechnique",
     "PileupMethod",
     "INPUT_CONTROL_SUBSTRINGS",
     "PCRDuplicateHandling",

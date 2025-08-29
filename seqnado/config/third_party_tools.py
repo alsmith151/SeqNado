@@ -245,6 +245,7 @@ class Deeptools(BaseModel):
     )
 
 
+
 class Homer(BaseModel):
     """HOMER motif analysis suite configuration."""
     
@@ -263,6 +264,10 @@ class Homer(BaseModel):
     find_peaks: ToolConfig = Field(
         default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
         description="Peak finding configuration"
+    )
+    find_motifs_genome: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
+        description="Motif finding configuration"
     )
 
 
@@ -470,7 +475,7 @@ class ThirdPartyToolsConfig(BaseModel):
     # Peak calling tools
     macs: Optional[Macs] = Field(default=None, description="MACS peak caller configuration")
     lanceotron: Optional[Lanceotron] = Field(default=None, description="Lanceotron peak caller configuration")
-    lanceotronmcc: Optional[LanceotronMCC] = Field(default=None, description="Lanceotron MCC configuration")
+    lanceotron_mcc: Optional[LanceotronMCC] = Field(default=None, description="Lanceotron MCC configuration")
     seacr: Optional[Seacr] = Field(default=None, description="SEACR peak caller configuration")
     
     # Analysis tools

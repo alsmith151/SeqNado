@@ -151,6 +151,13 @@ class SeqnadoConfig(BaseModel):
     def shift_for_tn5_insertion(self) -> bool:
         """Return the Tn5 shift configuration for the specified assay."""
         return hasattr(self.assay_config, "tn5_shift") and self.assay_config.tn5_shift
+    
+    @computed_field
+    def mcc_viewpoints(self) -> str:
+        """Return the MCC viewpoints file path."""
+        if self.assay_config and hasattr(self.assay_config, "mcc"):
+            return str(self.assay_config.mcc.viewpoints)
+        return ""
 
     @field_validator("remove_blacklist")
     def validate_remove_blacklist(cls, v):

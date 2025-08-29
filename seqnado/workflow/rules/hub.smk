@@ -50,20 +50,20 @@ rule bed_to_bigbed:
 rule generate_hub:
     input:
         data=[
-            OUTPUT.bigwigs,
-            OUTPUT.bigbed,
+            OUTPUTS.bigwig_files,
+            OUTPUTS.bigbed_files,
         ],
         report="seqnado_output/seqnado_report.html",
     output:
-        hub=OUTPUT.ucsc_hub.hub_txt,
+        hub=OUTPUTS.ucsc_hub.hub_txt,
     log:
-        log=f"seqnado_output/logs/{config['ucsc_hub_details']['name']}.hub.log".strip(),
+        log=f"seqnado_output/logs/{CONFIG.assay_config.ucsc_hub.name}.hub.log",
     container:
         None
     params:
         assay=ASSAY,
         params=CONFIG.assay_config.ucsc_hub,
-        has_consensus_peaks="merge" in DESIGN.to_dataframe().columns,
+        has_consensus_peaks=OUTPUTS.has_consensus_peaks,
     script:
         "../scripts/create_hub.py"
 
