@@ -7,7 +7,8 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 from loguru import logger
 
-from seqnado.inputs import FastqCollection, FastqCollectionForIP, ScaleMethod
+from seqnado import DataScalingTechnique
+from seqnado.inputs import FastqCollection, FastqCollectionForIP
 
 FILETYPE_TO_DIR_MAPPING = {
     "tag": "tag_dirs",
