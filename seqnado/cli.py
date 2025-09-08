@@ -183,9 +183,10 @@ def cli_design(method, files, output="design.csv", merge=False):
     "--preset",
     default="lc",
     help="""Pre-set snakemake job profile to use for pipeline run:
-            lc: local conda environment
-            ls: local singularity environment
-            ss: slurm singularity environment (runs jobs on cluster)
+            * lc: local conda environment
+            * ls: local singularity environment
+            * ss: slurm singularity environment (runs jobs on cluster)
+            To use a custom profile, provide the profile options directly using the --profile PROFILE_NAME snakemake argument.
             """,
     type=click.Choice(choices=["lc", "ls", "ss"]),
 )
