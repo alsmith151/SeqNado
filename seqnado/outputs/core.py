@@ -1,11 +1,8 @@
 from itertools import chain
 from pathlib import Path
-from typing import Any, List, Literal, Union
-
-import pandas as pd
+from typing import List
 from loguru import logger
-from pydantic import BaseModel, Field, computed_field
-from snakemake.io import expand
+from pydantic import BaseModel, Field
 
 from seqnado import Assay, PileupMethod, DataScalingTechnique, PeakCallingMethod
 from seqnado.config import SeqnadoConfig
@@ -147,24 +144,35 @@ class SeqnadoOutputBuilder:
 
     def add_individual_bigwig_files(self) -> None:
         """Add individual bigwig files to the output collection."""
+        # Default to UNSCALED when scale_methods aren't provided in config
+        scale_methods = getattr(
+            getattr(self.config.assay_config, "bigwigs", object()),
+            "scale_methods",
+            [DataScalingTechnique.UNSCALED],
+        )
         bigwig_files = BigWigFiles(
             assay=self.assay,
             names=self.samples.sample_names,
             pileup_methods=self.config.assay_config.bigwigs.pileup_method,
-            scale_methods=self.config.assay_config.bigwigs.scale_methods,
+            scale_methods=scale_methods,
         )
         self.file_collections.append(bigwig_files)
 
     def add_grouped_bigwig_files(self) -> None:
         """Add grouped bigwig files to the output collection."""
 
+        scale_methods = getattr(
+            getattr(self.config.assay_config, "bigwigs", object()),
+            "scale_methods",
+            [DataScalingTechnique.UNSCALED],
+        )
         for group_name, sample_groups in self.sample_groups.groupings.items():
             for group in sample_groups.groups:
                 bigwig_files = BigWigFiles(
                     assay=self.assay,
                     names=[group.name],
                     pileup_methods=self.config.assay_config.bigwigs.pileup_method,
-                    scale_methods=self.config.assay_config.bigwigs.scale_methods,
+                    scale_methods=scale_methods,
                 )
             self.file_collections.append(bigwig_files)
 
@@ -173,13 +181,16 @@ class SeqnadoOutputBuilder:
 
         # If starting from bigwigs, only lanceotron is allowed any other raises an error
         if isinstance(self.samples, BigWigCollection):
-            if self.config.assay_config.peak_calling_methods != [PeakCallingMethod.LANCEOTRON]:
+            if (
+                self.config.assay_config.peak_calling
+                and self.config.assay_config.peak_calling.method != [PeakCallingMethod.LANCEOTRON]
+            ):
                 raise ValueError(f"For BigWigCollection, only {PeakCallingMethod.LANCEOTRON} is allowed.")
 
         peaks = PeakCallingFiles(
             assay=self.assay,
             names=self.samples.sample_names,
-            peak_calling_method=self.config.assay_config.peak_calling_methods,
+            peak_calling_method=self.config.assay_config.peak_calling.method,
         )
         self.file_collections.append(peaks)
 
@@ -191,17 +202,22 @@ class SeqnadoOutputBuilder:
                 peaks = PeakCallingFiles(
                     assay=self.assay,
                     names=[group.name],
-                    peak_calling_method=self.config.assay_config.peak_calling_methods,
+                    peak_calling_method=self.config.assay_config.peak_calling.method,
                 )
                 self.file_collections.append(peaks)
 
     def add_bigbed_files(self) -> None:
         """Add bigBed files to the output collection."""
+        scale_methods = getattr(
+            getattr(self.config.assay_config, "bigwigs", object()),
+            "scale_methods",
+            [DataScalingTechnique.UNSCALED],
+        )
         bigbed_files = BigWigFiles(
             assay=self.assay,
             names=self.samples.sample_names,
             pileup_methods=self.config.assay_config.bigwigs.pileup_method,
-            scale_methods=self.config.assay_config.bigwigs.scale_methods,
+            scale_methods=scale_methods,
             prefix=Path("seqnado_output/bigbeds/"),
         )
         self.file_collections.append(bigbed_files)
@@ -292,7 +308,7 @@ class SeqnadoOutputBuilder:
 
         outfiles = self.build().all_files
         geo_files = GeoSubmissionFiles(
-            assay=self.assay, names=self.samples.sample_names, outfiles=outfiles
+            assay=self.assay, names=self.samples.sample_names, seqnado_files=outfiles
         )
         self.file_collections.append(geo_files)
 
@@ -345,7 +361,7 @@ class SeqnadoOutputFactory:
             if self.sample_groups:
                 builder.add_grouped_bigwig_files()
 
-        if self.assay_config.call_peaks:
+        if bool(getattr(self.assay_config, "call_peaks", False)):
             builder.add_peak_files()
             if self.sample_groups:
                 builder.add_grouped_peak_files()
