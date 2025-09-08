@@ -61,4 +61,8 @@ __all__ = [
     "RNAAssayConfig",
     "SNPAssayConfig",
     "MCCAssayConfig",   
+    "MethylationAssayConfig",
+    "CRISPRAssayConfig",
+    "MLDatasetConfig",
+    "AssaySpecificConfig",
 ]

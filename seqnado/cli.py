@@ -1,10 +1,12 @@
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 
 import click
+from importlib import resources
 from loguru import logger
 from seqnado import Assay
 
@@ -15,60 +17,80 @@ PACKAGE_DIR = os.path.dirname(FILE)
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.option("--preset", is_flag=True, default=False, help="Use preset genome config")
-def cli_init(preset):
+def cli_init(preset: bool) -> None:
     """
-    Initializes the seqnado pipeline.
-    This function sets up the required environment variables and genome configuration.
+    Initialize SeqNado user environment.
+
+    - Conda is optional (no prompt). If active, we just log it.
+    - Uses package resources to read templates and the init script.
+    - Creates ~/.config/seqnado/genome_config.json if missing.
     """
+    # Conda environments are optional; just log if present
     conda_env = os.environ.get("CONDA_DEFAULT_ENV")
-    conda_env_ok = click.prompt(
-        f"Current conda environment is {conda_env}. Is this correct?",
-        type=click.Choice(["y", "n"], case_sensitive=False),
-        default="y",
-    )
+    if conda_env:
+        logger.info(f"Conda environment detected: {conda_env}")
+    else:
+        logger.info("No conda environment detected; proceeding without it.")
 
-    if conda_env_ok != "y":
-        logger.error(
-            "Please activate the correct conda environment and re-run the command."
-        )
-        sys.exit(1)
+    # Initialize apptainer settings if apptainer is available
+    if shutil.which("apptainer"):
+        try:
+            logger.info("Configuring Apptainer/Singularity settings")
+            with resources.as_file(resources.files("seqnado").joinpath("init.sh")) as init_path:
+                subprocess.run(["bash", str(init_path)], check=True)
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Apptainer init script failed (continuing): {e}")
+        except Exception as e:
+            logger.warning(f"Skipping Apptainer init due to error: {e}")
+    else:
+        logger.info("Apptainer not found on PATH; skipping container setup.")
 
-    logger.info("Initializing the correct environmental variables for the pipeline")
-    subprocess.run(["bash", f"{PACKAGE_DIR}/init.sh"], check=True)
-
+    # Prepare genome config path
     seqnado_config_dir = pathlib.Path.home() / ".config" / "seqnado"
     seqnado_config_dir.mkdir(parents=True, exist_ok=True)
     genome_config = seqnado_config_dir / "genome_config.json"
 
-    if os.path.exists(genome_config):
-        logger.info(f"Genome config file found at {genome_config}")
-        with open(genome_config, "r") as f:
-            genome_data = json.load(f)
-        for genome in genome_data:
-            for key, value in genome_data[genome].items():
-                if "PATH" in value:
-                    if not os.path.exists(value):
-                        logger.info(
-                            f"Please update the genome config file {genome_config} with the correct paths."
-                        )
-                        break
-    else:
-        if preset:
-            preset_genome_path = f"{PACKAGE_DIR}/workflow/config/preset_genomes.json"
-            logger.info(
-                "Template genome file created. Using shared preset genome config."
-            )
-            template = json.load(open(preset_genome_path, "r"))
-        else:
-            genome_template = f"{PACKAGE_DIR}/workflow/config/genomes_template.json"
-            logger.info(
-                f"Template genome file created. Please update the genome file {genome_config} with the correct paths."
-            )
-            template = json.load(open(genome_template, "r"))
+    if genome_config.exists():
+        logger.info(f"Found genome config: {genome_config}")
+        try:
+            genome_data = json.loads(genome_config.read_text())
+        except Exception as e:
+            logger.warning(f"Could not parse existing genome config ({e}); leaving as-is.")
+            genome_data = None
 
-        with open(genome_config, "w") as f:
-            json.dump(template, f, indent=4)
-    logger.info("Initialization complete!")
+        # Light sanity notice if placeholders are present
+        if isinstance(genome_data, dict):
+            has_placeholders = any(
+                isinstance(v, str) and ("PATH" in v or v == "NA")
+                for g in genome_data.values() if isinstance(g, dict)
+                for v in g.values()
+            )
+            if has_placeholders:
+                logger.info(
+                    "Genome config contains placeholder paths. Update paths before running pipelines."
+                )
+    else:
+        # Write a new genome config from packaged templates
+        data_pkg = "seqnado.data"
+        template_name = "preset_genomes.json" if preset else "genomes_template.json"
+        try:
+            with resources.as_file(resources.files(data_pkg).joinpath(template_name)) as tpl_path:
+                template = json.loads(pathlib.Path(tpl_path).read_text())
+            if preset:
+                logger.info("Created genome config from preset genomes.")
+            else:
+                logger.info(
+                    f"Created genome config template at {genome_config}. Please update with valid paths."
+                )
+            genome_config.write_text(json.dumps(template, indent=4))
+        except FileNotFoundError:
+            logger.error("Could not locate packaged genome templates; installation may be corrupted.")
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"Failed to write genome config: {e}")
+            sys.exit(1)
+
+    logger.success("Initialization complete")
 
 
 # Config

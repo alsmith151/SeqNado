@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Union
+from pydantic import BaseModel, computed_field, field_validator
 
 # =============================================================================
 # CONSTANTS
@@ -187,3 +188,33 @@ class LibraryType(Enum):
     """Supported library types."""
     SINGLE = "single-end"
     PAIRED = "paired-end"
+
+
+class GenomicCoordinate(BaseModel):
+    """Configuration for genomic coordinates."""
+
+    chromosome: str
+    start: int
+    end: int
+
+    @field_validator("start", "end")
+    def validate_coordinates(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Genomic coordinates must be non-negative.")
+        return v
+
+    # Check that end is greater than start
+    @field_validator("end")
+    def validate_end_greater_than_start(cls, v: int, info) -> int:
+        if v < info.data["start"]:
+            raise ValueError("End coordinate must be greater than start coordinate.")
+        return v
+
+    @classmethod
+    def from_string(cls, coord_str: str) -> "GenomicCoordinate":
+        """
+        Create a GenomicCoordinate instance from a string representation.
+        """
+        chromosome, positions = coord_str.split(":")
+        start, end = map(int, positions.split("-"))
+        return cls(chromosome=chromosome, start=start, end=end)

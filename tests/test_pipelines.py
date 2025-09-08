@@ -17,8 +17,6 @@ from seqnado.config import (
     GenomeConfig,
     SeqnadoConfig,
     build_workflow_config,
-    create_config,
-    load_genome_config,
 )
 
 logger.add(sys.stderr, level="DEBUG")

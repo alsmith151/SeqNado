@@ -45,7 +45,6 @@ from seqnado.config import (
     MCCAssayConfig,
     MethylationAssayConfig,
     CRISPRAssayConfig,
-    SpikeInMethod,
     BowtieIndex,
     STARIndex,
     AssaySpecificConfig,

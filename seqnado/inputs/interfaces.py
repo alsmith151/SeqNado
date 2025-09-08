@@ -49,12 +49,28 @@ def ensure_collection(obj) -> CollectionLike:
 
 
 def detect_file_type(paths: Iterable[str | Path]) -> str | None:
-    """Simple heuristic to detect file type from a list of paths."""
-    exts = {str(Path(p)).lower() for p in paths}
-    if any(e.endswith(('.fastq', '.fastq.gz', '.fq', '.fq.gz')) for e in exts):
-        return 'fastq'
-    if any(e.endswith('.bam') for e in exts):
-        return 'bam'
-    if any(e.endswith(('.bigwig', '.bw')) for e in exts):
-        return 'bigwig'
+    """Detect file type by majority rule across a list of paths.
+
+    Counts occurrences of known extensions (fastq, bam, bigwig). Returns the
+    type with the highest count; if there's a tie or no known types, returns None.
+    """
+    import pandas as pd
+
+    counts = {"fastq": 0, "bam": 0, "bigwig": 0}
+    for p in paths:
+        s = str(Path(p)).lower()
+        if s.endswith((".fastq", ".fastq.gz", ".fq", ".fq.gz")):
+            counts["fastq"] += 1
+        elif s.endswith(".bam"):
+            counts["bam"] += 1
+        elif s.endswith((".bigwig", ".bw")):
+            counts["bigwig"] += 1
+
+    counts = pd.Series(counts)
+    counts = counts.sort_values(ascending=False)
+
+    # Check that there's a clear winner
+    # Check the that highest count is > 0 and strictly greater than the second
+    if counts.iloc[0] > 0 and counts.iloc[0] > counts.iloc[1]:
+        return counts.index[0]
     return None

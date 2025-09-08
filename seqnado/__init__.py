@@ -15,7 +15,8 @@ from .core import (
     AssaysWithSpikein,
     Molecule,
     Organism,
-    FileType
+    FileType,
+    GenomicCoordinate
 )
 
 from . import data, config, inputs, outputs
@@ -45,5 +46,6 @@ __all__ = [
     "AssaysWithSpikein",
     "Molecule",
     "Organism",
-    "FileType"
+    "FileType",
+    "GenomicCoordinate"
 ]

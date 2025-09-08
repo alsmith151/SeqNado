@@ -4,7 +4,7 @@ from datetime import date as _date
 from typing import Union, Literal
 from pathlib import Path
 from enum import Enum
-from seqnado import Assay
+from seqnado import Assay, GenomicCoordinate
 from seqnado import (
     PileupMethod,
     PCRDuplicateTool,
@@ -265,35 +265,6 @@ class SpikeInConfig(BaseModel):
     endogenous_genome: str | None = None
 
 
-class GenomicCoordinate(BaseModel):
-    """Configuration for genomic coordinates."""
-
-    chromosome: str
-    start: int
-    end: int
-
-    @field_validator("start", "end")
-    def validate_coordinates(cls, v: int) -> int:
-        if v < 0:
-            raise ValueError("Genomic coordinates must be non-negative.")
-        return v
-
-    # Check that end is greater than start
-    @field_validator("end")
-    def validate_end_greater_than_start(cls, v: int, info) -> int:
-        if v < info.data["start"]:
-            raise ValueError("End coordinate must be greater than start coordinate.")
-        return v
-
-    @classmethod
-    def from_string(cls, coord_str: str) -> "GenomicCoordinate":
-        """
-        Create a GenomicCoordinate instance from a string representation.
-        """
-        chromosome, positions = coord_str.split(":")
-        start, end = map(int, positions.split("-"))
-        return cls(chromosome=chromosome, start=start, end=end)
-
 class UCSCHubConfig(BaseModel):
     """Configuration for UCSC Hub generation."""
 
@@ -303,7 +274,7 @@ class UCSCHubConfig(BaseModel):
     email: str = "test@example.com"
     two_bit: str | None = None
     organism: str | None = None
-    default_position: GenomicCoordinate = Field(default_factory=GenomicCoordinate.from_string("chr1:100-200"), description="Default genomic position")
+    default_position: GenomicCoordinate = Field(description="Default genomic position", default_factory=lambda: GenomicCoordinate.from_string("chr1:1-1000000"))
     color_by: list[str] = Field(default_factory=lambda: ['samplename'], description="List of fields to color the bigwigs")
     overlay_by: list[str] = Field(default_factory=list, description="List of fields to overlay the bigwigs")
     subgroup_by: list[str] = Field(default_factory=lambda: ['method', "norm"], description="List of fields to subgroup the bigwigs")
