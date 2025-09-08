@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, field_validator, computed_field, Field
+from pydantic import BaseModel, field_validator, computed_field, Field, field_serializer
 from datetime import date as _date
 from typing import Union, Literal
 from pathlib import Path
@@ -94,6 +94,7 @@ class STARIndex(BaseModel):
             raise ValueError(
                 f"The directory {v} does not exist or is not a directory. Please provide a valid path for the STAR index prefix."
             )
+        return v
 
     @property
     def files(self) -> list[Path]:
@@ -115,6 +116,22 @@ class GenomeConfig(BaseModel):
     organism: str | None = None
     version: str | None = None
 
+    # --- Serialization helpers to avoid Pydantic union/path warnings ---
+
+    @field_serializer("fasta", "chromosome_sizes", "gtf", "genes", "blacklist", when_used="json")
+    def _serialize_optional_path(self, v):
+        from pathlib import Path as _Path
+        return str(v) if isinstance(v, _Path) else v
+
+    @field_serializer("index", when_used="json")
+    def _serialize_index(self, v):
+        from pathlib import Path as _Path
+        if isinstance(v, BowtieIndex):
+            return {"type": v.type, "prefix": v.prefix}
+        if isinstance(v, STARIndex):
+            return {"type": v.type, "prefix": str(v.prefix) if isinstance(v.prefix, _Path) else v.prefix}
+        return v
+
 
     def model_post_init(self, context):
         if not self.organism:
@@ -127,13 +144,12 @@ class GenomeConfig(BaseModel):
             import inspect
 
             frame = inspect.currentframe()
-            field_name = "File"
             try:
                 # Try to get the field name from the call stack
                 caller_locals = frame.f_back.f_locals
-                if "field_name" in caller_locals:
-                    field_name = caller_locals["field_name"].title()
-            except Exception as e:
+                # field_name not used for message anymore; keep logic minimal
+                _ = caller_locals.get("field_name")
+            except Exception:
                 pass
             finally:
                 del frame
@@ -143,7 +159,7 @@ class GenomeConfig(BaseModel):
             try:
                 abs_path = v.resolve()
                 parent_dir = abs_path.parent
-            except:
+            except Exception:
                 # Fallback for problematic paths
                 abs_path = v
                 parent_dir = v.parent
