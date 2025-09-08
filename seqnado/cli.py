@@ -84,7 +84,7 @@ def cli_config(method, dont_make_directories, all_options):
     from seqnado.inputs import Assay
     from seqnado.config.user_input import build_workflow_config, render_config
     from pathlib import Path
-    import yaml
+    # yaml not required here
 
     seqnado_version = version("seqnado")
     assay = Assay.from_clean_name(method)
@@ -175,6 +175,7 @@ def cli_design(method, files, output="design.csv", merge=False):
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument(
     "method",
+    required=False,
     type=click.Choice(Assay.all_assay_clean_names()),
 )
 @click.option("--version", help="Print version and exit", is_flag=True)
@@ -215,8 +216,8 @@ def cli_design(method, files, output="design.csv", merge=False):
 )
 @click.argument("pipeline_options", nargs=-1, type=click.UNPROCESSED)
 def cli_pipeline(
-    method,
-    pipeline_options,
+    method=None,
+    pipeline_options=(),
     help=False,
     preset="local",
     version=False,
@@ -236,6 +237,11 @@ def cli_pipeline(
 
         print(f"SeqNado version {_version}")
         sys.exit(0)
+
+    # If not requesting version, require a method/assay to be provided
+    if not method:
+        logger.error("No method/assay provided. Provide an assay or use --version to print the version.")
+        sys.exit(1)
 
     if verbose:
         logger.remove()
