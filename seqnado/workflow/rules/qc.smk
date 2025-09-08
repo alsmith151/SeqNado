@@ -1,5 +1,6 @@
 import os
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
+from seqnado.helpers import define_time_requested, define_memory_requested
+from seqnado import Assay, AssaysWithPeakCalling, QuantificationMethod
 
 ##############################################
 #                   FastQC                   #
@@ -49,15 +50,26 @@ rule fastqc_raw_single:
 #                  Qualimap                  #
 ############################################## 
 
-def format_qualimap_options(wildcards):
-    qualimap_rnaseq_options = "--paired --sorted"
-    qualimap_bamqc_options = "--collect-overlap-pairs"
+def format_qualimap_options(wildcards, options: CommandLineArguments) -> str:
+    """
+    Format the command line options for qualimap based on the input files and parameters.
 
-    is_paired = DESIGN.query(wildcards.sample).is_paired
-    if not is_paired:
-        qualimap_rnaseq_options = re.sub(r"--paired", "", qualimap_rnaseq_options)
-        qualimap_bamqc_options = re.sub(r"--collect-overlap-pairs", "", qualimap_bamqc_options)
-    return qualimap_rnaseq_options if ASSAY == "RNA" else qualimap_bamqc_options
+    Mainly this removes the paired-end options if single-ended and also adds the correct options depending
+    on assay type.
+    """
+
+    is_paired = INPUT_FILES.is_paired_end(wildcards.sample)
+    match (is_paired, ASSAY):
+        case (True, Assay.RNA):
+            options = CommandLineArguments(value=options, include={"--paired", "--sorted"})
+        case (True, _):
+            options = CommandLineArguments(value=options, include={"--collect-overlap-pairs"})
+        case (False, Assay.RNA):
+            options = CommandLineArguments(value=options, exclude={"--paired", "--sorted"})
+        case (False, _):
+            options = CommandLineArguments(value=options, exclude={"--collect-overlap-pairs"})
+
+    return str(options)
 
 
 rule qualimap_bamqc:
@@ -147,12 +159,13 @@ rule prepare_stats_report:
 #               Frip Enrichment              #
 ##############################################
 
-def format_frip_enrichment_options(wildcards):
-    is_paired = DESIGN.query(wildcards.sample).is_paired
-    options = "--extendReads"
-    if not is_paired:
-        options = re.sub(r"--extendReads", "", options)
-    return options
+def format_frip_enrichment_options(wildcards, options: CommandLineArguments):
+    is_paired = INPUT_FILES.is_paired_end(wildcards.sample)
+    if is_paired:
+        options.include.add("--paired")
+    else:
+        options.exclude.add("--paired")
+    return str(options)
 
 
 rule frip_enrichment:
@@ -185,8 +198,8 @@ rule frip_enrichment:
 ##############################################
 
 def get_fastqc_files_all(wildcards):
-    single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]
-    paired_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == True]
+    single_end_assays = [name for name in SAMPLE_NAMES if not INPUT_FILES.is_paired_end(name)]
+    paired_end_assays = [name for name in SAMPLE_NAMES if INPUT_FILES.is_paired_end(name)]
     fastqc_raw_paired = expand(
         "seqnado_output/qc/fastqc_raw/{sample}_{read}_fastqc.html",
         sample=paired_end_assays,
@@ -205,8 +218,8 @@ def get_fastqc_files_all(wildcards):
 
 
 def get_fastq_screen_all(wildcards):
-    single_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == False]
-    paired_end_assays = [name for name in SAMPLE_NAMES if DESIGN.query(name).is_paired == True]
+    single_end_assays = [name for name in SAMPLE_NAMES if not INPUT_FILES.is_paired_end(name)]
+    paired_end_assays = [name for name in SAMPLE_NAMES if INPUT_FILES.is_paired_end(name)]
     fastq_screen_single = expand(
         "seqnado_output/qc/fastq_screen/{sample}_screen.txt",
         sample=single_end_assays,
@@ -217,7 +230,7 @@ def get_fastq_screen_all(wildcards):
         read=[1, 2],
     )
     all_fastq_screen_files = []
-    if config["fastq_screen"]:
+    if CONFIG.qc.run_fastq_screen:
         for files in [fastq_screen_paired, fastq_screen_single]:
             if files:
                 all_fastq_screen_files.extend(files)
@@ -226,7 +239,7 @@ def get_fastq_screen_all(wildcards):
 
 
 def get_library_complexity_qc(wildcards):
-    if config["library_complexity"]:
+    if CONFIG.qc.library_complexity:
         return expand(
             "seqnado_output/qc/library_complexity/{sample}.metrics",
             sample=SAMPLE_NAMES,
@@ -236,87 +249,93 @@ def get_library_complexity_qc(wildcards):
 
 
 def get_alignment_logs(wildcards):
-    if ASSAY == "MCC":
-        return []
-    elif ASSAY == "RNA":
-        return expand(
-            "seqnado_output/aligned/star/{sample}_Log.final.out",
-            sample=SAMPLE_NAMES,
-        )
-    else: 
-        return expand(
-            "seqnado_output/logs/align/{sample}.log",
-            sample=SAMPLE_NAMES,
+    
+    match ASSAY:
+        case Assay.MCC:
+            return []
+        case Assay.RNA:
+            return expand(
+                "seqnado_output/aligned/star/{sample}_Log.final.out",
+                sample=SAMPLE_NAMES,
+            )
+        case _:
+            return expand(
+                "seqnado_output/logs/align/{sample}.log",
+                sample=SAMPLE_NAMES,
             )
 
-
 def get_qualimap_files(wildcards):
-    if ASSAY == "MCC":
-        return []
-    if ASSAY == "RNA":
-        return expand(
-            "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
-            sample=SAMPLE_NAMES,
-        )  
-    else:
-        return expand(
-            "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+    match ASSAY:
+        case Assay.MCC:
+            return []
+        case Assay.RNA:
+            return expand(
+                "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
+                sample=SAMPLE_NAMES,
+            )
+        case _:
+            return expand(
+                "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
             sample=SAMPLE_NAMES,
         )
 
 
 def get_frip_files(wildcards):
-    # Check if OUTPUT has peak calling methods defined and if the assay is not MCC (doesn't make sense for MCC)
-    if hasattr(OUTPUT, "peak_calling_method") and OUTPUT.peak_calling_method and not ASSAY == "MCC":
-        peak_methods = [m.value for m in OUTPUT.peak_calling_method]
-        if ASSAY in ["CUT&TAG", "ATAC"] and config["call_peaks"]:
-            return expand(
-                "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
-                sample=SAMPLE_NAMES,
-                directory=peak_methods,
-            )
-        if ASSAY == "ChIP" and config["call_peaks"]:
-            return expand(
-                "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
-                sample=SAMPLE_NAMES_IP,
-                directory=peak_methods,
-            )
+    """
+    Gets the calculated FRiP (Fraction of Reads in Peaks) enrichment files.
+    """
+    if ASSAY in AssaysWithPeakCalling and CONFIG.assay_config.call_peaks:
+        return expand(
+            "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
+            sample=SAMPLE_NAMES,
+            directory=peak_methods,
+        )
     else:
         return []
 
 
 def get_counts_files(wildcards):
-    if ASSAY == "RNA" and config["rna_quantification"] == "featurecounts":
-        return expand(
-            "seqnado_output/readcounts/feature_counts/read_counts.tsv",
-        ) 
-    elif ASSAY == "RNA" and config["rna_quantification"] == "salmon":
-        return expand(
-            "seqnado_output/readcounts/salmon/salmon_{sample}/quant.sf",
-            sample=SAMPLE_NAMES,
-        ) 
-    elif ASSAY == "CRISPR":
-        return expand(
-            "seqnado_output/readcounts/feature_counts/read_counts.tsv",
-        )
-    else:
-        return []
+    match ASSAY:
+        case Assay.RNA:
+            match CONFIG.assay_config.rna_quantification:
+                case QuantificationMethod.FEATURECOUNTS:
+                    return expand(
+                        "seqnado_output/readcounts/feature_counts/read_counts.tsv",
+                    )
+                case QuantificationMethod.SALMON:
+                    return expand(
+                        "seqnado_output/readcounts/salmon/salmon_{sample}/quant.sf",
+                        sample=SAMPLE_NAMES,
+                    )
+        case Assay.CRISPR:
+            return expand(
+                "seqnado_output/readcounts/feature_counts/read_counts.tsv",
+            )
+        case _:
+            return []
+
 
 
 def get_snp_qc(wildcards):
-    if ASSAY == "SNP" and config["call_snps"]:
-        return expand(
+    if ASSAY != Assay.SNP:
+        return []
+    
+    files = []
+    
+    files.extend(
+        expand(
             "seqnado_output/qc/variant/{sample}.stats.txt",
             sample=SAMPLE_NAMES,
         )
-    elif ASSAY == "SNP" and config["annotate_snps"]:
-        return expand(
-            "seqnado_output/qc/variant/{sample}.anno.stats.txt",
-            sample=SAMPLE_NAMES,
+    )
+    if CONFIG.assay_config.annotate_snps:
+        files.extend(
+            expand(
+                "seqnado_output/qc/variant/{sample}.anno.stats.txt",
+                sample=SAMPLE_NAMES,
+            )
         )
-    else:
-        return []
-
+    return files
 
 ##############################################
 #                  MultiQC                   #

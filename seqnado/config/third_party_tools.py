@@ -1,5 +1,5 @@
 import shlex
-from typing import Optional, Literal, Any, Annotated
+from typing import Optional, Literal, Annotated
 from enum import Enum
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic.functional_serializers import PlainSerializer
 
 from seqnado import Assay
-from .mixins import PathValidatorMixin
+# ...existing code... (PathValidatorMixin not used in this module)
 
 
 # =============================================================================
@@ -20,6 +20,9 @@ class CommandLineArguments(BaseModel):
     value: str = Field(default="", description="CLI options string")
     exclude: set[str] = Field(
         default_factory=set, description="Options to exclude from the final command"
+    )
+    include: set[str] = Field(
+        default_factory=set, description="Options to include in the final command"
     )
 
     @field_validator("value", mode="before")
@@ -42,33 +45,110 @@ class CommandLineArguments(BaseModel):
         return self
 
     def _filter_excluded_options(self, options_str: str) -> str:
-        if not self.exclude:
+        """
+        Filter an options string by applying include (allow-list) and exclude (deny-list)
+
+        Behavior:
+        - If `include` is non-empty, only tokens that match an include pattern are kept.
+          A match is either exact equality or startswith pattern + '='. If a token is
+          an option (e.g. '--opt') that consumes a following value (non-dashed token),
+          the value is kept alongside the option.
+        - After include filtering (if any), exclude patterns are applied and matching
+          tokens (and their following non-dashed value, when appropriate) are removed.
+        - Exclude patterns override include: if the same pattern is present in both,
+          the token will be removed.
+        """
+        if not (self.include or self.exclude):
             return options_str
         try:
             tokens = shlex.split(options_str.strip())
-            filtered_tokens = []
-            i = 0
-            while i < len(tokens):
-                token = tokens[i]
-                excluded = False
-                for exclude_pattern in self.exclude:
-                    if token == exclude_pattern or token.startswith(
-                        exclude_pattern + "="
-                    ):
-                        excluded = True
-                        if (
-                            token == exclude_pattern
-                            and i + 1 < len(tokens)
-                            and not tokens[i + 1].startswith("-")
-                        ):
-                            i += 1
-                        break
-                if not excluded:
-                    filtered_tokens.append(token)
-                i += 1
-            return " " + shlex.join(filtered_tokens) if filtered_tokens else ""
+
+            def matches(tok: str, pattern: str) -> bool:
+                return tok == pattern or tok.startswith(pattern + "=")
+
+            # Apply excludes first to the token list
+            if self.exclude:
+                filtered = []
+                i = 0
+                while i < len(tokens):
+                    tok = tokens[i]
+                    excluded = False
+                    for pat in self.exclude:
+                        if matches(tok, pat):
+                            excluded = True
+                            # drop following value token if present
+                            if tok == pat and i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
+                                i += 1
+                            break
+                    if not excluded:
+                        filtered.append(tok)
+                    i += 1
+                tokens = filtered
+
+            # Ensure include patterns are present; append missing ones.
+            if self.include:
+                def present(pat: str) -> bool:
+                    for t in tokens:
+                        if matches(t, pat):
+                            return True
+                    return False
+
+                for pat in self.include:
+                    if not present(pat):
+                        # append the pattern as-is; if user intended a value they should
+                        # provide it via the pattern (e.g. '--opt=value')
+                        tokens.append(pat)
+
+            return " " + shlex.join(tokens) if tokens else ""
         except ValueError:
             return options_str
+
+    # --- Dynamic update helpers for include / exclude sets -----------------
+    def add_include(self, *patterns: str) -> "CommandLineArguments":
+        """Add one or more include patterns dynamically and return self for chaining."""
+        for p in patterns:
+            if isinstance(p, str) and p:
+                self.include.add(p)
+        return self
+
+    def remove_include(self, *patterns: str) -> "CommandLineArguments":
+        """Remove one or more include patterns dynamically and return self for chaining."""
+        for p in patterns:
+            self.include.discard(p)
+        return self
+
+    def clear_include(self) -> "CommandLineArguments":
+        """Clear all include patterns."""
+        self.include.clear()
+        return self
+
+    def set_include(self, patterns: set[str]) -> "CommandLineArguments":
+        """Replace the include set with `patterns` (must be an iterable of strings)."""
+        self.include = set(patterns) if patterns is not None else set()
+        return self
+
+    def add_exclude(self, *patterns: str) -> "CommandLineArguments":
+        """Add one or more exclude patterns dynamically and return self for chaining."""
+        for p in patterns:
+            if isinstance(p, str) and p:
+                self.exclude.add(p)
+        return self
+
+    def remove_exclude(self, *patterns: str) -> "CommandLineArguments":
+        """Remove one or more exclude patterns dynamically and return self for chaining."""
+        for p in patterns:
+            self.exclude.discard(p)
+        return self
+
+    def clear_exclude(self) -> "CommandLineArguments":
+        """Clear all exclude patterns."""
+        self.exclude.clear()
+        return self
+
+    def set_exclude(self, patterns: set[str]) -> "CommandLineArguments":
+        """Replace the exclude set with `patterns` (must be an iterable of strings)."""
+        self.exclude = set(patterns) if patterns is not None else set()
+        return self
 
     @property
     def option_string_filtered(self) -> str:

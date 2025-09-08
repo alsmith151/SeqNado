@@ -7,14 +7,14 @@ rule generate_plotnado_visualisation:
             OUTPUT.peaks,
         ],
     output:
-        plots=OUTPUT.plots,
+        plots=OUTPUT.genome_browser_plots,
         template="seqnado_output/genome_browser_plots/template.toml",
     params:
         assay=ASSAY,
-        genes=config['plotting_genes'],
+        genes=CONFIG.assay_config.plotting.genes,
         outdir="seqnado_output/genome_browser_plots/",
-        regions=config['plotting_coordinates'],
-        plotting_format=config['plotting_format'],
+        regions=CONFIG.assay_config.plotting.regions,
+        plotting_format=CONFIG.assay_config.plotting.file_format,
     resources:
         mem="1.5GB",
          runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),

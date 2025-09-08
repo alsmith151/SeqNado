@@ -7,11 +7,11 @@ rule bcftools_call_snp:
         idx=temp("seqnado_output/variant/{sample}.raw.vcf.gz.tbi"),
         stats="seqnado_output/qc/variant/{sample}.stats.txt",
     params:
-        fasta=config["fasta"],
+        fasta=CONFIG.genome.fasta,
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
-    threads: config["bcftools"]["threads"]
+    threads: CONFIG.third_party_tools.bcftools.call.threads
     log:
         "seqnado_output/logs/variant/{sample}.log",
     shell:"""
@@ -49,8 +49,8 @@ rule bcftools_annotate:
         vcf="seqnado_output/variant/{sample}.anno.vcf.gz",
         idx="seqnado_output/variant/{sample}.anno.vcf.gz.tbi",
     params:
-        dbsnp=config["snp_database"],
-        fasta=config["fasta"],
+        dbsnp=CONFIG.assay_config.snp_database,
+        fasta=CONFIG.genome.fasta,
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",

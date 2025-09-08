@@ -229,7 +229,7 @@ class PCRDuplicatesConfig(BaseModel):
 
 class QCConfig(BaseModel):
     """Configuration for library quality control."""
-
+    run_fastq_screen: bool = True
     calculate_library_size: bool = True
     calculate_fraction_of_reads_in_peaks: bool = True
 
@@ -247,7 +247,7 @@ class PlottingConfig(BaseModel):
 
     coordinates: str | None = None
     genes: str | None = None
-    file_format: Literal["png", "pdf", "svg"] = "png"
+    file_format: Literal["png", "pdf", "svg"] = "pdf"
 
 
 class PeakCallingConfig(BaseModel):

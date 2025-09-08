@@ -1,20 +1,19 @@
 import re
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
+from seqnado.helpers import  define_time_requested, define_memory_requested
+from seqnado.config.third_party_tools import CommandLineArguments
 
-def format_deeptools_options(wildcards, options):
-    is_paired = DESIGN.query(wildcards.sample).is_paired
+def format_deeptools_options(wildcards, options: CommandLineArguments) -> str:
+    """
+    Format the command line options for deeptools based on the input files and parameters.
 
+    Mainly this removes the extend reads option if single ended
+    """
+    search_term = f'{wildcards.sample}'
+    is_paired = INPUT_FILES.is_paired_end(search_term)
+    if not is_paired:
+        options = CommandLineArguments(value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"})
 
-    if options:
-        if not is_paired or ASSAY == "MCC":
-            options = re.sub(r"--extendReads", "", options)
-            options = re.sub(r"-e", "", options)
-            options = re.sub(r"--samFlagInclude 3", "", options)
-
-    else:
-        options = ""
-    
-    return options
+    return str(options)
 
 
 rule homer_make_tag_directory:

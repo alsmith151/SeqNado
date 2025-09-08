@@ -107,7 +107,10 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def heatmap_files(self):
         return self._filter_by_suffix(".pdf", "heatmap")
-
+    
+    @property
+    def genome_browser_plots(self):
+        return self._filter_by_suffix(".pdf", "genome_browser")
 
 class SeqnadoOutputBuilder:
     def __init__(
