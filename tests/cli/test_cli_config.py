@@ -30,18 +30,12 @@ def _write_minimal_genome_config(tmp_root: Path) -> Path:
     return cfg_path
 
 
-def _copy_template(repo_root: Path, dest_dir: Path) -> None:
-    tpl = repo_root / "template.jinja"
-    dest = dest_dir / "template.jinja"
-    dest.write_text(tpl.read_text())
-
 
 def test_cli_config_rna_creates_config_file(monkeypatch, tmp_path: Path):
     # Arrange workspace: minimal genome config, metadata file, and template
-    repo_root = Path(__file__).resolve().parents[2]
     _write_minimal_genome_config(tmp_path)
     (tmp_path / "metadata.csv").write_text("sample,fastq\n")
-    _copy_template(repo_root, tmp_path)
+    # No need to copy template; cli now uses packaged resource
 
     # Ensure CLI reads genome config from our tmp root
     monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
@@ -80,10 +74,9 @@ def test_cli_config_rna_creates_config_file(monkeypatch, tmp_path: Path):
 
 def test_cli_config_rna_all_options_flag(monkeypatch, tmp_path: Path):
     # Arrange: environment and inputs as above
-    repo_root = Path(__file__).resolve().parents[2]
     _write_minimal_genome_config(tmp_path)
     (tmp_path / "metadata.csv").write_text("sample,fastq\n")
-    _copy_template(repo_root, tmp_path)
+    # No need to copy template; cli now uses packaged resource
 
     monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
     def fake_version(_):
@@ -92,7 +85,6 @@ def test_cli_config_rna_all_options_flag(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(_md, "version", fake_version)
 
     import seqnado.config.user_input as ui
-    monkeypatch.setattr(ui, "get_tool_options", lambda assay: "options: {}\n")
     monkeypatch.setattr(builtins, "input", lambda _: "")
     monkeypatch.chdir(tmp_path)
 

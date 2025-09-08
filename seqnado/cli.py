@@ -106,7 +106,6 @@ def cli_config(method, dont_make_directories, all_options):
     from seqnado.inputs import Assay
     from seqnado.config.user_input import build_workflow_config, render_config
     from pathlib import Path
-    # yaml not required here
 
     seqnado_version = version("seqnado")
     assay = Assay.from_clean_name(method)
@@ -130,7 +129,13 @@ def cli_config(method, dont_make_directories, all_options):
     else:
         config_output = Path(f'config_{assay.value}.yaml')
 
-    render_config(template=Path("template.jinja"), workflow_config=workflow_config, outfile=config_output, all_options=all_options)
+    # Use packaged template (seqnado.data/config_template.jinja) via importlib.resources
+    try:
+        with resources.as_file(resources.files("seqnado.data").joinpath("config_template.jinja")) as tpl_path:
+            render_config(template=Path(tpl_path), workflow_config=workflow_config, outfile=config_output, all_options=all_options)
+    except FileNotFoundError:
+        logger.error("Could not locate packaged config template; installation may be corrupted.")
+        sys.exit(1)
 
 
 

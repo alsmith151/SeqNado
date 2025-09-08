@@ -460,109 +460,70 @@ def build_assay_config(
         "create_geo_submission_files": geo_files,
     }
 
-    if assay == Assay.ATAC:
-        tn5_shift = get_user_input("Shift ATAC reads?", default="yes", is_boolean=True)
-        peak_calling = get_peak_calling_config(assay)
-        dataset_for_ml = get_ml_dataset_config(assay)
-
-        return ATACAssayConfig(
-            **base_config,
-            tn5_shift=tn5_shift,
-            peak_calling=peak_calling,
-            dataset_for_ml=dataset_for_ml,
-        )
-
-    elif assay == Assay.CHIP:
-        spikein = get_spikein_config(assay)
-        peak_calling = get_peak_calling_config(assay)
-        dataset_for_ml = get_ml_dataset_config(assay)
-
-        return ChIPAssayConfig(
-            **base_config,
-            spikein=spikein,
-            peak_calling=peak_calling,
-            dataset_for_ml=dataset_for_ml,
-        )
-
-    elif assay == Assay.CAT:
-        tn5_shift = get_user_input("Shift CAT reads?", default="no", is_boolean=True)
-        spikein = get_spikein_config(assay)
-        peak_calling = get_peak_calling_config(assay)
-        dataset_for_ml = get_ml_dataset_config(assay)
-
-        return CATAssayConfig(
-            **base_config,
-            tn5_shift=tn5_shift,
-            spikein=spikein,
-            peak_calling=peak_calling,
-            dataset_for_ml=dataset_for_ml,
-        )
-
-    elif assay == Assay.RNA:
-        rna_quantification = get_rna_quantification_config()
-
-        return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
-
-    elif assay == Assay.SNP:
-        snp_calling = get_snp_calling_config()
-
-        return SNPAssayConfig(**base_config, snp_calling=snp_calling)
-
-    elif assay == Assay.MCC:
-        mcc = get_mcc_config()
-
-        return MCCAssayConfig(**base_config, mcc=mcc)
-
-    elif assay == Assay.METH:
-        methylation = get_methylation_config()
-
-        return MethylationAssayConfig(**base_config, methylation=methylation)
-
-    elif assay == Assay.CRISPR:
-        return CRISPRAssayConfig(**base_config)
-
-    else:
-        raise ValueError(f"Unsupported assay type: {assay}")
-
-
-def get_tool_options(assay: Assay) -> str:
-    """
-    Return the tool options YAML string for the given assay.
-
-    Args:
-        assay (Assay): The assay type, used to determine the correct tool options.
-
-    Returns:
-        str: The YAML string with tool options for the given assay.
-    """
-    import importlib.resources
-    import yaml
-    import seqnado.workflow.config
-
+    
     match assay:
+        case Assay.ATAC:
+            tn5_shift = get_user_input("Shift ATAC reads?", default="yes", is_boolean=True)
+            peak_calling = get_peak_calling_config(assay)
+            dataset_for_ml = get_ml_dataset_config(assay)
+
+            return ATACAssayConfig(
+                **base_config,
+                tn5_shift=tn5_shift,
+                peak_calling=peak_calling,
+                dataset_for_ml=dataset_for_ml,
+            )
+
+        case Assay.CHIP:
+            spikein = get_spikein_config(assay)
+            peak_calling = get_peak_calling_config(assay)
+            dataset_for_ml = get_ml_dataset_config(assay)
+
+            return ChIPAssayConfig(
+                **base_config,
+                spikein=spikein,
+                peak_calling=peak_calling,
+                dataset_for_ml=dataset_for_ml,
+            )
+
+        case Assay.CAT:
+            tn5_shift = get_user_input("Shift CAT reads?", default="no", is_boolean=True)
+            spikein = get_spikein_config(assay)
+            peak_calling = get_peak_calling_config(assay)
+            dataset_for_ml = get_ml_dataset_config(assay)
+
+            return CATAssayConfig(
+                **base_config,
+                tn5_shift=tn5_shift,
+                spikein=spikein,
+                peak_calling=peak_calling,
+                dataset_for_ml=dataset_for_ml,
+            )
+
         case Assay.RNA:
-            tool_file = importlib.resources.files(seqnado.data) / "tool_options_rna.yml"
+            rna_quantification = get_rna_quantification_config()
+
+            return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
+
         case Assay.SNP:
-            tool_file = importlib.resources.files(seqnado.data) / "tool_options_snp.yml"
-        case Assay.METH:
-            tool_file = (
-                importlib.resources.files(seqnado.data) / "tool_options_meth.yml"
-            )
+            snp_calling = get_snp_calling_config()
+
+            return SNPAssayConfig(**base_config, snp_calling=snp_calling)
+
         case Assay.MCC:
-            tool_file = importlib.resources.files(seqnado.data) / "tool_options_mcc.yml"
+            mcc = get_mcc_config()
+            return MCCAssayConfig(**base_config, mcc=mcc)
+
+        case Assay.METH:
+            methylation = get_methylation_config()
+
+            return MethylationAssayConfig(**base_config, methylation=methylation)
+
         case Assay.CRISPR:
-            tool_file = (
-                importlib.resources.files(seqnado.data) / "tool_options_crispr.yml"
-            )
+            return CRISPRAssayConfig(**base_config)
+
         case _:
-            tool_file = (
-                importlib.resources.files(seqnado.data) / "tool_options_base.yml"
-            )
-
-    with open(tool_file) as f:
-        tool_options = yaml.safe_load(f)
-
-    return yaml.dump(tool_options)
+            raise ValueError(f"Unsupported assay type: {assay}")
 
 
 def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
@@ -598,7 +559,6 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
             genome=genome,
             metadata=pathlib.Path(metadata_path),
             assay_config=assay_config,
-            tool_options=get_tool_options(assay),
         )
         return workflow_config
 

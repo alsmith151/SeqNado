@@ -148,11 +148,19 @@ class SeqnadoConfig(BaseModel):
     assay_config: AssaySpecificConfig | None = None
 
     @computed_field
+    @property
+    def organism(self) -> Organism:
+        """Return the organism from the genome configuration."""
+        return self.genome.organism
+
+    @computed_field
+    @property
     def shift_for_tn5_insertion(self) -> bool:
         """Return the Tn5 shift configuration for the specified assay."""
         return hasattr(self.assay_config, "tn5_shift") and self.assay_config.tn5_shift
     
     @computed_field
+    @property
     def mcc_viewpoints(self) -> str:
         """Return the MCC viewpoints file path."""
         if self.assay_config and hasattr(self.assay_config, "mcc"):
@@ -169,6 +177,7 @@ class SeqnadoConfig(BaseModel):
         return v
 
     @computed_field
+    @property
     def third_party_tools(self) -> ThirdPartyToolsConfig:
         """Return the third-party tools configuration for the specified assay."""
         return ThirdPartyToolsConfig.for_assay(self.assay)
