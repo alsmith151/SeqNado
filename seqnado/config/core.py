@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Union, Optional
 from enum import Enum
 from pydantic import BaseModel, computed_field, field_validator
-from seqnado import Assay, Organism
+from seqnado import Assay
 from .configs import (
     BigwigConfig,
     PlottingConfig,
@@ -147,10 +147,20 @@ class SeqnadoConfig(BaseModel):
     remove_blacklist: bool = False
     assay_config: AssaySpecificConfig | None = None
 
+    @classmethod
+    def from_yaml(cls, path: Path) -> "SeqnadoConfig":
+        """Load configuration from a YAML file."""
+        import yaml
+
+        with open(path, "r") as f:
+            data = yaml.safe_load(f)
+
+        return cls(**data)
+
     @computed_field
     @property
-    def organism(self) -> Organism:
-        """Return the organism from the genome configuration."""
+    def organism(self) -> str:
+        """Return the organism (string) from the genome configuration."""
         return self.genome.organism
 
     @computed_field

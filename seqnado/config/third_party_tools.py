@@ -53,8 +53,10 @@ class CommandLineArguments(BaseModel):
           A match is either exact equality or startswith pattern + '='. If a token is
           an option (e.g. '--opt') that consumes a following value (non-dashed token),
           the value is kept alongside the option.
-        - After include filtering (if any), exclude patterns are applied and matching
-          tokens (and their following non-dashed value, when appropriate) are removed.
+                - After include filtering (if any), exclude patterns are applied and matching
+                    tokens are removed. If the excluded option is provided with a separate value
+                    (e.g. "--opt value"), the very next token is also removed. The "--opt=value"
+                    form is matched via startswith("--opt=") and removed as a single token.
         - Exclude patterns override include: if the same pattern is present in both,
           the token will be removed.
         """
@@ -76,8 +78,8 @@ class CommandLineArguments(BaseModel):
                     for pat in self.exclude:
                         if matches(tok, pat):
                             excluded = True
-                            # drop following value token if present
-                            if tok == pat and i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
+                            # Drop the following token if present to handle separate value form
+                            if tok == pat and i + 1 < len(tokens):
                                 i += 1
                             break
                     if not excluded:
@@ -391,7 +393,7 @@ class Salmon(BaseModel):
 
     quant: ToolConfig = Field(
         default_factory=lambda: ToolConfig(
-            threads=8, command_line_arguments=CommandLineArguments(value="-p {threads} -o {output.dir}")
+            threads=8, command_line_arguments=CommandLineArguments(value="")
         ),
         description="Quantification configuration"
     )
@@ -529,7 +531,7 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
         Assay.ATAC: generic_dna_tools,
         Assay.CHIP: generic_dna_tools,
         Assay.CAT: generic_dna_tools + [Seacr],
-        Assay.RNA: [Star, Deeptools, Samtools, Trimgalore, Salmon],
+        Assay.RNA: [Star, Deeptools, Samtools, Trimgalore, Salmon, Subread],
         Assay.SNP: [Bowtie2, Trimgalore, Samtools, BcfTools],
         Assay.METH: [Bowtie2, Methyldackel, Samtools, Picard],
         Assay.CRISPR: [Cutadapt, Bowtie2, Subread, Samtools],
