@@ -1,5 +1,5 @@
-# Use official Ubuntu base image (multi-platform support by default)
-FROM ubuntu:24.04
+# Use official Ubuntu base image, forcing x86_64 (amd64) architecture for consistency across Apple Silicon and other builders
+FROM --platform=linux/amd64 ubuntu:24.04
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
