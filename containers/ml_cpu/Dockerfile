@@ -1,15 +1,16 @@
 # Dockerfile for SeqNado ML CPU
-FROM python:3.12-bookworm
+FROM python:3.12-slim
 
 LABEL author="asmith"
 LABEL software="SeqNado"
 LABEL version="1.0"
 
 # Copy repositories
-COPY ../repos/lanceotron-mcc /opt/repos/lanceotron-mcc
+COPY lanceotron-mcc/ /opt/repos/lanceotron-mcc/
 
 # Upgrade pip, setuptools, and wheel
-RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN apt-get update && apt-get install -y build-essential zlib1g-dev curl && rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Install PyTorch and related packages from PyTorch index
 RUN python -m pip install --no-cache-dir --upgrade --no-input \
@@ -19,7 +20,7 @@ RUN python -m pip install --no-cache-dir --upgrade --no-input \
 RUN python -m pip install --no-cache-dir \
     loguru \
     pandas \
-    "polars<1.9" \
+    polars \
     pydantic \
     pyBigWig \
     tqdm \
@@ -30,7 +31,7 @@ RUN python -m pip install --no-cache-dir \
     crested \
     modisco-lite \
     natsort \
-    tensorflow-cpu
+    tensorflow
 
 # Install local packages
 RUN python -m pip install --no-cache-dir --no-deps \
