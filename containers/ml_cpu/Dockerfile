@@ -34,7 +34,7 @@ RUN python -m pip install --no-cache-dir \
 
 # Install local packages
 RUN python -m pip install --no-cache-dir --no-deps \
-    /opt/repos/quantnado \
+    QuantNado \
     /opt/repos/lanceotron-mcc \
     lanceotron
 
