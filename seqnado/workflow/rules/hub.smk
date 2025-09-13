@@ -9,7 +9,7 @@ rule validate_peaks:
     output:
         sentinel="seqnado_output/peaks/.validated",
     container:
-        None
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/validate_peaks.log",
     run:
@@ -37,6 +37,7 @@ rule bed_to_bigbed:
         chrom_sizes=config["genome"]["chromosome_sizes"],
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
     shell:
@@ -59,7 +60,7 @@ rule generate_hub:
     log:
         log=f"seqnado_output/logs/{CONFIG.assay_config.ucsc_hub.name}.hub.log",
     container:
-        None
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     params:
         assay=ASSAY,
         params=CONFIG.assay_config.ucsc_hub,

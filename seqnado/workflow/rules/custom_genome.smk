@@ -12,6 +12,7 @@ rule rename_chr_cat_fasta:
         cat_genome="data/{reference_genome}_{spikein_genome}.fa",
         prefix="data/index_bt2/{reference_genome}_{spikein_genome}",
         spikein_genome=spikein_genome,
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         """
         gunzip {input.spikein_fasta} | sed -e 's/chr/{params.spikein_genome}/' | cat -e {input.reference_fasta} > {params.cat_genome} &&
@@ -30,6 +31,7 @@ rule STAR_index:
         prefix="data/index_STAR/{reference_genome}_{spikein_genome}",
         spikein_genome=spikein_genome,
     threads: 6
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         """
     gunzip {input.spikein_fasta} | sed -e 's/chr/{params.spikein_genome}/' | cat -e {input.reference_fasta} > {params.cat_genome} &&

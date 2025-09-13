@@ -29,7 +29,7 @@ rule deseq2_params:
         size_factors_out="seqnado_output/resources/all_normalisation_factors.json",
         de_dir=str(Path(rules.deseq2_report_rnaseq.output.deseq2).parent),
         counts=rules.deseq2_report_rnaseq.input.counts,
-    container: None
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         import yaml
 

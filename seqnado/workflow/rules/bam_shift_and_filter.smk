@@ -17,6 +17,7 @@ if CONFIG.shift_for_tn5_insertion:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         threads: 1
+        container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         log: "seqnado_output/logs/alignment_post_process/{sample}_atac_shift.log",
         shell:"""
         bamnado modify --input {input.bam} --output {output.tmp} --tn5-shift &&
@@ -37,6 +38,7 @@ else:
             ),
             read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv"),
         threads: 1
+        container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         shell:"""
         mv {input.bam} {output.bam} &&
         mv {input.bam}.bai {output.bai} &&
@@ -56,6 +58,7 @@ rule filter_bam:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: "seqnado_output/logs/alignment_post_process/{sample}_filter.log",
     params:
         options=str(CONFIG.third_party_tools.samtools.view.command_line_arguments),

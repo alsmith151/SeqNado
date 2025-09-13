@@ -14,6 +14,7 @@ rule fastq_screen_paired:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
     shell:

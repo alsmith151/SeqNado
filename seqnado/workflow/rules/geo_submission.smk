@@ -50,7 +50,7 @@ rule geo_symlink:
         files=temp(get_symlinked_files()),
     params:
         output=OUTPUT,
-    container: None
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         import pathlib
         from seqnado.design import GEOFiles
@@ -111,7 +111,7 @@ rule geo_md5_table:
     output:
         raw="seqnado_output/geo_submission/raw_data_checksums.txt",
         processed="seqnado_output/geo_submission/processed_data_checksums.txt",
-    container: None
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         import pandas as pd 
 
@@ -129,7 +129,7 @@ rule samples_table:
         "seqnado_output/geo_submission/samples_table.txt",
     params: 
         output=OUTPUT,
-    container: None
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         from seqnado.design import GEOFiles
         df = GEOFiles(make_geo_submission_files=True,
@@ -153,7 +153,7 @@ rule geo_protocol:
 rule geo_upload_instructions:
     output:
         instructions="seqnado_output/geo_submission/upload_instructions.txt",
-    container: None
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         import importlib.resources
         import seqnado.data
@@ -183,7 +183,7 @@ rule remove_headers_for_security:
         infiles = get_symlinked_files
     output:
         validated="seqnado_output/geo_submission/.validated",
-    container: None
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         import pathlib
 

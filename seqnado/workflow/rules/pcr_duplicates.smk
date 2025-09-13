@@ -14,6 +14,7 @@ if CONFIG.pcr_duplicates.tool == PCRDuplicateTool.PICARD:
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
         shell:"""
         picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} 2> {log} &&
@@ -34,6 +35,7 @@ elif CONFIG.pcr_duplicates.tool == PCRDuplicateTool.SAMTOOLS:
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
         shell:"""
         samtools rmdup -@ {threads} {input.bam} {output.bam} &&
@@ -52,6 +54,7 @@ else:
         threads: 8
         resources:
             mem="500MB",
+        container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         log: "seqnado_output/logs/alignment_post_process/{sample}_remove_duplicates.log",
         shell: """
         mv {input.bam} {output.bam} &&

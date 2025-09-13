@@ -3,6 +3,7 @@
 ################################
 import os
 import shutil
+from seqnado import Assay
 from seqnado.config import SeqnadoConfig
 from seqnado.inputs import (
     SampleGroupings,
@@ -85,25 +86,60 @@ INPUT_FILES.symlink_fastq_files(output_dir="seqnado_output/fastq/")
 # Include Rules
 ################################
 include: "rules/common.smk"
-include: "rules/align.smk"
-include: "rules/alignment_post_processing.smk"
-include: "rules/fastq_screen.smk"
-include: "rules/fastq_trim.smk"
-include: "rules/pileup_default.smk"
-include: "rules/pileup_norm.smk"
-include: "rules/pileup_grouped.smk"
-include: "rules/peak_call_other.smk"
-include: "rules/peak_call_grouped.smk"
 include: "rules/qc.smk"
-include: "rules/heatmap.smk"
-include: "rules/hub.smk"
-include: "rules/geo_submission.smk"
-include: "rules/visualisation.smk"
-include: "rules/consensus_counts.smk"
-include: "rules/dataset.smk"
-include: "rules/exogenous_norm.smk"
-include: "rules/peak_call_chip.smk"
-include: "rules/crispr.smk"
+include: "rules/alignment_post_processing.smk"
+
+if ASSAY == Assay.RNA:
+    include: "rules/align_rna.smk"
+    include: "rules/alignment_counts.smk"
+    include: "rules/deseq2_rna.smk"
+    include: "rules/fastq_screen.smk"
+    include: "rules/fastq_trim.smk"
+    include: "rules/heatmap.smk"
+    include: "rules/hub.smk"
+    include: "rules/pileup_norm.smk"
+    include: "rules/pileup_default.smk"
+    include: "rules/geo_submission.smk"
+    include: "rules/visualisation.smk"
+elif ASSAY == Assay.CAT or ASSAY == Assay.CHIP:
+    include: "rules/align.smk"
+    include: "rules/fastq_screen.smk"
+    include: "rules/fastq_trim.smk"
+    include: "rules/exogenous_norm.smk"
+    include: "rules/peak_call_chip.smk"
+    include: "rules/peak_call_grouped.smk"
+    include: "rules/pileup_default.smk"
+    include: "rules/pileup_norm.smk"
+    include: "rules/pileup_grouped.smk"
+    include: "rules/heatmap.smk"
+    include: "rules/hub.smk"
+    include: "rules/geo_submission.smk"
+    include: "rules/visualisation.smk"
+    include: "rules/consensus_counts.smk"
+    include: "rules/dataset.smk"
+elif ASSAY == Assay.CRISPR:
+    include: "rules/fastq_screen.smk"
+    include: "rules/crispr.smk"
+elif ASSAY == Assay.MCC:
+    include: "rules/fastq_trim.smk"
+    include: "rules/fastq_custom_rules.smk"
+    include: "rules/align.smk"
+    include: "rules/pileup_default.smk"
+    include: "rules/hub.smk"
+    include: "rules/mcc.smk"
+elif ASSAY == Assay.METH:
+    include: "rules/align.smk"
+    include: "rules/fastq_screen.smk"
+    include: "rules/fastq_trim.smk"
+    include: "rules/geo_submission.smk"
+    include: "rules/meth_calling.smk"
+elif ASSAY == Assay.SNP:
+    include: "rules/align.smk"
+    include: "rules/fastq_screen.smk"
+    include: "rules/fastq_trim.smk"
+    include: "rules/variant.smk"
+    include: "rules/geo_submission.smk"
+
 
 
 ################################

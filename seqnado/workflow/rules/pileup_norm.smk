@@ -82,6 +82,8 @@ rule tile_regions:
         genome_tiled="seqnado_output/resources/genome_tiled.gtf",
     params:
         tile_size=config["genome"].get("tile_size", 10_000),
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     script:
         "../scripts/tile_genome.py"
 
@@ -123,6 +125,8 @@ rule count_bam:
     log:
         "seqnado_output/logs/counts/readcounts.log",
     threads: 8
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         "featureCounts -a {input.tiles} -a {input.tiles} -t tile -o {output.counts} {input.bam} -T {threads} {params.options} > {log} 2>&1"
 
@@ -133,6 +137,8 @@ rule setup_for_scaling_factors:
     output:
         formatted_counts="seqnado_output/counts/{group}_formatted_counts.tsv",
         metadata="seqnado_output/counts/{group}_metadata.tsv",
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         counts = format_feature_counts(input[0])
         counts.to_csv(output[0], sep="\t", index=False)
@@ -187,6 +193,8 @@ rule deeptools_make_bigwigs_scale:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),    
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/pileups/deeptools/scaled/{sample}.log",
     shell:
@@ -219,6 +227,8 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/pileups/deeptools/spikein/{sample}_plus.log",
     shell:
@@ -239,6 +249,8 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/pileups/deeptools/spikein/{sample}_minus.log",
     shell:

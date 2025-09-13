@@ -9,6 +9,7 @@ rule get_fasta:
         genome=CONFIG.genome.fasta,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/motifs/fasta/{sample}.log",
     shell:
@@ -29,6 +30,7 @@ rule motif_meme_chip:
         meme_chip_db=config["meme"]["meme_chip_db"],
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/motifs/meme/{sample}.log",
     shell:
@@ -48,6 +50,7 @@ rule motif_homer:
         homer_params=CONFIG.third_party_tools.homer.find_motifs_genome.command_line_arguments,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/motifs/homer/{sample}.log",
     shell:

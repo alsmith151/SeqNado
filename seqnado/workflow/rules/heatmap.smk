@@ -16,6 +16,7 @@ rule heatmap_matrix:
     resources:
         runtime=lambda wildcards, attempt: f"{1 * 2**attempt}h",
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/heatmap/matrix.log",
     shell:
@@ -31,6 +32,7 @@ rule heatmap_plot:
         options=str(CONFIG.third_party_tools.deeptools.plot_heatmap.command_line_arguments),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/heatmap/heatmap.log",
     shell:
@@ -44,6 +46,7 @@ rule heatmap_metaplot:
         metaplot="seqnado_output/heatmap/metaplot.pdf",
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/heatmap/metaplot.log",
     shell:

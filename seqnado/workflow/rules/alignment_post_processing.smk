@@ -17,6 +17,7 @@ rule sort_bam:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     threads: CONFIG.third_party_tools.samtools.sort.threads
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: "seqnado_output/logs/alignment_post_process/{sample}_sort.log",
     shell: """
         samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M
@@ -35,6 +36,7 @@ rule index_bam:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:"samtools index -@ {threads} -b {input.bam}"
 
 
@@ -49,6 +51,7 @@ rule move_bam_to_final_location:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: "seqnado_output/logs/alignment_post_process/{sample}_final.log",
     shell:"""
     mv {input.bam} {output.bam} &&

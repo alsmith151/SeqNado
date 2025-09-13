@@ -22,6 +22,7 @@ rule fastqc_raw_paired:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
@@ -39,6 +40,7 @@ rule fastqc_raw_single:
     params:
         extra="--quiet",
         output_dir="seqnado_output/qc/fastqc_raw/",
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/fastqc_raw/{sample}.log",
     shell:
@@ -137,6 +139,7 @@ rule bam_stats:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell: """
         cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
     """
@@ -149,6 +152,7 @@ rule prepare_stats_report:
         ),
     output:
         "seqnado_output/qc/alignment_stats.tsv",
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/alignment_stats.log",
     script:
@@ -181,6 +185,7 @@ rule frip_enrichment:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:"seqnado_output/logs/frip_enrichment/{directory}/{sample}.log",
     shell:
         """

@@ -18,6 +18,7 @@ rule align_paired:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=35, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/align/{sample}.log",
     shell:
@@ -40,6 +41,7 @@ rule rename_aligned:
         bam=rules.align_paired.output.bam,
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         "mv {input.bam} {output.bam}"
 

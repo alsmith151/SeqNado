@@ -12,6 +12,7 @@ rule bcftools_call_snp:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
     threads: CONFIG.third_party_tools.bcftools.call.threads
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/variant/{sample}.log",
     shell:"""
@@ -33,6 +34,7 @@ rule split_multiallelic:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
     threads: 16
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/variant/{sample}_split.log",
     shell:"""
@@ -48,6 +50,7 @@ rule bcftools_annotate:
     output:
         vcf="seqnado_output/variant/{sample}.anno.vcf.gz",
         idx="seqnado_output/variant/{sample}.anno.vcf.gz.tbi",
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     params:
         dbsnp=CONFIG.assay_config.snp_database,
         fasta=CONFIG.genome.fasta,

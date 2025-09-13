@@ -53,6 +53,7 @@ rule calculate_conversion:
         plot="seqnado_output/methylation/methylation_conversion.png"
     params:
         assay=CONFIG.methylation.method,
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/methylation/conversion.log"
     script: "../scripts/methylation_conversion.py"
@@ -87,6 +88,7 @@ rule taps_inverted:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/methylation/taps_inverted/{sample}_{genome}.log"
     shell: """

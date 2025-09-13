@@ -14,6 +14,7 @@ rule feature_counts:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/readcounts/featurecounts/featurecounts.log",
     shell:
@@ -46,6 +47,7 @@ rule salmon_counts_paired:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/readcounts/salmon/salmon_{sample}.log",
     shell:
@@ -66,6 +68,7 @@ rule salmon_counts_single:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/readcounts/salmon/salmon_{sample}.log",
     shell:
@@ -79,6 +82,7 @@ rule get_salmon_counts:
         counts=expand("seqnado_output/readcounts/salmon/salmon_{sample}/quant.sf", sample=SAMPLE_NAMES)
     output:
         count_table="seqnado_output/readcounts/salmon/salmon_counts.csv"
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         "seqnado_output/logs/readcounts/salmon/salmon_counts.log"
     script:
