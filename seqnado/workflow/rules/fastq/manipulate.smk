@@ -1,4 +1,3 @@
-
 rule deduplicate_fastq_raw:
     input:
         fq1="seqnado_output/trimmed/{sample}_1.fastq.gz",

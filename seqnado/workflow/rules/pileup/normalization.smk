@@ -1,4 +1,9 @@
-from seqnado.helpers import check_options, get_group_for_sample, define_memory_requested, define_time_requested
+from seqnado.helpers import define_memory_requested, define_time_requested
+from seqnado.config.third_party_tools import CommandLineArguments
+from seqnado import Assay
+import pandas as pd
+import re
+
 
 def format_feature_counts(counts: str) -> pd.DataFrame:
     counts = pd.read_csv(counts, sep="\t", comment="#")
@@ -28,10 +33,15 @@ def get_scaling_factor(wildcards, scale_path: str) -> float:
     return factor
 
 
+def _sample_group(mapping_name: str, wildcards) -> str:
+    groups = SAMPLE_GROUPINGS.get_grouping(mapping_name)
+    return groups.sample_to_group()[wildcards.sample]
+
+
 def get_norm_factor_spikein(wildcards, negative=False):
     import json
 
-    group = NORMALISATION_SCALING.get_sample_group(wildcards.sample)
+    group = _sample_group("normalisation", wildcards)
     with open(f"seqnado_output/resources/{group}_normalisation_factors.json") as f:
         norm_factors = json.load(f)
 
@@ -42,76 +52,71 @@ def get_norm_factor_spikein(wildcards, negative=False):
 
 
 def format_deeptools_bamcoverage_options(wildcards):
-    import re
+    options_str = str(
+        CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments
+    )
 
-    options = check_options(config["deeptools"]["bamcoverage"])
+    # Remove normalization flags; we manage scale explicitly
+    options_str = re.sub(r"--normalizeUsing [a-zA-Z]+", "", options_str)
+    options_str = re.sub(r"--scaleFactor [0-9.]+", "", options_str)
 
-    if "--normalizeUsing" in options:
-        options = re.sub("--normalizeUsing [a-zA-Z]+", "", options)
+    # Remove extendReads flags for single-end
+    if not INPUT_FILES.is_paired_end(wildcards.sample):
+        options_str = re.sub(r"--extendReads", "", options_str)
+        options_str = re.sub(r"\s-e(\s|$)", " ", options_str)
 
-    if "--scaleFactor" in options:
-        options = re.sub("--scaleFactor [0-9.]+", "", options)
-         
-    if not DESIGN.query(wildcards.sample).is_paired:
-        options = re.sub(r"--extendReads", "", options)
-        options = re.sub(r"-e", "", options)
-
-    return options
+    return options_str.strip()
 
 
 def format_homer_make_bigwigs_options(wildcards):
-    import re
-
     norm = int(get_norm_factor_spikein(wildcards) * 1e7)
+    options_str = str(
+        CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments
+    )
 
-    options = check_options(config["homer"]["makebigwig"])
-
-    if "-norm" in options:
-        options = re.sub("-scale [0-9.]+", "", options)
-
-    options += f" -norm {norm}"
-
-    return options
+    # Ensure any existing -norm is removed, then add ours
+    options_str = re.sub(r"-norm [0-9.]+", "", options_str)
+    options_str = f"{options_str} -norm {norm}".strip()
+    return options_str
 
 
 # CSAW Method
 rule tile_regions:
     input:
-        chromsizes=config["genome"]["chromosome_sizes"],
+        chromsizes=CONFIG.genome.chromosome_sizes,
     output:
         genome_tiled="seqnado_output/resources/genome_tiled.gtf",
     params:
-        tile_size=config["genome"].get("tile_size", 10_000),
+        tile_size=lambda wc: CONFIG.genome.bin_size if CONFIG.genome.bin_size is not None else 10000,
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     script:
-        "../scripts/tile_genome.py"
+        "../../scripts/tile_genome.py"
 
 
 def get_count_files(wildcards):
-
     import pathlib
 
     files = []
-    if ASSAY in ['ChIP', 'CUT&TAG']:
-        df = DESIGN.to_dataframe()
-        for row in df.itertuples():
 
+    if ASSAY in [Assay.CHIP, Assay.CAT]:
+        df = INPUT_FILES.to_dataframe()
+        for row in df.itertuples():
             try:
                 f1 = pathlib.Path(row.ip_r1)
                 f2 = pathlib.Path(row.ip_r2)
                 if f1.exists() and f2.exists():
-                    files.append(f"seqnado_output/aligned/{row.sample_name}_{row.ip}.bam")
-            except TypeError:
+                    files.append(
+                        f"seqnado_output/aligned/{row.sample_name}_{row.ip}.bam"
+                    )
+            except Exception:
                 pass
-    
-    elif ASSAY == 'ATAC':
-        df = DESIGN.to_dataframe()
+
+    elif ASSAY == Assay.ATAC:
+        df = INPUT_FILES.to_dataframe()
         files = expand("seqnado_output/aligned/{sample}.bam", sample=df.sample_name)
 
-    
     return files
-        
 
 
 rule count_bam:
@@ -121,7 +126,7 @@ rule count_bam:
     output:
         counts="seqnado_output/counts/counts.tsv",
     params:
-        options='-p --countReadPairs',
+        options="-p --countReadPairs",
     log:
         "seqnado_output/logs/counts/readcounts.log",
     threads: 8
@@ -156,7 +161,7 @@ rule calculate_scaling_factors:
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     script:
-        "../scripts/calculate_scaling_factors.R"
+        "../../scripts/calculate_scaling_factors.R"
 
 
 rule calculate_scaling_factors_spikein:
@@ -172,24 +177,23 @@ rule calculate_scaling_factors_spikein:
     log:
         "seqnado_output/logs/normalisation_factors.log"
     script:
-        "../scripts/calculate_spikein_norm_factors_rna.R"
-
+        "../../scripts/calculate_spikein_norm_factors_rna.R"
 
 
 rule deeptools_make_bigwigs_scale:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc , DESIGN)}_scaling_factors.tsv",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{_sample_group('scaling', wc)}_scaling_factors.tsv",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/csaw/{sample}.bigWig",
     params:
         scale=lambda wc: get_scaling_factor(
             wc,
-            f"seqnado_output/resources/{get_group_for_sample(wc , DESIGN)}_scaling_factors.tsv",
+            f"seqnado_output/resources/{_sample_group('scaling', wc)}_scaling_factors.tsv",
         ),
         options=lambda wc: format_deeptools_bamcoverage_options(wc)
-    threads: config["deeptools"]["threads"]
+    threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),    
@@ -205,7 +209,7 @@ use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc , DESIGN)}_normalisation_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{_sample_group('normalisation', wc)}_normalisation_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}.bigWig",
     params:
@@ -217,13 +221,13 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc , DESIGN)}_normalisation_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{_sample_group('normalisation', wc)}_normalisation_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}_plus.bigWig",
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
         scale=get_norm_factor_spikein,
-    threads: config["deeptools"]["threads"]
+    threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -239,13 +243,13 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     input:
         bam="seqnado_output/aligned/{sample}.bam",
         bai="seqnado_output/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: f"seqnado_output/resources/{get_group_for_sample(wc , DESIGN)}_normalisation_factors.json",
+        scaling_factors=lambda wc: f"seqnado_output/resources/{_sample_group('normalisation', wc)}_normalisation_factors.json",
     output:
         bigwig="seqnado_output/bigwigs/deeptools/spikein/{sample}_minus.bigWig",
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
         scale=lambda wc: get_norm_factor_spikein(wc, negative=True),
-    threads: config["deeptools"]["threads"]
+    threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

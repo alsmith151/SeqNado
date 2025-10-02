@@ -81,11 +81,15 @@ NORMALISATION_MERGING = SampleGroups.from_design(DESIGN, subset_column="consensu
 ###################
 # Pipeline config #
 ###################
-include: "rules/common.smk"
-include: "rules/align.smk"
-include: "rules/alignment_post_processing.smk"
-include: "rules/fastq_screen.smk"
-include: "rules/fastq_trim.smk"
+include: "rules/common/setup.smk"
+include: "rules/alignment/dna.smk"
+include: "rules/alignment_postprocess/sort_and_index.smk"
+include: "rules/alignment_postprocess/blacklist.smk"
+include: "rules/alignment_postprocess/duplicates.smk"
+include: "rules/alignment_postprocess/manipulate.smk"
+include: "rules/alignment_postprocess/filter.smk"
+include: "rules/fastq/screen.smk"
+include: "rules/fastq/trim.smk"
 include: "rules/qc.smk"
 include: "rules/geo_submission.smk"
 include: "rules/meth_calling.smk"

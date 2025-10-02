@@ -1,5 +1,4 @@
 
-
 rule generate_plotnado_visualisation:
     input:
         data=[

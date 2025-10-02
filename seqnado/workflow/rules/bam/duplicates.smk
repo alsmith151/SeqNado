@@ -1,3 +1,6 @@
+from seqnado.helpers import  define_time_requested, define_memory_requested
+from seqnado import PCRDuplicateTool
+
 if CONFIG.pcr_duplicates.tool == PCRDuplicateTool.PICARD:
     rule remove_duplicates_using_picard:
         input:
@@ -61,4 +64,3 @@ else:
         mv {input.bai} {output.bai} &&
         echo -e "duplicate removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
-

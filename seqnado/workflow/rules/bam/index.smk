@@ -1,11 +1,4 @@
 from seqnado.helpers import  define_time_requested, define_memory_requested
-from seqnado import PCRDuplicateTool
-
-
-include: "pcr_duplicates.smk"
-include: "blacklist.smk"
-include: "bam_modification.smk"
-
 
 rule sort_bam:
     input:
@@ -45,8 +38,8 @@ rule move_bam_to_final_location:
         bam="seqnado_output/aligned/filtered/{sample}.bam",
         bai="seqnado_output/aligned/filtered/{sample}.bam.bai",
     output:
-        bam="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam",
-        bai="seqnado_output/aligned/{sample,[A-Za-z\\d\\-_]+}.bam.bai",
+        bam="seqnado_output/aligned/{sample,[A-Za-z\\d\-_]+}.bam",
+        bai="seqnado_output/aligned/{sample,[A-Za-z\\d\-_]+}.bam.bai",
         read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_final.tsv"),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),

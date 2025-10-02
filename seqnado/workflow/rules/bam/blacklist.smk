@@ -1,3 +1,4 @@
+from seqnado.helpers import  define_time_requested, define_memory_requested
 
 if CONFIG.remove_blacklist:
 
@@ -7,16 +8,14 @@ if CONFIG.remove_blacklist:
             bai=rules.index_bam.output.bai,
         output:
             bam=temp("seqnado_output/aligned/blacklist_regions_removed/{sample}.bam"),
-            bai=temp(
-                "seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai"
-            ),
+            bai=temp("seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai"),
             read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_blacklist.tsv"),
         threads: 1
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         params:
             blacklist=CONFIG.genome.blacklist,
         resources:
-            mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
+            mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         log: "seqnado_output/logs/alignment_post_process/{sample}_blacklist.log",
         shell:"""
@@ -33,9 +32,7 @@ else:
             bai=rules.index_bam.output.bai,
         output:
             bam=temp("seqnado_output/aligned/blacklist_regions_removed/{sample}.bam"),
-            bai=temp(
-                "seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai"
-            ),
+            bai=temp("seqnado_output/aligned/blacklist_regions_removed/{sample}.bam.bai"),
             read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_blacklist.tsv"),
         threads: 1
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
@@ -45,6 +42,6 @@ else:
         log: "seqnado_output/logs/alignment_post_process/{sample}_blacklist.log",
         shell:"""
         mv {input.bam} {output.bam} &&
-        mv {input.bai} {output.bai} &&
+        mv {input.bam}.bai {output.bai} &&
         echo -e "blacklisted regions removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
         """
