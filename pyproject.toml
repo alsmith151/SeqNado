@@ -18,6 +18,8 @@ requires-python = ">=3.10"
 license = {file = "LICENSE"}
 dynamic = ["version"]
 dependencies = [
+    "typer",
+    "rich",
     "click",
     "cookiecutter",
     "pandas",
@@ -34,10 +36,7 @@ dependencies = [
 ]
 
 [project.scripts]
-seqnado = "seqnado.cli:cli_pipeline"
-seqnado-design = "seqnado.cli:cli_design"
-seqnado-config = "seqnado.cli:cli_config"
-seqnado-init = "seqnado.cli:cli_init"
+seqnado = "seqnado.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/alsmith151/seqnado"

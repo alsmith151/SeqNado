@@ -26,15 +26,15 @@ class ViewpointsFile(pa.DataFrameModel):
 class DesignDataFrame(pa.DataFrameModel):
     """Base class for design dataframes with common sample identification."""
     sample_id: Series[str] = pa.Field(coerce=True)
-    norm_group: Series[str] | None = pa.Field(coerce=True, default="all", description="Grouping variable for scaling samples")
+    scaling_group: Series[str] | None = pa.Field(coerce=True, default="default", description="Grouping variable for scaling samples")
     scaling_group: Series[str] | None = pa.Field(
-        default=None,
-        description="Grouping variable for scaling samples",
+        default="default",
+        description="Grouping variable for scaling samples together (e.g. within a batch or between samples using the same antibody)",
         nullable=False,
     )
     consensus_group: Series[str] | None = pa.Field(
-        default=None,
-        description="Grouping variable for merging samples into consensus",
+        default="default",
+        description="Grouping variable for merging samples together and generating consensus tracks/peak calls/counts between samples. Leave blank to treat all samples as separate.",
         nullable=False,   
     )
     deseq2: Series[str] | None = pa.Field(
@@ -77,6 +77,7 @@ class DesignDataFrame(pa.DataFrameModel):
         # Check that the sample IDs do not contain spaces or special characters
         allowed_chars = r"^[a-zA-Z0-9_-]+$"
         return s.str.match(allowed_chars)
+    
 
 
         

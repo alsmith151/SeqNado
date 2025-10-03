@@ -104,10 +104,10 @@ def pepe_silvia():
 def get_group_for_sample(wildcards, design: Union[FastqCollection, FastqCollectionForIP], strip: str = ""):
     from seqnado.inputs import SampleGroups
 
-    norm_groups = SampleGroups.from_sample_collection(design, include_controls=True)
+    scaling_groups = SampleGroups.from_sample_collection(design, include_controls=True)
 
     try:
-        group = norm_groups.get_sample_group(wildcards.sample.strip(strip))
+        group = scaling_groups.get_sample_group(wildcards.sample.strip(strip))
         return group
     except KeyError:
         # logger.error(f"Sample {wildcards.sample} not found in normalisation groups.")
@@ -119,12 +119,12 @@ def get_scale_method(config: Dict) -> List[str]:
     Returns the scale method based on the config.
     """
 
-    method = [ScaleMethod.unscaled]
+    method = [DataScalingTechnique.unscaled]
 
     if config.get("spikein"):
-        method.append(ScaleMethod.spikein)
+        method.append(DataScalingTechnique.spikein)
     elif config.get("scale"):
-        method.append(ScaleMethod.csaw)
+        method.append(DataScalingTechnique.csaw)
     return [m.value for m in method]
 
 def remove_unwanted_run_files():

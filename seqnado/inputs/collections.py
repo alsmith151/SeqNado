@@ -31,7 +31,7 @@ class BaseFastqCollection(BaseModel):
         Rules:
         - If callable: call with sample_name to get Metadata.
         - If Metadata instance: use directly.
-        - If None: create default with norm_group="all".
+        - If None: create default.
         In all cases force metadata.assay to the provided assay if it's None or different.
         """
         if callable(metadata):
@@ -39,7 +39,7 @@ class BaseFastqCollection(BaseModel):
         elif isinstance(metadata, Metadata):
             md = metadata
         else:
-            md = Metadata(norm_group="all")
+            md = Metadata()
         # Always stamp assay (requirement: always include assay in metadata)
         if md.assay != assay:
             md.assay = assay
@@ -66,7 +66,7 @@ class BaseFastqCollection(BaseModel):
     ) -> Callable[[str], Metadata] | Metadata:
         """Prepare metadata parameter for directory-based construction."""
         if not callable(metadata) and not isinstance(metadata, Metadata):
-            metadata = Metadata(**{"norm_group": "all", **kwargs})
+            metadata = Metadata(**kwargs)
         return metadata
     
     @classmethod
@@ -212,7 +212,7 @@ class FastqCollection(BaseFastqCollection):
             metadata:
                 - Callable(sample_name) → Metadata to customize per-sample metadata.
                 - Single Metadata instance applied to all.
-                - None → defaults to Metadata(norm_group="all").
+                - None → defaults to Metadata().
             fastqset_kwargs: Extra fields forwarded to FastqSet constructor.
         """
         # Convert and sort
@@ -473,7 +473,7 @@ class FastqCollectionForIP(BaseFastqCollection):
             metadata:
                 - Callable(sample_name) → Metadata to customize per-sample metadata.
                 - Single Metadata instance applied to all.
-                - None → defaults to Metadata(norm_group="all").
+                - None → defaults to Metadata().
             exp_kwargs: Extra fields forwarded to IPExperiment constructor.
         """
         # Convert and sort

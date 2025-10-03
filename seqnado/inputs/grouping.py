@@ -23,7 +23,7 @@ class SampleGroups(BaseModel):
     def from_dataframe(
         cls,
         df: pd.DataFrame,
-        subset_column: str = "norm_group",
+        subset_column: str = "scaling_group",
         *,
         reference_sample: str | None = None,
     ) -> "SampleGroups":

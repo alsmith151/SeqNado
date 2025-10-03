@@ -37,9 +37,9 @@ class Metadata(BaseModel):
         default=None,
         description="Grouping variable for merging samples into consensus, can be None if not applicable"
     )
-    norm_group: str = Field(
-        default="all",
-        description="Grouping variable for scaling samples, defaults to 'all' if not specified"
+    scaling_group: str = Field(
+        default="default",
+        description="Grouping variable for scaling samples, defaults to 'default' if not specified"
     )
     deseq2: str | None = Field(
         default=None,
