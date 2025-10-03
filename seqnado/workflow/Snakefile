@@ -26,7 +26,7 @@ SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 ################################
 CONFIG = SeqnadoConfig(**config)  # pyright: ignore[reportUndefinedVariable]
 ASSAY = CONFIG.assay
-INPUT_FILES = select_sample_collection(ASSAY, path=CONFIG.metadata).from_csv(CONFIG.metadata)
+INPUT_FILES = select_sample_collection(path=CONFIG.metadata).from_csv(CONFIG.metadata)
 
 
 ################################
