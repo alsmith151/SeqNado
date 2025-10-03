@@ -245,7 +245,7 @@ def get_fastq_screen_all(wildcards):
 
 
 def get_library_complexity_qc(wildcards):
-    if CONFIG.qc.library_complexity:
+    if CONFIG.qc.calculate_library_complexity:
         return expand(
             "seqnado_output/qc/library_complexity/{sample}.metrics",
             sample=SAMPLE_NAMES,
@@ -294,7 +294,7 @@ def get_frip_files(wildcards):
         return expand(
             "seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
             sample=SAMPLE_NAMES,
-            directory=peak_methods,
+            directory=[m.value for m in CONFIG.assay_config.peak_calling.method],
         )
     else:
         return []

@@ -298,6 +298,10 @@ class Samtools(BaseModel):
         default_factory=lambda: ToolConfig(threads=8, command_line_arguments=CommandLineArguments(value="-bS")),
         description="View configuration"
     )
+    merge: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(threads=8, command_line_arguments=CommandLineArguments(value="")),
+        description="Merge configuration"
+    )
 
 
 class Deeptools(BaseModel):
@@ -428,7 +432,7 @@ class Subread(BaseModel):
 class Lanceotron(BaseModel):
     """Lanceotron peak calling tool configuration."""
     
-    call_peak: ToolConfig = Field(
+    call_peaks: ToolConfig = Field(
         default_factory=lambda: ToolConfig(threads=8, command_line_arguments=CommandLineArguments(value="-c 0.5")),
         description="Peak calling configuration"
     )
@@ -514,6 +518,10 @@ class FastqScreen(BaseModel):
 
 def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
     """Get the list of tool classes appropriate for a given assay type."""
+    
+    qc_tools = [FastqScreen]
+
+
     generic_dna_tools = [
         Bowtie2,
         Bamnado,
@@ -528,12 +536,12 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
     ]
     
     tools = {
-        Assay.ATAC: generic_dna_tools,
-        Assay.CHIP: generic_dna_tools,
-        Assay.CAT: generic_dna_tools + [Seacr],
-        Assay.RNA: [Star, Deeptools, Samtools, Trimgalore, Salmon, Subread],
-        Assay.SNP: [Bowtie2, Trimgalore, Samtools, BcfTools],
-        Assay.METH: [Bowtie2, Methyldackel, Samtools, Picard],
+        Assay.ATAC: qc_tools + generic_dna_tools,
+        Assay.CHIP: qc_tools + generic_dna_tools,
+        Assay.CAT: qc_tools + generic_dna_tools + [Seacr],
+        Assay.RNA: qc_tools + [Star, Deeptools, Samtools, Trimgalore, Salmon, Subread],
+        Assay.SNP: qc_tools + [Bowtie2, Trimgalore, Samtools, BcfTools],
+        Assay.METH: qc_tools + [Bowtie2, Methyldackel, Samtools, Picard],
         Assay.CRISPR: [Cutadapt, Bowtie2, Subread, Samtools],
     }
     return tools.get(assay, [])
@@ -599,7 +607,6 @@ class ThirdPartyToolsConfig(BaseModel):
         
         # Merge with any user overrides
         defaults.update(overrides)
-        
         return cls(**defaults)
 
     def get_configured_tools(self) -> dict[str, BaseModel]:

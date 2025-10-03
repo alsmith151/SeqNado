@@ -22,7 +22,7 @@ rule homer_make_tag_directory:
     output:
         homer_tag_directory=directory("seqnado_output/tag_dirs/{sample}"),
     params:
-        options=check_options(config["homer"]["maketagdirectory"]),
+        options=str(CONFIG.third_party_tools.homer.make_tag_directory.command_line_arguments),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -45,9 +45,9 @@ rule homer_make_bigwigs:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     params:
-        genome_name=config["genome"]["name"],
-        genome_chrom_sizes=config["genome"]["chromosome_sizes"],
-        options=check_options(config["homer"]["makebigwig"]),
+        genome_name=CONFIG.genome.name,
+        genome_chrom_sizes=CONFIG.genome.chromosome_sizes,
+        options=str(CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments),
         outdir="seqnado_output/bigwigs/homer/",
         temp_bw=lambda wc, output: output.homer_bigwig.replace(
             ".bigWig", ".ucsc.bigWig"
@@ -70,7 +70,7 @@ rule deeptools_make_bigwigs:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     threads:
-        config["deeptools"]["threads"]
+        CONFIG.third_party_tools.deeptools.bam_coverage.threads,
     log:
         "seqnado_output/logs/pileups/deeptools/unscaled/{sample}.log",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
@@ -87,8 +87,8 @@ rule deeptools_make_bigwigs_rna_plus:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}_plus.bigWig",
     params:
-        options=check_options(config["deeptools"]["bamcoverage"]),
-    threads: config["deeptools"]["threads"]
+        options=str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments),
+    threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -108,8 +108,8 @@ rule deeptools_make_bigwigs_rna_minus:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}_minus.bigWig",
     params:
-        options=check_options(config["deeptools"]["bamcoverage"]),
-    threads: config["deeptools"]["threads"]
+        options=str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments),
+    threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -128,11 +128,11 @@ rule bamnado_bam_coverage:
     output:
         bigwig="seqnado_output/bigwigs/bamnado/unscaled/{sample}.bigWig",
     params:
-        options=check_options(config["bamnado"]["bamcoverage"]),
+        options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
-    threads: config["bamnado"]["threads"],
+    threads: CONFIG.third_party_tools.bamnado.bam_coverage.threads,
     log:
         "seqnado_output/logs/pileups/bamnado/{sample}.log",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
@@ -149,8 +149,8 @@ rule bamnado_bam_coverage_rna_plus:
     output:
         bigwig="seqnado_output/bigwigs/bamnado/{sample}_plus.bigWig",
     params:
-        options=check_options(config["bamnado"]["bamcoverage"]),
-    threads: config["bamnado"]["threads"],
+        options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
+    threads: CONFIG.third_party_tools.bamnado.bam_coverage.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -170,8 +170,8 @@ rule bamnado_bam_coverage_rna_minus:
     output:
         bigwig="seqnado_output/bigwigs/bamnado/{sample}_minus.bigWig",
     params:
-        options=check_options(config["bamnado"]["bamcoverage"]),
-    threads: config["bamnado"]["threads"],
+        options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
+    threads: CONFIG.third_party_tools.bamnado.bam_coverage.threads,
     resources: 
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

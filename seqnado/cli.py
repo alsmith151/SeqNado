@@ -668,6 +668,14 @@ def pipeline(
     if not snakefile.exists():
         logger.error(f"Snakefile for assay '{assay}' not found: {snakefile}")
         raise typer.Exit(code=1)
+    
+    if not config_file:
+        config_file = pathlib.Path(f"config_{assay}.yaml")
+        if not config_file.exists():
+            logger.error(
+                f"No config file provided and default not found: {config_file}"
+            )
+            raise typer.Exit(code=1)
 
     cmd: list[str] = [
         "snakemake",
@@ -677,7 +685,7 @@ def pipeline(
         str(snakefile),
         "--show-failed-logs",
         "--configfile",
-        str(config_file or pathlib.Path(f"config_{assay}.yaml")),
+        str(config_file),
         *cleaned_opts,
     ]
 

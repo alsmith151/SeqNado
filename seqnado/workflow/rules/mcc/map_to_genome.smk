@@ -27,7 +27,7 @@ rule align_unmapped_reads_to_genome:
     output:
         bam=temp("seqnado_output/aligned/second_alignment/{sample}.bam"),
         bai=temp("seqnado_output/aligned/second_alignment/{sample}.bam.bai"),
-    threads: CONFIG.third_party_tools.bowtie2.threads,
+    threads: CONFIG.third_party_tools.bowtie2.align.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -35,7 +35,7 @@ rule align_unmapped_reads_to_genome:
         "seqnado_output/logs/realign/{sample}.log",
     params:
         index=CONFIG.genome.index.prefix,
-        options=str(CONFIG.third_party_tools.bowtie2.command_line_arguments),
+        options=str(CONFIG.third_party_tools.bowtie2.align.command_line_arguments),
 
     shell:
         """
@@ -52,7 +52,7 @@ rule combine_genome_mapped_reads:
         bam2=rules.align_unmapped_reads_to_genome.output.bam,
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
-    threads: CONFIG.third_party_tools.bowtie2.threads,
+    threads: CONFIG.third_party_tools.bowtie2.align.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),

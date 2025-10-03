@@ -1,6 +1,6 @@
+include: "index.smk"
 include: "blacklist.smk"
 include: "duplicates.smk"
 include: "filter.smk"
-include: "index.smk"
 include: "manipulate.smk"
 include: "merge.smk"

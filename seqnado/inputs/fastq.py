@@ -417,6 +417,12 @@ class FastqCollection(BaseFastqCollection):
             return next(fs for fs in self.fastq_sets if fs.sample_id == sample_name)
         except StopIteration:
             raise ValueError(f"Sample '{sample_name}' not found in SampleCollection")
+    
+    def is_paired_end(self, uid: str) -> bool:
+        """
+        Check if the given sample ID is paired-end.
+        """
+        return self.to_dataframe().loc[uid, "r2"] is not None
 
     @classmethod
     def from_fastq_files(

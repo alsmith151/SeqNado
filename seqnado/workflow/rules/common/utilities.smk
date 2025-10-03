@@ -65,7 +65,7 @@ rule get_fasta:
 
 rule validate_peaks:
     input:
-        peaks=OUTPUT.peaks,
+        peaks=OUTPUT.peak_files,
     output:
         sentinel="seqnado_output/peaks/.validated",
     container:

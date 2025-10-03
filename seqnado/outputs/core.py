@@ -115,14 +115,14 @@ class SeqnadoOutputBuilder:
         assay: Assay,
         samples: CollectionLike,
         config: SeqnadoConfig,
-        sample_groups: SampleGroupings | None = None,
+        sample_groupings: SampleGroupings | None = None,
     ):
         """Initializes the SeqnadoOutputBuilder with the given assay, samples, and configuration.
         Args:
             assay (Assay): The type of assay being processed.
             samples (SampleCollection | IPSampleCollection): The collection of samples to process.
             config (SeqnadoConfig): The configuration for the SeqNado project.
-            sample_groups (Optional[SampleGroupings]): Optional groups of samples for merging.
+            sample_groupings (Optional[SampleGroupings]): Optional groups of samples for merging.
                 If provided, will be used to create grouped bigwig files and grouped peak files.
         Raises:
             ValueError: If the provided assay is not supported or if sample groups are provided
@@ -132,7 +132,7 @@ class SeqnadoOutputBuilder:
         self.assay = assay
         self.samples = samples
         self.config = config
-        self.sample_groups = sample_groups
+        self.sample_groupings = sample_groupings
 
         # Initialize an empty list to hold file collections
         self.file_collections: list[FileCollection] = []
@@ -166,7 +166,7 @@ class SeqnadoOutputBuilder:
             "scale_methods",
             [DataScalingTechnique.UNSCALED],
         )
-        for group_name, sample_groups in self.sample_groups.groupings.items():
+        for group_name, sample_groups in self.sample_groupings.groupings.items():
             for group in sample_groups.groups:
                 bigwig_files = BigWigFiles(
                     assay=self.assay,
@@ -197,7 +197,7 @@ class SeqnadoOutputBuilder:
     def add_grouped_peak_files(self) -> None:
         """Add grouped peak files to the output collection."""
 
-        for _, sample_groups in self.sample_groups.groupings.items():
+        for _, sample_groups in self.sample_groupings.groupings.items():
             for group in sample_groups.groups:
                 peaks = PeakCallingFiles(
                     assay=self.assay,
@@ -290,7 +290,7 @@ class SeqnadoOutputBuilder:
             assay=self.assay,
             methods=self.config.assay_config.quantification.methods,
             names=self.samples.sample_names,
-            groups=self.sample_groups,
+            groups=self.sample_groupings,
             prefix=Path("seqnado_output/quantification/"),
         )
         self.file_collections.append(quantification_files)
@@ -320,7 +320,7 @@ class SeqnadoOutputBuilder:
         return SeqnadoOutputFiles(
             files=all_files,
             sample_names=self.samples.sample_names,
-            sample_groups=self.sample_groups,
+            sample_groups=self.sample_groupings,
         )
 
 
@@ -351,7 +351,7 @@ class SeqnadoOutputFactory:
             assay=self.assay,
             samples=self.samples,
             config=self.config,
-            sample_groups=self.sample_groupings,
+            sample_groupings=self.sample_groupings,
         )
 
         builder.add_qc_files()
@@ -363,7 +363,7 @@ class SeqnadoOutputFactory:
 
         if bool(getattr(self.assay_config, "call_peaks", False)):
             builder.add_peak_files()
-            if self.sample_groupings:
+            if self.sample_groupings.groupings.get('consensus'):
                 builder.add_grouped_peak_files()
 
         if self.assay_config.create_heatmaps:

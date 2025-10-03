@@ -7,11 +7,11 @@ rule align_paired:
         fq2="seqnado_output/trimmed/{sample}_2.fastq.gz",
     params:
         index=CONFIG.genome.index.prefix,
-        options=str(CONFIG.third_party_tools.bowtie2.command_line_arguments),
+        options=str(CONFIG.third_party_tools.bowtie2.align.command_line_arguments),
         rg="--rg-id {sample} --rg SM:{sample}",
     output:
         bam=temp("seqnado_output/aligned/raw/{sample}.bam"),
-    threads: config["bowtie2"]["threads"]
+    threads: CONFIG.third_party_tools.bowtie2.align.threads,
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -36,9 +36,9 @@ rule align_single:
         fq1="seqnado_output/trimmed/{sample}.fastq.gz",
     params:
         index=CONFIG.genome.index.prefix,
-        options=str(CONFIG.third_party_tools.bowtie2.command_line_arguments),
+        options=str(CONFIG.third_party_tools.bowtie2.align.command_line_arguments),
         rg="--rg-id {sample} --rg SM:{sample}",
-    threads: config["bowtie2"]["threads"],
+    threads: CONFIG.third_party_tools.bowtie2.align.threads,
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

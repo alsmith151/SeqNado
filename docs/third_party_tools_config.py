@@ -440,7 +440,7 @@ def create_config_for_environment():
         config.samtools.sort.options = "-@ {{threads}} -m 8G"
     
     if os.getenv("FAST_MODE") == "true":
-        config.bowtie2.align.options = "--very-fast"
+        config.bowtie2.align.align.options = "--very-fast"
     
     return config
 ```

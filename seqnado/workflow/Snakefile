@@ -57,7 +57,7 @@ SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
 ################################
 # Define Outputs
 ################################
-OUTPUTS: SeqnadoOutputFiles = (
+OUTPUT: SeqnadoOutputFiles = (
     SeqnadoOutputFactory(
         assay=ASSAY,
         samples=INPUT_FILES,
@@ -67,8 +67,7 @@ OUTPUTS: SeqnadoOutputFiles = (
     .create_output_builder()
     .build()
 )
-
-SAMPLE_NAMES = OUTPUTS.sample_names
+SAMPLE_NAMES = OUTPUT.sample_names
 
 
 ################################
@@ -80,8 +79,8 @@ INPUT_FILES.symlink_fastq_files(output_dir="seqnado_output/fastqs/")
 ################################
 # Include Rules
 ################################
-include: "rules/common/qc.smk"
 include: "rules/common/utilities.smk"
+include: "rules/fastq/screen.smk"
 
 match ASSAY:
     case Assay.ATAC:
@@ -93,6 +92,7 @@ match ASSAY:
     case _:
         raise ValueError(f"Assay {ASSAY} not supported yet.")
 
+include: "rules/common/qc.smk"
 
 ################################
 # Rule Ordering
@@ -112,7 +112,7 @@ match ASSAY:
 ################################
 rule all:
     input:
-        OUTPUTS.all_files,
+        OUTPUT.all_files,
 
 
 ################################
