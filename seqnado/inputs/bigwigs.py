@@ -11,8 +11,7 @@ from typing import Any, Callable, Iterable
 
 from pydantic import BaseModel
 
-from .core import Metadata, is_valid_path
-from .collections import BaseFastqCollection
+from .core import Metadata, is_valid_path, BaseCollection
 from seqnado import Assay
 
 
@@ -98,7 +97,7 @@ class BigWigCollection(BaseModel):
 		if not bigwig_files:
 			raise ValueError("No bigWig files provided")
 
-		metadata_param = BaseFastqCollection._prepare_metadata_for_directory(
+		metadata_param = BaseCollection._prepare_metadata_for_directory(
 			metadata, **metadata_kwargs
 		)
 
@@ -106,7 +105,7 @@ class BigWigCollection(BaseModel):
 		for bw in bigwig_files:
 			sid = bw.infer_sample_id(assay)
 			metadata_list.append(
-				BaseFastqCollection._build_metadata(sid, metadata_param, assay)
+				BaseCollection._build_metadata(sid, metadata_param, assay)
 			)
 
 		return cls(assay=assay, bigwig_files=bigwig_files, metadata=metadata_list)

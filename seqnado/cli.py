@@ -456,14 +456,14 @@ def config(
         raise typer.Exit(code=1)
 
     if dont_make_directories:
-        config_output = output or pathlib.Path(f"config_{assay_obj.value}.yaml")
+        config_output = output or pathlib.Path(f"config_{assay_obj.clean_name}.yaml")
         config_output.parent.mkdir(parents=True, exist_ok=True)
     else:
         dirname = f"{date.today().isoformat()}_{assay_obj.value}_{workflow_config.project.name}"
         outdir = pathlib.Path(dirname)
         (outdir / "fastqs").mkdir(parents=True, exist_ok=True)
         logger.info(f"Created output directory: {outdir / 'fastqs'}")
-        config_output = output or (outdir / f"config_{assay_obj.value}.yaml")
+        config_output = output or (outdir / f"config_{assay_obj.clean_name}.yaml")
 
     tpl = _pkg_files("seqnado.data").joinpath("config_template.jinja")
     if not tpl.exists():
@@ -593,6 +593,11 @@ def pipeline(
     assay: Optional[str] = typer.Argument(
         None, metavar="ASSAY", autocompletion=assay_autocomplete
     ),
+    config_file: Optional[pathlib.Path] = typer.Option(
+        None,
+        "--configfile",
+        help="Path to a SeqNado config YAML (default: config_ASSAY.yaml).",
+    ),
     show_version: bool = typer.Option(
         False, "--version", help="Print SeqNado version and exit."
     ),
@@ -659,7 +664,7 @@ def pipeline(
 
     # Build Snakemake command
     pkg_root = _pkg_files("seqnado")
-    snakefile = pkg_root / "workflow" / f"snakefile_{assay.replace('-', '_')}"
+    snakefile = pkg_root / "workflow" / "Snakefile"
     if not snakefile.exists():
         logger.error(f"Snakefile for assay '{assay}' not found: {snakefile}")
         raise typer.Exit(code=1)
@@ -671,6 +676,8 @@ def pipeline(
         "--snakefile",
         str(snakefile),
         "--show-failed-logs",
+        "--configfile",
+        str(config_file or pathlib.Path(f"config_{assay}.yaml")),
         *cleaned_opts,
     ]
 

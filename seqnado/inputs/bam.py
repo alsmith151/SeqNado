@@ -12,8 +12,7 @@ from typing import Any, Callable, Iterable
 
 from pydantic import BaseModel
 
-from .core import Metadata, is_valid_path
-from .collections import BaseFastqCollection  # reuse metadata helpers
+from .core import Metadata, is_valid_path, BaseCollection
 from seqnado import Assay
 
 
@@ -84,12 +83,12 @@ class BamCollection(BaseModel):
             raise ValueError("No BAM files provided")
 
         # Prepare metadata template if user passed simple kwargs
-        metadata_param = BaseFastqCollection._prepare_metadata_for_directory(
+        metadata_param = BaseCollection._prepare_metadata_for_directory(
             metadata, **metadata_kwargs
         )
 
         metadata_list: list[Metadata] = [
-            BaseFastqCollection._build_metadata(b.sample_id, metadata_param, assay)
+            BaseCollection._build_metadata(b.sample_id, metadata_param, assay)
             for b in bam_files
         ]
         return cls(assay=assay, bam_files=bam_files, metadata=metadata_list)

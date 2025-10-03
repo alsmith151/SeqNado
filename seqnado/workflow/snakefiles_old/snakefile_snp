@@ -61,7 +61,7 @@ OUTPUT = SNPOutput(
     **config
 )
 
-NORMALISATION_SCALING = SampleGroups.from_design(DESIGN, subset_column="norm_group", include_controls=True)
+NORMALISATION_SCALING = SampleGroups.from_design(DESIGN, subset_column="scaling_group", include_controls=True)
 NORMALISATION_MERGING = SampleGroups.from_design(DESIGN, subset_column="consensus_group", include_controls=True)
 
 ###################

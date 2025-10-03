@@ -1,24 +1,3 @@
-
-rule get_fasta:
-    input:
-        peaks="seqnado_output/peaks/{method}/{sample}.bed",
-    output:
-        fasta="seqnado_output/motifs/fasta/{sample}.fa",
-        bed=temp("motifs/fasta/{sample}_clean.bed"),
-    params:
-        genome=CONFIG.genome.fasta,
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        "seqnado_output/logs/motifs/fasta/{sample}.log",
-    shell:
-        """
-    cat {input.peaks} | cut -f 1-3 > {output.bed} &&
-    bedtools getfasta -fullHeader -fi {params.genome} -bed {output.bed} -fo {output.fasta}
-    """
-
-
 rule motif_meme_chip:
     input:
         fasta="seqnado_output/motifs/fasta/{sample}.fa",

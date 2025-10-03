@@ -137,7 +137,7 @@ This will generate a design file called `design.csv` in the working directory.
 To merge samples for counting or bigwig/peak generation add a consensus_group column to the design file
 
 ```bash
-sample_name,r1,r2,norm_group,consensus_group
+sample_name,r1,r2,scaling_group,consensus_group
 atac,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_1.fastq.gz,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_2.fastq.gz,all,consensus_group
 atac2,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_1.fastq.gz,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_2.fastq.gz,all,consensus_group
 ```
@@ -167,7 +167,7 @@ rna,/path/to/fastq/rna_2.fastq.gz,/path/to/fastq/rna_1.fastq.gz
 A ChIP assay design file should look something like this:
 
 ```bash
-sample_name,ip,control,ip_r1,ip_r2,control_r1,control_r2,norm_group
+sample_name,ip,control,ip_r1,ip_r2,control_r1,control_r2,scaling_group
 chip-rx,MLL,input,fastq/chip-rx_MLL_1.fastq.gz,fastq/chip-rx_MLL_2.fastq.gz,fastq/chip-rx_input_1.fastq.gz,fastq/chip-rx_input_2.fastq.gz,all
 ```
 

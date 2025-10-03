@@ -1,6 +1,5 @@
 from seqnado.helpers import define_time_requested, define_memory_requested
-
-
+from seqnado import SpikeInMethod
 
 rule align_paired:
     input:

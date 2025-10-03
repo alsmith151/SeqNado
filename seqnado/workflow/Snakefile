@@ -17,10 +17,8 @@ from seqnado.helpers import remove_unwanted_run_files
 ################################
 # Hardcoded Config
 ################################
-SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
-
-
 container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 
 
 ################################
@@ -28,7 +26,7 @@ container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
 ################################
 CONFIG = SeqnadoConfig(**config)  # pyright: ignore[reportUndefinedVariable]
 ASSAY = CONFIG.assay
-INPUT_FILES = select_sample_collection(ASSAY).from_csv(CONFIG.metadata)
+INPUT_FILES = select_sample_collection(ASSAY, path=CONFIG.metadata).from_csv(CONFIG.metadata)
 
 
 ################################
@@ -38,7 +36,7 @@ SAMPLE_GROUPINGS = SampleGroupings()
 
 normalisation_groups = SampleGroups.from_dataframe(
     INPUT_FILES.to_dataframe(),
-    subset_column="norm_group",
+    subset_column="scaling_group",
     include_controls=True,
 )
 
@@ -85,102 +83,31 @@ INPUT_FILES.symlink_fastq_files(output_dir="seqnado_output/fastqs/")
 ################################
 # Include Rules
 ################################
-include: "rules/common/setup.smk"
-include: "rules/qc.smk"
+include: "rules/common/qc.smk"
+include: "rules/common/utilities.smk"
 
-if ASSAY == Assay.RNA:
-    include: "rules/alignment/rna.smk"
-    include: "rules/bam/index.smk"
-    include: "rules/bam/blacklist.smk"
-    include: "rules/bam/duplicates.smk"
-    include: "rules/bam/manipulate.smk"
-    include: "rules/bam/filter.smk"
-    include: "rules/quant/featurecounts.smk"
-    include: "rules/quant/salmon.smk"
-    include: "rules/deseq2_rna.smk"
-    include: "rules/fastq/screen.smk"
-    include: "rules/fastq/trim.smk"
-    include: "rules/heatmap.smk"
-    include: "rules/hub.smk"
-    include: "rules/pileup/normalization.smk"
-    include: "rules/pileup.smk"
-    include: "rules/geo_submission.smk"
-    include: "rules/visualisation.smk"
-elif ASSAY == Assay.CAT or ASSAY == Assay.CHIP:
-    include: "rules/alignment/dna.smk"
-    include: "rules/bam/index.smk"
-    include: "rules/bam/blacklist.smk"
-    include: "rules/bam/duplicates.smk"
-    include: "rules/bam/manipulate.smk"
-    include: "rules/bam/filter.smk"
-    include: "rules/fastq/screen.smk"
-    include: "rules/fastq/trim.smk"
-    include: "rules/normalize.smk"
-    include: "rules/peak_call.smk"
-    include: "rules/pileup.smk"
-    include: "rules/pileup/normalization.smk"
-    include: "rules/heatmap.smk"
-    include: "rules/hub.smk"
-    include: "rules/geo_submission.smk"
-    include: "rules/visualisation.smk"
-    include: "rules/consensus.smk"
-    include: "rules/dataset.smk"
-elif ASSAY == Assay.CRISPR:
-    include: "rules/fastq/screen.smk"
-    include: "rules/crispr.smk"
-    include: "rules/bam/index.smk"
-    include: "rules/bam/blacklist.smk"
-    include: "rules/bam/duplicates.smk"
-    include: "rules/bam/manipulate.smk"
-    include: "rules/bam/filter.smk"
-elif ASSAY == Assay.MCC:
-    include: "rules/fastq/trim.smk"
-    include: "rules/fastq/manipulate.smk"
-    include: "rules/alignment/dna.smk"
-    include: "rules/bam/index.smk"
-    include: "rules/bam/blacklist.smk"
-    include: "rules/bam/duplicates.smk"
-    include: "rules/bam/manipulate.smk"
-    include: "rules/bam/filter.smk"
-    include: "rules/pileup.smk"
-    include: "rules/hub.smk"
-    include: "rules/mcc.smk"
-elif ASSAY == Assay.METH:
-    include: "rules/alignment/dna.smk"
-    include: "rules/bam/index.smk"
-    include: "rules/bam/blacklist.smk"
-    include: "rules/bam/duplicates.smk"
-    include: "rules/bam/manipulate.smk"
-    include: "rules/bam/filter.smk"
-    include: "rules/fastq/screen.smk"
-    include: "rules/fastq/trim.smk"
-    include: "rules/geo_submission.smk"
-    include: "rules/meth_calling.smk"
-elif ASSAY == Assay.SNP:
-    include: "rules/alignment/dna.smk"
-    include: "rules/bam/index.smk"
-    include: "rules/bam/blacklist.smk"
-    include: "rules/bam/duplicates.smk"
-    include: "rules/bam/manipulate.smk"
-    include: "rules/bam/filter.smk"
-    include: "rules/fastq/screen.smk"
-    include: "rules/fastq/trim.smk"
-    include: "rules/variant.smk"
-    include: "rules/geo_submission.smk"
-
+match ASSAY:
+    case Assay.ATAC:
+        include: "rules/fastq/trim.smk"
+        include: "rules/alignment/dna_default.smk"
+        include: "rules/bam/all.smk"
+        include: "rules/pileup/default.smk"
+        include: "rules/peaks/default.smk"
+    case _:
+        raise ValueError(f"Assay {ASSAY} not supported yet.")
 
 
 ################################
 # Rule Ordering
 ################################
-if CONFIG.has_spikein:
-    ruleorder: move_ref_bam > align_paired > align_single
-    ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
-    ruleorder: align_paired_spikein > align_paired > align_single_spikein > align_single
+# if CONFIG.has_spikein:
+#     ruleorder: move_ref_bam > align_paired > align_single
+#     ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
+#     ruleorder: align_paired_spikein > align_paired > align_single_spikein > align_single
 
-else:
-    ruleorder: align_paired > align_single > move_ref_bam
-    ruleorder: align_paired > align_paired_spikein > align_single > align_single_spikein 
+# else:
+#     ruleorder: align_paired > align_single > move_ref_bam
+#     ruleorder: align_paired > align_paired_spikein > align_single > align_single_spikein 
 
 
 ################################

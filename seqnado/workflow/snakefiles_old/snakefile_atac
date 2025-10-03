@@ -26,7 +26,7 @@ METADATA = SampleCollection.from_csv(CONFIG.metadata)
 
 
 SAMPLE_GROUPINGS = SampleGroupings()
-normalisation_groups = SampleGroups.from_dataframe(METADATA.to_dataframe(), subset_column="norm_group", include_controls=True)
+normalisation_groups = SampleGroups.from_dataframe(METADATA.to_dataframe(), subset_column="scaling_group", include_controls=True)
 scaling_groups = SampleGroups.from_dataframe(METADATA.to_dataframe(), subset_column="consensus_group", include_controls=True)
 SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
 SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)

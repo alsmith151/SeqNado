@@ -3,10 +3,11 @@
 from pathlib import Path 
 import re
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, Callable, Self, TYPE_CHECKING, Any
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 from seqnado import Assay, Organism
+import pandas as pd
 
 # =============================================================================
 # CONSTANTS
@@ -77,6 +78,82 @@ class Metadata(BaseModel):
 
 
 
+#==============================================================================
+# Base class for collections
+#==============================================================================
+class BaseCollection(BaseModel):
+    """
+    Base class for all design types providing common functionality
+    that is *not* tied to FASTQ files.
+    """
+
+    assay: Assay
+    metadata: list[Metadata]
+
+    # --------- Common metadata utilities (format-agnostic) ---------
+
+    @classmethod
+    def _build_metadata(
+        cls,
+        sample_name: str,
+        metadata: Callable[[str], Metadata] | Metadata | None,
+        assay: Assay,
+    ) -> Metadata:
+        """Build metadata for a sample ensuring assay is always set.
+
+        Rules:
+        - If callable: call with sample_name to get Metadata.
+        - If Metadata instance: use directly.
+        - If None: create default.
+        In all cases force metadata.assay to the provided assay if it's None or different.
+        """
+        if callable(metadata):
+            md = metadata(sample_name)
+        elif isinstance(metadata, Metadata):
+            md = metadata
+        else:
+            md = Metadata()
+        # Always stamp assay (requirement: always include assay in metadata)
+        if md.assay != assay:
+            md.assay = assay
+        return md
+
+    @classmethod
+    def _prepare_metadata_for_directory(
+        cls,
+        metadata: Callable[[str], Metadata] | Metadata | None = None,
+        **kwargs: Any,
+    ) -> Callable[[str], Metadata] | Metadata:
+        """Prepare metadata parameter for directory-based construction."""
+        if not callable(metadata) and not isinstance(metadata, Metadata):
+            metadata = Metadata(**kwargs)
+        return metadata
+
+    # ----------------------- I/O scaffolding -----------------------
+
+    @classmethod
+    def from_csv(cls, file_path: str | Path) -> Self:
+        """Build a collection from a CSV file by delegating to from_dataframe."""
+        df = pd.read_csv(file_path)
+        return cls.from_dataframe(df)
+
+    @classmethod
+    def from_dataframe(cls, df: pd.DataFrame) -> Self:  # type: ignore[override]
+        """Build a collection from a pandas DataFrame."""
+        raise NotImplementedError("Subclasses must implement from_dataframe")
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Export the design to a pandas DataFrame."""
+        raise NotImplementedError("Subclasses must implement to_dataframe")
+
+    # --------------------- Common abstract API ---------------------
+
+    @property
+    def sample_names(self) -> list[str]:
+        raise NotImplementedError("Subclasses must implement sample_names")
+
+
+
 # =============================================================================
 # UTILITY FUNCTIONS
 # =============================================================================
@@ -127,3 +204,5 @@ def extract_read_number(filename: str) -> Optional[int]:
 def is_control_sample(ip_name: str) -> bool:
     """Check if sample is a control based on IP name."""
     return any(substring in ip_name.lower() for substring in INPUT_CONTROL_SUBSTRINGS)
+
+

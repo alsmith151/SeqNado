@@ -19,7 +19,7 @@ def test_fastq_dir(test_data_dir):
 def sample_metadata_dict():
     """Provide sample metadata dictionary for testing."""
     return {
-        "norm_group": "treatment",
+        "scaling_group": "treatment",
         "condition": "high_dose",
         "spikein_ratio": 0.25
     }
@@ -29,9 +29,9 @@ def sample_metadata_dict():
 def multiple_metadata_dicts():
     """Provide multiple metadata dictionaries for testing."""
     return [
-        {"norm_group": "control", "condition": "baseline"},
-        {"norm_group": "treatment", "condition": "low_dose", "spikein_ratio": 0.1},
-        {"norm_group": "treatment", "condition": "high_dose", "spikein_ratio": 0.25},
+        {"scaling_group": "control", "condition": "baseline"},
+        {"scaling_group": "treatment", "condition": "low_dose", "spikein_ratio": 0.1},
+        {"scaling_group": "treatment", "condition": "high_dose", "spikein_ratio": 0.25},
     ]
 
 
