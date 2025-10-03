@@ -8,7 +8,7 @@ from seqnado.config import SeqnadoConfig
 from seqnado.inputs import (
     SampleGroupings,
     SampleGroups,
-    select_sample_collection,
+    get_sample_collection,
 )
 from seqnado.outputs import SeqnadoOutputFactory, SeqnadoOutputFiles
 from seqnado.helpers import remove_unwanted_run_files
@@ -26,7 +26,7 @@ SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 ################################
 CONFIG = SeqnadoConfig(**config)  # pyright: ignore[reportUndefinedVariable]
 ASSAY = CONFIG.assay
-INPUT_FILES = select_sample_collection(path=CONFIG.metadata).from_csv(CONFIG.metadata)
+INPUT_FILES = get_sample_collection(assay=ASSAY, path=CONFIG.metadata)
 
 
 ################################
@@ -37,19 +37,16 @@ SAMPLE_GROUPINGS = SampleGroupings()
 normalisation_groups = SampleGroups.from_dataframe(
     INPUT_FILES.to_dataframe(),
     subset_column="scaling_group",
-    include_controls=True,
 )
 
 scaling_groups = SampleGroups.from_dataframe(
     INPUT_FILES.to_dataframe(),
     subset_column="scaling_group",
-    include_controls=True,
 )
 
 consensus_groups = SampleGroups.from_dataframe(
     INPUT_FILES.to_dataframe(),
     subset_column="consensus_group",
-    include_controls=True,
 )
 
 SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)

@@ -330,12 +330,12 @@ class SeqnadoOutputFactory:
         assay: Assay,
         samples: FastqCollection | FastqCollectionForIP,
         config: SeqnadoConfig,
-        sample_groups: SampleGroupings | None = None,
+        sample_groupings: SampleGroupings | None = None,
     ):
         self.assay = assay
         self.samples = samples
         self.config = config
-        self.sample_groups = sample_groups
+        self.sample_groupings = sample_groupings
         self.assay_config = config.assay_config
 
     def create_output_builder(self) -> SeqnadoOutputBuilder:
@@ -351,19 +351,19 @@ class SeqnadoOutputFactory:
             assay=self.assay,
             samples=self.samples,
             config=self.config,
-            sample_groups=self.sample_groups,
+            sample_groups=self.sample_groupings,
         )
 
         builder.add_qc_files()
 
         if self.assay_config.create_bigwigs:
             builder.add_individual_bigwig_files()
-            if self.sample_groups:
+            if self.sample_groupings:
                 builder.add_grouped_bigwig_files()
 
         if bool(getattr(self.assay_config, "call_peaks", False)):
             builder.add_peak_files()
-            if self.sample_groups:
+            if self.sample_groupings:
                 builder.add_grouped_peak_files()
 
         if self.assay_config.create_heatmaps:

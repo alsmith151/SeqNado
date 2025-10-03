@@ -132,10 +132,10 @@ class BaseCollection(BaseModel):
     # ----------------------- I/O scaffolding -----------------------
 
     @classmethod
-    def from_csv(cls, file_path: str | Path) -> Self:
+    def from_csv(cls, path: str | Path, *args, **kwargs) -> Self:
         """Build a collection from a CSV file by delegating to from_dataframe."""
-        df = pd.read_csv(file_path)
-        return cls.from_dataframe(df)
+        df = pd.read_csv(path)
+        return cls.from_dataframe(df=df, *args, **kwargs)
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame) -> Self:  # type: ignore[override]

@@ -4,10 +4,10 @@ import pandas as pd
 from .fastq import FastqCollection, FastqCollectionForIP
 from .bam import BamCollection
 from .bigwigs import BigWigCollection
+from .interfaces import CollectionLike
 
 
-
-def select_sample_collection(path: Path):
+def get_sample_collection(assay: Assay, path: Path) -> CollectionLike:
     """
     Select the appropriate sample collection class based on the contents of the metadata file.
 
@@ -43,4 +43,4 @@ def select_sample_collection(path: Path):
     else:
         raise RuntimeError("Could not determine the type of collection from metadata columns.")
 
-    return type_of_collection
+    return type_of_collection.from_csv(assay=assay, path=path)

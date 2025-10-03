@@ -1,3 +1,4 @@
+from warnings import warn
 from pydantic import BaseModel, Field
 import pandas as pd
 
@@ -31,7 +32,8 @@ class SampleGroups(BaseModel):
         Build multiple SampleGroups from a DataFrame based on a grouping column.
         """
         if subset_column not in df.columns:
-            raise ValueError(f"Column '{subset_column}' not found in design.")
+            warn(f"Column '{subset_column}' not found in DataFrame. Returning empty SampleGroups.")
+            return cls(groups=[])
 
         groups = []
         for group_value, group_df in df.groupby(subset_column):

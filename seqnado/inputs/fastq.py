@@ -402,7 +402,7 @@ class FastqCollection(BaseFastqCollection):
         Returns a dictionary mapping sample names to their FASTQ file paths.
         """
         return {
-            fs.name: [fs.r1.path, fs.r2.path] if fs.r2 else [fs.r1.path]
+            fs.sample_id: [fs.r1.path, fs.r2.path] if fs.r2 else [fs.r1.path]
             for fs in self.fastq_sets
         }
 
@@ -539,7 +539,7 @@ class FastqCollection(BaseFastqCollection):
             # Build FastqSet
             r2_path = rec.get("r2")
             fs = FastqSet(
-                name=rec["sample_name"],
+                sample_id=rec["sample_id"],
                 r1=FastqFile(path=rec["r1"]),
                 r2=FastqFile(path=r2_path) if r2_path else None,
                 **fastqset_kwargs,

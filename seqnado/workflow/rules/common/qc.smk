@@ -1,6 +1,7 @@
 import os
-from seqnado.helpers import define_time_requested, define_memory_requested
 from seqnado import Assay, AssaysWithPeakCalling, QuantificationMethod
+from seqnado.helpers import define_time_requested, define_memory_requested
+from seqnado.config.third_party_tools import CommandLineArguments
 
 ##############################################
 #                   FastQC                   #
