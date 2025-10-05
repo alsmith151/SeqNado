@@ -3,7 +3,7 @@ from seqnado.helpers import define_time_requested, define_memory_requested
 rule make_dataset_regions:
     """Create a dataset from bigWig files using either a BED file."""
     input:
-        bigwigs=OUTPUTS.select_bigwig_subtype(
+        bigwigs=OUTPUT.select_bigwig_subtype(
             method=PileupMethod.DEEPTOOLS,
             scale=ScaleMethod.UNSCALED
         ),
@@ -33,7 +33,7 @@ rule make_dataset_regions:
 rule make_dataset_binsize:
     """Create a dataset from bigWig files using bin size."""
     input:
-        bigwigs=OUTPUTS.select_bigwig_subtype(
+        bigwigs=OUTPUT.select_bigwig_subtype(
             method=PileupMethod.DEEPTOOLS,
             scale=ScaleMethod.UNSCALED
         ),

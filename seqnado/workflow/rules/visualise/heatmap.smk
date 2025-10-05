@@ -3,7 +3,7 @@ from seqnado.helpers import define_memory_requested, define_time_requested
 
 rule heatmap_matrix:
     input:
-        bigwigs=OUTPUTS.select_bigwig_subtype(
+        bigwigs=OUTPUT.select_bigwig_subtype(
             method=PileupMethod.DEEPTOOLS,
             scale=ScaleMethod.UNSCALED
         ),

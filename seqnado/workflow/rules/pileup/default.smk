@@ -65,7 +65,7 @@ rule deeptools_make_bigwigs:
     output:
         bigwig="seqnado_output/bigwigs/deeptools/unscaled/{sample}.bigWig",
     params:
-        options=lambda wildcards: format_deeptools_options(wildcards, config["deeptools"]["bamcoverage"]),
+        options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments)),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),

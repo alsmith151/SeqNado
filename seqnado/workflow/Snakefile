@@ -69,7 +69,6 @@ OUTPUT: SeqnadoOutputFiles = (
 )
 SAMPLE_NAMES = OUTPUT.sample_names
 
-
 ################################
 # Set-Up Workflow
 ################################
@@ -89,6 +88,8 @@ match ASSAY:
         include: "rules/bam/all.smk"
         include: "rules/pileup/default.smk"
         include: "rules/peaks/default.smk"
+        include: 'rules/pileup/merge.smk'
+        include: "rules/visualise/hub.smk"
     case _:
         raise ValueError(f"Assay {ASSAY} not supported yet.")
 

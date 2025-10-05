@@ -82,7 +82,7 @@ rule qualimap_bamqc:
         html="seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
     params:
         output_dir="seqnado_output/qc/qualimap_bamqc/{sample}/",
-        options=format_qualimap_options,
+        options=lambda wc: format_qualimap_options(wc, str(CONFIG.third_party_tools.qualimap.command_line_arguments)),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -181,7 +181,7 @@ rule frip_enrichment:
         pdf="seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.pdf",
         frip_count="seqnado_output/qc/frip_enrichment/{directory}/{sample}_frip.txt",
     params:
-        options=format_frip_enrichment_options,
+        options=lambda wc: format_frip_enrichment_options(wc, CommandLineArguments()),
     threads: 16
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),

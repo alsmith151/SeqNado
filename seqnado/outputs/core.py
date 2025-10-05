@@ -108,6 +108,10 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def genome_browser_plots(self):
         return self._filter_by_suffix(".pdf", "genome_browser")
+    
+    @property
+    def ucsc_hub_files(self):
+        return self._filter_by_suffix(".txt", "hub")
 
 class SeqnadoOutputBuilder:
     def __init__(
@@ -134,6 +138,19 @@ class SeqnadoOutputBuilder:
         self.config = config
         self.sample_groupings = sample_groupings
 
+        # Set sample groupings that do provide file names. 
+        # These need to be used when creating grouped bigwig and peak files.
+        self.provide_filenames = ["consensus"]
+
+        # Determine scale methods from config, default to UNSCALED if not specified
+                # Default to UNSCALED when scale_methods aren't provided in config
+        self.scale_methods = getattr(
+            getattr(self.config.assay_config, "bigwigs", object()),
+            "scale_methods",
+            [DataScalingTechnique.UNSCALED],
+        )
+
+
         # Initialize an empty list to hold file collections
         self.file_collections: list[FileCollection] = []
 
@@ -144,37 +161,34 @@ class SeqnadoOutputBuilder:
 
     def add_individual_bigwig_files(self) -> None:
         """Add individual bigwig files to the output collection."""
-        # Default to UNSCALED when scale_methods aren't provided in config
-        scale_methods = getattr(
-            getattr(self.config.assay_config, "bigwigs", object()),
-            "scale_methods",
-            [DataScalingTechnique.UNSCALED],
-        )
+
         bigwig_files = BigWigFiles(
             assay=self.assay,
             names=self.samples.sample_names,
             pileup_methods=self.config.assay_config.bigwigs.pileup_method,
-            scale_methods=scale_methods,
+            scale_methods=self.scale_methods,
         )
         self.file_collections.append(bigwig_files)
 
     def add_grouped_bigwig_files(self) -> None:
         """Add grouped bigwig files to the output collection."""
 
-        scale_methods = getattr(
-            getattr(self.config.assay_config, "bigwigs", object()),
-            "scale_methods",
-            [DataScalingTechnique.UNSCALED],
-        )
+        # Go through the sample groupings e.g. ['consensus', 'scaling']
         for group_name, sample_groups in self.sample_groupings.groupings.items():
+            # If the group name is in the list of groups to provide filenames for
+            if group_name not in self.provide_filenames:
+                continue
+
+            # If we are providing filenames for this group, create bigwig files for each group
             for group in sample_groups.groups:
                 bigwig_files = BigWigFiles(
                     assay=self.assay,
                     names=[group.name],
                     pileup_methods=self.config.assay_config.bigwigs.pileup_method,
-                    scale_methods=scale_methods,
+                    scale_methods=self.scale_methods,
                 )
-            self.file_collections.append(bigwig_files)
+                self.file_collections.append(bigwig_files)
+            
 
     def add_peak_files(self) -> None:
         """Add peak files to the output collection."""
@@ -197,29 +211,29 @@ class SeqnadoOutputBuilder:
     def add_grouped_peak_files(self) -> None:
         """Add grouped peak files to the output collection."""
 
-        for _, sample_groups in self.sample_groupings.groupings.items():
-            for group in sample_groups.groups:
-                peaks = PeakCallingFiles(
-                    assay=self.assay,
-                    names=[group.name],
-                    peak_calling_method=self.config.assay_config.peak_calling.method,
-                )
-                self.file_collections.append(peaks)
+        # Go through the sample groupings e.g. ['consensus', 'scaling']
+        if not self.sample_groupings:
+            raise ValueError("Sample groupings must be provided to add grouped peak files.")
+        if 'consensus' not in self.sample_groupings.groupings:
+            raise ValueError("Consensus groupings must be defined to add grouped peak files.")
+        
+        # Create peak files for each consensus group
+        for group in self.sample_groupings.groupings['consensus'].groups:
+            peaks = PeakCallingFiles(
+                assay=self.assay,
+                names=[group.name],
+                peak_calling_method=self.config.assay_config.peak_calling.method,
+            )
+            self.file_collections.append(peaks)
+
 
     def add_bigbed_files(self) -> None:
         """Add bigBed files to the output collection."""
-        scale_methods = getattr(
-            getattr(self.config.assay_config, "bigwigs", object()),
-            "scale_methods",
-            [DataScalingTechnique.UNSCALED],
-        )
-        bigbed_files = BigWigFiles(
-            assay=self.assay,
-            names=self.samples.sample_names,
-            pileup_methods=self.config.assay_config.bigwigs.pileup_method,
-            scale_methods=scale_methods,
-            prefix=Path("seqnado_output/bigbeds/"),
-        )
+        
+        # Note this will build the bigBed files from the peak files already added
+        # So ensure peak files are added before calling this method
+        outfiles = self.build().peak_files
+        bigbed_files = [p.with_suffix(".bigBed") for p in outfiles]
         self.file_collections.append(bigbed_files)
 
     def add_heatmap_files(self) -> None:

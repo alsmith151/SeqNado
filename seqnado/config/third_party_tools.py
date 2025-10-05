@@ -511,6 +511,28 @@ class FastqScreen(BaseModel):
         default_factory=lambda: CommandLineArguments()
     )
 
+class FastQC(ToolConfig):
+    """FastQC quality control tool configuration."""
+    
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 4)
+        data.setdefault("options", CommandLineArguments(value="--noextract"))
+        return data
+
+class Qualimap(ToolConfig):
+    """Qualimap quality control tool configuration."""
+    
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 4)
+        data.setdefault("options", CommandLineArguments(value="--java-mem-size=4G"))
+        return data
+
 
 # =============================================================================
 # Main Configuration Class
@@ -519,7 +541,7 @@ class FastqScreen(BaseModel):
 def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
     """Get the list of tool classes appropriate for a given assay type."""
     
-    qc_tools = [FastqScreen]
+    qc_tools = [FastqScreen, FastQC, Qualimap]
 
 
     generic_dna_tools = [
@@ -552,8 +574,11 @@ class ThirdPartyToolsConfig(BaseModel):
     
     # Quality control tools
     fastq_screen: Optional[FastqScreen] = Field(default=None, description="FastqScreen configuration")
-    fastqc: Optional[ToolConfig] = Field(
+    fastqc: Optional[FastQC] = Field(
         default=None, description="FastQC quality control configuration"
+    )
+    qualimap: Optional[Qualimap] = Field(
+        default=None, description="Qualimap quality control configuration"
     )
 
     # Alignment tools

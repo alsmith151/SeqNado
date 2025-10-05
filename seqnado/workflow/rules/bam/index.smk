@@ -54,4 +54,4 @@ rule move_bam_to_final_location:
 
 
 localrules:
-    move_bam_to_final_location,
+    move_bam_to_final_location
