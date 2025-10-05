@@ -415,6 +415,35 @@ def init(
     logger.success("Initialization complete.")
 
 
+# -------------------------------- utils ----------------------------------- #
+
+@app.command(help="Show packaged genome presets or user genome config.")
+def genomes(assay: str = "atac") -> None:
+    from seqnado.config import load_genome_configs
+
+    if assay not in Assay.all_assay_clean_names():
+        allowed = ", ".join(Assay.all_assay_clean_names())
+        logger.error(f"Unknown assay '{assay}'. Allowed: {allowed}")
+        raise typer.Exit(code=2)
+
+    try:
+        cfg = load_genome_configs(assay=Assay.from_clean_name(assay))
+    except Exception as e:
+        logger.error(f"Failed to load genome config: {e}")
+        raise typer.Exit(code=1)
+
+    if not cfg:
+        logger.warning("No genome config found.")
+        raise typer.Exit(code=0)
+
+    for name, details in cfg.items():
+        print(f"[bold]{name}[/bold]")
+        for k, v in details.dict().items():
+            print(f"  {k}: {v or '[not set]'}")
+        print("")
+
+
+
 # -------------------------------- config ------------------------------------ #
 
 
