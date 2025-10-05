@@ -1,6 +1,6 @@
 import json
 import os
-import pathlib
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -506,7 +506,7 @@ def test_design(design, assay_type):
 def apptainer_args(index, test_data_path):
     import importlib.resources
     import seqnado.data
-    import pathlib
+    from pathlib import Path
     import os
 
     indicies_mount = index.parent if not index.is_dir() else index

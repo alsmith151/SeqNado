@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import pathlib
+from pathlib import Path
 from loguru import logger
 
 # Set up logging

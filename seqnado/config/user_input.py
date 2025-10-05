@@ -4,11 +4,10 @@ User input module for SeqNado configuration using the new Pydantic models.
 
 import json
 import os
-import pathlib
+from pathlib import Path
 import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from pathlib import Path
 from loguru import logger
 from pydantic import ValidationError
 import jinja2

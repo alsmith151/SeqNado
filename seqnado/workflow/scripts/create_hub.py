@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import itertools
 import numpy as np
-import pathlib
+from pathlib import Path
 import re
 from loguru import logger
 import tracknado

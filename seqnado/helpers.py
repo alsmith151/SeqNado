@@ -1,6 +1,6 @@
 import json
 import logging
-import pathlib
+from pathlib import Path
 import sys
 from typing import Dict, List, Optional, Tuple, Union
 

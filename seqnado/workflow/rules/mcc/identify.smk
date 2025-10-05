@@ -1,5 +1,5 @@
 def identify_extracted_bam_files(wildcards):
-    import pathlib
+    from pathlib import Path
 
     checkpoint_output = checkpoints.identify_viewpoint_reads.get(**wildcards)
     outdir = Path(checkpoint_output.output.bams)

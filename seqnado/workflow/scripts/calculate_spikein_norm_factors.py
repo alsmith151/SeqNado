@@ -1,5 +1,5 @@
 import pandas as pd
-import pathlib
+from pathlib import Path
 from loguru import logger
 
 # Set up logging

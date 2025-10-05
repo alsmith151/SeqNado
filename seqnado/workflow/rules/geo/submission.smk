@@ -1,4 +1,4 @@
-import pathlib
+from pathlib import Path
 from typing import Any, List
 
 def get_files_for_symlink(wc: Any = None) -> List[str]:
@@ -52,7 +52,7 @@ rule geo_symlink:
         output=OUTPUT,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
-        import pathlib
+        from pathlib import Path
         from seqnado.design import GEOFiles
 
         geo_files = GEOFiles(make_geo_submission_files=True,
@@ -185,7 +185,7 @@ rule remove_headers_for_security:
         validated="seqnado_output/geo_submission/.validated",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
-        import pathlib
+        from pathlib import Path
 
         for fn in input.infiles:
             path = Path(fn)

@@ -1,5 +1,5 @@
 """Shared pytest configuration and fixtures for SeqNado tests."""
-import pathlib
+from pathlib import Path
 import pytest
 
 
