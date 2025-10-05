@@ -34,6 +34,7 @@ from .configs import (
 )
 
 from .user_input import (
+    load_genome_configs,
     build_workflow_config,
     build_default_workflow_config,
     render_config,
@@ -69,4 +70,5 @@ __all__ = [
     "CRISPRAssayConfig",
     "MLDatasetConfig",
     "AssaySpecificConfig",
+    "load_genome_configs",
 ]
