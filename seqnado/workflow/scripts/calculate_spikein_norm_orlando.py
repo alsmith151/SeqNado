@@ -14,7 +14,7 @@ with logger.catch():
     all_readcounts = []
 
     for stats in stats_files:
-        file_path = pathlib.Path(stats)
+        file_path = Path(stats)
         readcounts = pd.read_csv(file_path, sep="\t")
         all_readcounts.append(readcounts)
 

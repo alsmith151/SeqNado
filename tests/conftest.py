@@ -6,7 +6,7 @@ import pytest
 @pytest.fixture(scope="session")
 def test_data_dir():
     """Provide path to test data directory."""
-    return pathlib.Path(__file__).parent / "data"
+    return Path(__file__).parent / "data"
 
 
 @pytest.fixture(scope="session")
@@ -84,9 +84,9 @@ def assert_valid_sample_name(sample_name: str):
     assert not sample_name.isspace(), "Sample name cannot be only whitespace"
 
 
-def assert_valid_file_path(path: pathlib.Path):
+def assert_valid_file_path(path: Path):
     """Assert that a file path is valid and exists."""
-    assert isinstance(path, pathlib.Path), "Path must be a pathlib.Path object"
+    assert isinstance(path, Path), "Path must be a Path object"
     assert path.exists(), f"Path does not exist: {path}"
     assert path.is_file(), f"Path is not a file: {path}"
 

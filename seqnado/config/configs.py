@@ -1,7 +1,7 @@
 import re
-from pydantic import BaseModel, field_validator, computed_field, Field, field_serializer
+from pydantic import BaseModel, field_validator, computed_field, Field, field_serializer, BeforeValidator
 from datetime import date as _date
-from typing import Union, Literal
+from typing import Annotated, Union, Literal
 from pathlib import Path
 from enum import Enum
 from seqnado import Assay, GenomicCoordinate
@@ -22,6 +22,12 @@ from .mixins import (
     MethylationMixin,
     PathValidatorMixin,
 )
+
+
+def none_str_to_none(v):
+    if isinstance(v, str) and v.strip().lower() == "none":
+        return None
+    return v
 
 
 class UserFriendlyError(Exception):
@@ -112,7 +118,7 @@ class GenomeConfig(BaseModel):
     gtf: Path | None = None
     genes: Path | None = None
     blacklist: Path | None = None
-    bin_size: int | None = None
+    bin_size: int = 1000
     organism: str | None = None
     version: str | None = None
 
@@ -137,7 +143,7 @@ class GenomeConfig(BaseModel):
         if not self.organism:
             self.organism = self.predict_organism()
 
-    @field_validator("fasta", "chromosome_sizes", "gtf", "genes", "blacklist")
+    @field_validator("fasta", "chromosome_sizes", "gtf", "blacklist")
     def validate_paths_exist(cls, v: Path | None) -> Path | None:
         if v is not None and not v.exists():
             # Get the field name from validation info if available
@@ -292,9 +298,10 @@ class UCSCHubConfig(BaseModel):
     organism: str | None = None
     default_position: GenomicCoordinate = Field(description="Default genomic position", default_factory=lambda: GenomicCoordinate.from_string("chr1:1-1000000"))
     color_by: list[str] = Field(default_factory=lambda: ['samplename'], description="List of fields to color the bigwigs")
-    overlay_by: list[str] = Field(default_factory=list, description="List of fields to overlay the bigwigs")
-    subgroup_by: list[str] = Field(default_factory=lambda: ['method', "norm"], description="List of fields to subgroup the bigwigs")
-    supergroup_by: list[str] = Field(default_factory=list, description="List of fields to supergroup the bigwigs")
+    overlay_by: list[str] | None = Field(default=None, description="List of fields to overlay the bigwigs")
+    subgroup_by: list[str] | None = Field(default_factory=lambda: ['method', "norm"], description="List of fields to subgroup the bigwigs")
+    supergroup_by: list[str] | None = Field(default=None, description="List of fields to supergroup the bigwigs")
+    
 
     @field_validator("directory")
     def validate_directory(cls, v: str) -> str:
@@ -315,6 +322,25 @@ class UCSCHubConfig(BaseModel):
             raise ValueError("Name must only contain alphanumeric characters, underscores, dashes, and periods.")
         
         return v
+
+    @field_validator("overlay_by", "supergroup_by", mode="before")
+    def _coerce_list_fields(cls, v):
+        """Coerce values like 'None', None, comma-separated strings, or single strings into list[str] | None."""
+        # If explicitly None or the string 'None', keep as None
+        if v is None:
+            return None
+        if isinstance(v, str):
+            if v.strip().lower() == "none":
+                return None
+            # allow comma-separated lists
+            parts = [p.strip() for p in v.split(",") if p.strip()]
+            # single word without commas -> return single-element list
+            return parts if len(parts) > 1 else parts
+        # If already a list, validate items are strings
+        if isinstance(v, (list, tuple)):
+            return [str(x) for x in v]
+        # Otherwise, attempt to coerce to string then to a single-element list
+        return [str(v)]
 
     @classmethod
     def for_assay(cls, assay: Assay) -> "UCSCHubConfig":
@@ -393,11 +419,19 @@ class MethylationConfig(BaseModel):
 class MLDatasetConfig(BaseModel, PathValidatorMixin):
     """Configuration for ML dataset generation."""
 
-    regions_bed: Path | None = None
+    regions_bed:  Annotated[Path | None, BeforeValidator(none_str_to_none)] = Field(
+        default=None, description="BED file with regions of interest"
+    )
     binsize: int | None = None
+
+        
 
     @field_validator("regions_bed")
     def validate_regions_bed(cls, v: Path | None) -> Path | None:
+        # Allow None here; the model_post_init will enforce that at least one of
+        # regions_bed or binsize is provided. If a non-None value is given, validate it.
+        if v is None:
+            return None
         return cls.validate_path_exists(v, "Regions BED file")
 
     @field_validator("binsize")

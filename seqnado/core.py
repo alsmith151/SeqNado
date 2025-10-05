@@ -133,6 +133,7 @@ class PCRDuplicateHandling(Enum):
 class PCRDuplicateTool(Enum):
     PICARD = "picard"
     SAMTOOLS = "samtools"
+    NONE = "None"
 
 
 

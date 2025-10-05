@@ -35,7 +35,7 @@ from .validation import DesignDataFrame
 class FastqFile(BaseModel):
     """Represents a single FASTQ file with metadata extraction."""
 
-    path: pathlib.Path
+    path: Path
     use_resolved_name: bool = False
 
     def model_post_init(self, __context: dict[str, any] | None) -> None:
@@ -51,7 +51,7 @@ class FastqFile(BaseModel):
     @property
     def stem(self) -> str:
         """Get file stem without .gz extension."""
-        return pathlib.Path(str(self.path).removesuffix(".gz")).stem
+        return Path(str(self.path).removesuffix(".gz")).stem
 
     @computed_field
     @property
@@ -218,7 +218,7 @@ class FastqSet(BaseModel):
     r2: FastqFile | None = None
 
     @property
-    def file_paths(self) -> list[pathlib.Path]:
+    def file_paths(self) -> list[Path]:
         """Get list of FASTQ file paths."""
         paths = [self.r1.path]
         if self.is_paired and self.r2:
@@ -295,11 +295,11 @@ class BaseFastqCollection(BaseCollection):
     @classmethod
     def _discover_files(
         cls,
-        directory: str | pathlib.Path,
+        directory: str | Path,
         glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
-    ) -> list[pathlib.Path]:
+    ) -> list[Path]:
         """Discover FASTQ files in a directory using glob patterns."""
-        dir_path = pathlib.Path(directory)
+        dir_path = Path(directory)
         files = list(chain.from_iterable(dir_path.glob(p) for p in glob_patterns))
         if not files:
             raise FileNotFoundError(f"No FASTQ files found in {dir_path}")
@@ -308,22 +308,22 @@ class BaseFastqCollection(BaseCollection):
     # -------- FASTQ-facing API surface --------
 
     @property
-    def fastq_pairs(self) -> dict[str, list[pathlib.Path]]:
+    def fastq_pairs(self) -> dict[str, list[Path]]:
         """Map sample name -> list of FASTQ paths (e.g., [R1, R2])."""
         raise NotImplementedError("Subclasses must implement fastq_pairs")
 
     @property
-    def fastq_paths(self) -> list[pathlib.Path]:
+    def fastq_paths(self) -> list[Path]:
         """Flattened list of FASTQ paths across all samples."""
         return list(chain.from_iterable(self.fastq_pairs.values()))
 
-    def symlink_fastq_files(self, output_dir: str | pathlib.Path) -> None:
+    def symlink_fastq_files(self, output_dir: str | Path) -> None:
         """Symlink FASTQ files to a specified output directory.
 
         Args:
             output_dir: Directory to create symlinks in.
         """
-        output_dir = pathlib.Path(output_dir)
+        output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         for sample_name, paths in self.fastq_pairs.items():
@@ -374,7 +374,7 @@ class FastqCollection(BaseFastqCollection):
         return self.sample_ids
 
     @property
-    def fastq_paths(self) -> list[pathlib.Path]:
+    def fastq_paths(self) -> list[Path]:
         """
         Flattens all R1/R2 file paths into a single list.
         """
@@ -384,7 +384,7 @@ class FastqCollection(BaseFastqCollection):
             for path in (fs.r1.path, *(fs.r2.path if fs.r2 else []))
         ]
 
-    def get_file_paths(self, kind: str | None = None) -> list[pathlib.Path]:
+    def get_file_paths(self, kind: str | None = None) -> list[Path]:
         kind = kind or "fastq"
         match kind:
             case "fastq":
@@ -397,7 +397,7 @@ class FastqCollection(BaseFastqCollection):
                 raise ValueError(f"Unsupported file kind '{kind}' for SampleCollection")
 
     @property
-    def fastq_pairs(self) -> dict[str, list[pathlib.Path]]:
+    def fastq_pairs(self) -> dict[str, list[Path]]:
         """
         Returns a dictionary mapping sample names to their FASTQ file paths.
         """
@@ -428,7 +428,7 @@ class FastqCollection(BaseFastqCollection):
     def from_fastq_files(
         cls,
         assay: Assay,
-        files: Iterable[str | pathlib.Path],
+        files: Iterable[str | Path],
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **fastqset_kwargs: Any,
     ) -> FastqCollection:
@@ -441,7 +441,7 @@ class FastqCollection(BaseFastqCollection):
         4. Generate Metadata via `metadata(sample_name)`, or default.
 
         Args:
-            files: Iterable of file paths (strings or pathlib.Path).
+            files: Iterable of file paths (strings or Path).
             metadata:
                 - Callable(sample_name) → Metadata to customize per-sample metadata.
                 - Single Metadata instance applied to all.
@@ -449,7 +449,7 @@ class FastqCollection(BaseFastqCollection):
             fastqset_kwargs: Extra fields forwarded to FastqSet constructor.
         """
         # Convert and sort
-        fq_files = [FastqFile(path=pathlib.Path(f)) for f in files]
+        fq_files = [FastqFile(path=Path(f)) for f in files]
         fq_files.sort(key=lambda x: (x.sample_base, x.read_number))
 
         # Group by sample_stem
@@ -480,7 +480,7 @@ class FastqCollection(BaseFastqCollection):
     def from_directory(
         cls,
         assay: Assay,
-        directory: str | pathlib.Path,
+        directory: str | Path,
         glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **kwargs: Any,
@@ -630,7 +630,7 @@ class FastqCollectionForIP(BaseFastqCollection):
         )
 
     @property
-    def fastq_pairs(self) -> dict[str, list[pathlib.Path]]:
+    def fastq_pairs(self) -> dict[str, list[Path]]:
         """
         Returns a dictionary mapping sample names to their FASTQ file paths.
         """
@@ -647,7 +647,7 @@ class FastqCollectionForIP(BaseFastqCollection):
                 )
         return files
 
-    def get_file_paths(self, kind: str | None = None) -> list[pathlib.Path]:
+    def get_file_paths(self, kind: str | None = None) -> list[Path]:
         kind = kind or "fastq"
         all_fastqs = list({p for paths in self.fastq_pairs.values() for p in paths})
         match kind:
@@ -717,7 +717,7 @@ class FastqCollectionForIP(BaseFastqCollection):
     def from_fastq_files(
         cls,
         assay: Assay,
-        files: Iterable[str | pathlib.Path],
+        files: Iterable[str | Path],
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **exp_kwargs: Any,
     ) -> FastqCollectionForIP:
@@ -728,7 +728,7 @@ class FastqCollectionForIP(BaseFastqCollection):
 
         Args:
             assay: The assay type (must be an IP assay).
-            files: Iterable of file paths (strings or pathlib.Path).
+            files: Iterable of file paths (strings or Path).
             metadata:
                 - Callable(sample_name) → Metadata to customize per-sample metadata.
                 - Single Metadata instance applied to all.
@@ -736,7 +736,7 @@ class FastqCollectionForIP(BaseFastqCollection):
             exp_kwargs: Extra fields forwarded to IPExperiment constructor.
         """
         # Convert and sort
-        ips: list[FastqFileIP] = [FastqFileIP(path=pathlib.Path(f)) for f in files]
+        ips: list[FastqFileIP] = [FastqFileIP(path=Path(f)) for f in files]
 
         # Bucket by sample_base_without_ip
         buckets: dict[str, dict[str, list[FastqFileIP]]] = defaultdict(
@@ -791,7 +791,7 @@ class FastqCollectionForIP(BaseFastqCollection):
     def from_directory(
         cls,
         assay: Assay,
-        directory: str | pathlib.Path,
+        directory: str | Path,
         glob_patterns: Iterable[str] = ("*.fq", "*.fq.gz", "*.fastq", "*.fastq.gz"),
         metadata: Callable[[str], Metadata] | Metadata | None = None,
         **kwargs: Any,

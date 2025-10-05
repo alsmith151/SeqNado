@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic.functional_serializers import PlainSerializer
 
 from seqnado import Assay
-# ...existing code... (PathValidatorMixin not used in this module)
+from typing import get_origin, get_args, Union
 
 
 # =============================================================================
@@ -550,6 +550,12 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
 class ThirdPartyToolsConfig(BaseModel):
     """Configuration for all third-party bioinformatics tools."""
     
+    # Quality control tools
+    fastq_screen: Optional[FastqScreen] = Field(default=None, description="FastqScreen configuration")
+    fastqc: Optional[ToolConfig] = Field(
+        default=None, description="FastQC quality control configuration"
+    )
+
     # Alignment tools
     bowtie2: Optional[Bowtie2] = Field(default=None, description="Bowtie2 aligner configuration")
     star: Optional[Star] = Field(default=None, description="STAR RNA-seq aligner configuration")
@@ -560,7 +566,7 @@ class ThirdPartyToolsConfig(BaseModel):
     
     # Trimming tools
     cutadapt: Optional[Cutadapt] = Field(default=None, description="Cutadapt trimming configuration")
-    trimgalore: Optional[Trimgalore] = Field(default=None, description="Trim Galore configuration")
+    trim_galore: Optional[Trimgalore] = Field(default=None, description="Trim Galore configuration")
     
     # Peak calling tools
     macs: Optional[Macs] = Field(default=None, description="MACS peak caller configuration")
@@ -581,31 +587,45 @@ class ThirdPartyToolsConfig(BaseModel):
     bcftools: Optional[BcfTools] = Field(default=None, description="BCFtools variant calling suite configuration")
 
     @classmethod
+    def _class_to_field_map(cls) -> dict[type[BaseModel], str]:
+        """Map tool classes to the corresponding field name on this model."""
+        mapping: dict[type[BaseModel], str] = {}
+        for fname, f in cls.model_fields.items():
+            ann = f.annotation
+            origin = get_origin(ann)
+            if origin is Union:
+                # e.g. Optional[FastqScreen] -> Union[FastqScreen, NoneType]
+                for a in get_args(ann):
+                    if isinstance(a, type) and issubclass(a, BaseModel):
+                        mapping[a] = fname
+            elif isinstance(ann, type) and issubclass(ann, BaseModel):
+                mapping[ann] = fname
+        return mapping
+
+    @classmethod
     def for_assay(cls, assay: Assay, **overrides) -> "ThirdPartyToolsConfig":
-        """
-        Factory method to create a configuration with defaults based on assay type.
-        
-        Args:
-            assay: The assay type to configure tools for
-            **overrides: Override configurations for specific tools
-            
-        Returns:
-            ThirdPartyToolsConfig: Configured instance with assay-appropriate defaults
-            
-        Raises:
-            ValueError: If no tools are configured for the given assay type
-        """
         assay_tools = get_assay_specific_tools(assay)
         if not assay_tools:
             raise ValueError(f"No tools configured for assay {assay.value}")
-        
-        # Create default instances for the assay's tools
-        defaults = {}
+
+        class_to_field = cls._class_to_field_map()
+
+        defaults: dict[str, BaseModel] = {}
         for tool_class in assay_tools:
-            tool_name = tool_class.__name__.lower()
-            defaults[tool_name] = tool_class()
-        
-        # Merge with any user overrides
+            # exact match on the declared field’s expected type
+            field_name = class_to_field.get(tool_class)
+            if field_name is None:
+                # Optional: try subclass match if your tool classes have inheritance
+                for k, v in class_to_field.items():
+                    if issubclass(tool_class, k):
+                        field_name = v
+                        break
+            if field_name is None:
+                raise ValueError(
+                    f"No field on {cls.__name__} is annotated for tool class {tool_class.__name__}"
+                )
+            defaults[field_name] = tool_class()
+
         defaults.update(overrides)
         return cls(**defaults)
 

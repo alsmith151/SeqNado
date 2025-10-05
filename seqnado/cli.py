@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import os
-import pathlib
+from pathlib import Path
 import shutil
 import subprocess
 import sys
@@ -51,16 +51,16 @@ Use --help on any subcommand for details.
 # ------------------------------- Utilities ---------------------------------- #
 
 
-def _pkg_files(pkg: str) -> pathlib.Path:
+def _pkg_files(pkg: str) -> Path:
     """Return a concrete filesystem path to a package's resources directory."""
-    return pathlib.Path(resources.files(pkg))  # PEP 451; zip-safe
+    return Path(resources.files(pkg))  # PEP 451; zip-safe
 
 
-def _read_json(path: pathlib.Path) -> dict:
+def _read_json(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
-def _write_json(path: pathlib.Path, data: dict) -> None:
+def _write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=4))
     try:
         os.chmod(path, 0o600)
@@ -77,9 +77,9 @@ def _configure_logging(verbose: bool) -> None:
     logger.add(sys.stderr, level="DEBUG" if verbose else "INFO", colorize=True)
 
 
-def _find_fastqs(hints: list[str]) -> list[pathlib.Path]:
+def _find_fastqs(hints: list[str]) -> list[Path]:
     for loc in hints:
-        files = sorted(pathlib.Path(loc).glob("*.fastq.gz"))
+        files = sorted(Path(loc).glob("*.fastq.gz"))
         if files:
             return files
     return []
@@ -302,7 +302,7 @@ def assay_autocomplete(_: str) -> list[str]:
 
 
 def fastq_autocomplete(incomplete: str) -> list[str]:
-    p = pathlib.Path(incomplete or ".")
+    p = Path(incomplete or ".")
     base = p.parent if p.name else p
     pattern = (p.name or "*") + ("*.fastq.gz" if not p.suffixes else "")
     return [str(x) for x in base.glob(pattern) if x.is_file()]
@@ -356,7 +356,7 @@ def init(
         logger.info("Apptainer not found on PATH; skipping container setup.")
 
     # Genome config
-    cfg_dir = pathlib.Path.home() / ".config" / "seqnado"
+    cfg_dir = Path.home() / ".config" / "seqnado"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     genome_config = cfg_dir / "genome_config.json"
 
@@ -421,27 +421,35 @@ def init(
 @app.command(help="Build a workflow configuration YAML for the selected ASSAY.")
 def config(
     assay: str = typer.Argument(
-        ..., metavar="ASSAY", autocompletion=assay_autocomplete
+        ...,
+        metavar="ASSAY",
+        autocompletion=assay_autocomplete,
+        show_choices=True,
+        click_type=click.Choice(Assay.all_assay_clean_names(), case_sensitive=False),
+        help=", ".join(Assay.all_assay_clean_names()),
     ),
-    dont_make_directories: bool = typer.Option(
-        False, help="Do not create the output project directory or fastq subdir."
+    make_dirs: bool = typer.Option(
+        True, '--make-dirs/--no-make-dirs', help="Create/don't create the output project directory or fastq subdir."
     ),
-    all_options: bool = typer.Option(
+    render_options: bool = typer.Option(
         False, help="Render all options (even if not used by the workflow)."
     ),
-    output: Optional[pathlib.Path] = typer.Option(
+    output: Optional[Path] = typer.Option(
         None, "-o", "--output", help="Explicit path for the rendered config file."
     ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Increase logging verbosity."
     ),
+    interactive: bool = typer.Option(
+        True, '--interactive/--no-interactive', help="Interactively prompt for config values"
+    )
 ) -> None:
     _configure_logging(verbose)
 
     from importlib.metadata import version as _pkg_version
     from datetime import date
     from seqnado.inputs import Assay
-    from seqnado.config.user_input import build_workflow_config, render_config
+    from seqnado.config import build_workflow_config, render_config, build_default_workflow_config
 
     if assay not in Assay.all_assay_clean_names():
         allowed = ", ".join(Assay.all_assay_clean_names())
@@ -450,17 +458,24 @@ def config(
 
     seqnado_version = _pkg_version("seqnado")
     assay_obj = Assay.from_clean_name(assay)
-    workflow_config = build_workflow_config(assay_obj, seqnado_version)
-    if not workflow_config:
-        logger.error("Failed to build workflow configuration.")
-        raise typer.Exit(code=1)
 
-    if dont_make_directories:
-        config_output = output or pathlib.Path(f"config_{assay_obj.clean_name}.yaml")
+
+    if not interactive:
+        logger.info("Running in non-interactive mode; using defaults where possible.")
+        workflow_config = build_default_workflow_config(assay_obj)
+        render_options = True  # In non-interactive mode, show all options
+    else:
+        workflow_config = build_workflow_config(assay_obj, seqnado_version)
+        if not workflow_config:
+            logger.error("Failed to build workflow configuration.")
+            raise typer.Exit(code=1)
+
+    if not make_dirs:
+        config_output = output or Path(f"config_{assay_obj.clean_name}.yaml")
         config_output.parent.mkdir(parents=True, exist_ok=True)
     else:
         dirname = f"{date.today().isoformat()}_{assay_obj.value}_{workflow_config.project.name}"
-        outdir = pathlib.Path(dirname)
+        outdir = Path(dirname)
         (outdir / "fastqs").mkdir(parents=True, exist_ok=True)
         logger.info(f"Created output directory: {outdir / 'fastqs'}")
         config_output = output or (outdir / f"config_{assay_obj.clean_name}.yaml")
@@ -475,7 +490,7 @@ def config(
             template=tpl,
             workflow_config=workflow_config,
             outfile=config_output,
-            all_options=all_options,
+            all_options=render_options,
         )
     except Exception as e:
         logger.error(f"Failed to render config: {e}")
@@ -497,11 +512,11 @@ def design(
         click_type=click.Choice(Assay.all_assay_clean_names(), case_sensitive=False),
         help="Assay type. Options: " + ", ".join(Assay.all_assay_clean_names()),
     ),
-    files: List[pathlib.Path] = typer.Argument(
+    files: List[Path] = typer.Argument(
         None, metavar="[FASTQ ...]", autocompletion=fastq_autocomplete
     ),
-    output: pathlib.Path = typer.Option(
-        pathlib.Path("design.csv"), "-o", "--output", help="Output CSV filename."
+    output: Path = typer.Option(
+        Path("design.csv"), "-o", "--output", help="Output CSV filename."
     ),
     merge: bool = typer.Option(
         False, "--merge", help="Add a 'merge' column (for non-RNA assays)."
@@ -535,7 +550,7 @@ def design(
         logger.error(f"Unknown assay '{assay}'. Allowed: {allowed}")
         raise typer.Exit(code=2)
 
-    fastq_paths: list[pathlib.Path] = []
+    fastq_paths: list[Path] = []
     for p in files or []:
         if p.suffixes[-2:] == [".fastq", ".gz"]:
             fastq_paths.append(p)
@@ -593,7 +608,7 @@ def pipeline(
     assay: Optional[str] = typer.Argument(
         None, metavar="ASSAY", autocompletion=assay_autocomplete
     ),
-    config_file: Optional[pathlib.Path] = typer.Option(
+    config_file: Optional[Path] = typer.Option(
         None,
         "--configfile",
         help="Path to a SeqNado config YAML (default: config_ASSAY.yaml).",
@@ -656,7 +671,7 @@ def pipeline(
 
     # Clean old symlinks if requested
     if clean_symlinks:
-        target = pathlib.Path("seqnado_output/fastqs")
+        target = Path("seqnado_output/fastqs")
         logger.info(f"Cleaning symlinks in {target} ...")
         for link in target.glob("*"):
             if link.is_symlink():
@@ -670,7 +685,7 @@ def pipeline(
         raise typer.Exit(code=1)
     
     if not config_file:
-        config_file = pathlib.Path(f"config_{assay}.yaml")
+        config_file = Path(f"config_{assay}.yaml")
         if not config_file.exists():
             logger.error(
                 f"No config file provided and default not found: {config_file}"
@@ -713,7 +728,7 @@ def pipeline(
             pass
 
     # Resolve symlinked PWD for Singularity bind compatibility
-    cwd = str(pathlib.Path(".").resolve())
+    cwd = str(Path(".").resolve())
     os.chdir(cwd)
     os.environ["PWD"] = cwd
 

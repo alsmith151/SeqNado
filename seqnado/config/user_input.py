@@ -112,7 +112,7 @@ def get_user_input(
 def load_genome_configs(assay: Assay) -> Dict[str, BowtieIndex | STARIndex]:
     """Load genome configurations from the config file."""
     config_path = (
-        pathlib.Path(os.getenv("SEQNADO_CONFIG", pathlib.Path.home()))
+        Path(os.getenv("SEQNADO_CONFIG", Path.home()))
         / ".config/seqnado/genome_config.json"
     )
     if not config_path.exists():
@@ -137,17 +137,17 @@ def load_genome_configs(assay: Assay) -> Dict[str, BowtieIndex | STARIndex]:
             genome_configs[name] = GenomeConfig(
                 name=name,
                 index=genome_index(prefix=config_dict.get(index_key)),
-                fasta=pathlib.Path(config_dict["fasta"]),
-                chromosome_sizes=pathlib.Path(config_dict["chromosome_sizes"])
+                fasta=Path(config_dict["fasta"]),
+                chromosome_sizes=Path(config_dict["chromosome_sizes"])
                 if config_dict.get("chromosome_sizes")
                 else None,
-                gtf=pathlib.Path(config_dict["gtf"])
+                gtf=Path(config_dict["gtf"])
                 if config_dict.get("gtf")
                 else None,
-                genes=pathlib.Path(config_dict["genes"])
+                genes=Path(config_dict["genes"])
                 if config_dict.get("genes")
                 else None,
-                blacklist=pathlib.Path(config_dict["blacklist"])
+                blacklist=Path(config_dict["blacklist"])
                 if config_dict.get("blacklist")
                 else None,
                 organism=config_dict.get("organism"),
@@ -190,7 +190,7 @@ def get_project_config() -> ProjectConfig:
     )
 
     return ProjectConfig(
-        name=project_name, date=today, directory=pathlib.Path(project_dir)
+        name=project_name, date=today, directory=Path(project_dir)
     )
 
 
@@ -347,7 +347,7 @@ def get_ml_dataset_config(assay: Assay) -> Optional[MLDatasetConfig]:
         regions_bed = get_user_input(
             "Path to regions BED file:", default="path/to/regions.bed", is_path=True
         )
-        return MLDatasetConfig(regions_bed=pathlib.Path(regions_bed))
+        return MLDatasetConfig(regions_bed=Path(regions_bed))
     else:
         binsize = int(get_user_input("Binsize for dataset:", default="1000"))
         return MLDatasetConfig(binsize=binsize)
@@ -416,7 +416,7 @@ def get_mcc_config() -> Optional[MCCConfig]:
 
     resolutions = [int(r.strip()) for r in resolutions_str.split(",")]
 
-    return MCCConfig(viewpoints=pathlib.Path(viewpoints), resolutions=resolutions)
+    return MCCConfig(viewpoints=Path(viewpoints), resolutions=resolutions)
 
 
 def get_methylation_config() -> Optional[MethylationConfig]:
@@ -526,8 +526,105 @@ def build_assay_config(
             raise ValueError(f"Unsupported assay type: {assay}")
 
 
+def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Optional[AssaySpecificConfig]:
+    """Build a default assay-specific configuration for non-interactive mode."""
+    # Set common defaults
+    bigwigs = BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS], binsize=10)
+    plotting = PlottingConfig()
+    ucsc_hub = UCSCHubConfig(
+        directory="seqnado_output/hub/",
+        genome=genome_config.name,
+        email="user@example.com",
+    )
+    create_heatmaps = False
+    geo_files = False
+
+    base_config = {
+        "genome": genome_config,
+        "bigwigs": bigwigs,
+        "plotting": plotting,
+        "ucsc_hub": ucsc_hub,
+        "create_heatmaps": create_heatmaps,
+        "create_geo_submission_files": geo_files,
+    }
+
+    match assay:
+        case Assay.ATAC:
+            tn5_shift = True
+            peak_calling = PeakCallingConfig(method=[PeakCallingMethod.LANCEOTRON], consensus_counts=False)
+            dataset_for_ml = MLDatasetConfig(binsize=1000)
+
+            return ATACAssayConfig(
+                **base_config,
+                tn5_shift=tn5_shift,
+                peak_calling=peak_calling,
+                dataset_for_ml=dataset_for_ml,
+            )
+
+        case Assay.CHIP:
+            spikein = None
+            peak_calling = PeakCallingConfig(method=[PeakCallingMethod.LANCEOTRON], consensus_counts=False)
+            dataset_for_ml = MLDatasetConfig(binsize=1000)
+
+            return ChIPAssayConfig(
+                **base_config,
+                spikein=spikein,
+                peak_calling=peak_calling,
+                dataset_for_ml=dataset_for_ml,
+            )
+        case Assay.CAT:
+            tn5_shift = False
+            spikein = None
+            peak_calling = PeakCallingConfig(method=[PeakCallingMethod.SEACR], consensus_counts=False)
+            dataset_for_ml = MLDatasetConfig(binsize=1000)   
+            return CATAssayConfig(
+                **base_config,
+                tn5_shift=tn5_shift,
+                spikein=spikein,
+                peak_calling=peak_calling,
+                dataset_for_ml=dataset_for_ml,
+            )
+        case Assay.RNA:
+            rna_quantification = RNAQuantificationConfig(
+                method=QuantificationMethod.FEATURE_COUNTS,
+                salmon_index=None,
+                run_deseq2=False,
+            )
+            return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
+        case Assay.SNP:
+            snp_calling = SNPCallingConfig(
+                method=SNPCallingMethod.BCFTTOOLS,
+                annotate_snps=False,
+                snp_database=None,
+            )
+            return SNPAssayConfig(**base_config, snp_calling=snp_calling)
+        case Assay.MCC:
+            mcc = MCCConfig(
+                viewpoints=Path("path/to/viewpoints.bed"),
+                resolutions=[100, 1000],
+            )
+            return MCCAssayConfig(**base_config, mcc=mcc)
+        case Assay.METH:
+            methylation = MethylationConfig(assay=MethylationMethod.TAPS)
+            return MethylationAssayConfig(**base_config, methylation=methylation)
+        case Assay.CRISPR:
+            return CRISPRAssayConfig(**base_config)
+        case _:
+            raise ValueError(f"Unsupported assay type: {assay}")
+
 def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
-    """Build complete workflow configuration from user input."""
+    """Build complete workflow configuration from user input.
+    This function orchestrates the collection of all necessary configuration
+    details from the user and constructs a SeqnadoConfig object.
+
+    Args:
+        assay (Assay): The assay type for the workflow.
+        seqnado_version (str): The current version of SeqNado.
+    Returns:
+        SeqnadoConfig: The complete workflow configuration.
+    Raises:
+        SystemExit: If there are any configuration errors.
+    """
 
     logger.info(
         f"Building workflow configuration for {assay.value} assay with SeqNado version {seqnado_version}"
@@ -557,7 +654,7 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
             assay=assay,
             project=project,
             genome=genome,
-            metadata=pathlib.Path(metadata_path),
+            metadata=Path(metadata_path),
             assay_config=assay_config,
         )
         return workflow_config
@@ -565,6 +662,47 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
     except ValidationError as e:
         logger.error(f"Configuration validation error: {e}")
         sys.exit(1)
+
+
+def build_default_workflow_config(assay: Assay) -> SeqnadoConfig:
+    """Build a default workflow configuration for non-interactive mode."""
+    logger.info(f"Building default workflow configuration for {assay.value} assay")
+
+    # Load available genome configurations
+    genome_configs = load_genome_configs(assay)
+
+    if not genome_configs:
+        logger.error("No genome configurations available. Cannot build default config.")
+        sys.exit(1)
+
+    # Use the first available genome configuration as default
+    default_genome = next(iter(genome_configs.values()))
+
+    # Create a default project configuration
+    default_project = ProjectConfig(
+        name="default_project",
+        date=datetime.strftime(datetime.today(), "%Y-%m-%d"),
+        directory=Path(os.getcwd()),
+    )
+
+    # Build assay-specific configuration with defaults
+    assay_config = build_default_assay_config(assay, default_genome)
+
+    try:
+        workflow_config = SeqnadoConfig(
+            assay=assay,
+            project=default_project,
+            genome=default_genome,
+            metadata="metadata.csv",
+            assay_config=assay_config,
+        )
+        return workflow_config
+
+    except ValidationError as e:
+        logger.error(f"Configuration validation error: {e}")
+        sys.exit(1)
+
+
 
 
 def render_config(

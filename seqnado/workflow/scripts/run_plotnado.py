@@ -14,7 +14,7 @@ ASSAY = snakemake.params.assay
 
 
 # Load the tracks into a DataFrame
-df = pd.DataFrame([pathlib.Path(p) for p in snakemake.input.data], columns=["path"])
+df = pd.DataFrame([Path(p) for p in snakemake.input.data], columns=["path"])
 df["name"] = df["path"].apply(lambda x: x.stem)
 df["type"] = df["path"].apply(lambda x: x.suffix)
 df["type"] = pd.Categorical(df["type"], categories=[".bigWig", ".bed"], ordered=True)
@@ -93,7 +93,7 @@ for track in df.itertuples():
     fig.add_track(t)
 
 
-outdir = pathlib.Path(snakemake.params.outdir)
+outdir = Path(snakemake.params.outdir)
 for region in coords.df.itertuples():
     fig_name = (
         f"{region.Chromosome}-{region.Start}-{region.End}"

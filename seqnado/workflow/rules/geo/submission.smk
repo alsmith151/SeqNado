@@ -13,7 +13,7 @@ def get_files_for_symlink(wc: Any = None) -> List[str]:
                          config=OUTPUT.config,
                          processed_files=[str(p) for p in OUTPUT.files])
 
-    fastq_dir = pathlib.Path("seqnado_output/fastqs")
+    fastq_dir = Path("seqnado_output/fastqs")
     fastqs = sorted([str(fastq_dir / fn) for fq_pair in geo_files.raw_files.values() for fn in fq_pair])
     processed_files = [str(p) for p in geo_files.processed_data_files['path'].tolist()]
     return [*fastqs, *processed_files]
@@ -23,7 +23,7 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
     Get all files that have been symlinked for GEO submission
     """
     from seqnado.design import GEOFiles
-    outdir = pathlib.Path("seqnado_output/geo_submission")
+    outdir = Path("seqnado_output/geo_submission")
 
     geo_files = GEOFiles(make_geo_submission_files=True,
                          assay=OUTPUT.assay,
@@ -65,13 +65,13 @@ rule geo_symlink:
         fastqs = geo_files.raw_files
         processed_files = geo_files.processed_data_files
 
-        src = pathlib.Path("seqnado_output/fastqs")
-        dest = pathlib.Path("seqnado_output/geo_submission")
+        src = Path("seqnado_output/fastqs")
+        dest = Path("seqnado_output/geo_submission")
 
         # Create symlinks for raw files
         for sample_name, fastq in fastqs.items():
             for fq in fastq:
-                fq = pathlib.Path(fq)
+                fq = Path(fq)
                 src_file = (src / fq.name).absolute().resolve()
                 dest_file = dest / fq.name
                 if not dest_file.exists():
@@ -79,7 +79,7 @@ rule geo_symlink:
 
         # Create symlinks for processed files
         for _, row in processed_files.iterrows():
-            src_file = pathlib.Path(row['path']).absolute().resolve()
+            src_file = Path(row['path']).absolute().resolve()
             dest_file = dest / row['output_file_name']
             if not dest_file.exists():
                 dest_file.symlink_to(src_file)
@@ -188,7 +188,7 @@ rule remove_headers_for_security:
         import pathlib
 
         for fn in input.infiles:
-            path = pathlib.Path(fn)
+            path = Path(fn)
             if path.suffix == '.tsv':
                 dest = path.with_suffix('.no_headers.tsv')
                 
@@ -202,7 +202,7 @@ rule remove_headers_for_security:
                 path.unlink()
                 dest.rename(path)
         
-        pathlib.Path("seqnado_output/geo_submission/.validated").touch()
+        Path("seqnado_output/geo_submission/.validated").touch()
 
 
 

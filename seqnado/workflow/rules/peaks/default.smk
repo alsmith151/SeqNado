@@ -224,7 +224,7 @@ if ASSAY == Assay.CAT:
             threshold=CONFIG.third_party_tools.seacr.threshold,
             norm=CONFIG.third_party_tools.seacr.normalization,
             stringency=CONFIG.third_party_tools.seacr.stringency,
-            prefix=lambda wc, output: pathlib.Path(output.peaks).parent / pathlib.Path(output.peaks).name,
+            prefix=lambda wc, output: Path(output.peaks).parent / Path(output.peaks).name,
         threads: 1
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),

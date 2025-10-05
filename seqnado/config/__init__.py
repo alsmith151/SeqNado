@@ -34,7 +34,9 @@ from .configs import (
 )
 
 from .user_input import (
-    build_workflow_config
+    build_workflow_config,
+    build_default_workflow_config,
+    render_config,
 )
 
 __all__ = [
@@ -46,6 +48,8 @@ __all__ = [
     "GenomeConfig",
     "SeqnadoConfig",
     "build_workflow_config",
+    "build_default_workflow_config",
+    "render_config",
     "UserFriendlyError",
     "PlottingConfig",
     "PeakCallingConfig",

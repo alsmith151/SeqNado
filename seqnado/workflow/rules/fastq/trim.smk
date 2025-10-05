@@ -9,13 +9,13 @@ rule trimgalore_paired:
     output:
         trimmed1=temp("seqnado_output/trimmed/{sample}_1.fastq.gz"),
         trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
-    threads: CONFIG.third_party_tools.trimgalore.trim.threads,
+    threads: CONFIG.third_party_tools.trim_galore.trim.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     params:
-        options=str(CONFIG.third_party_tools.trimgalore.trim.command_line_arguments),
+        options=str(CONFIG.third_party_tools.trim_galore.trim.command_line_arguments),
         trim_dir="seqnado_output/trimmed",
     log:
         "seqnado_output/logs/trimming/{sample}.log",
@@ -33,13 +33,13 @@ rule trimgalore_single:
         fq="seqnado_output/fastqs/{sample}.fastq.gz",
     output:
         trimmed=temp("seqnado_output/trimmed/{sample}.fastq.gz"),
-    threads: CONFIG.third_party_tools.trimgalore.trim.threads
+    threads: CONFIG.third_party_tools.trim_galore.trim.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     params:
-        options=str(CONFIG.third_party_tools.trimgalore.trim.command_line_arguments),
+        options=str(CONFIG.third_party_tools.trim_galore.trim.command_line_arguments),
         trim_dir="seqnado_output/trimmed",
     log:
         "seqnado_output/logs/trimming/{sample}.log",

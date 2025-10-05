@@ -9,7 +9,7 @@ import tracknado
 
 
 def get_rna_samplename(path: str):
-    p = pathlib.Path(path)
+    p = Path(path)
     return re.split(r"_[plus|minus]", p.name)[0]
 
 
@@ -70,12 +70,12 @@ design = tracknado.TrackDesign.from_design(
 )
 
 
-outdir = pathlib.Path(snakemake.output.hub).parent
+outdir = Path(snakemake.output.hub).parent
 hub = tracknado.HubGenerator(
     track_design=design,
     genome=snakemake.params.genome,
     hub_name=snakemake.params.hub_name,
-    description_html=pathlib.Path(snakemake.input.report),
+    description_html=Path(snakemake.input.report),
     hub_email=snakemake.params.hub_email,
     custom_genome=snakemake.params.custom_genome,
     genome_twobit=snakemake.params.genome_twobit,

@@ -9,7 +9,7 @@ rule fastq_screen_paired:
         fq_screen_txt="seqnado_output/qc/fastq_screen/{sample}_{read}_screen.txt",
     params:
         outdir=temp("seqnado_output/qc/fastq_screen"),
-        conf=CONFIG.third_party_tools.fastqscreen.config,
+        conf=CONFIG.third_party_tools.fastq_screen.config,
     threads: 4,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

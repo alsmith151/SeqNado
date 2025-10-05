@@ -32,8 +32,8 @@ def assay(request):
 
 
 @pytest.fixture(scope="function")
-def repo_path() -> pathlib.Path:
-    return pathlib.Path(__file__).resolve().parents[1]
+def repo_path() -> Path:
+    return Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(scope="function")
@@ -69,7 +69,7 @@ def genome_path(test_data_path):
 
 
 @pytest.fixture(scope="function")
-def genome_index_path(genome_path, assay) -> pathlib.Path:
+def genome_index_path(genome_path, assay) -> Path:
     if "rna" in assay:
         return genome_path / "STAR_chr21_rna_spikein"
     elif "meth" in assay:
@@ -79,7 +79,7 @@ def genome_index_path(genome_path, assay) -> pathlib.Path:
 
 
 @pytest.fixture(scope="function")
-def index(genome_index_path, genome_path) -> pathlib.Path:
+def index(genome_index_path, genome_path) -> Path:
     download_index = True if not genome_index_path.exists() else False
     suffix = genome_index_path.with_suffix(".tar.gz").name
     url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
@@ -203,7 +203,7 @@ def snakefile_path(package_path, assay_type):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def fastqs(test_data_path, assay) -> list[pathlib.Path]:
+def fastqs(test_data_path, assay) -> list[Path]:
     target_dir = test_data_path / "fastq"
 
     if not target_dir.exists():
@@ -448,12 +448,12 @@ def config_yaml_for_testing(config_yaml, assay):
     with open(config_yaml, "w") as f:
         yaml.dump(config, f)
 
-    return pathlib.Path(config_yaml)
+    return Path(config_yaml)
 
 
 @pytest.fixture(scope="function")
 def seqnado_run_dir(config_yaml_for_testing):
-    return pathlib.Path(config_yaml_for_testing).parent
+    return Path(config_yaml_for_testing).parent
 
 
 @pytest.fixture(scope="function")
@@ -482,7 +482,7 @@ def design(seqnado_run_dir, assay_type, assay):
 
 @pytest.fixture(scope="function", autouse=True)
 def set_up(seqnado_run_dir, fastqs):
-    cwd = pathlib.Path(os.getcwd())
+    cwd = Path(os.getcwd())
     os.chdir(seqnado_run_dir)
 
     # Move fastqs to run directory
@@ -510,11 +510,11 @@ def apptainer_args(index, test_data_path):
     import os
 
     indicies_mount = index.parent if not index.is_dir() else index
-    tmpdir = pathlib.Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
-    wd = pathlib.Path(os.getcwd()).resolve()
-    apptainer_cache_dir = pathlib.Path.home() / ".apptainer" / "cache"
+    tmpdir = Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
+    wd = Path(os.getcwd()).resolve()
+    apptainer_cache_dir = Path.home() / ".apptainer" / "cache"
     multiqc_config = (
-        pathlib.Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml")
+        Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml")
         .absolute()
         .resolve()
     )

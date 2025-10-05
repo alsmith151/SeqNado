@@ -2,7 +2,7 @@ def identify_extracted_bam_files(wildcards):
     import pathlib
 
     checkpoint_output = checkpoints.identify_viewpoint_reads.get(**wildcards)
-    outdir = pathlib.Path(checkpoint_output.output.bams)
+    outdir = Path(checkpoint_output.output.bams)
     viewpoints = glob_wildcards(str(outdir / "{viewpoint}.bam")).viewpoint
     return expand(str(outdir / "{viewpoint}.bam"), viewpoint=viewpoints)
 
@@ -22,7 +22,7 @@ def redefine_viewpoints(samples):
     
     for ii, sample in enumerate(samples):
         checkpoint_output = checkpoints.identify_viewpoint_reads.get(sample=sample)
-        outdir = pathlib.Path(checkpoint_output.output.bams)
+        outdir = Path(checkpoint_output.output.bams)
         viewpoints = glob_wildcards(str(outdir / "{viewpoint}.bam")).viewpoint
         
         if ii == 0:
