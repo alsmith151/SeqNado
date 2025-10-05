@@ -39,11 +39,11 @@ def get_control_file(wildcards, file_type: FileType):
 def correct_macs_options(wildcards, options: CommandLineArguments):
 
     # Correct the options based on whether the input is paired or not
-    sample_id = wildcards.sample
-    treatment = wildcards.treatment if hasattr(wildcards, "treatment") else None
-    search_term = f"{sample_id}_{treatment}" if treatment else sample_id
-    is_paired = INPUT_FILES.is_paired(search_term)
-    if is_paired:
+    sample_id = wildcards.sample_id
+    # treatment = wildcards.treatment if hasattr(wildcards, "treatment") else None
+    # search_term = f"{sample_id}_{treatment}" if treatment else sample_id
+    is_paired = INPUT_FILES.is_paired_end(sample_id)
+    if not is_paired:
         options = CommandLineArguments(value=options.value, exclude={"-f"})
     return options
 
@@ -62,9 +62,9 @@ rule macs2_with_input:
         treatment="seqnado_output/aligned/{sample_id}.bam",
         control=lambda wc: get_control_file(wc, file_type=FileType.BAM),
     output:
-        peaks="seqnado_output/peaks/macs/{sample_id}.bed",
+        peaks="seqnado_output/peaks/macs2/{sample_id}.bed",
     params:
-        options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.callpeak.command_line_arguments)),
+        options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.call_peak.command_line_arguments)),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
@@ -72,7 +72,7 @@ rule macs2_with_input:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     log:
-        "seqnado_output/logs/macs/{sample_id}.log",
+        "seqnado_output/logs/macs2/{sample_id}.log",
     container:
         "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
     shell:
@@ -86,9 +86,9 @@ rule macs2_no_input:
     input:
         treatment="seqnado_output/aligned/{sample_id}.bam",
     output:
-        peaks="seqnado_output/peaks/macs/{sample_id}.bed",
+        peaks="seqnado_output/peaks/macs2/{sample_id}.bed",
     params:
-        options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.callpeak.command_line_arguments)),
+        options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.call_peak.command_line_arguments)),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
@@ -96,7 +96,7 @@ rule macs2_no_input:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
-        "seqnado_output/logs/macs/{sample_id}.log",
+        "seqnado_output/logs/macs2/{sample_id}.log",
     container:
         "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
     shell:

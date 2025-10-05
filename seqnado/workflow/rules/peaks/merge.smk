@@ -6,13 +6,13 @@ rule lanceotron_no_input_consensus:
         peaks="seqnado_output/peaks/merged/lanceotron/{group}.bed",
         ltron_peaks=temp("seqnado_output/peaks/merged/lanceotron/{group}_L-tron.bed"),
     threads:
-        CONFIG.third_party_tools.lanceotron.callpeak.threads
+        CONFIG.third_party_tools.lanceotron.call_peak.threads
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=10, attempts=attempt, scale=SCALE_RESOURCES),
     params:
         outdir="seqnado_output/peaks/merged/lanceotron",
-        options=str(CONFIG.third_party_tools.lanceotron.callpeak.command_line_arguments)
+        options=str(CONFIG.third_party_tools.lanceotron.call_peak.command_line_arguments)
     container:
         "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
     log:
