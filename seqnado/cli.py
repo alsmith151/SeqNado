@@ -9,6 +9,7 @@ import subprocess
 import sys
 from importlib import resources
 from typing import List, Optional, Any
+from rich import print as rprint
 
 import typer
 import click
@@ -31,6 +32,7 @@ except Exception:
 try:
     from rich.console import Console
     from rich.text import Text
+
     _RICH_CONSOLE = Console(force_terminal=True)
 except Exception:  # rich not installed or no TTY
     _RICH_CONSOLE = None
@@ -152,7 +154,6 @@ def _extract_candidate_defaults_from_schema(
         }
 
     return out
-
 
 
 def _style_name_with_rich(name: str, style: str = "bold cyan") -> str:
@@ -417,31 +418,101 @@ def init(
 
 # -------------------------------- utils ----------------------------------- #
 
-@app.command(help="Show packaged genome presets or user genome config.")
-def genomes(assay: str = "atac") -> None:
+
+@app.command()
+def genomes(
+    subcommand: str = typer.Argument(..., help="Subcommand: list | edit | build"),
+    assay: Assay = typer.Option(
+        Assay.ATAC, "--assay", "-a", help="Assay (used when listing)"
+    ),
+    # build specific options (used when subcommand == 'build')
+    fasta: Optional[Path] = typer.Option(
+        None, "--fasta", "-f", help="Input FASTA (required for build)"
+    ),
+    name: Optional[str] = typer.Option(
+        None, "--name", "-n", help="Genome name (prefix) for built genome"
+    ),
+    outdir: Path = typer.Option(
+        Path.cwd() / "genome_build", "--outdir", "-o", help="Output directory for build"
+    ),
+) -> None:
+    """
+    Subcommands for genomes:
+      - list  : show packaged and user genome presets
+      - edit  : open user genome config in $EDITOR (creates if missing)
+      - build : build a genome from a fasta using a Snakemake pipeline
+    """
     from seqnado.config import load_genome_configs
 
-    if assay not in Assay.all_assay_clean_names():
-        allowed = ", ".join(Assay.all_assay_clean_names())
-        logger.error(f"Unknown assay '{assay}'. Allowed: {allowed}")
-        raise typer.Exit(code=2)
+    sub = subcommand.lower().strip()
+    if sub == "list":
+        try:
+            cfg = load_genome_configs(assay=assay)
+        except Exception as e:
+            logger.error(f"Failed to load genome config: {e}")
+            raise typer.Exit(code=1)
 
-    try:
-        cfg = load_genome_configs(assay=Assay.from_clean_name(assay))
-    except Exception as e:
-        logger.error(f"Failed to load genome config: {e}")
-        raise typer.Exit(code=1)
+        if not cfg:
+            logger.warning("No genome config found.")
+            raise typer.Exit(code=0)
 
-    if not cfg:
-        logger.warning("No genome config found.")
+        for name, details in cfg.items():
+            rprint(f"[bold]{name}[/bold]")
+            # assume details is a pydantic model or dataclass with .dict()
+            try:
+                items = details.dict()
+            except Exception:
+                # fallback if it's a plain dict
+                items = dict(details)
+            for k, v in items.items():
+                rprint(f"  {k}: {v or '[not set]'}")
+            rprint("")
+
         raise typer.Exit(code=0)
 
-    for name, details in cfg.items():
-        print(f"[bold]{name}[/bold]")
-        for k, v in details.dict().items():
-            print(f"  {k}: {v or '[not set]'}")
-        print("")
+    elif sub == "edit":
+        env = os.environ.get("SEQNADO_GENOME_CONFIG")
+        cfg_path = Path(env) if env else Path.home() / ".config" / "seqnado" / "genome_config.json"
+        if not cfg_path.exists():
+            logger.error(f"Genome config not found: {cfg_path} (try `seqnado init` first)")
+            raise typer.Exit(code=1)
+        logger.debug(f"Opening genome config at: {cfg_path}")
 
+        editor = os.environ.get("EDITOR") or os.environ.get("VISUAL") or ("notepad" if sys.platform == "win32" else "nano")
+        try:
+            # Use system editor
+            # On Windows, subprocess.call will open notepad; on Unix this opens $EDITOR
+            subprocess.check_call([editor, str(cfg_path)])
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Editor returned non-zero exit status: {e}")
+            raise typer.Exit(code=3)
+        except FileNotFoundError:
+            logger.error(
+                f"Editor '{editor}' not found. Please set $EDITOR to your preferred editor."
+            )
+            raise typer.Exit(code=4)
+        except Exception as e:
+            logger.error(f"Failed to launch editor: {e}")
+            raise typer.Exit(code=5)
+
+        rprint(f"Edited genome config: [italic]{cfg_path}[/italic]")
+        raise typer.Exit(code=0)
+
+    elif sub == "build":
+        # Validate inputs
+        if not fasta:
+            logger.error("The --fasta option is required for 'build'.")
+            raise typer.Exit(code=2)
+
+        fasta = Path(fasta).expanduser().resolve()
+        if not fasta.exists():
+            logger.error(f"FASTA not found: {fasta}")
+            raise typer.Exit(code=3)
+
+        outdir = Path(outdir).expanduser().resolve()
+        outdir.mkdir(parents=True, exist_ok=True)
+
+        raise NotImplementedError("Genome build not yet implemented.")
 
 
 # -------------------------------- config ------------------------------------ #
@@ -458,7 +529,9 @@ def config(
         help=", ".join(Assay.all_assay_clean_names()),
     ),
     make_dirs: bool = typer.Option(
-        True, '--make-dirs/--no-make-dirs', help="Create/don't create the output project directory or fastq subdir."
+        True,
+        "--make-dirs/--no-make-dirs",
+        help="Create/don't create the output project directory or fastq subdir.",
     ),
     render_options: bool = typer.Option(
         False, help="Render all options (even if not used by the workflow)."
@@ -470,15 +543,21 @@ def config(
         False, "--verbose", "-v", help="Increase logging verbosity."
     ),
     interactive: bool = typer.Option(
-        True, '--interactive/--no-interactive', help="Interactively prompt for config values"
-    )
+        True,
+        "--interactive/--no-interactive",
+        help="Interactively prompt for config values",
+    ),
 ) -> None:
     _configure_logging(verbose)
 
     from importlib.metadata import version as _pkg_version
     from datetime import date
     from seqnado.inputs import Assay
-    from seqnado.config import build_workflow_config, render_config, build_default_workflow_config
+    from seqnado.config import (
+        build_workflow_config,
+        render_config,
+        build_default_workflow_config,
+    )
 
     if assay not in Assay.all_assay_clean_names():
         allowed = ", ".join(Assay.all_assay_clean_names())
@@ -487,7 +566,6 @@ def config(
 
     seqnado_version = _pkg_version("seqnado")
     assay_obj = Assay.from_clean_name(assay)
-
 
     if not interactive:
         logger.info("Running in non-interactive mode; using defaults where possible.")
@@ -712,7 +790,7 @@ def pipeline(
     if not snakefile.exists():
         logger.error(f"Snakefile for assay '{assay}' not found: {snakefile}")
         raise typer.Exit(code=1)
-    
+
     if not config_file:
         config_file = Path(f"config_{assay}.yaml")
         if not config_file.exists():
