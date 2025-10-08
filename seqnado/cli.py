@@ -362,7 +362,10 @@ def init(
     genome_config = cfg_dir / "genome_config.json"
 
     data_pkg = "seqnado.data"
-    template_name = "preset_genomes.json" if preset else "genomes_template.json"
+    template_genomes = "preset_genomes.json"
+    template_config = 'genomes_template.json'
+
+    template_name = template_genomes if preset else template_config
     template_path = _pkg_files(data_pkg).joinpath(template_name)
 
     if genome_config.exists():
@@ -374,18 +377,15 @@ def init(
                 f"Could not parse existing genome config ({e}); leaving as-is."
             )
             genome_data = None
+        
+        # Check if the template has changed (simple version check)
+        template_data = _read_json(_pkg_files(data_pkg).joinpath(template_config))
+        if genome_data == template_data:
+            logger.warning("Genome config matches the template exactly. Please update paths as needed.")
+        else:
+            logger.info("Genome config appears to be customized; leaving as-is.")
 
-        if isinstance(genome_data, dict):
-            has_placeholders = any(
-                isinstance(v, str) and ("PATH" in v or v == "NA")
-                for g in genome_data.values()
-                if isinstance(g, dict)
-                for v in g.values()
-            )
-            if has_placeholders:
-                logger.info(
-                    "Genome config contains placeholder paths—update before running pipelines."
-                )
+
     else:
         if not template_path.exists():
             logger.error(
