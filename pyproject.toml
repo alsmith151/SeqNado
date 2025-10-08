@@ -29,7 +29,7 @@ dependencies = [
     "pyyaml",
     "seaborn",
     "snakemake-wrapper-utils",
-    "snakemake>=9.8.0,<10",
+    "snakemake>=9.12.0,<10",
     "snakemake-executor-plugin-slurm",
     "tracknado",
     "wget",
