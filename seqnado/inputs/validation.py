@@ -26,7 +26,6 @@ class ViewpointsFile(pa.DataFrameModel):
 class DesignDataFrame(pa.DataFrameModel):
     """Base class for design dataframes with common sample identification."""
     sample_id: Series[str] = pa.Field(coerce=True)
-    scaling_group: Series[str] | None = pa.Field(coerce=True, default="default", description="Grouping variable for scaling samples")
     scaling_group: Series[str] | None = pa.Field(
         default="default",
         description="Grouping variable for scaling samples together (e.g. within a batch or between samples using the same antibody)",
@@ -52,7 +51,7 @@ class DesignDataFrame(pa.DataFrameModel):
     )
     ip: Series[str] | None = pa.Field(coerce=True, nullable=True, description="Optional IP read for IP-seq data")
     control: Series[str] | None = pa.Field(coerce=True, nullable=True, description="Optional control sample name for IP-seq data")
-    assay: Series[Annotated[pd.CategoricalDtype, [a.value for a in Assay], True]] | None = pa.Field(
+    assay: Series[Annotated[pd.CategoricalDtype, tuple(a.value for a in Assay), True]] | None = pa.Field(
         default=None,
         description="Assay type, should be one of the Assay enum values",
         coerce=True,
