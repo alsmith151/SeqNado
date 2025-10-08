@@ -108,7 +108,7 @@ def get_user_input(
         return user_input
 
 
-def load_genome_configs(assay: Assay) -> Dict[str, BowtieIndex | STARIndex]:
+def load_genome_configs(assay: Assay) -> Dict[str, GenomeConfig]:
     """Load genome configurations from the config file."""
     config_path = (
         Path(os.getenv("SEQNADO_CONFIG", Path.home()))
