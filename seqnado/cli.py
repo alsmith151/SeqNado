@@ -630,8 +630,8 @@ def design(
     output: Path = typer.Option(
         Path("design.csv"), "-o", "--output", help="Output CSV filename."
     ),
-    merge: bool = typer.Option(
-        False, "--merge", help="Add a 'merge' column (for non-RNA assays)."
+    group_by: bool = typer.Option(
+        False, "--group-by", help="Group samples by a regular expression or a column in the design file."
     ),
     auto_discover: bool = typer.Option(
         True,
@@ -703,6 +703,24 @@ def design(
         interactive=interactive,
         accept_all_defaults=accept_all_defaults,
     )
+
+    if group_by:
+        if group_by in df.columns:
+            df['consensus_group'] = df[group_by].astype(str)
+            logger.info(f"Grouped samples by column '{group_by}' into 'consensus_group'.")
+        else:
+            # Treat group_by as a regex pattern to extract from sample_id
+            try:
+                df['consensus_group'] = df['sample_id'].str.extract(group_by, expand=False)
+                if df['consensus_group'].isnull().all():
+                    raise ValueError("No matches found.")
+                df['consensus_group'] = df['consensus_group'].fillna('unknown')
+                logger.info(f"Grouped samples by regex '{group_by}' into 'consensus_group'.")
+            except Exception as e:
+                logger.error(f"Failed to group by '{group_by}': {e}")
+                raise typer.Exit(code=3)
+
+
 
     output.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output, index=False)
