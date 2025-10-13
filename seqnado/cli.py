@@ -711,11 +711,19 @@ def design(
         else:
             # Treat group_by as a regex pattern to extract from sample_id
             try:
-                df['consensus_group'] = df['sample_id'].str.extract(group_by, expand=False)
+                
+                if _assay in [Assay.CHIP, Assay.CAT]:
+                    samples = df['sample_id'] + df['ip']
+                else:
+                    samples = df['sample_id']
+
+                df['consensus_group'] = samples.str.extract(group_by, expand=False)
                 if df['consensus_group'].isnull().all():
-                    raise ValueError("No matches found.")
+                    raise ValueError(f"No matches found with the provided regex '{group_by}'")
+                
                 df['consensus_group'] = df['consensus_group'].fillna('unknown')
                 logger.info(f"Grouped samples by regex '{group_by}' into 'consensus_group'.")
+            
             except Exception as e:
                 logger.error(f"Failed to group by '{group_by}': {e}")
                 raise typer.Exit(code=3)
