@@ -118,59 +118,25 @@ def load_genome_configs(assay: Assay) -> Dict[str, GenomeConfig]:
         logger.error("Genome config not found. Run 'seqnado-init' first.")
         sys.exit(1)
 
-    with open(config_path) as f:
-        genome_data = json.load(f)
+    with open(config_path, "r") as f:
+        all_genome_configs = json.load(f)
+    
+    genome_configs: dict[str, GenomeConfig] = dict()
+    for genome_name, config_data in all_genome_configs.items():
 
-    # Convert to GenomeConfig objects
-    genome_configs = {}
-    for name, config_dict in genome_data.items():
-        genome_index = BowtieIndex if assay != Assay.RNA else STARIndex
-        index_key = "bt2_index" if assay != Assay.RNA else "star_index"
-        if index_key not in config_dict:
-            print(
-                f"\n❌ Configuration error for genome '{name}': Missing '{index_key}' key.\n"
-            )
-            sys.exit(1)
+        # Ensure required fields are present
+        config_data['name'] = genome_name
 
-        try:
-            genome_configs[name] = GenomeConfig(
-                name=name,
-                index=genome_index(prefix=config_dict.get(index_key)),
-                fasta=Path(config_dict["fasta"]),
-                chromosome_sizes=Path(config_dict["chromosome_sizes"])
-                if config_dict.get("chromosome_sizes")
-                else None,
-                gtf=Path(config_dict["gtf"])
-                if config_dict.get("gtf")
-                else None,
-                genes=Path(config_dict["genes"])
-                if config_dict.get("genes")
-                else None,
-                blacklist=Path(config_dict["blacklist"])
-                if config_dict.get("blacklist")
-                else None,
-                organism=config_dict.get("organism"),
-                version=config_dict.get("version"),
-            )
-        except ValidationError as e:
-            for error in e.errors():
-                if error.get("type") == "value_error" and hasattr(
-                    error.get("ctx", {}), "get"
-                ):
-                    # Extract the custom error message if it exists
-                    error_msg = str(error.get("ctx", {}).get("error", ""))
-                    if "❌" in error_msg:  # Our custom formatted error
-                        print(f"\n{error_msg}\n")
-                        sys.exit(1)
-
-            # Fallback for other validation errors
-            print(f"\n❌ Configuration error for genome '{name}':")
-            print(f"   {str(e)}\n")
-            sys.exit(1)
-        except UserFriendlyError as e:
-            # Display our clean error message without traceback
-            print(f"\n{str(e)}\n")
-            sys.exit(1)
+        # Select appropriate index based on assay requirements
+        if assay in [Assay.RNA]:
+            index = STARIndex(prefix=config_data.get("star_index"))
+        else:
+            index = BowtieIndex(prefix=config_data.get("bt2_index"))
+        
+        
+        
+        config_data['index'] = index
+        genome_configs[genome_name] = GenomeConfig(**config_data)
 
     return genome_configs
 

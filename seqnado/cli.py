@@ -422,10 +422,14 @@ def init(
 @app.command()
 def genomes(
     subcommand: str = typer.Argument(..., help="Subcommand: list | edit | build"),
-    assay: Assay = typer.Option(
-        Assay.ATAC, "--assay", "-a", help="Assay (used when listing)"
+    assay: str = typer.Argument(
+        'atac',
+        metavar="ASSAY",
+        autocompletion=assay_autocomplete,
+        show_choices=True,
+        click_type=click.Choice(Assay.all_assay_clean_names(), case_sensitive=False),
+        help="Assay type. Options: " + ", ".join(Assay.all_assay_clean_names()),
     ),
-    # build specific options (used when subcommand == 'build')
     fasta: Optional[Path] = typer.Option(
         None, "--fasta", "-f", help="Input FASTA (required for build)"
     ),
@@ -446,6 +450,7 @@ def genomes(
 
     sub = subcommand.lower().strip()
     if sub == "list":
+        cfg = load_genome_configs(assay=assay)
         try:
             cfg = load_genome_configs(assay=assay)
         except Exception as e:

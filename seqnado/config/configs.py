@@ -35,66 +35,77 @@ class UserFriendlyError(Exception):
 
     pass
 
+def validate_bowtie2_index_prefix(p: Path) -> None:
+    """
+    Validate that `p` looks like a valid Bowtie2 index prefix.
+    It simply globs files with the prefix and verifies at least one
+    matching index file (e.g. .bt2 or .bt2l) exists.
+
+    This is lenient — it does not enforce a fixed set of suffixes.
+    """
+    p = Path(p)
+    pattern = re.compile(r'\.(?:[1-4]|rev\.[12])\.bt2l?$')
+
+    matches = [
+        f for f in p.parent.glob(f"{p.name}*.bt2*")
+        if pattern.search(f.name) and f.is_file()
+    ]
+
+    if not matches:
+        raise ValueError(
+            f"No Bowtie2 index files found for prefix '{p}'. "
+            f"Expected something like '{p}.1.bt2' or '{p}.rev.1.bt2l'."
+        )
+
+
 
 class BowtieIndex(BaseModel):
     """Container for Bowtie2 index files."""
 
     type: Literal["Bowtie2"] = "Bowtie2"
-    prefix: str
+    prefix: str | None = None
 
     @field_validator("prefix")
     def validate_prefix(cls, v: str) -> str:
         # The prefix should be a valid path with a prefix for the index files.
         # Ensure that its parent is a valid directory.
         # Ensure that index files exist when the prefix is set.
+                
+        if v is None or v.strip() == "":
+            return v
         p = Path(v)
         if not p.parent.exists() and not p.parent.is_dir():
             raise ValueError(
                 f"The directory {p.parent} does not exist. Please provide a valid path together with the prefix."
             )
-
-        # Check if index files exist
-        for suffix in [
-            ".1.bt2",
-            ".2.bt2",
-            ".3.bt2",
-            ".4.bt2",
-            ".rev.1.bt2",
-            ".rev.2.bt2",
-        ]:
-            if not (p.with_suffix(suffix).exists() and p.with_suffix(suffix).is_file()):
-                raise ValueError(
-                    f"Index file {p.with_suffix(suffix)} does not exist. Please provide a valid path together with the prefix."
-                )
-
+        else:
+            validate_bowtie2_index_prefix(p)
         return v
 
     @property
     def files(self) -> list[Path]:
         """Return a list of all Bowtie2 index files."""
-        return [
-            Path(self.prefix + suffix)
-            for suffix in [
-                ".1.bt2",
-                ".2.bt2",
-                ".3.bt2",
-                ".4.bt2",
-                ".rev.1.bt2",
-                ".rev.2.bt2",
-            ]
-        ]
+        if self.prefix is None or self.prefix.strip() == "":
+            return []
+        else:
+            p = Path(self.prefix)
+            return [f for f in p.parent.glob(f"{p.name}*.bt2*") if f.is_file()]
 
 
 class STARIndex(BaseModel):
     """Container for STAR index files."""
 
     type: Literal["STAR"] = "STAR"
-    prefix: Path
+    prefix: Path | None = None
 
     @field_validator("prefix")
     def validate_prefix(cls, v: Path) -> Path:
         # The prefix should be a valid path with a prefix for the index files.
         # Ensure that its parent is a valid directory.
+        # If the prefix is None, skip validation (happens when not set and want to allow default None).
+
+        if v is None:
+            return v
 
         if not v.exists() or not v.is_dir():
             raise ValueError(
@@ -105,7 +116,10 @@ class STARIndex(BaseModel):
     @property
     def files(self) -> list[Path]:
         """Return a list of all STAR index files."""
-        return list(self.prefix.glob("*"))
+        if self.prefix is None:
+            return []
+        else:
+            return list(self.prefix.glob("*"))
 
 
 class GenomeConfig(BaseModel):
