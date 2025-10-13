@@ -280,7 +280,7 @@ def run_init(
     monkeypatch.setenv("HOME", str(run_directory))
 
     # Run seqnado-init
-    cmd = ["seqnado-init"]
+    cmd = ["seqnado", "init"]
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
@@ -318,9 +318,9 @@ def run_init(
     with open(genome_config_file, "w") as f:
         json.dump(genome_config_dict, f, indent=4)
 
-    assert process.returncode == 0, f"seqnado-init failed with stderr: {stderr}"
+    assert process.returncode == 0, f"seqnado init failed with stderr: {stderr}"
     assert genome_config_file.exists(), (
-        "genome_config.json is still missing after seqnado-init!"
+        "genome_config.json is still missing after seqnado init!"
     )
 
 
