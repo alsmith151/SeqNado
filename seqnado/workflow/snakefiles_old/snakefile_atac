@@ -1,0 +1,117 @@
+import os
+from itertools import chain
+from seqnado import Assay
+from seqnado.config import SeqnadoConfig
+from seqnado.inputs import SampleCollection, SampleGroupings, SampleGroups
+from seqnado.outputs import SeqnadoOutputBuilder
+
+####################
+# Hardcoded config #
+####################
+ASSAY = Assay.ATAC
+SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
+
+########################
+# Config and Container #
+########################
+configfile: "config_atac.yml"
+container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+
+####################
+# Experiment config #
+####################
+
+CONFIG = SeqnadoConfig(**config) # pyright: ignore[reportUndefinedVariable]
+METADATA = SampleCollection.from_csv(CONFIG.metadata)
+
+
+SAMPLE_GROUPINGS = SampleGroupings()
+normalisation_groups = SampleGroups.from_dataframe(METADATA.to_dataframe(), subset_column="scaling_group", include_controls=True)
+scaling_groups = SampleGroups.from_dataframe(METADATA.to_dataframe(), subset_column="consensus_group", include_controls=True)
+SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
+SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
+
+
+output_builder = SeqnadoOutputBuilder(
+    assay=ASSAY,
+    samples=METADATA,
+    config=CONFIG,
+    sample_groupings=SAMPLE_GROUPINGS
+)
+
+output_builder.add_qc_files()
+if CONFIG.assay_config.create_bigwigs:
+    output_builder.add_bigwig_files()
+    if not SAMPLE_GROUPINGS.empty:
+        output_builder.add_grouped_bigwig_files()
+
+if CONFIG.assay_config.create_peaks:
+    output_builder.add_peak_files()
+    if not SAMPLE_GROUPINGS.empty:
+        output_builder.add_grouped_peak_files()
+
+if CONFIG.assay_config.create_heatmaps:
+    output_builder.add_heatmap_files()
+
+if CONFIG.assay_config.create_dataset:
+    output_builder.add_dataset_files()
+
+
+
+    
+
+
+
+
+
+
+
+###################
+# Pipeline config #
+###################
+
+include: "rules/common/setup.smk"
+include: "rules/alignment/dna.smk"
+include: "rules/alignment_postprocess/sort_and_index.smk"
+include: "rules/alignment_postprocess/blacklist.smk"
+include: "rules/alignment_postprocess/duplicates.smk"
+include: "rules/alignment_postprocess/manipulate.smk"
+include: "rules/alignment_postprocess/filter.smk"
+include: "rules/fastq/screen.smk"
+include: "rules/fastq/trim.smk"
+include: "rules/pileup_default.smk"
+include: "rules/pileup/normalization.smk"
+include: "rules/pileup_grouped.smk"
+include: "rules/peak_call_other.smk"
+include: "rules/peak_call_grouped.smk"
+include: "rules/qc.smk"
+include: "rules/heatmap.smk"
+include: "rules/hub.smk"
+include: "rules/geo_submission.smk"
+include: "rules/visualisation.smk"
+include: "rules/consensus_counts.smk"
+include: "rules/dataset.smk"
+
+rule all:
+    input:
+        OUTPUT.files
+
+onsuccess:
+    remove_unwanted_run_files()
+
+onerror:
+    log_out = "seqnado_error.log"
+    shutil.copyfile(log, log_out)
+    print(
+        f"An error occurred. Please check the log file {log_out} for more information."
+    )
+
+    # # Check we can send an error email
+    # can_email = subprocess.run(["which", 'sbatch'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    # can_email = can_email and config['ucsc_hub_details'].get('email', None)
+
+    # if can_email:
+    #     run_batch_job_on_error(config['ucsc_hub_details']['email'])
+    
+    
+    remove_unwanted_run_files()

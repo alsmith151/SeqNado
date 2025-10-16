@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import pathlib
+from pathlib import Path
 from loguru import logger
 
 # Set up logging
@@ -14,7 +14,7 @@ with logger.catch():
     all_readcounts = []
 
     for stats in stats_files:
-        file_path = pathlib.Path(stats)
+        file_path = Path(stats)
         readcounts = pd.read_csv(file_path, sep="\t")
         all_readcounts.append(readcounts)
 

@@ -1,4 +1,4 @@
-import pathlib
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +14,7 @@ ASSAY = snakemake.params.assay
 
 
 # Load the tracks into a DataFrame
-df = pd.DataFrame([pathlib.Path(p) for p in snakemake.input.data], columns=["path"])
+df = pd.DataFrame([Path(p) for p in snakemake.input.data], columns=["path"])
 df["name"] = df["path"].apply(lambda x: x.stem)
 df["type"] = df["path"].apply(lambda x: x.suffix)
 df["type"] = pd.Categorical(df["type"], categories=[".bigWig", ".bed"], ordered=True)
@@ -66,16 +66,16 @@ colors_dict = dict(zip(names, sns.color_palette("tab20", n_colors=len(names))))
 for track in df.itertuples():
     if track.type == ".bed":
         track_type = "bed_simple"
-        autoscale_group = None
+        autoscaling_group = None
         style = None
     elif track.type == ".bigWig":
         track_type = "bigwig"
         style = "stairsfilled"
 
         if ASSAY == "ChIP":
-            autoscale_group = f"{track.antibody}-{track.method}-{track.normalisation}"
+            autoscaling_group = f"{track.antibody}-{track.method}-{track.normalisation}"
         else:
-            autoscale_group = f"{track.method}-{track.normalisation}"
+            autoscaling_group = f"{track.method}-{track.normalisation}"
 
     t = pn.TrackWrapper(
         track_type,
@@ -88,12 +88,12 @@ for track in df.itertuples():
         data_range_location="right",
         label_on_track=True,
         label_loc="left",
-        autoscale_group=autoscale_group,
+        autoscaling_group=autoscaling_group,
     )
     fig.add_track(t)
 
 
-outdir = pathlib.Path(snakemake.params.outdir)
+outdir = Path(snakemake.params.outdir)
 for region in coords.df.itertuples():
     fig_name = (
         f"{region.Chromosome}-{region.Start}-{region.End}"

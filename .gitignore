@@ -31,3 +31,11 @@ containers/*.sif
 .DS_Store
 containers/push_notes.txt
 paths.txt
+check_design.ipynb
+output.yml
+check_outputs.ipynb
+metadata.csv
+check_config.ipynb
+lolcow.sif
+*.fastq.gz
+*.bam*

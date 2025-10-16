@@ -40,5 +40,8 @@ plugins:
       nav_file: SUMMARY.md
   - section-index
   - mkdocs-jupyter
+  - gen-files:
+    scripts:
+      - docs/third_party_tools_config.py
 
 repo_url: https://github.com/alsmith151/SeqNado

@@ -6,6 +6,8 @@ import pandas as pd
 import seaborn as sns
 from loguru import logger
 
+from seqnado import MethylationMethod
+
 # Handle Snakemake execution context
 try:
     input_files = snakemake.input
@@ -80,14 +82,14 @@ def plot_methylation_bias(summary_df, output_file):
     print(f"Methylation bias summary plot saved: {output_file}")
 
 
-def combine_methylation_bias(input_files, output_file, assay):
+def combine_methylation_bias(input_files: list, output_file: str, assay: MethylationMethod):
     """
     Combines methylation bias statistics from multiple samples into a single summary file.
 
     Parameters:
         input_files (list): List of input file paths containing bias statistics.
         output_file (str): Path to the output summary file.
-        assay (str): Type of assay ("bisulfite" or "taps").
+        assay (MethylationMethod): Type of assay ("bisulfite" or "taps").
     """
     combined_data = []
 
@@ -119,7 +121,7 @@ def combine_methylation_bias(input_files, output_file, assay):
         )
 
         # Adjust for TAPS assay
-        if assay == "taps":
+        if assay == MethylationMethod.TAPS:
             read1_meth = 100 - read1_meth if read1_meth is not None else None
             read2_meth = 100 - read2_meth if read2_meth is not None else None
 

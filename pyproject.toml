@@ -18,6 +18,8 @@ requires-python = ">=3.10"
 license = {file = "LICENSE"}
 dynamic = ["version"]
 dependencies = [
+    "typer",
+    "rich",
     "click",
     "cookiecutter",
     "pandas",
@@ -27,17 +29,14 @@ dependencies = [
     "pyyaml",
     "seaborn",
     "snakemake-wrapper-utils",
-    "snakemake>=8,<9",
+    "snakemake>=9.12.0,<10",
     "snakemake-executor-plugin-slurm",
     "tracknado",
     "wget",
 ]
 
 [project.scripts]
-seqnado = "seqnado.cli:cli_pipeline"
-seqnado-design = "seqnado.cli:cli_design"
-seqnado-config = "seqnado.cli:cli_config"
-seqnado-init = "seqnado.cli:cli_init"
+seqnado = "seqnado.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/alsmith151/seqnado"
@@ -48,3 +47,31 @@ local_scheme = "no-local-version"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=seqnado",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (slower, multiple components)",
+    "edge_case: Edge case tests",
+    "slow: Slow tests (may take significant time)",
+    "requires_data: Tests that require test data files",
+    "parametrize: Parametrized tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
