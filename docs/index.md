@@ -2,56 +2,55 @@
 
 ![Seqnado Logo](https://raw.githubusercontent.com/alsmith151/SeqNado/main/containers/seqnado.png)
 
-Pipeline based on snakemake to process ChIP-seq (with optional spike-in based normalisation), ATAC-seq, RNA-seq and short read WGS data for SNP calling. The defaults are optimised for the Milne group directory on the CCB cluster, but can be easily modified for other groups and clusters.
+SeqNado is a Snakemake-based workflow for ChIP-seq (with optional spike-in normalisation), ATAC-seq, RNA-seq, and short-read WGS SNP calling. It is designed to be modular, reproducible, and easy to deploy using Apptainer/Singularity containers. SeqNado provides end-to-end pipelines that take you from raw FASTQ files to publication-ready results with minimal setup.
 
 ## Quick Start
 
-### Installation
+Follow the steps below to spin up a working pipeline instance. Consult the [installation](installation.md) page or other docs as needed.
 
-The [installation](installation.md) page has detailed instructions for installing SeqNado. For a very quick start, run the following command:
+### 1. Install SeqNado
 
 ```bash
 mamba install -c bioconda seqnado
 ```
 
-### Set up the pipeline
+The installation guide covers alternative methods, optional dependencies, and troubleshooting tips.
 
-#### Config file
-
-Generate the config file and a working directory for the pipeline:
+### 2. Scaffold a working directory
 
 ```bash
 seqnado-config [atac|chip|rna|snp]
 ```
 
-#### Ensure files are in the correct location
+This command creates a project directory and the configuration skeleton for the selected pipeline.
 
-Ensure that the fastq files, and design are in the correct location:
+### 3. Stage input data
+
+- Place or symlink raw FASTQ files into the generated `fastq/` folder.
+- Copy or create any additional resources (e.g., spike-in references) expected by your config.
 
 ```bash
-# Fastq files
-ln -s /path/to/fastq_files/* /path/to/working-directory/made-by-seqnado-config/fastq/
+ln -s /path/to/fastq/*.fastq.gz /path/to/working-directory/fastq/
 ```
 
-#### Design (optional)
+### 4. (Optional) Supply a design file
 
-The design will be generated automatically if not provided and the samples follow the correct naming convention.
+If your samples follow SeqNado naming conventions, the design table is generated automatically. Otherwise, run:
 
 ```bash
-cd /path/to/working-directory/made-by-seqnado-config/
+cd /path/to/working-directory
 seqnado-design [atac|chip|rna|snp]
 ```
 
-### Run the pipeline
+### 5. Launch the workflow
 
 ```bash
-cd /path/to/working-directory/made-by-seqnado-config/
-seqnado [atac|chip|rna|snp] -c <number of cores> --preset [ss|ls] 
-# ss = use cluster, ls = use local (not recommended)
-# additional options
---queue/-q [short|long] --scale-resource/-s <factor to multiply resources> 
+cd /path/to/working-directory
+seqnado [atac|chip|rna|snp] -c <cores> --preset [ss|ls] \
+  --queue/-q [short|long] --scale-resource/-s <factor>
 
-# An actual example would be:
+# Example
 seqnado rna -c 8 --preset ss
-
 ```
+
+Use `--preset ss` to submit jobs to the cluster (recommended) or `--preset ls` for local execution. Adjust `--queue` and `--scale-resource` to fit your environment. Additional usage details, presets, and pipeline-specific parameters are documented in `docs/pipeline.md` and the CLI help (`seqnado --help`).
