@@ -21,12 +21,7 @@
 
 ---
 
-*A unified, user-friendly collection of Snakemake-based workflows for ATAC-seq, ChIP-seq, CUT&RUN/TAG, RNA-seq, whole-genome sequencing (WGS), methylation (Bisulfite/TAPS), CRISPR screens, and Micro-Capture-C.*
-
----
-
-
-Empower your genomics research with modular, reproducible, and container-ready pipelines that take you from raw data to publication-ready results.
+Modular, reproducible, and container-ready pipelines that take you from raw data to publication-ready results.
 
 See the [SeqNado documentation](https://alsmith151.github.io/SeqNado/) for more information.
 
@@ -67,8 +62,8 @@ cd <workdir>
 seqnado rna -c 8 --preset ss
 ```
 
-For full details and advanced options, see the [SeqNado documentation](https://alsmith151.github.io/SeqNado/docs/index.html#quick-start).
+For full details and advanced options, see the [SeqNado documentation](https://alsmith151.github.io/SeqNado/pipeline/).
 
 ## License
 
-This project is licensed under the [GPL3](LICENSE).
+This project is licensed under [GPL3](LICENSE).
