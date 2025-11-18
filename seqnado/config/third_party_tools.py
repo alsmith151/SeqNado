@@ -18,12 +18,20 @@ class CommandLineArguments(BaseModel):
     """Base class for CLI options with validation and filtering capabilities."""
     
     value: str = Field(default="", description="CLI options string")
-    exclude: set[str] = Field(
-        default_factory=set, description="Options to exclude from the final command"
+    exclude: set[str] | None = Field(
+        None, description="Options to exclude from the final command"
     )
-    include: set[str] = Field(
-        default_factory=set, description="Options to include in the final command"
+    include: set[str] | None = Field(
+        None, description="Options to include in the final command"
     )
+
+    def model_post_init(self, context):
+        # Initialize sets if None
+        if self.exclude is None:
+            self.exclude = set()
+        if self.include is None:
+            self.include = set()
+
 
     @field_validator("value", mode="before")
     @classmethod
@@ -506,7 +514,6 @@ class FastqScreen(BaseModel):
     """FastqScreen tool configuration."""
     
     threads: int = Field(default=4, description="Number of threads to use")
-    # config: Path = Field(default=Path("fastq_screen_config.yaml"), description="Path to the FastqScreen config file")
     config: Path
     command_line_arguments: CommandLineArguments = Field(
         default_factory=lambda: CommandLineArguments()

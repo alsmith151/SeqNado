@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, Optional
 from enum import Enum
-from pydantic import BaseModel, computed_field, field_validator, Field
+from pydantic import BaseModel, computed_field, field_validator, Field, model_validator
 from seqnado import Assay
 from .configs import (
     BigwigConfig,
@@ -146,7 +146,14 @@ class SeqnadoConfig(BaseModel):
     pcr_duplicates: PCRDuplicatesConfig = PCRDuplicatesConfig()
     remove_blacklist: bool = False
     assay_config: AssaySpecificConfig | None = None
-    third_party_tools: ThirdPartyToolsConfig | None = Field(default_factory=ThirdPartyToolsConfig.for_assay)
+    third_party_tools: ThirdPartyToolsConfig | None = Field(None, description="Configuration for third-party tools.")
+
+    # If no third_party_tools config is provided, use defaults
+    @model_validator(mode="before")
+    def set_default_third_party_tools(cls, values):
+        if "third_party_tools" not in values or values["third_party_tools"] is None:
+            values["third_party_tools"] = ThirdPartyToolsConfig.for_assay(values.get("assay"))
+        return values
 
     @classmethod
     def from_yaml(cls, path: Path) -> "SeqnadoConfig":
@@ -219,3 +226,13 @@ class SeqnadoConfig(BaseModel):
             )
 
         return config_class(**kwargs)
+    
+    @classmethod
+    def from_yaml(cls, path: Path) -> "SeqnadoConfig":
+        """Load configuration from a YAML file."""
+        import yaml
+
+        with open(path, "r") as f:
+            data = yaml.safe_load(f)
+
+        return cls(**data)
