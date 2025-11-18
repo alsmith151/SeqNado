@@ -457,6 +457,31 @@ def init(
     template_trav = _pkg_traversable(data_pkg).joinpath(template_name)
     template_config_trav = _pkg_traversable(data_pkg).joinpath(template_config)
 
+    
+    # move to ~/.config/snakemake.
+    profile_target_dir = Path.home().joinpath(".config", "snakemake")
+    profile_target_dir.mkdir(parents=True, exist_ok=True)
+    profiles = _preset_profiles()
+    for profile in profiles.values():
+        profile_src_trav = _pkg_traversable("seqnado.workflow.envs.profiles").joinpath(
+            profile
+        )
+        profile_dest = profile_target_dir.joinpath(profile)
+        if profile_dest.exists():
+            logger.info(f"Snakemake profile already exists: {profile_dest}")
+            continue
+        try:
+            with resources.as_file(profile_src_trav) as profile_src:
+                if dry_run:
+                    logger.info(
+                        f"[dry-run] Would copy Snakemake profile {profile_src.name} to {profile_dest}"
+                    )
+                else:
+                    shutil.copytree(profile_src, profile_dest)
+                    logger.info(f"Copied Snakemake profile to {profile_dest}")
+        except Exception as e:
+            logger.error(f"Failed to copy Snakemake profile {profile}: {e}")
+
     if genome_config.exists():
         logger.info(f"Found genome config: {genome_config}")
         try:
