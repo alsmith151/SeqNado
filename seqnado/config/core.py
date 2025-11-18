@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union
 from enum import Enum
 from pydantic import BaseModel, computed_field, field_validator, Field, model_validator
 from seqnado import Assay

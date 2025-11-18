@@ -10,7 +10,7 @@ rule fastq_screen_paired:
     params:
         outdir=temp("seqnado_output/qc/fastq_screen"),
         conf=CONFIG.third_party_tools.fastq_screen.config,
-    threads: CONFIG.third_party_tools.fastq_screen.view.threads,
+    threads: CONFIG.third_party_tools.fastq_screen.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
