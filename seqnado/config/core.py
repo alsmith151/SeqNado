@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, Optional
 from enum import Enum
-from pydantic import BaseModel, computed_field, field_validator
+from pydantic import BaseModel, computed_field, field_validator, Field
 from seqnado import Assay
 from .configs import (
     BigwigConfig,
@@ -146,6 +146,7 @@ class SeqnadoConfig(BaseModel):
     pcr_duplicates: PCRDuplicatesConfig = PCRDuplicatesConfig()
     remove_blacklist: bool = False
     assay_config: AssaySpecificConfig | None = None
+    third_party_tools: ThirdPartyToolsConfig | None = Field(default_factory=ThirdPartyToolsConfig.for_assay)
 
     @classmethod
     def from_yaml(cls, path: Path) -> "SeqnadoConfig":
@@ -185,12 +186,6 @@ class SeqnadoConfig(BaseModel):
                 "remove_blacklist can only be True if genome blacklist is provided."
             )
         return v
-
-    @computed_field
-    @property
-    def third_party_tools(self) -> ThirdPartyToolsConfig:
-        """Return the third-party tools configuration for the specified assay."""
-        return ThirdPartyToolsConfig.for_assay(self.assay)
 
     @field_validator("assay_config", mode="before")
     def validate_assay_config_matches_assay(cls, v, info):

@@ -467,7 +467,7 @@ class Trimgalore(BaseModel):
 class Macs(BaseModel):
     """MACS peak calling tool configuration with mode-specific defaults."""
     
-    version: Literal[2, 3] = Field(default=3, description="MACS version to use")
+    version: Literal["2", "3"] = Field(default="3", description="MACS version to use")
     mode: MacsMode = Field(default=MacsMode.GENERIC, description="Analysis mode")
     call_peak: Optional[ToolConfig] = Field(default=None, description="Peak calling configuration")
 
@@ -652,7 +652,7 @@ class ThirdPartyToolsConfig(BaseModel):
                 )
             defaults[field_name] = tool_class()
             
-
+        
         defaults.update(overrides)
         return cls(**defaults)
 
