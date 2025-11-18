@@ -16,10 +16,10 @@ def test_cli_design_generates_csv(tmp_path: Path, monkeypatch):
 
     # import the command and call via CliRunner
     from seqnado.cli import cli_design
-    r = CliRunner().invoke(cli_design, ["chip", "--merge", "-o", "design.csv"])  # type: ignore[arg-type]
+    r = CliRunner().invoke(cli_design, ["chip", "--merge", "-o", "metadata.csv"])  # type: ignore[arg-type]
 
     assert r.exit_code == 0, r.output
-    out = tmp_path / "design.csv"
+    out = tmp_path / "metadata.csv"
     text = out.read_text()
     # basic sanity checks on columns
     assert "sample_name" in text.lower()

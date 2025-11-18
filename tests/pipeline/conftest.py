@@ -417,14 +417,14 @@ def design(seqnado_run_dir: Path, assay_type: str, assay: str) -> Path:
     assert completed.returncode == 0
 
     if assay == "chip":
-        df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
+        df = pd.read_csv(seqnado_run_dir / "metadata.csv", index_col=0)
         df["merge"] = "MLL-MERGED-TOGETHER"
-        df.to_csv(seqnado_run_dir / "design.csv")
+        df.to_csv(seqnado_run_dir / "metadata.csv")
     elif assay == "rna-rx":
-        df = pd.read_csv(seqnado_run_dir / "design.csv", index_col=0)
+        df = pd.read_csv(seqnado_run_dir / "metadata.csv", index_col=0)
         df["deseq2"] = df.index.str.split("-").str[-2]
-        df.to_csv(seqnado_run_dir / "design.csv")
-    return seqnado_run_dir / "design.csv"
+        df.to_csv(seqnado_run_dir / "metadata.csv")
+    return seqnado_run_dir / "metadata.csv"
 
 
 @pytest.fixture(scope="function", autouse=True)

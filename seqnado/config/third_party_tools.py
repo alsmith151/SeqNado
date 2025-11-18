@@ -506,7 +506,8 @@ class FastqScreen(BaseModel):
     """FastqScreen tool configuration."""
     
     threads: int = Field(default=4, description="Number of threads to use")
-    config: Path = Field(default=Path("fastq_screen_config.yaml"), description="Path to the FastqScreen config file")
+    # config: Path = Field(default=Path("fastq_screen_config.yaml"), description="Path to the FastqScreen config file")
+    config: Path
     command_line_arguments: CommandLineArguments = Field(
         default_factory=lambda: CommandLineArguments()
     )
@@ -650,6 +651,7 @@ class ThirdPartyToolsConfig(BaseModel):
                     f"No field on {cls.__name__} is annotated for tool class {tool_class.__name__}"
                 )
             defaults[field_name] = tool_class()
+            
 
         defaults.update(overrides)
         return cls(**defaults)

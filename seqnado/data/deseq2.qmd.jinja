@@ -62,7 +62,7 @@ suppressPackageStartupMessages(library(rjson))
 ## Sample information
 
 ```{r sample_information}
-sample_info <- read.csv("design.csv") %>%
+sample_info <- read.csv("metadata.csv") %>%
   dplyr::select(-contains("fq")) %>%
   mutate(deseq2 = fct_relevel(deseq2, "control")) %>%
   arrange(deseq2)

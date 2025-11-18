@@ -28,7 +28,6 @@ CONFIG = SeqnadoConfig(**config)  # pyright: ignore[reportUndefinedVariable]
 ASSAY = CONFIG.assay
 INPUT_FILES = get_sample_collection(assay=ASSAY, path=CONFIG.metadata)
 
-
 ################################
 # Define Sample Groupings
 ################################

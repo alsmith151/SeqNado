@@ -18,7 +18,7 @@ rule fastq_screen_paired:
     log:
         "seqnado_output/logs/fastq_screen/{sample}_{read}.log",
     shell:
-        """ fastq_screen --conf {params.conf} --threads {threads} --subset 10000 --aligner bowtie2 --threads {threads} {input.fq}  --outdir {params.outdir} > {log} 2>&1 """
+        """ fastq_screen --conf {params.conf} --subset 10000 --aligner bowtie2 --threads {threads} {input.fq}  --outdir {params.outdir} > {log} 2>&1 """
 
 
 use rule fastq_screen_paired as fastq_screen_single with:

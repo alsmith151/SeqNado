@@ -766,7 +766,7 @@ def design(
         None, metavar="[FASTQ ...]", autocompletion=fastq_autocomplete
     ),
     output: Path = typer.Option(
-        Path("design.csv"), "-o", "--output", help="Output CSV filename."
+        Path("metadata.csv"), "-o", "--output", help="Output CSV filename."
     ),
     group_by: bool = typer.Option(
         False, "--group-by", help="Group samples by a regular expression or a column."

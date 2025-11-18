@@ -23,7 +23,7 @@ elif CONFIG.assay_config.spikein.method == SpikeInMethod.WITH_INPUT:
                 rules.split_bam.output.stats,
                 sample=SAMPLE_NAMES_IP + SAMPLE_NAMES_CONTROL,
             ),
-            design="seqnado_output/design.csv",
+            design="seqnado_output/metadata.csv",
         output:
             normalisation_table="seqnado_output/resources/{group}_normalisation_factors.tsv",
             normalisation_factors="seqnado_output/resources/{group}_normalisation_factors.json",

@@ -124,7 +124,7 @@ seqnado-design chip fastq/*
 # Note that you can use tab completion to complete the path to the fastq files
 ```
 
-This will generate a design file called `design.csv` in the working directory.
+This will generate a design file called `metadata.csv` in the working directory.
 
 !!! Warning
     You need to specify the fastq files in the command line to use for the design generation e.g. in the current working directory:  
@@ -214,7 +214,7 @@ Before running the pipeline, ensure that the fastq files, and design are in the 
 ln -s /path/to/fastq_files/ /path/to/working-directory/made-by-seqnado-config/
 
 # Design
-mv /path/to/design.csv /path/to/working-directory/made-by-seqnado-config/
+mv /path/to/metadata.csv /path/to/working-directory/made-by-seqnado-config/
 ```
 
 ### Check you are in the correct directory
@@ -223,7 +223,7 @@ mv /path/to/design.csv /path/to/working-directory/made-by-seqnado-config/
 $ ls -l
 -rw-r--r-- 1 asmith asmithgrp    1845 Jan 13 10:50 config_rna.yml
 -rw-r--r-- 1 asmith asmithgrp   14784 Jan 13 10:50 deseq2_test.qmd
--rw-r--r-- 1 asmith asmithgrp     155 Jan 13 14:40 design.csv
+-rw-r--r-- 1 asmith asmithgrp     155 Jan 13 14:40 metadata.csv
 -rw-r--r-- 1 asmith asmithgrp 3813176 Jan 13 10:50 rna_1.fastq.gz
 -rw-r--r-- 1 asmith asmithgrp 3836966 Jan 13 10:50 rna_2.fastq.gz
 ```
