@@ -81,7 +81,7 @@ include: "rules/common/utilities.smk"
 include: "rules/fastq/screen.smk"
 
 match ASSAY:
-    case Assay.ATAC:
+    case Assay.ATAC | Assay.CAT | Assay.CHIP:
         include: "rules/fastq/trim.smk"
         include: "rules/alignment/dna_default.smk"
         include: "rules/bam/all.smk"
@@ -97,6 +97,10 @@ match ASSAY:
         include: "rules/quant/salmon.smk"
         include: "rules/pileup/default.smk"
         include: "rules/visualise/hub.smk"
+    case Assay.MCC:
+        include: "rules/fastq/manipulate.smk"
+        include: "rules/fastq/trim.smk"
+    
     case _:
         raise ValueError(f"Assay {ASSAY} not supported yet.")
 

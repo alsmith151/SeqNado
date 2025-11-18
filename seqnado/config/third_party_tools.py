@@ -514,7 +514,9 @@ class FastqScreen(BaseModel):
     """FastqScreen tool configuration."""
     
     threads: int = Field(default=4, description="Number of threads to use")
-    config: Path
+    config: Path | None = Field(
+        default=None, description="Path to FastqScreen configuration file"
+    )
     command_line_arguments: CommandLineArguments = Field(
         default_factory=lambda: CommandLineArguments()
     )
