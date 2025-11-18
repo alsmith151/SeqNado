@@ -1,5 +1,5 @@
 import pandas as pd
-import pathlib
+from pathlib import Path
 from loguru import logger
 
 # Set up logging
@@ -12,7 +12,7 @@ with logger.catch():
     all_readcounts = []
 
     for file in files:
-        file_path = pathlib.Path(file)
+        file_path = Path(file)
         sample_name = file_path.parts[-2].replace("salmon_", "")
         readcounts = pd.read_csv(file_path, sep="\t")
         readcounts.rename(columns={"NumReads": sample_name}, inplace=True)

@@ -1,13 +1,14 @@
 import json
 import logging
-import pathlib
+from pathlib import Path
 import sys
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from loguru import logger
 
-from seqnado.design import Design, DesignIP, ScaleMethod
+from seqnado import DataScalingTechnique
+from seqnado.inputs import FastqCollection, FastqCollectionForIP
 
 FILETYPE_TO_DIR_MAPPING = {
     "tag": "tag_dirs",
@@ -94,196 +95,19 @@ def define_time_requested(
     return f"{time}h"
 
 
-def symlink_file(
-    output_dir: pathlib.Path, source_path: pathlib.Path, new_file_name: str
-):
-    """
-    Create a symlink in the output directory with the new file name.
-    """
-
-    new_path = output_dir / new_file_name
-    if not new_path.exists() and source_path.is_file():
-        # logger.debug(f"Symlinking {source_path} to {output_dir / new_file_name}")
-        if str(source_path) in [".", "..", "", None, "None"]:
-            logger.warning(
-                f"Source path is empty for {new_file_name}. Will not symlink."
-            )
-
-        else:
-            new_path.symlink_to(source_path.resolve())
-            # logger.debug(f"Symlinked {source_path} to {output_dir / new_file_name} successfully.")
-
-
-def symlink_fastq_files(
-    design: Union[Design, DesignIP], output_dir: str = "seqnado_output/fastqs/"
-):
-    """
-    Symlink the fastq files to the output directory.
-    """
-    output_dir = pathlib.Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    if isinstance(design, Design):
-        for fastq_set in design.fastq_sets:
-            if fastq_set.is_paired:
-                symlink_file(
-                    output_dir, fastq_set.r1.path, f"{fastq_set.name}_1.fastq.gz"
-                )
-                symlink_file(
-                    output_dir, fastq_set.r2.path, f"{fastq_set.name}_2.fastq.gz"
-                )
-            else:
-                symlink_file(
-                    output_dir, fastq_set.r1.path, f"{fastq_set.name}.fastq.gz"
-                )
-
-    elif isinstance(design, DesignIP):
-        for experiment in design.experiments:
-            if experiment.fastqs_are_paired:
-                symlink_file(
-                    output_dir,
-                    experiment.ip.r1.path,
-                    f"{experiment.ip.name}_{experiment.ip_performed}_1.fastq.gz",
-                )
-                symlink_file(
-                    output_dir,
-                    experiment.ip.r2.path,
-                    f"{experiment.ip.name}_{experiment.ip_performed}_2.fastq.gz",
-                )
-            else:
-                symlink_file(
-                    output_dir,
-                    experiment.ip.r1.path,
-                    f"{experiment.ip.name}_{experiment.ip_performed}.fastq.gz",
-                )
-
-            # Control files
-            if experiment.has_control:
-                if experiment.control.is_paired:
-                    symlink_file(
-                        output_dir,
-                        experiment.control.r1.path,
-                        f"{experiment.control.name}_{experiment.control_performed}_1.fastq.gz",
-                    )
-                    symlink_file(
-                        output_dir,
-                        experiment.control.r2.path,
-                        f"{experiment.control.name}_{experiment.control_performed}_2.fastq.gz",
-                    )
-                else:
-                    symlink_file(
-                        output_dir,
-                        experiment.control.r1.path,
-                        f"{experiment.control.name}_{experiment.control_performed}.fastq.gz",
-                    )
-
-
-def is_on(param: str) -> bool:
-    """
-    Returns True if parameter in "on" values
-    On values:
-        - true
-        - t
-        - on
-        - yes
-        - y
-        - 1
-    """
-    values = ["true", "t", "on", "yes", "y", "1"]
-    if str(param).lower() in values:
-        return True
-    else:
-        return False
-
-
-def is_off(param: str):
-    """Returns True if parameter in "off" values"""
-    values = ["", "none", "f", "n", "no", "false", "0"]
-    if str(param).lower() in values:
-        return True
-    else:
-        return False
-
-
-def is_none(param: str) -> bool:
-    """Returns True if parameter is none"""
-    values = ["", "none"]
-    if str(param).lower() in values:
-        return True
-    else:
-        return False
-
-
-def convert_empty_yaml_entry_to_string(param: str) -> str:
-    """
-    Converts empty yaml entries to string
-    """
-    if is_none(param):
-        return ""
-    else:
-        return param
-
-
-def format_config_dict(config: Dict) -> Dict:
-    """
-    Formats the config dictionary to ensure that all entries are strings.
-
-    """
-    for key, value in config.items():
-        if isinstance(value, dict):
-            config[key] = format_config_dict(value)
-        else:
-            entry = convert_empty_yaml_entry_to_string(value)
-
-            if is_on(entry):
-                config[key] = True
-            elif is_off(entry):
-                config[key] = False
-            elif is_none(entry):
-                config[key] = None
-            else:
-                config[key] = entry
-
-    return config
-
-
-def has_bowtie2_index(prefix: str) -> bool:
-    """
-    Checks if bowtie2 index is present.
-    """
-
-    path_prefix = pathlib.Path(prefix).resolve()
-    path_dir = path_prefix.parent
-    path_prefix_stem = path_prefix.stem
-
-    bowtie2_index = list(path_dir.glob(f"{path_prefix_stem}*.bt2"))
-
-    if len(bowtie2_index) > 0:
-        return True
-
-
-def check_options(value: object):
-    if value in [None, np.nan, ""]:
-        return ""
-    elif is_off(value):
-        return ""
-    else:
-        return value
-
-
 def pepe_silvia():
     print("PEPE SILVIA")
     _pepe_silvia = "https://relix.com/wp-content/uploads/2017/03/tumblr_o16n2kBlpX1ta3qyvo1_1280.jpg"
     return _pepe_silvia
 
 
-def get_group_for_sample(wildcards, design: Union[Design, DesignIP], strip: str = ""):
-    from seqnado.design import NormGroups
+def get_group_for_sample(wildcards, design: Union[FastqCollection, FastqCollectionForIP], strip: str = ""):
+    from seqnado.inputs import SampleGroups
 
-    norm_groups = NormGroups.from_design(design, include_controls=True)
+    scaling_groups = SampleGroups.from_sample_collection(design, include_controls=True)
 
     try:
-        group = norm_groups.get_sample_group(wildcards.sample.strip(strip))
+        group = scaling_groups.get_sample_group(wildcards.sample.strip(strip))
         return group
     except KeyError:
         # logger.error(f"Sample {wildcards.sample} not found in normalisation groups.")
@@ -295,12 +119,12 @@ def get_scale_method(config: Dict) -> List[str]:
     Returns the scale method based on the config.
     """
 
-    method = [ScaleMethod.unscaled]
+    method = [DataScalingTechnique.unscaled]
 
     if config.get("spikein"):
-        method.append(ScaleMethod.spikein)
+        method.append(DataScalingTechnique.spikein)
     elif config.get("scale"):
-        method.append(ScaleMethod.csaw)
+        method.append(DataScalingTechnique.csaw)
     return [m.value for m in method]
 
 def remove_unwanted_run_files():

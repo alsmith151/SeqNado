@@ -1,0 +1,16 @@
+executor: local
+jobs: 100
+
+
+use-conda: "False"
+software-deployment-method: null
+use-apptainer: "False"
+
+show-failed-logs: "True"
+printshellcmds: "True"
+
+
+default-resources: 
+    slurm_partition: "short"
+    runtime: "1h"
+    mem: "3G"

@@ -1,0 +1,139 @@
+################################
+# Imports
+################################
+import os
+import shutil
+from seqnado import Assay
+from seqnado.config import SeqnadoConfig
+from seqnado.inputs import (
+    SampleGroupings,
+    SampleGroups,
+    get_sample_collection,
+)
+from seqnado.outputs import SeqnadoOutputFactory, SeqnadoOutputFiles
+from seqnado.helpers import remove_unwanted_run_files
+
+
+################################
+# Hardcoded Config
+################################
+container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
+
+
+################################
+# Load Configuration
+################################
+CONFIG = SeqnadoConfig(**config)  # pyright: ignore[reportUndefinedVariable]
+ASSAY = CONFIG.assay
+INPUT_FILES = get_sample_collection(assay=ASSAY, path=CONFIG.metadata)
+
+################################
+# Define Sample Groupings
+################################
+SAMPLE_GROUPINGS = SampleGroupings()
+
+normalisation_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="scaling_group",
+)
+
+scaling_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="scaling_group",
+)
+
+consensus_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="consensus_group",
+)
+
+SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
+SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
+SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
+
+
+################################
+# Define Outputs
+################################
+OUTPUT: SeqnadoOutputFiles = (
+    SeqnadoOutputFactory(
+        assay=ASSAY,
+        samples=INPUT_FILES,
+        config=CONFIG,
+        sample_groupings=SAMPLE_GROUPINGS,
+    )
+    .create_output_builder()
+    .build()
+)
+SAMPLE_NAMES = OUTPUT.sample_names
+
+################################
+# Set-Up Workflow
+################################
+INPUT_FILES.symlink_fastq_files(output_dir="seqnado_output/fastqs/")
+
+
+################################
+# Include Rules
+################################
+include: "rules/common/utilities.smk"
+include: "rules/fastq/screen.smk"
+
+match ASSAY:
+    case Assay.ATAC:
+        include: "rules/fastq/trim.smk"
+        include: "rules/alignment/dna_default.smk"
+        include: "rules/bam/all.smk"
+        include: "rules/pileup/default.smk"
+        include: "rules/peaks/default.smk"
+        include: 'rules/pileup/merge.smk'
+        include: "rules/visualise/hub.smk"
+    case Assay.RNA:
+        include: "rules/fastq/trim.smk"
+        include: "rules/alignment/rna_default.smk"
+        include: "rules/bam/all.smk"
+        include: "rules/quant/featurecounts.smk"
+        include: "rules/quant/salmon.smk"
+        include: "rules/pileup/default.smk"
+        include: "rules/visualise/hub.smk"
+    case _:
+        raise ValueError(f"Assay {ASSAY} not supported yet.")
+
+include: "rules/common/qc.smk"
+
+################################
+# Rule Ordering
+################################
+# if CONFIG.has_spikein:
+#     ruleorder: move_ref_bam > align_paired > align_single
+#     ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
+#     ruleorder: align_paired_spikein > align_paired > align_single_spikein > align_single
+
+# else:
+#     ruleorder: align_paired > align_single > move_ref_bam
+#     ruleorder: align_paired > align_paired_spikein > align_single > align_single_spikein 
+
+
+################################
+# Final Aggregation Rule
+################################
+rule all:
+    input:
+        OUTPUT.all_files,
+
+
+################################
+# Workflow Hooks
+################################
+onsuccess:
+    remove_unwanted_run_files()
+
+
+onerror:
+    log_out = "seqnado_error.log"
+    shutil.copyfile(log, log_out)  # pyright: ignore[reportUndefinedVariable]
+    print(
+        f"An error occurred. Please check the log file {log_out} for more information."
+    )
+    remove_unwanted_run_files()

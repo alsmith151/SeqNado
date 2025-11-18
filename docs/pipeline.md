@@ -124,7 +124,7 @@ seqnado-design chip fastq/*
 # Note that you can use tab completion to complete the path to the fastq files
 ```
 
-This will generate a design file called `design.csv` in the working directory.
+This will generate a design file called `metadata.csv` in the working directory.
 
 !!! Warning
     You need to specify the fastq files in the command line to use for the design generation e.g. in the current working directory:  
@@ -134,15 +134,15 @@ This will generate a design file called `design.csv` in the working directory.
 
 ### Merging replicates or samples
 
-To merge samples for counting or bigwig/peak generation add a merge column to the design file
+To merge samples for counting or bigwig/peak generation add a consensus_group column to the design file
 
 ```bash
-sample_name,r1,r2,scale_group,merge
-atac,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_1.fastq.gz,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_2.fastq.gz,all,merge_group
-atac2,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_1.fastq.gz,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_2.fastq.gz,all,merge_group
+sample_name,r1,r2,scaling_group,consensus_group
+atac,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_1.fastq.gz,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_2.fastq.gz,all,consensus_group
+atac2,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_1.fastq.gz,/ceph/project/milne_group/cchahrou/software/SeqNado/2025-02-11_chip_cchahrou_project/atac_2.fastq.gz,all,consensus_group
 ```
 
-This will merge both to make a `merge_group` bigwig and peak file
+This will merge both to make a `consensus_group` bigwig and peak file
 
 Consensus counts can be made from the merged peaks when consensus_counts is True in config yaml for ATAC or ChIP
 
@@ -167,7 +167,7 @@ rna,/path/to/fastq/rna_2.fastq.gz,/path/to/fastq/rna_1.fastq.gz
 A ChIP assay design file should look something like this:
 
 ```bash
-sample_name,ip,control,ip_r1,ip_r2,control_r1,control_r2,scale_group
+sample_name,ip,control,ip_r1,ip_r2,control_r1,control_r2,scaling_group
 chip-rx,MLL,input,fastq/chip-rx_MLL_1.fastq.gz,fastq/chip-rx_MLL_2.fastq.gz,fastq/chip-rx_input_1.fastq.gz,fastq/chip-rx_input_2.fastq.gz,all
 ```
 
@@ -214,7 +214,7 @@ Before running the pipeline, ensure that the fastq files, and design are in the 
 ln -s /path/to/fastq_files/ /path/to/working-directory/made-by-seqnado-config/
 
 # Design
-mv /path/to/design.csv /path/to/working-directory/made-by-seqnado-config/
+mv /path/to/metadata.csv /path/to/working-directory/made-by-seqnado-config/
 ```
 
 ### Check you are in the correct directory
@@ -223,7 +223,7 @@ mv /path/to/design.csv /path/to/working-directory/made-by-seqnado-config/
 $ ls -l
 -rw-r--r-- 1 asmith asmithgrp    1845 Jan 13 10:50 config_rna.yml
 -rw-r--r-- 1 asmith asmithgrp   14784 Jan 13 10:50 deseq2_test.qmd
--rw-r--r-- 1 asmith asmithgrp     155 Jan 13 14:40 design.csv
+-rw-r--r-- 1 asmith asmithgrp     155 Jan 13 14:40 metadata.csv
 -rw-r--r-- 1 asmith asmithgrp 3813176 Jan 13 10:50 rna_1.fastq.gz
 -rw-r--r-- 1 asmith asmithgrp 3836966 Jan 13 10:50 rna_2.fastq.gz
 ```

@@ -1,0 +1,476 @@
+from typing import Any, List, Protocol, Optional
+from pathlib import Path
+from itertools import chain
+
+from pydantic import BaseModel, computed_field, Field, field_validator
+from typing import List, Literal
+from snakemake.io import expand
+from loguru import logger
+
+from seqnado import (
+    Assay,
+    PileupMethod,
+    DataScalingTechnique,
+    PeakCallingMethod,
+    MethylationMethod,
+    QuantificationMethod,
+)
+from seqnado.core import AssaysWithHeatmaps, AssaysWithSpikein, AssaysWithPeakCalling
+from seqnado.inputs import FastqCollection, FastqCollectionForIP, SampleGroups, CollectionLike, BamCollection, BigWigCollection
+from seqnado.config import SeqnadoConfig
+
+
+class FileCollection(Protocol):
+    @property
+    def files(self) -> List[str]:
+        """Return a list of file paths."""
+        pass
+
+
+class QCFiles(BaseModel):
+    assay: Assay
+    samples: FastqCollection | FastqCollectionForIP | BamCollection | BigWigCollection
+
+    @property
+    def default_files(self) -> list[str]:
+        return [
+            "seqnado_output/seqnado_report.html",
+        ]
+
+    @property
+    def qualimap_files(self) -> list[str]:
+        if not isinstance(self.samples, (BigWigCollection)):
+            match self.assay:
+                case Assay.RNA:
+                    return expand(
+                        "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
+                        sample=self.samples.sample_names,
+                    )
+                case _:
+                    return expand(
+                        "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+                        sample=self.samples.sample_names,
+                    )
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        return [*self.default_files, *self.qualimap_files]
+
+
+class BigWigFiles(BaseModel):
+    assay: Assay
+    names: list[str] = Field(default_factory=list)
+    pileup_methods: list[PileupMethod]
+    scale_methods: list[DataScalingTechnique] = [DataScalingTechnique.UNSCALED]
+    prefix: Path | None = "seqnado_output/bigwigs/"
+
+    @property
+    def is_rna(self) -> bool:
+        return self.assay == Assay.RNA
+
+    @property
+    def incompatible_methods(self) -> dict[PileupMethod, list[DataScalingTechnique]]:
+        return {
+            PileupMethod.HOMER: [DataScalingTechnique.CSAW, DataScalingTechnique.SPIKEIN],
+            PileupMethod.BAMNADO: [DataScalingTechnique.CSAW, DataScalingTechnique.SPIKEIN],
+        }
+
+    def _is_compatible(self, method: PileupMethod, scale: DataScalingTechnique) -> bool:
+        return scale not in self.incompatible_methods.get(method, [])
+
+    def generate_bigwig_paths(self) -> list[str]:
+        paths = []
+
+        for method in self.pileup_methods:
+            for scale in self.scale_methods:
+                if not self._is_compatible(method, scale):
+                    continue
+
+                if self.is_rna:
+                    for name in self.names:
+                        for strand in ["plus", "minus"]:
+                            path = f"{self.prefix}{method.value}/{scale.value}/{name}_{strand}.bigWig"
+                            paths.append(path)
+                else:
+                    for name in self.names:
+                        path = (
+                            f"{self.prefix}{method.value}/{scale.value}/{name}.bigWig"
+                        )
+                        paths.append(path)
+
+        return paths
+
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        return self.generate_bigwig_paths()
+
+
+class PeakCallingFiles(BaseModel):
+    assay: Assay
+    names: list[str]
+    peak_calling_method: list[PeakCallingMethod]
+    prefix: Optional[str] = "seqnado_output/peaks/"
+
+    @field_validator("assay")
+    def validate_assay(cls, value):
+        if value not in AssaysWithPeakCalling:
+            raise ValueError(f"Invalid assay for peak calling: {value}")
+        return value
+
+    @property
+    def peak_files(self) -> list[str]:
+        return expand(
+            self.prefix + "{method}/{sample}.bed",
+            sample=self.names,
+            method=[m.value for m in self.peak_calling_method],
+        )
+
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        """Return a list of peak calling files."""
+        return self.peak_files
+
+
+class HeatmapFiles(BaseModel):
+    assay: Assay
+
+    @field_validator("assay")
+    def validate_assay(cls, value):
+        if value not in AssaysWithHeatmaps:
+            raise ValueError(f"Invalid assay for heatmap: {value}")
+        return value
+
+    @property
+    def heatmap_files(self) -> list[str]:
+        return [
+            "seqnado_output/heatmap/heatmap.pdf",
+            "seqnado_output/heatmap/metaplot.pdf",
+        ]
+
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        return self.heatmap_files
+
+
+class HubFiles(BaseModel):
+    hub_dir: Path
+    hub_name: str
+
+    @property
+    def hub_txt(self) -> Path:
+        return self.hub_dir / f"{self.hub_name}.hub.txt"
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        return [str(self.hub_txt)]
+
+
+class SpikeInFiles(BaseModel):
+    assay: Assay
+    names: list[str]
+
+    @field_validator("assay")
+    def validate_assay(cls, value):
+        if value not in AssaysWithSpikein:
+            raise ValueError(f"Invalid assay for spike-in: {value}")
+        return value
+
+    @property
+    def norm_factors(self):
+        return "seqnado_output/resources/normalisation_factors.tsv"
+
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        return [self.norm_factors]
+
+
+class PlotFiles(BaseModel):
+    coordinates: Path
+    file_format: Literal["svg", "png", "pdf"] = "svg"
+
+    @property
+    def plot_names(self):
+        import pandas as pd
+
+        plots = []
+
+        try:
+            # Read BED file using pandas (pyranges replacement)
+            bed_columns = ["Chromosome", "Start", "End", "Name", "Score", "Strand"]
+            coords_df = pd.read_csv(
+                str(self.coordinates), sep="\t", header=None, comment="#"
+            )
+            coords_df.columns = bed_columns[: len(coords_df.columns)]
+
+            outdir = Path("seqnado_output/genome_browser_plots/")
+            for region in coords_df.itertuples():
+                fig_name = (
+                    f"{region.Chromosome}-{region.Start}-{region.End}"
+                    if not hasattr(region, "Name") or not region.Name
+                    else region.Name
+                )
+                plots.append(outdir / f"{fig_name}.{self.file_format}")
+
+        except FileNotFoundError:
+            logger.warning(
+                f"Could not find plotting coordinates file: {self.coordinates}"
+            )
+
+        return plots
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        """Return a list of plot files."""
+        return self.plot_names
+
+class SNPFilesRaw(BaseModel):
+    assay: Assay
+    names: list[str]
+
+    @property
+    def snp_files(self) -> list[str]:
+        return expand(
+            "seqnado_output/variant/{sample}.vcf.gz",
+            sample=self.names,
+        )
+    
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        return self.snp_files
+
+class SNPFilesAnnotated(BaseModel):
+    assay: Assay
+    names: list[str]
+
+    @property
+    def anno_snp_files(self) -> list[str]:
+        return expand(
+            "seqnado_output/variant/{sample}.anno.vcf.gz",
+            sample=self.names,
+        )
+
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        return self.anno_snp_files
+
+
+class MethylationFiles(BaseModel):
+    assay: Assay
+    names: list[str]
+    genomes: List[str]
+    method: MethylationMethod
+    prefix: Path | None = "seqnado_output/methylation/"
+
+    @property
+    def split_bams_files(self) -> List[str]:
+        return expand(
+            "seqnado_output/aligned/spikein/{sample}_{genome}.bam",
+            sample=self.names,
+            genome=self.genomes,
+        )
+    
+    @property
+    def methyldackel_files(self) -> List[str]:
+
+        file_pattern = "seqnado_output/methylation/methyldackel/{sample}_{genome}_|METHOD|CpG.bedGraph"
+        file_pattern = file_pattern.replace("|METHOD|", self.method.value)
+        return expand(
+            file_pattern,
+            sample=self.names,
+            genome=self.genomes,
+        )
+    
+    @property
+    def methylation_bias(self) -> List[str]:
+        """Return the methylation bias files."""
+        files = []
+        files.append("seqnado_output/methylation/methylation_conversion.tsv")
+        files.extend(
+            expand(
+                "seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",
+                sample=self.names,
+                genome=self.genomes,
+            )
+        )
+        return files
+
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        """Return a list of methylation files."""
+        return [*self.split_bams_files, *self.methyldackel_files, *self.methylation_bias]
+    
+
+
+class BigBedFiles(BaseModel):
+    bed_files: list[Path] = Field(default_factory=list)
+
+    @field_validator("bed_files", mode="before")
+    def validate_bed_files(cls, v: list[Path | str]) -> list[Path]:
+        return [Path(f) for f in v]
+    
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        """Return a list of bigBed files."""
+        return [str(f.with_suffix(".bb")) for f in self.bed_files if f.suffix == ".bed"]
+
+
+class ContactFiles(BaseModel):
+    assay: Assay
+    names: list[str]
+    prefix: Path | None = "seqnado_output/contacts/"
+
+    @property
+    def cooler_files(self) -> List[str]:
+        return expand(
+            str(self.prefix).rstrip("/") + "/{group}/{group}.mcool",
+            group=self.design_dataframe["merge"].unique().tolist(),
+        )
+
+    @property
+    def pairs(self) -> List[str]:
+        return expand(
+            str(self.prefix).rstrip("/") + "/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+            group=self.design_dataframe["merge"].unique().tolist(),
+            viewpoint=self.viewpoints_grouped,
+        )
+
+    @computed_field
+    @property
+    def files(self) -> List[str]:
+        """Return a list of contact files."""
+        return [*self.cooler_files, *self.pairs]
+    
+
+
+class QuantificationFiles(BaseModel):
+    """Base class for quantification files."""
+    
+    assay: Assay
+    methods: list[QuantificationMethod] = Field(default_factory=list)
+    names: list[str]
+    groups: SampleGroups
+    prefix: Path | None = "seqnado_output/quantification"
+
+    @field_validator("methods", mode="before")
+    def validate_methods_and_assays(cls, v: list[QuantificationMethod], values: dict[str, Any]) -> list[QuantificationMethod]:
+        assay = values.get("assay")
+        if assay == Assay.RNA:
+            return [m for m in v if m in [QuantificationMethod.FEATURE_COUNTS, QuantificationMethod.SALMON]]
+        return [m for m in v if m == QuantificationMethod.FEATURE_COUNTS]
+
+    @property
+    def combined_counts_file(self) -> list[str]:
+        """Return the combined read counts file."""
+        return expand(self.prefix + "/{methods}/read_counts.tsv", methods=self.methods)
+    
+    @property
+    def grouped_counts_files(self) -> list[str]:
+        """Return the grouped read counts files."""
+        files = []
+        for group in self.groups.groups:
+            files.extend(
+                expand(
+                    f"{self.prefix}{group}/read_counts.tsv",
+                    group=group,
+                    methods=self.methods,
+                )
+            )
+        return files
+    
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        """Return a list of quantification files."""
+        return [*self.combined_counts_file, *self.grouped_counts_files]
+            
+    
+
+class GeoSubmissionFiles(BaseModel):
+    """Class to handle files for GEO submission."""
+    
+    assay: Assay
+    names: list[str]
+    seqnado_files: list[str] = Field(default_factory=list, description="Unfiltered list of files. Will be filtered based on allowed extensions and added.")
+    allowed_extensions: list[str] = Field(default_factory=lambda: [".bigWig", ".bed", ".tsv", ".vcf.gz"])
+    
+    @property
+    def default_files(self):
+        return [
+            "seqnado_output/geo_submission/md5sums.txt",
+            "seqnado_output/geo_submission/raw_data_checksums.txt",
+            "seqnado_output/geo_submission/processed_data_checksums.txt",
+            "seqnado_output/geo_submission/samples_table.txt",
+            "seqnado_output/geo_submission/protocol.txt",
+        ]
+    
+    @property
+    def upload_directory(self) -> Path:
+        return Path("seqnado_output/geo_submission") / self.assay.clean_name
+
+    @property
+    def upload_instructions(self) -> Path:
+        return Path("seqnado_output/geo_submission") / "upload_instructions.txt"
+    
+
+    @property
+    def raw_files(self) -> list[str]:
+        """Return FASTQ files for raw data."""
+        return expand(
+            str(self.upload_directory / "{sample}_{read}.fastq.gz"),
+            sample=self.names,
+            read=["1", "2"],
+        )
+    
+    @property
+    def processed_data_files(self) -> list[str]:
+        """Return processed files for GEO submission."""
+        files = []
+        for file in self.seqnado_files:
+            if Path(file).suffix in self.allowed_extensions:
+                # Need to flatten the file un-nest the directory structure
+                # e.g. seqnado_output/bigwigs/METHOD/SCALE/NAME.bigWig
+                file = Path(file)
+                basename = file.stem
+                ext = ''.join(file.suffixes)
+                scale_method = file.parent.name
+                method = file.parent.parent.name
+                
+                files.append(
+                    str(self.upload_directory / f"{basename}_{method}_{scale_method}{ext}")
+                )
+
+        return files
+    
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        """Return a list of all files for GEO submission."""
+        return [*self.default_files, *self.raw_files, *self.processed_data_files]
+    
+    
+        
+        
+
+    
+
+
+
+
+
+
+
+
+    
+    
+    
