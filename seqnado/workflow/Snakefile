@@ -33,24 +33,24 @@ INPUT_FILES = get_sample_collection(assay=ASSAY, path=CONFIG.metadata)
 ################################
 SAMPLE_GROUPINGS = SampleGroupings()
 
-normalisation_groups = SampleGroups.from_dataframe(
-    INPUT_FILES.to_dataframe(),
-    subset_column="scaling_group",
-)
+# normalisation_groups = SampleGroups.from_dataframe(
+#     INPUT_FILES.to_dataframe(),
+#     subset_column="scaling_group",
+# )
 
-scaling_groups = SampleGroups.from_dataframe(
-    INPUT_FILES.to_dataframe(),
-    subset_column="scaling_group",
-)
+# scaling_groups = SampleGroups.from_dataframe(
+#     INPUT_FILES.to_dataframe(),
+#     subset_column="scaling_group",
+# )
 
-consensus_groups = SampleGroups.from_dataframe(
-    INPUT_FILES.to_dataframe(),
-    subset_column="consensus_group",
-)
+# consensus_groups = SampleGroups.from_dataframe(
+#     INPUT_FILES.to_dataframe(),
+#     subset_column="consensus_group",
+# )
 
-SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
-SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
-SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
+# SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
+# SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
+# SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
 
 
 ################################
@@ -87,8 +87,10 @@ match ASSAY:
         include: "rules/bam/all.smk"
         include: "rules/pileup/default.smk"
         include: "rules/peaks/default.smk"
-        include: 'rules/pileup/merge.smk'
+        include: "rules/peaks/merge.smk"
+        include: "rules/pileup/merge.smk"
         include: "rules/visualise/hub.smk"
+        include: "rules/quant/merged.smk"
     case Assay.RNA:
         include: "rules/fastq/trim.smk"
         include: "rules/alignment/rna_default.smk"

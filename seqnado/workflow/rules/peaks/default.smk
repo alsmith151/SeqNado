@@ -64,7 +64,7 @@ rule macs2_with_input:
     output:
         peaks="seqnado_output/peaks/macs2/{sample_id}.bed",
     params:
-        options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.call_peak.command_line_arguments)),
+        options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.call_peaks.command_line_arguments)),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1
@@ -88,7 +88,7 @@ rule macs2_no_input:
     output:
         peaks="seqnado_output/peaks/macs2/{sample_id}.bed",
     params:
-        options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.call_peak.command_line_arguments)),
+        options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.call_peaks.command_line_arguments)),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
     threads: 1

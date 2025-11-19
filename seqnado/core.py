@@ -127,7 +127,7 @@ class PCRDuplicateHandling(Enum):
 
     REMOVE = "remove"
     MARK = "mark"
-    NONE = "dont_remove"
+    NONE = "keep"
 
 
 class PCRDuplicateTool(Enum):

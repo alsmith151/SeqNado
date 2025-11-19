@@ -477,7 +477,7 @@ class Macs(BaseModel):
     
     version: Literal["2", "3"] = Field(default="3", description="MACS version to use")
     mode: MacsMode = Field(default=MacsMode.GENERIC, description="Analysis mode")
-    call_peak: Optional[ToolConfig] = Field(default=None, description="Peak calling configuration")
+    call_peaks: Optional[ToolConfig] = Field(default=None, description="Peak calling configuration")
 
     def _get_options_for_mode(self) -> str:
         """Get default options based on the analysis mode."""
@@ -493,8 +493,8 @@ class Macs(BaseModel):
 
     @model_validator(mode="after")
     def set_default_call_peak(self) -> "Macs":
-        if self.call_peak is None:
-            self.call_peak = ToolConfig(
+        if self.call_peaks is None:
+            self.call_peaks = ToolConfig(
                 command_line_arguments=CommandLineArguments(value=self._get_options_for_mode())
             )
         return self
