@@ -120,6 +120,7 @@ class SeqnadoOutputBuilder:
         samples: CollectionLike,
         config: SeqnadoConfig,
         sample_groupings: SampleGroupings | None = None,
+        output_dir: str = "seqnado_output",
     ):
         """Initializes the SeqnadoOutputBuilder with the given assay, samples, and configuration.
         Args:
@@ -128,6 +129,7 @@ class SeqnadoOutputBuilder:
             config (SeqnadoConfig): The configuration for the SeqNado project.
             sample_groupings (Optional[SampleGroupings]): Optional groups of samples for merging.
                 If provided, will be used to create grouped bigwig files and grouped peak files.
+            output_dir (str): The output directory for all files. Defaults to "seqnado_output".
         Raises:
             ValueError: If the provided assay is not supported or if sample groups are provided
                 but not defined in the configuration.
@@ -137,6 +139,7 @@ class SeqnadoOutputBuilder:
         self.samples = samples
         self.config = config
         self.sample_groupings = sample_groupings
+        self.output_dir = output_dir
 
         # Set sample groupings that do provide file names. 
         # These need to be used when creating grouped bigwig and peak files.
@@ -156,7 +159,7 @@ class SeqnadoOutputBuilder:
 
     def add_qc_files(self) -> None:
         """Add quality control files to the output collection."""
-        qc_files = QCFiles(assay=self.assay, samples=self.samples)
+        qc_files = QCFiles(assay=self.assay, samples=self.samples, output_dir=self.output_dir)
         self.file_collections.append(qc_files)
 
     def add_individual_bigwig_files(self) -> None:
@@ -167,6 +170,7 @@ class SeqnadoOutputBuilder:
             names=self.samples.sample_names,
             pileup_methods=self.config.assay_config.bigwigs.pileup_method,
             scale_methods=self.scale_methods,
+            output_dir=self.output_dir,
         )
         self.file_collections.append(bigwig_files)
 
@@ -186,6 +190,7 @@ class SeqnadoOutputBuilder:
                     names=[group.name],
                     pileup_methods=self.config.assay_config.bigwigs.pileup_method,
                     scale_methods=self.scale_methods,
+                    output_dir=self.output_dir,
                 )
                 self.file_collections.append(bigwig_files)
             
@@ -205,6 +210,7 @@ class SeqnadoOutputBuilder:
             assay=self.assay,
             names=self.samples.sample_names,
             peak_calling_method=self.config.assay_config.peak_calling.method,
+            output_dir=self.output_dir,
         )
         self.file_collections.append(peaks)
 
@@ -223,6 +229,7 @@ class SeqnadoOutputBuilder:
                 assay=self.assay,
                 names=[group.name],
                 peak_calling_method=self.config.assay_config.peak_calling.method,
+                output_dir=self.output_dir,
             )
             self.file_collections.append(peaks)
 
@@ -238,13 +245,13 @@ class SeqnadoOutputBuilder:
 
     def add_heatmap_files(self) -> None:
         """Add heatmap files to the output collection."""
-        heatmaps = HeatmapFiles(assay=self.assay)
+        heatmaps = HeatmapFiles(assay=self.assay, output_dir=self.output_dir)
         self.file_collections.append(heatmaps)
 
     def add_hub_files(self) -> None:
         """Add hub files to the output collection."""
         hub_files = HubFiles(
-            hub_dir=Path("seqnado_output/hub"),
+            hub_dir=Path(f"{self.output_dir}/hub"),
             hub_name=self.config.assay_config.ucsc_hub.name,
         )
         self.file_collections.append(hub_files)
@@ -254,6 +261,7 @@ class SeqnadoOutputBuilder:
         spikein_files = SpikeInFiles(
             assay=self.assay,
             names=self.samples.sample_names,
+            output_dir=self.output_dir,
         )
         self.file_collections.append(spikein_files)
 
@@ -262,6 +270,7 @@ class SeqnadoOutputBuilder:
         plot_files = PlotFiles(
             coordinates=self.config.assay_config.plotting.coordinates,
             file_format=self.config.assay_config.plotting.file_format,
+            output_dir=self.output_dir,
         )
         self.file_collections.append(plot_files)
 
@@ -270,6 +279,7 @@ class SeqnadoOutputBuilder:
         snp_files_raw = SNPFilesRaw(
             assay=self.assay,
             names=self.samples.sample_names,
+            output_dir=self.output_dir,
         )
         self.file_collections.append(snp_files_raw)
 
@@ -277,6 +287,7 @@ class SeqnadoOutputBuilder:
             snp_files_annotated = SNPFilesAnnotated(
                 assay=self.assay,
                 names=self.samples.sample_names,
+                output_dir=self.output_dir,
             )
             self.file_collections.append(snp_files_annotated)
 
@@ -286,6 +297,7 @@ class SeqnadoOutputBuilder:
             assay=self.assay,
             names=self.samples.sample_names,
             method=self.config.assay_config.methylation.method,
+            output_dir=self.output_dir,
         )
         self.file_collections.append(methylation_files)
 
@@ -294,7 +306,7 @@ class SeqnadoOutputBuilder:
         contact_files = ContactFiles(
             assay=self.assay,
             names=self.samples.sample_names,
-            prefix=Path("seqnado_output/mcc/"),
+            output_dir=f"{self.output_dir}/mcc",
         )
         self.file_collections.append(contact_files)
 
@@ -305,7 +317,7 @@ class SeqnadoOutputBuilder:
             methods=self.config.assay_config.quantification.methods,
             names=self.samples.sample_names,
             groups=self.sample_groupings,
-            prefix=Path("seqnado_output/quantification/"),
+            output_dir=f"{self.output_dir}/quantification",
         )
         self.file_collections.append(quantification_files)
 
@@ -322,7 +334,7 @@ class SeqnadoOutputBuilder:
 
         outfiles = self.build().all_files
         geo_files = GeoSubmissionFiles(
-            assay=self.assay, names=self.samples.sample_names, seqnado_files=outfiles
+            assay=self.assay, names=self.samples.sample_names, seqnado_files=outfiles, output_dir=self.output_dir
         )
         self.file_collections.append(geo_files)
 
@@ -345,12 +357,14 @@ class SeqnadoOutputFactory:
         samples: FastqCollection | FastqCollectionForIP,
         config: SeqnadoConfig,
         sample_groupings: SampleGroupings | None = None,
+        output_dir: str = "seqnado_output",
     ):
         self.assay = assay
         self.samples = samples
         self.config = config
         self.sample_groupings = sample_groupings
         self.assay_config = config.assay_config
+        self.output_dir = output_dir
 
     def create_output_builder(self) -> SeqnadoOutputBuilder:
         """Creates a SeqnadoOutputBuilder instance with the provided assay, samples, and configuration.
@@ -366,6 +380,7 @@ class SeqnadoOutputFactory:
             samples=self.samples,
             config=self.config,
             sample_groupings=self.sample_groupings,
+            output_dir=self.output_dir,
         )
 
         builder.add_qc_files()

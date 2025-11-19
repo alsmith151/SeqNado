@@ -2,7 +2,6 @@
 # Imports
 ################################
 import os
-import re
 import shutil
 
 from seqnado import Assay
@@ -66,14 +65,12 @@ OUTPUT: SeqnadoOutputFiles = (
         samples=INPUT_FILES,
         config=CONFIG,
         sample_groupings=SAMPLE_GROUPINGS,
+        output_dir=OUTPUT_DIR,
     )
     .create_output_builder()
     .build()
 )
 SAMPLE_NAMES = OUTPUT.sample_names
-
-# Replace seqnado_output/ prefix with OUTPUT_DIR in all output file paths
-OUTPUT.files = [re.sub(r'^seqnado_output/', OUTPUT_DIR + '/', f) for f in OUTPUT.files]
 
 ################################
 # Set-Up Workflow

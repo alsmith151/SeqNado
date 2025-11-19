@@ -138,13 +138,13 @@ rule run_assay:
             {WORKFLOW_ARGS} \
             2>&1 | tee -a ../../{log}
         
-        # Mark completion
-        touch {output.complete}
+        # Mark completion (from .snakemake/{assay}/ so need ../../ prefix)
+        touch ../../{output.complete}
         
-        echo "================================================================" | tee -a {log}
-        echo "Completed {params.assay} pipeline at $(date)" | tee -a {log}
-        echo "Report: {output.report}" | tee -a {log}
-        echo "================================================================" | tee -a {log}
+        echo "================================================================" | tee -a ../../{log}
+        echo "Completed {params.assay} pipeline at $(date)" | tee -a ../../{log}
+        echo "Report: ../../{output.report}" | tee -a ../../{log}
+        echo "================================================================" | tee -a ../../{log}
         """
 
 

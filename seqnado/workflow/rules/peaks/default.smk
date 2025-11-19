@@ -29,7 +29,7 @@ def get_control_file(wildcards, file_type: FileType):
         case FileType.BAM:
             return OUTPUT_DIR + f"/aligned/{control_name}.bam"
         case FileType.BIGWIG:
-            return OUTPUT_DIR + f"/bigwigs/deeptools/{DataScalingTechnique.UNSCALED.value}/{control_name}.bigwig"
+            return OUTPUT_DIR + f"/bigwigs/deeptools/{DataScalingTechnique.UNSCALED.value}/{control_name}.bigWig"
         case FileType.TAG:
             return OUTPUT_DIR + f"/tag_dirs/{control_name}.tag"
         case _:
@@ -49,10 +49,14 @@ def correct_macs_options(wildcards, options: CommandLineArguments):
 
 
 def get_lanceotron_call_peaks_threshold(wildcards):
-    options = config["lanceotron"]["callpeak"]
-    threshold_pattern = re.compile(r"\-c\s+(\d+.?\d*)")
-    threshold = threshold_pattern.search(options).group(1)
-    return threshold
+    options = str(CONFIG.third_party_tools.lanceotron.call_peaks.command_line_arguments)
+    threshold_pattern = re.compile(r"\-c\s+(\d+\.?\d*)")
+    match = threshold_pattern.search(options)
+    if match:
+        return match.group(1)
+    else:
+        return "0.5"  # Default threshold
+
 
 
 

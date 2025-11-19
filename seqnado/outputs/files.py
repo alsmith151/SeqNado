@@ -30,11 +30,12 @@ class FileCollection(Protocol):
 class QCFiles(BaseModel):
     assay: Assay
     samples: FastqCollection | FastqCollectionForIP | BamCollection | BigWigCollection
+    output_dir: str = "seqnado_output"
 
     @property
     def default_files(self) -> list[str]:
         return [
-            "seqnado_output/seqnado_report.html",
+            f"{self.output_dir}/seqnado_report.html",
         ]
 
     @property
@@ -43,12 +44,12 @@ class QCFiles(BaseModel):
             match self.assay:
                 case Assay.RNA:
                     return expand(
-                        "seqnado_output/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
+                        f"{self.output_dir}/qc/qualimap_rnaseq/{{sample}}/qualimapReport.html",
                         sample=self.samples.sample_names,
                     )
                 case _:
                     return expand(
-                        "seqnado_output/qc/qualimap_bamqc/{sample}/qualimapReport.html",
+                        f"{self.output_dir}/qc/qualimap_bamqc/{{sample}}/qualimapReport.html",
                         sample=self.samples.sample_names,
                     )
 
@@ -63,7 +64,11 @@ class BigWigFiles(BaseModel):
     names: list[str] = Field(default_factory=list)
     pileup_methods: list[PileupMethod]
     scale_methods: list[DataScalingTechnique] = [DataScalingTechnique.UNSCALED]
-    prefix: Path | None = "seqnado_output/bigwigs/"
+    output_dir: str = "seqnado_output"
+
+    @property
+    def prefix(self) -> str:
+        return f"{self.output_dir}/bigwigs/"
 
     @property
     def is_rna(self) -> bool:
@@ -111,7 +116,11 @@ class PeakCallingFiles(BaseModel):
     assay: Assay
     names: list[str]
     peak_calling_method: list[PeakCallingMethod]
-    prefix: Optional[str] = "seqnado_output/peaks/"
+    output_dir: str = "seqnado_output"
+
+    @property
+    def prefix(self) -> str:
+        return f"{self.output_dir}/peaks/"
 
     @field_validator("assay")
     def validate_assay(cls, value):
@@ -143,11 +152,13 @@ class HeatmapFiles(BaseModel):
             raise ValueError(f"Invalid assay for heatmap: {value}")
         return value
 
+    output_dir: str = "seqnado_output"
+
     @property
     def heatmap_files(self) -> list[str]:
         return [
-            "seqnado_output/heatmap/heatmap.pdf",
-            "seqnado_output/heatmap/metaplot.pdf",
+            f"{self.output_dir}/heatmap/heatmap.pdf",
+            f"{self.output_dir}/heatmap/metaplot.pdf",
         ]
 
     @computed_field
@@ -173,6 +184,7 @@ class HubFiles(BaseModel):
 class SpikeInFiles(BaseModel):
     assay: Assay
     names: list[str]
+    output_dir: str = "seqnado_output"
 
     @field_validator("assay")
     def validate_assay(cls, value):
@@ -182,7 +194,7 @@ class SpikeInFiles(BaseModel):
 
     @property
     def norm_factors(self):
-        return "seqnado_output/resources/normalisation_factors.tsv"
+        return f"{self.output_dir}/resources/normalisation_factors.tsv"
 
     @computed_field
     @property
@@ -193,6 +205,7 @@ class SpikeInFiles(BaseModel):
 class PlotFiles(BaseModel):
     coordinates: Path
     file_format: Literal["svg", "png", "pdf"] = "svg"
+    output_dir: str = "seqnado_output"
 
     @property
     def plot_names(self):
@@ -208,7 +221,7 @@ class PlotFiles(BaseModel):
             )
             coords_df.columns = bed_columns[: len(coords_df.columns)]
 
-            outdir = Path("seqnado_output/genome_browser_plots/")
+            outdir = Path(f"{self.output_dir}/genome_browser_plots/")
             for region in coords_df.itertuples():
                 fig_name = (
                     f"{region.Chromosome}-{region.Start}-{region.End}"
@@ -233,11 +246,12 @@ class PlotFiles(BaseModel):
 class SNPFilesRaw(BaseModel):
     assay: Assay
     names: list[str]
+    output_dir: str = "seqnado_output"
 
     @property
     def snp_files(self) -> list[str]:
         return expand(
-            "seqnado_output/variant/{sample}.vcf.gz",
+            f"{self.output_dir}/variant/{{sample}}.vcf.gz",
             sample=self.names,
         )
     
@@ -249,11 +263,12 @@ class SNPFilesRaw(BaseModel):
 class SNPFilesAnnotated(BaseModel):
     assay: Assay
     names: list[str]
+    output_dir: str = "seqnado_output"
 
     @property
     def anno_snp_files(self) -> list[str]:
         return expand(
-            "seqnado_output/variant/{sample}.anno.vcf.gz",
+            f"{self.output_dir}/variant/{{sample}}.anno.vcf.gz",
             sample=self.names,
         )
 
@@ -268,12 +283,16 @@ class MethylationFiles(BaseModel):
     names: list[str]
     genomes: List[str]
     method: MethylationMethod
-    prefix: Path | None = "seqnado_output/methylation/"
+    output_dir: str = "seqnado_output"
+
+    @property
+    def prefix(self) -> str:
+        return f"{self.output_dir}/methylation/"
 
     @property
     def split_bams_files(self) -> List[str]:
         return expand(
-            "seqnado_output/aligned/spikein/{sample}_{genome}.bam",
+            f"{self.output_dir}/aligned/spikein/{{sample}}_{{genome}}.bam",
             sample=self.names,
             genome=self.genomes,
         )
@@ -281,7 +300,7 @@ class MethylationFiles(BaseModel):
     @property
     def methyldackel_files(self) -> List[str]:
 
-        file_pattern = "seqnado_output/methylation/methyldackel/{sample}_{genome}_|METHOD|CpG.bedGraph"
+        file_pattern = f"{self.output_dir}/methylation/methyldackel/{{sample}}_{{genome}}_|METHOD|CpG.bedGraph"
         file_pattern = file_pattern.replace("|METHOD|", self.method.value)
         return expand(
             file_pattern,
@@ -293,10 +312,10 @@ class MethylationFiles(BaseModel):
     def methylation_bias(self) -> List[str]:
         """Return the methylation bias files."""
         files = []
-        files.append("seqnado_output/methylation/methylation_conversion.tsv")
+        files.append(f"{self.output_dir}/methylation/methylation_conversion.tsv")
         files.extend(
             expand(
-                "seqnado_output/methylation/methyldackel/bias/{sample}_{genome}.txt",
+                f"{self.output_dir}/methylation/methyldackel/bias/{{sample}}_{{genome}}.txt",
                 sample=self.names,
                 genome=self.genomes,
             )
@@ -328,7 +347,11 @@ class BigBedFiles(BaseModel):
 class ContactFiles(BaseModel):
     assay: Assay
     names: list[str]
-    prefix: Path | None = "seqnado_output/contacts/"
+    output_dir: str = "seqnado_output"
+
+    @property
+    def prefix(self) -> str:
+        return f"{self.output_dir}/contacts/"
 
     @property
     def cooler_files(self) -> List[str]:
@@ -360,7 +383,11 @@ class QuantificationFiles(BaseModel):
     methods: list[QuantificationMethod] = Field(default_factory=list)
     names: list[str]
     groups: SampleGroups
-    prefix: Path | None = "seqnado_output/quantification"
+    output_dir: str = "seqnado_output"
+
+    @property
+    def prefix(self) -> str:
+        return f"{self.output_dir}/quantification"
 
     @field_validator("methods", mode="before")
     def validate_methods_and_assays(cls, v: list[QuantificationMethod], values: dict[str, Any]) -> list[QuantificationMethod]:
@@ -403,24 +430,25 @@ class GeoSubmissionFiles(BaseModel):
     names: list[str]
     seqnado_files: list[str] = Field(default_factory=list, description="Unfiltered list of files. Will be filtered based on allowed extensions and added.")
     allowed_extensions: list[str] = Field(default_factory=lambda: [".bigWig", ".bed", ".tsv", ".vcf.gz"])
+    output_dir: str = "seqnado_output"
     
     @property
     def default_files(self):
         return [
-            "seqnado_output/geo_submission/md5sums.txt",
-            "seqnado_output/geo_submission/raw_data_checksums.txt",
-            "seqnado_output/geo_submission/processed_data_checksums.txt",
-            "seqnado_output/geo_submission/samples_table.txt",
-            "seqnado_output/geo_submission/protocol.txt",
+            f"{self.output_dir}/geo_submission/md5sums.txt",
+            f"{self.output_dir}/geo_submission/raw_data_checksums.txt",
+            f"{self.output_dir}/geo_submission/processed_data_checksums.txt",
+            f"{self.output_dir}/geo_submission/samples_table.txt",
+            f"{self.output_dir}/geo_submission/protocol.txt",
         ]
     
     @property
     def upload_directory(self) -> Path:
-        return Path("seqnado_output/geo_submission") / self.assay.clean_name
+        return Path(f"{self.output_dir}/geo_submission") / self.assay.clean_name
 
     @property
     def upload_instructions(self) -> Path:
-        return Path("seqnado_output/geo_submission") / "upload_instructions.txt"
+        return Path(f"{self.output_dir}/geo_submission") / "upload_instructions.txt"
     
 
     @property

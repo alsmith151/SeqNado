@@ -553,7 +553,7 @@ class FastqCollection(BaseFastqCollection):
             fs = FastqSet(
                 sample_id=rec["sample_id"],
                 r1=FastqFile(path=rec["r1"]),
-                r2=FastqFile(path=r2_path) if r2_path else None,
+                r2=FastqFile(path=r2_path) if pd.notna(r2_path) else None,
                 **fastqset_kwargs,
             )
             fastq_sets.append(fs)
@@ -906,7 +906,7 @@ class FastqCollectionForIP(BaseFastqCollection):
             ip_set = FastqSetIP(
                 sample_id=rec["sample_id"],
                 r1=FastqFileIP(path=rec["r1"]),
-                r2=FastqFileIP(path=r2_path) if r2_path else None,
+                r2=FastqFileIP(path=r2_path) if pd.notna(r2_path) else None,
                 ip=rec.get("ip"),
             )
 
@@ -914,11 +914,11 @@ class FastqCollectionForIP(BaseFastqCollection):
             r1_ctrl = rec.get("r1_control")
             r2_ctrl = rec.get("r2_control")
             control_set = None
-            if r1_ctrl:
+            if pd.notna(r1_ctrl):
                 control_set = FastqSetIP(
                     sample_id=rec["sample_id"],
                     r1=FastqFileIP(path=r1_ctrl),
-                    r2=FastqFileIP(path=r2_ctrl) if r2_ctrl else None,
+                    r2=FastqFileIP(path=r2_ctrl) if pd.notna(r2_ctrl) else None,
                     ip=rec.get("control"),
                 )
 
