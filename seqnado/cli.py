@@ -717,7 +717,7 @@ def config(
         config_output = output or Path(f"config_{assay_obj.clean_name}.yaml")
         config_output.parent.mkdir(parents=True, exist_ok=True)
     else:
-        dirname = f"{date.today().isoformat()}_{assay_obj.value}_{workflow_config.project.name}"
+        dirname = f"{date.today().isoformat()}_{assay_obj.clean_name}_{workflow_config.project.name}"
         outdir = Path(dirname)
         (outdir / "fastqs").mkdir(parents=True, exist_ok=True)
         logger.info(f"Created output directory: {outdir / 'fastqs'}")
