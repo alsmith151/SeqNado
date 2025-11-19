@@ -2,7 +2,9 @@
 # Imports
 ################################
 import os
+import re
 import shutil
+
 from seqnado import Assay
 from seqnado.config import SeqnadoConfig
 from seqnado.inputs import (
@@ -27,7 +29,7 @@ SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 CONFIG = SeqnadoConfig(**config)  # pyright: ignore[reportUndefinedVariable]
 ASSAY = CONFIG.assay
 INPUT_FILES = get_sample_collection(assay=ASSAY, path=CONFIG.metadata)
-OUTPUT_DIR = config.get("output_dir", f"seqnado_output/{ASSAY}")
+OUTPUT_DIR = config.get("output_dir", f"seqnado_output/{ASSAY.clean_name}")
 
 
 ################################
@@ -70,10 +72,8 @@ OUTPUT: SeqnadoOutputFiles = (
 )
 SAMPLE_NAMES = OUTPUT.sample_names
 
-# Replace seqnado_output with OUTPUT_DIR in all output file paths
-if OUTPUT_DIR != f"seqnado_output/{ASSAY}":
-    import re
-    OUTPUT.files = [re.sub(r'^seqnado_output/', OUTPUT_DIR + '/', f) for f in OUTPUT.files]
+# Replace seqnado_output/ prefix with OUTPUT_DIR in all output file paths
+OUTPUT.files = [re.sub(r'^seqnado_output/', OUTPUT_DIR + '/', f) for f in OUTPUT.files]
 
 ################################
 # Set-Up Workflow
