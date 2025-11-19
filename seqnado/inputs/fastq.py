@@ -679,15 +679,46 @@ class FastqCollectionForIP(BaseFastqCollection):
 
     def get_control_performed(self, uid: str) -> str:
         """
-        Get the control name for the IP sample.
+        Get the control name for the given sample (IP or control).
+        Returns the control fullname associated with this sample.
         """
-        return self.to_dataframe().loc[uid, "control"]
+        # Try to find in experiments
+        for exp in self.experiments:
+            # If it's an IP sample, return its control
+            if exp.ip_set_fullname == uid:
+                return exp.control_fullname if exp.has_control else None
+            # If it's a control sample, return itself
+            if exp.has_control and exp.control_fullname == uid:
+                return exp.control_fullname
+        
+        # Fallback to DataFrame lookup
+        df = self.to_dataframe()
+        if uid in df.index:
+            return df.loc[uid, "control"]
+        
+        raise KeyError(f"Sample '{uid}' not found in FastqCollectionForIP")
 
     def is_paired_end(self, uid: str) -> bool:
         """
         Check if the given sample ID is paired-end.
+        For IP samples, checks the IP fastq r2.
+        For control samples, checks the control fastq r2.
         """
-        return self.to_dataframe().loc[uid, "r2"] is not None
+        # Try to find the sample in experiments directly
+        for exp in self.experiments:
+            # Check if it's the IP sample
+            if exp.ip_set_fullname == uid:
+                return exp.ip.is_paired
+            # Check if it's the control sample
+            if exp.has_control and exp.control_fullname == uid:
+                return exp.control.is_paired
+        
+        # Fallback: try DataFrame lookup (for backwards compatibility)
+        df = self.to_dataframe()
+        if uid in df.index:
+            return df.loc[uid, "r2"] is not None
+        
+        raise KeyError(f"Sample '{uid}' not found in FastqCollectionForIP")
 
     def query(
         self,
@@ -840,3 +871,50 @@ class FastqCollectionForIP(BaseFastqCollection):
 
         df = pd.DataFrame(rows).sort_values("sample_id").set_index("uid")
         return DataFrame[DesignDataFrame](df)
+
+    @classmethod
+    def from_dataframe(
+        cls, assay: Assay, df: pd.DataFrame, **exp_kwargs: Any
+    ) -> FastqCollectionForIP:
+        """
+        Build a FastqCollectionForIP from a DataFrame.
+
+        Expects columns: sample_id, r1, r2 (optional), r1_control (optional), 
+        r2_control (optional), ip, control (optional), plus any metadata fields.
+        """
+        df = DesignDataFrame.validate(df)
+        experiments: list[ExperimentIP] = []
+        metadata: list[Metadata] = []
+        metadata_fields = set(Metadata.model_fields.keys())
+
+        for rec in df.to_dict(orient="records"):
+            # Build IP FastqSetIP
+            r2_path = rec.get("r2")
+            ip_set = FastqSetIP(
+                sample_id=rec["sample_id"],
+                r1=FastqFileIP(path=rec["r1"]),
+                r2=FastqFileIP(path=r2_path) if r2_path else None,
+                ip=rec.get("ip"),
+            )
+
+            # Build control FastqSetIP if present
+            r1_ctrl = rec.get("r1_control")
+            r2_ctrl = rec.get("r2_control")
+            control_set = None
+            if r1_ctrl:
+                control_set = FastqSetIP(
+                    sample_id=rec["sample_id"],
+                    r1=FastqFileIP(path=r1_ctrl),
+                    r2=FastqFileIP(path=r2_ctrl) if r2_ctrl else None,
+                    ip=rec.get("control"),
+                )
+
+            experiments.append(
+                ExperimentIP(ip=ip_set, control=control_set, **exp_kwargs)
+            )
+
+            # Collect metadata
+            meta_fields = {k: rec.get(k) for k in metadata_fields if k in rec}
+            metadata.append(Metadata(**meta_fields))
+
+        return cls(assay=assay, experiments=experiments, metadata=metadata)
