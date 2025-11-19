@@ -10,11 +10,11 @@ if CONFIG.assay_config.create_ucsc_hub:
                 OUTPUT.bigwig_files,
                 OUTPUT.bigbed_files,
             ],
-            report="seqnado_output/seqnado_report.html",
+            report=OUTPUT_DIR + "/seqnado_report.html",
         output:
             hub=OUTPUT.ucsc_hub_files,
         log:
-            log=f"seqnado_output/logs/{CONFIG.assay_config.ucsc_hub.name}.hub.log",
+            log=OUTPUT_DIR + "/logs/{CONFIG.assay_config.ucsc_hub.name}.hub.log",
         container:
             "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         params:

@@ -34,17 +34,17 @@ def redefine_viewpoints(samples):
 
 rule identify_viewpoint_reads:
     input:
-        bam="seqnado_output/aligned/{sample}.bam",
-        bai="seqnado_output/aligned/{sample}.bam.bai",
+        bam=OUTPUT_DIR + "/aligned/{sample}.bam",
+        bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
     output:
-        bam=temp("seqnado_output/mcc/replicates/{sample}/{sample}_unsorted.bam"),
+        bam=temp(OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}_unsorted.bam"),
     params:
-        output_dir="seqnado_output/mcc/{sample}/reporters/raw/",
+        output_dir=OUTPUT_DIR + "/mcc/{sample}/reporters/raw/",
     threads: 1
     resources:
         mem="1GB",
     log:
-        "seqnado_output/logs/identify_viewpoint_reads/{sample}.log",
+        OUTPUT_DIR + "/logs/identify_viewpoint_reads/{sample}.log",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         """
@@ -53,18 +53,18 @@ rule identify_viewpoint_reads:
 
 use rule sort_bam as sort_bam_viewpoints with:
     input:
-        bam="seqnado_output/mcc/replicates/{sample}/{sample}_unsorted.bam",
+        bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}_unsorted.bam",
     output:
-        bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
-        read_log="seqnado_output/mcc/replicates/{sample}/{sample}_read_log.txt",
+        bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam",
+        read_log=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}_read_log.txt",
     log:
-        "seqnado_output/logs/sort_bam_viewpoints/{sample}.log",
+        OUTPUT_DIR + "/logs/sort_bam_viewpoints/{sample}.log",
 
 use rule index_bam as index_bam_viewpoints with:
     input:
-        bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
+        bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam",
     output:
-        bai="seqnado_output/mcc/replicates/{sample}/{sample}.bam.bai",
+        bai=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam.bai",
 
 # ruleorder:
 #     combine_genome_mapped_reads > align_paired

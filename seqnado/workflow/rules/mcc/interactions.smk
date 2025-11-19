@@ -1,18 +1,18 @@
 
 rule identify_ligation_junctions:
     input:
-        bam="seqnado_output/mcc/{group}/{group}.bam",
-        bai="seqnado_output/mcc/{group}/{group}.bam.bai",
+        bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
+        bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
     output:
-        pairs=temp(expand("seqnado_output/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS)),
+        pairs=temp(expand(OUTPUT_DIR + "/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS)),
     log:
-        "seqnado_output/logs/ligation_junctions/{group}.log",
+        OUTPUT_DIR + "/logs/ligation_junctions/{group}.log",
     threads: 1
     resources:
         mem="1GB",
     container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
     params:
-        outdir="seqnado_output/mcc/{group}/ligation_junctions/raw/",
+        outdir=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/raw/",
     shell:
         """
         mccnado identify-ligation-junctions \
@@ -23,15 +23,15 @@ rule identify_ligation_junctions:
 
 rule sort_ligation_junctions:
     input:
-        pairs="seqnado_output/mcc/{group}/ligation_junctions/raw/{viewpoint}.pairs",
+        pairs=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/raw/{viewpoint}.pairs",
     output:
-        pairs=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs"),
+        pairs=temp(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.pairs"),
     threads: 1
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
-        "seqnado_output/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
+        OUTPUT_DIR + "/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
     shell:
         """
         sort -k2,2 -k4,4 -k3,3n -k5,5n {input.pairs} > {output.pairs}
@@ -39,11 +39,11 @@ rule sort_ligation_junctions:
 
 rule bgzip_pairs:
     input:
-        pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs",
+        pairs=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.pairs",
     output:
-        pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+        pairs=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
     log:
-        "seqnado_output/logs/bgzip_pairs/{group}_{viewpoint}.log",
+        OUTPUT_DIR + "/logs/bgzip_pairs/{group}_{viewpoint}.log",
     shell:
         """
         bgzip -c {input.pairs} > {output.pairs}
@@ -51,12 +51,12 @@ rule bgzip_pairs:
 
 rule make_cooler:
     input:
-        pairs="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
-        bins="seqnado_output/resources/genomic_bins.bed",
+        pairs=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
+        bins=OUTPUT_DIR + "/resources/genomic_bins.bed",
     output:
-        cooler=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.cool"),
+        cooler=temp(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.cool"),
     log:
-        "seqnado_output/logs/make_cooler/{group}_{viewpoint}.log",
+        OUTPUT_DIR + "/logs/make_cooler/{group}_{viewpoint}.log",
     params:
         resolution=CONFIG.assay_config.mcc.resolution,
         genome=CONFIG.genome.name,
@@ -76,11 +76,11 @@ rule make_cooler:
 
 rule zoomify_cooler:
     input:
-        cooler="seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.cool",
+        cooler=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.cool",
     output:
-        cooler=temp("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool"),
+        cooler=temp(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.mcool"),
     log:
-        "seqnado_output/logs/zoomify_cooler/{group}_{viewpoint}.log",
+        OUTPUT_DIR + "/logs/zoomify_cooler/{group}_{viewpoint}.log",
     params:
         resolutions=CONFIG.assay_config.mcc.resolutions,
     resources:
@@ -95,13 +95,13 @@ rule zoomify_cooler:
 
 rule aggregate_coolers:
     input:
-        mcools=expand("seqnado_output/mcc/{group}/ligation_junctions/{viewpoint}.mcool", 
+        mcools=expand(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.mcool", 
                     group=SAMPLE_GROUPINGS.groupings.keys(), 
                     viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     output:
-        mcool="seqnado_output/mcc/{group}/{group}.mcool",
+        mcool=OUTPUT_DIR + "/mcc/{group}/{group}.mcool",
     log:
-        "seqnado_output/logs/{group}_aggregate_coolers.log",
+        OUTPUT_DIR + "/logs/{group}_aggregate_coolers.log",
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),

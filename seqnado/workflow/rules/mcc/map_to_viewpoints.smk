@@ -4,9 +4,9 @@ rule viewpoints_to_fasta:
         bed=CONFIG.mcc_viewpoints,
         genome=CONFIG.genome.fasta,
     output:
-        fasta="seqnado_output/resources/viewpoints.fa",
+        fasta=OUTPUT_DIR + "/resources/viewpoints.fa",
     log:
-        "seqnado_output/logs/bed_to_fasta/viewpoints.log",
+        OUTPUT_DIR + "/logs/bed_to_fasta/viewpoints.log",
     
     shell:
         """
@@ -18,11 +18,11 @@ rule viewpoints_to_fasta:
 
 rule fasta_index:
     input:
-        fasta="seqnado_output/resources/viewpoints.fa",
+        fasta=OUTPUT_DIR + "/resources/viewpoints.fa",
     output:
-        index="seqnado_output/resources/viewpoints.fa.fai",
+        index=OUTPUT_DIR + "/resources/viewpoints.fa.fai",
     log:
-        "seqnado_output/logs/bed_to_fasta/index.log",
+        OUTPUT_DIR + "/logs/bed_to_fasta/index.log",
     shell:
         """
         samtools faidx {input.fasta} -o {output.index}
@@ -32,9 +32,9 @@ rule exclusion_regions:
     input:
         bed=CONFIG.mcc_viewpoints,
     output:
-        bed="seqnado_output/resources/exclusion_regions.bed"
+        bed=OUTPUT_DIR + "/resources/exclusion_regions.bed"
     log:
-        "seqnado_output/logs/exclusion_regions.log"
+        OUTPUT_DIR + "/logs/exclusion_regions.log"
     params:
         genome=CONFIG.genome.chromosome_sizes,
         exclusion_zone=CONFIG.assay_config.mcc.exclusion_zone
@@ -46,16 +46,16 @@ rule exclusion_regions:
 
 rule minimap2_to_viewpoints:
     input:
-        fq="seqnado_output/flashed/{sample}/{sample}.extendedFrags.fastq.gz",
-        viewpoints="seqnado_output/resources/viewpoints.fa",
+        fq=OUTPUT_DIR + "/flashed/{sample}/{sample}.extendedFrags.fastq.gz",
+        viewpoints=OUTPUT_DIR + "/resources/viewpoints.fa",
     output:
-        bam=temp("seqnado_output/aligned/aligned_to_viewpoints/{sample}.bam"),
+        bam=temp(OUTPUT_DIR + "/aligned/aligned_to_viewpoints/{sample}.bam"),
     threads: 4
     resources:
         mem="4GB",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/aligned/{sample}.log",
+        OUTPUT_DIR + "/logs/aligned/{sample}.log",
     shell:
         """
         minimap2 -x sr -a -k 8 -w 1 --cs=long {input.viewpoints} {input.fq} 2> {log} |

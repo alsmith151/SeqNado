@@ -8,7 +8,7 @@ rule heatmap_matrix:
             scale=ScaleMethod.UNSCALED
         ),
     output:
-        matrix=temp("seqnado_output/heatmap/heatmap_matrix.mat.gz"),
+        matrix=temp(OUTPUT_DIR + "/heatmap/heatmap_matrix.mat.gz"),
     params:
         gtf=CONFIG.genome.gtf,
         options=str(CONFIG.third_party_tools.deeptools.compute_matrix.command_line_arguments),
@@ -18,36 +18,36 @@ rule heatmap_matrix:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/heatmap/matrix.log",
+        OUTPUT_DIR + "/logs/heatmap/matrix.log",
     shell:
         """computeMatrix scale-regions -p {threads} {params.options} --smartLabels --missingDataAsZero -S {input.bigwigs} -R {params.gtf} -o {output.matrix} >> {log} 2>&1"""
 
 
 rule heatmap_plot:
     input:
-        matrix="seqnado_output/heatmap/heatmap_matrix.mat.gz",
+        matrix=OUTPUT_DIR + "/heatmap/heatmap_matrix.mat.gz",
     output:
-        heatmap="seqnado_output/heatmap/heatmap.pdf",
+        heatmap=OUTPUT_DIR + "/heatmap/heatmap.pdf",
     params:
         options=str(CONFIG.third_party_tools.deeptools.plot_heatmap.command_line_arguments),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/heatmap/heatmap.log",
+        OUTPUT_DIR + "/logs/heatmap/heatmap.log",
     shell:
         """plotHeatmap -m {input.matrix} -out {output.heatmap} {params.options}"""
 
 
 rule heatmap_metaplot:
     input:
-        matrix="seqnado_output/heatmap/heatmap_matrix.mat.gz",
+        matrix=OUTPUT_DIR + "/heatmap/heatmap_matrix.mat.gz",
     output:
-        metaplot="seqnado_output/heatmap/metaplot.pdf",
+        metaplot=OUTPUT_DIR + "/heatmap/metaplot.pdf",
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/heatmap/metaplot.log",
+        OUTPUT_DIR + "/logs/heatmap/metaplot.log",
     shell:
         """plotProfile -m {input.matrix} -out {output.metaplot} --perGroup"""

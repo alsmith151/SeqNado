@@ -8,9 +8,9 @@ rule make_dataset_regions:
             scale=ScaleMethod.UNSCALED
         ),
     output:
-        dataset="seqnado_output/dataset/dataset_regions.h5ad",
+        dataset=OUTPUT_DIR + "/dataset/dataset_regions.h5ad",
     params:
-        bigwig_dir="seqnado_output/bigwigs/deeptools/unscaled/",
+        bigwig_dir=OUTPUT_DIR + "/bigwigs/deeptools/unscaled/",
         chromosome_sizes=CONFIG.genome.chromosome_sizes,
         blacklist=CONFIG.genome.blacklist,
         regions=CONFIG.assay_config.dataset_for_ml.regions_bed,
@@ -19,7 +19,7 @@ rule make_dataset_regions:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest",
-    log: "seqnado_output/logs/make_dataset_regions.log",
+    log: OUTPUT_DIR + "/logs/make_dataset_regions.log",
     shell:"""
     quantnado-make-dataset \
     --bigwig-dir {params.bigwig_dir} \
@@ -38,9 +38,9 @@ rule make_dataset_binsize:
             scale=ScaleMethod.UNSCALED
         ),
     output:
-        dataset="seqnado_output/dataset/dataset_bins.h5ad",
+        dataset=OUTPUT_DIR + "/dataset/dataset_bins.h5ad",
     params:
-        bigwig_dir="seqnado_output/bigwigs/deeptools/unscaled/",
+        bigwig_dir=OUTPUT_DIR + "/bigwigs/deeptools/unscaled/",
         chromosome_sizes=CONFIG.genome.chromosome_sizes,
         blacklist=CONFIG.genome.blacklist,
         binsize=CONFIG.assay_config.dataset_for_ml.binsize,
@@ -49,7 +49,7 @@ rule make_dataset_binsize:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest",
-    log: "seqnado_output/logs/make_dataset_binsize.log",
+    log: OUTPUT_DIR + "/logs/make_dataset_binsize.log",
     shell:"""
     quantnado-make-dataset \
     --bigwig-dir {params.bigwig_dir} \

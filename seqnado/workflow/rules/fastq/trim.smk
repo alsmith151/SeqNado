@@ -4,11 +4,11 @@ from seqnado.helpers import define_time_requested, define_memory_requested
 rule trimgalore_paired:
     # Trim reads using trimgalore
     input:
-        fq1="seqnado_output/fastqs/{sample}_1.fastq.gz",
-        fq2="seqnado_output/fastqs/{sample}_2.fastq.gz",
+        fq1=OUTPUT_DIR + "/fastqs/{sample}_1.fastq.gz",
+        fq2=OUTPUT_DIR + "/fastqs/{sample}_2.fastq.gz",
     output:
-        trimmed1=temp("seqnado_output/trimmed/{sample}_1.fastq.gz"),
-        trimmed2=temp("seqnado_output/trimmed/{sample}_2.fastq.gz"),
+        trimmed1=temp(OUTPUT_DIR + "/trimmed/{sample}_1.fastq.gz"),
+        trimmed2=temp(OUTPUT_DIR + "/trimmed/{sample}_2.fastq.gz"),
     threads: CONFIG.third_party_tools.trim_galore.trim.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -16,9 +16,9 @@ rule trimgalore_paired:
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     params:
         options=str(CONFIG.third_party_tools.trim_galore.trim.command_line_arguments),
-        trim_dir="seqnado_output/trimmed",
+        trim_dir=OUTPUT_DIR + "/trimmed",
     log:
-        "seqnado_output/logs/trimming/{sample}.log",
+        OUTPUT_DIR + "/logs/trimming/{sample}.log",
     shell:
         """
         trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --paired --output_dir {params.trim_dir} {input.fq1} {input.fq2} >> {log} 2>&1 &&
@@ -30,9 +30,9 @@ rule trimgalore_paired:
 rule trimgalore_single:
     # Trim reads using trimgalore
     input:
-        fq="seqnado_output/fastqs/{sample}.fastq.gz",
+        fq=OUTPUT_DIR + "/fastqs/{sample}.fastq.gz",
     output:
-        trimmed=temp("seqnado_output/trimmed/{sample}.fastq.gz"),
+        trimmed=temp(OUTPUT_DIR + "/trimmed/{sample}.fastq.gz"),
     threads: CONFIG.third_party_tools.trim_galore.trim.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -40,9 +40,9 @@ rule trimgalore_single:
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     params:
         options=str(CONFIG.third_party_tools.trim_galore.trim.command_line_arguments),
-        trim_dir="seqnado_output/trimmed",
+        trim_dir=OUTPUT_DIR + "/trimmed",
     log:
-        "seqnado_output/logs/trimming/{sample}.log",
+        OUTPUT_DIR + "/logs/trimming/{sample}.log",
     shell:
         """
         trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --output_dir {params.trim_dir} {input.fq} >> {log} 2>&1 &&

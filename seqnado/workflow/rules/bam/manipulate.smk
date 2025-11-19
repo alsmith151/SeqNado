@@ -3,23 +3,23 @@ from seqnado.helpers import  define_time_requested, define_memory_requested
 if CONFIG.shift_for_tn5_insertion:
     rule shift_atac_alignments:
         input:
-            bam="seqnado_output/aligned/duplicates_removed/{sample}.bam",
-            bai="seqnado_output/aligned/duplicates_removed/{sample}.bam.bai",
+            bam=OUTPUT_DIR + "/aligned/duplicates_removed/{sample}.bam",
+            bai=OUTPUT_DIR + "/aligned/duplicates_removed/{sample}.bam.bai",
         output:
-            bam=temp("seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam"),
+            bam=temp(OUTPUT_DIR + "/aligned/shifted_for_tn5_insertion/{sample}.bam"),
             bai=temp(
-                "seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai"
+                OUTPUT_DIR + "/aligned/shifted_for_tn5_insertion/{sample}.bam.bai"
             ),
             tmp=temp(
-                "seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.tmp"
+                OUTPUT_DIR + "/aligned/shifted_for_tn5_insertion/{sample}.bam.tmp"
             ),
-            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv"),
+            read_log=temp(OUTPUT_DIR + "/qc/alignment_post_process/{sample}_atac_shift.tsv"),
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         threads: 1
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-        log: "seqnado_output/logs/alignment_post_process/{sample}_atac_shift.log",
+        log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_atac_shift.log",
         shell:"""
         bamnado modify --input {input.bam} --output {output.tmp} --tn5-shift &&
         samtools sort {output.tmp} -@ {threads} -o {output.bam} &&
@@ -30,14 +30,14 @@ if CONFIG.shift_for_tn5_insertion:
 else:
     rule move_bam_to_temp_location:
         input:
-            bam="seqnado_output/aligned/duplicates_removed/{sample}.bam",
-            bai="seqnado_output/aligned/duplicates_removed/{sample}.bam.bai",
+            bam=OUTPUT_DIR + "/aligned/duplicates_removed/{sample}.bam",
+            bai=OUTPUT_DIR + "/aligned/duplicates_removed/{sample}.bam.bai",
         output:
-            bam=temp("seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam"),
+            bam=temp(OUTPUT_DIR + "/aligned/shifted_for_tn5_insertion/{sample}.bam"),
             bai=temp(
-                "seqnado_output/aligned/shifted_for_tn5_insertion/{sample}.bam.bai"
+                OUTPUT_DIR + "/aligned/shifted_for_tn5_insertion/{sample}.bam.bai"
             ),
-            read_log=temp("seqnado_output/qc/alignment_post_process/{sample}_atac_shift.tsv"),
+            read_log=temp(OUTPUT_DIR + "/qc/alignment_post_process/{sample}_atac_shift.tsv"),
         threads: 1
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         shell:"""

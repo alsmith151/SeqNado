@@ -6,10 +6,10 @@ def get_n_cis_scaling_factor(wc):
 
     # Can either extract the stats for the sample or the group
     if hasattr(wc, "group"):
-        stats_file = f"seqnado_output/resources/{wc.group}_ligation_stats.json"
+        stats_file = OUTPUT_DIR + "/resources/{wc.group}_ligation_stats.json"
     else:
         # If not, then use the sample
-        stats_file = f"seqnado_output/resources/{wc.sample}_ligation_stats.json"
+        stats_file = OUTPUT_DIR + "/resources/{wc.sample}_ligation_stats.json"
     
     # Create Path object and ensure the file exists
     stats_path = Path(stats_file)
@@ -39,14 +39,14 @@ def get_n_cis_scaling_factor(wc):
 
 rule make_bigwigs_mcc_replicates:
     input:
-        bam="seqnado_output/mcc/replicates/{sample}/{sample}.bam",
-        bai="seqnado_output/mcc/replicates/{sample}/{sample}.bam.bai",
-        excluded_regions="seqnado_output/resources/exclusion_regions.bed",
-        cis_or_trans_stats="seqnado_output/resources/{sample}_ligation_stats.json",
+        bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam",
+        bai=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam.bai",
+        excluded_regions=OUTPUT_DIR + "/resources/exclusion_regions.bed",
+        cis_or_trans_stats=OUTPUT_DIR + "/resources/{sample}_ligation_stats.json",
     output:
-        bigwig="seqnado_output/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig"
+        bigwig=OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig"
     log:
-        "seqnado_output/logs/bigwig/{sample}_{viewpoint_group}.log",
+        OUTPUT_DIR + "/logs/bigwig/{sample}_{viewpoint_group}.log",
     params:
         options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
@@ -68,7 +68,7 @@ def get_mcc_bam_files_for_merge(wildcards):
     groups = SAMPLE_GROUPINGS.groupings.get(wildcards.group)
     sample_names = groups.get_samples() if groups else []
     bam_files = [
-        f"seqnado_output/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
+        OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
     ]
     return bam_files
 
@@ -77,13 +77,13 @@ rule merge_mcc_bams:
     input:
         bams=get_mcc_bam_files_for_merge,
     output:
-        "seqnado_output/mcc/{group}/{group}.bam",
+        OUTPUT_DIR + "/mcc/{group}/{group}.bam",
     threads: CONFIG.third_party_tools.samtools.merge.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
-        "seqnado_output/logs/merge_bam/{group}.log",
+        OUTPUT_DIR + "/logs/merge_bam/{group}.log",
     shell:
         """
         samtools merge {output} {input} -@ {threads}
@@ -92,43 +92,43 @@ rule merge_mcc_bams:
 
 use rule index_bam as index_bam_merged with:
     input:
-        bam="seqnado_output/mcc/{group}/{group}.bam",
+        bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
     output:
-        bai="seqnado_output/mcc/{group}/{group}.bam.bai",
+        bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
     log:
-        "seqnado_output/logs/index_bam_merged/{group}.log",
+        OUTPUT_DIR + "/logs/index_bam_merged/{group}.log",
 
 
 
 
 use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     input:
-        bam="seqnado_output/mcc/{group}/{group}.bam",
-        bai="seqnado_output/mcc/{group}/{group}.bam.bai",
-        excluded_regions="seqnado_output/resources/exclusion_regions.bed",
-        cis_or_trans_stats="seqnado_output/resources/{group}_ligation_stats.json",
+        bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
+        bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
+        excluded_regions=OUTPUT_DIR + "/resources/exclusion_regions.bed",
+        cis_or_trans_stats=OUTPUT_DIR + "/resources/{group}_ligation_stats.json",
     output:
-        bigwig="seqnado_output/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig",
+        bigwig=OUTPUT_DIR + "/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig",
     params:
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
         options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
     log:
-        "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
+        OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
     container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest'
 
 
 use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     input:
-        bam="seqnado_output/mcc/{group}/{group}.bam",
-        bai="seqnado_output/mcc/{group}/{group}.bam.bai",
-        excluded_regions="seqnado_output/resources/exclusion_regions.bed",
+        bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
+        bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
+        excluded_regions=OUTPUT_DIR + "/resources/exclusion_regions.bed",
     output:
-        bigwig="seqnado_output/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig"
+        bigwig=OUTPUT_DIR + "/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig"
     params:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=1,
         options=check_options(config["bamnado"]["bamcoverage"]),
     log:
-        "seqnado_output/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
+        OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
 
 

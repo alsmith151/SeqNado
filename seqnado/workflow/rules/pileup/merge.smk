@@ -5,10 +5,10 @@ from seqnado.helpers import define_time_requested, define_memory_requested
 
 rule deeptools_make_bigwigs_consensus:
     input:
-        bam="seqnado_output/aligned/merged/{sample}.bam",
-        bai="seqnado_output/aligned/merged/{sample}.bam.bai",
+        bam=OUTPUT_DIR + "/aligned/merged/{sample}.bam",
+        bai=OUTPUT_DIR + "/aligned/merged/{sample}.bam.bai",
     output:
-        bigwig="seqnado_output/bigwigs/deeptools/merged/{sample}.bigWig",
+        bigwig=OUTPUT_DIR + "/bigwigs/deeptools/merged/{sample}.bigWig",
     params:
         options=lambda wildcards: format_deeptools_options_grouped(wildcards, config["deeptools"]["bamcoverage"]),
     resources:
@@ -17,7 +17,7 @@ rule deeptools_make_bigwigs_consensus:
     threads:
         CONFIG.third_party_tools.deeptools.bam_coverage.threads,
     log:
-        "seqnado_output/logs/bigwigs/{sample}.log",
+        OUTPUT_DIR + "/logs/bigwigs/{sample}.log",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
         """

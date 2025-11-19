@@ -2,11 +2,11 @@
 
 rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     input:
-        bigwig="seqnado_output/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig",
+        bigwig=OUTPUT_DIR + "/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig",
     output:
-        peaks="seqnado_output/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
+        peaks=OUTPUT_DIR + "/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
     log:
-        "seqnado_output/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
+        OUTPUT_DIR + "/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
     params:
         options=str(CONFIG.third_party_tools.lanceotron_mcc.call_peaks.command_line_arguments),
     container: None

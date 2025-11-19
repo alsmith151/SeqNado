@@ -7,11 +7,11 @@ rule generate_plotnado_visualisation:
         ],
     output:
         plots=OUTPUT.genome_browser_plots,
-        template="seqnado_output/genome_browser_plots/template.toml",
+        template=OUTPUT_DIR + "/genome_browser_plots/template.toml",
     params:
         assay=ASSAY,
         genes=CONFIG.assay_config.plotting.genes,
-        outdir="seqnado_output/genome_browser_plots/",
+        outdir=OUTPUT_DIR + "/genome_browser_plots/",
         regions=CONFIG.assay_config.plotting.regions,
         plotting_format=CONFIG.assay_config.plotting.file_format,
     resources:

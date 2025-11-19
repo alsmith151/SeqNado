@@ -608,7 +608,7 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
 
     # Get metadata path
     metadata_path = get_user_input(
-        "Path to metadata file:", default="metadata.csv", is_path=False
+        "Path to metadata file:", default=f"metadata_{assay.clean_name}.csv", is_path=False
     )
 
     # Build assay-specific configuration
@@ -658,7 +658,7 @@ def build_default_workflow_config(assay: Assay) -> SeqnadoConfig:
             assay=assay,
             project=default_project,
             genome=default_genome,
-            metadata="metadata.csv",
+            metadata=f"metadata_{assay.clean_name}.csv",
             assay_config=assay_config,
         )
         return workflow_config

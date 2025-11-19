@@ -27,11 +27,11 @@ def get_control_file(wildcards, file_type: FileType):
     # Match control with correct filetype
     match file_type:
         case FileType.BAM:
-            return f"seqnado_output/aligned/{control_name}.bam"
+            return OUTPUT_DIR + f"/aligned/{control_name}.bam"
         case FileType.BIGWIG:
-            return f"seqnado_output/bigwigs/deeptools/{DataScalingTechnique.UNSCALED.value}/{control_name}.bigwig"
+            return OUTPUT_DIR + f"/bigwigs/deeptools/{DataScalingTechnique.UNSCALED.value}/{control_name}.bigwig"
         case FileType.TAG:
-            return f"seqnado_output/tag_dirs/{control_name}.tag"
+            return OUTPUT_DIR + f"/tag_dirs/{control_name}.tag"
         case _:
             raise ValueError(f"Unsupported file type '{file_type}' for control file retrieval")
 
@@ -59,10 +59,10 @@ def get_lanceotron_call_peaks_threshold(wildcards):
 
 rule macs2_with_input:
     input:
-        treatment="seqnado_output/aligned/{sample_id}.bam",
+        treatment=OUTPUT_DIR + "/aligned/{sample_id}.bam",
         control=lambda wc: get_control_file(wc, file_type=FileType.BAM),
     output:
-        peaks="seqnado_output/peaks/macs2/{sample_id}.bed",
+        peaks=OUTPUT_DIR + "/peaks/macs2/{sample_id}.bed",
     params:
         options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.call_peaks.command_line_arguments)),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
@@ -72,7 +72,7 @@ rule macs2_with_input:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     log:
-        "seqnado_output/logs/macs2/{sample_id}.log",
+        OUTPUT_DIR + "/logs/macs2/{sample_id}.log",
     container:
         "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
     shell:
@@ -84,9 +84,9 @@ rule macs2_with_input:
 
 rule macs2_no_input:
     input:
-        treatment="seqnado_output/aligned/{sample_id}.bam",
+        treatment=OUTPUT_DIR + "/aligned/{sample_id}.bam",
     output:
-        peaks="seqnado_output/peaks/macs2/{sample_id}.bed",
+        peaks=OUTPUT_DIR + "/peaks/macs2/{sample_id}.bed",
     params:
         options=lambda wc: str(correct_macs_options(wc, CONFIG.third_party_tools.macs.call_peaks.command_line_arguments)),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
@@ -96,7 +96,7 @@ rule macs2_no_input:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log:
-        "seqnado_output/logs/macs2/{sample_id}.log",
+        OUTPUT_DIR + "/logs/macs2/{sample_id}.log",
     container:
         "docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1"
     shell:
@@ -112,12 +112,12 @@ ruleorder: macs2_with_input > macs2_no_input
 
 rule homer_with_input:
     input:
-        treatment="seqnado_output/tag_dirs/{sample_id}",
+        treatment=OUTPUT_DIR + "/tag_dirs/{sample_id}",
         control=lambda wc: get_control_file(wc, file_type=FileType.TAG),
     output:
-        peaks="seqnado_output/peaks/homer/{sample_id}.bed",
+        peaks=OUTPUT_DIR + "/peaks/homer/{sample_id}.bed",
     log:
-        "seqnado_output/logs/homer/{sample_id}.log",
+        OUTPUT_DIR + "/logs/homer/{sample_id}.log",
     params:
         options=str(CONFIG.third_party_tools.homer.find_peaks.command_line_arguments),
     threads: 1
@@ -135,11 +135,11 @@ rule homer_with_input:
 
 rule homer_no_input:
     input:
-        treatment="seqnado_output/tag_dirs/{sample_id}",
+        treatment=OUTPUT_DIR + "/tag_dirs/{sample_id}",
     output:
-        peaks="seqnado_output/peaks/homer/{sample_id}.bed",
+        peaks=OUTPUT_DIR + "/peaks/homer/{sample_id}.bed",
     log:
-        "seqnado_output/logs/homer/{sample_id}.log",
+        OUTPUT_DIR + "/logs/homer/{sample_id}.log",
     params:
         options=str(CONFIG.third_party_tools.homer.find_peaks.command_line_arguments),
     threads: 1
@@ -159,13 +159,13 @@ ruleorder: homer_with_input > homer_no_input
 
 rule lanceotron_with_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample_id}.bigWig",
+        treatment=OUTPUT_DIR + "/bigwigs/deeptools/unscaled/{sample_id}.bigWig",
         control=lambda wc: get_control_file(wc, file_type=FileType.BIGWIG),
     output:
-        peaks="seqnado_output/peaks/lanceotron/{sample_id}.bed",
-        ltron_peaks=temp("seqnado_output/peaks/lanceotron/{sample_id}_L-tron.bed"),
+        peaks=OUTPUT_DIR + "/peaks/lanceotron/{sample_id}.bed",
+        ltron_peaks=temp(OUTPUT_DIR + "/peaks/lanceotron/{sample_id}_L-tron.bed"),
     log:
-        "seqnado_output/logs/lanceotron/{sample_id}.log",
+        OUTPUT_DIR + "/logs/lanceotron/{sample_id}.log",
     params:
         threshold=lambda wildcards: get_lanceotron_call_peaks_threshold(wildcards),
         options=str(CONFIG.third_party_tools.lanceotron.call_peaks.command_line_arguments),
@@ -185,12 +185,12 @@ rule lanceotron_with_input:
 
 rule lanceotron_no_input:
     input:
-        treatment="seqnado_output/bigwigs/deeptools/unscaled/{sample_id}.bigWig",
+        treatment=OUTPUT_DIR + "/bigwigs/deeptools/unscaled/{sample_id}.bigWig",
     output:
-        peaks="seqnado_output/peaks/lanceotron/{sample_id}.bed",
-        ltron_peaks=temp("seqnado_output/peaks/lanceotron/{sample_id}_L-tron.bed"),
+        peaks=OUTPUT_DIR + "/peaks/lanceotron/{sample_id}.bed",
+        ltron_peaks=temp(OUTPUT_DIR + "/peaks/lanceotron/{sample_id}_L-tron.bed"),
     log:
-        "seqnado_output/logs/lanceotron/{sample_id}.log",
+        OUTPUT_DIR + "/logs/lanceotron/{sample_id}.log",
     params:
         options=str(CONFIG.third_party_tools.lanceotron.call_peaks.command_line_arguments),
         outdir=lambda wc, output: os.path.dirname(output.peaks),
@@ -213,13 +213,13 @@ if ASSAY == Assay.CAT:
 
     rule seacr:
         input:
-            treatment="seqnado_output/bedgraphs/{sample_id}.bedGraph",
+            treatment=OUTPUT_DIR + "/bedgraphs/{sample_id}.bedGraph",
         output:
-            peaks="seqnado_output/peaks/seacr/{sample_id}.bed",
-            seacr=temp("seqnado_output/peaks/seacr/{sample_id}_seacr.txt"),
-            noM=temp("seqnado_output/bedgraphs/{sample_id}.nochrM.bedGraph"),
+            peaks=OUTPUT_DIR + "/peaks/seacr/{sample_id}.bed",
+            seacr=temp(OUTPUT_DIR + "/peaks/seacr/{sample_id}_seacr.txt"),
+            noM=temp(OUTPUT_DIR + "/bedgraphs/{sample_id}.nochrM.bedGraph"),
         log:
-            "seqnado_output/logs/seacr/{sample_id}.log",
+            OUTPUT_DIR + "/logs/seacr/{sample_id}.log",
         params:
             threshold=CONFIG.third_party_tools.seacr.threshold,
             norm=CONFIG.third_party_tools.seacr.normalization,

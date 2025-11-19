@@ -1,11 +1,11 @@
 rule bcftools_call_snp:
     input:
-        bam="seqnado_output/aligned/{sample}.bam",
-        bai="seqnado_output/aligned/{sample}.bam.bai",
+        bam=OUTPUT_DIR + "/aligned/{sample}.bam",
+        bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
     output:
-        vcf=temp("seqnado_output/variant/{sample}.raw.vcf.gz"),
-        idx=temp("seqnado_output/variant/{sample}.raw.vcf.gz.tbi"),
-        stats="seqnado_output/qc/variant/{sample}.stats.txt",
+        vcf=temp(OUTPUT_DIR + "/variant/{sample}.raw.vcf.gz"),
+        idx=temp(OUTPUT_DIR + "/variant/{sample}.raw.vcf.gz.tbi"),
+        stats=OUTPUT_DIR + "/qc/variant/{sample}.stats.txt",
     params:
         fasta=CONFIG.genome.fasta,
     resources:
@@ -14,7 +14,7 @@ rule bcftools_call_snp:
     threads: CONFIG.third_party_tools.bcftools.call.threads
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/variant/{sample}.log",
+        OUTPUT_DIR + "/logs/variant/{sample}.log",
     shell:"""
     bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1 &&
     tabix -f {output.vcf} > {output.idx} &&
@@ -26,17 +26,17 @@ rule split_multiallelic:
         vcf=rules.bcftools_call_snp.output.vcf,
         idx=rules.bcftools_call_snp.output.idx,
     output:
-        vcf="seqnado_output/variant/{sample}.vcf.gz",
-        idx="seqnado_output/variant/{sample}.vcf.gz.tbi",
+        vcf=OUTPUT_DIR + "/variant/{sample}.vcf.gz",
+        idx=OUTPUT_DIR + "/variant/{sample}.vcf.gz.tbi",
     params:
-        outdir="seqnado_output/variant/",
+        outdir=OUTPUT_DIR + "/variant/",
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",
     threads: 16
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/variant/{sample}_split.log",
+        OUTPUT_DIR + "/logs/variant/{sample}_split.log",
     shell:"""
     bcftools norm --threads {threads} -m-any -Oz -o {output.vcf} {input.vcf} > {log} 2>&1 &&
     tabix -f {output.vcf} > {output.idx}

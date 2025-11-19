@@ -717,7 +717,7 @@ def config(
         config_output = output or Path(f"config_{assay_obj.clean_name}.yaml")
         config_output.parent.mkdir(parents=True, exist_ok=True)
     else:
-        dirname = f"{date.today().isoformat()}_{assay_obj.clean_name}_{workflow_config.project.name}"
+        dirname = f"{date.today().isoformat()}_{workflow_config.project.name}"
         outdir = Path(dirname)
         (outdir / "fastqs").mkdir(parents=True, exist_ok=True)
         logger.info(f"Created output directory: {outdir / 'fastqs'}")
@@ -765,8 +765,8 @@ def design(
     files: List[Path] = typer.Argument(
         None, metavar="[FASTQ ...]", autocompletion=fastq_autocomplete
     ),
-    output: Path = typer.Option(
-        Path("metadata.csv"), "-o", "--output", help="Output CSV filename."
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Output CSV filename (default: metadata_{assay}.csv)."
     ),
     group_by: bool = typer.Option(
         False, "--group-by", help="Group samples by a regular expression or a column."
@@ -823,6 +823,10 @@ def design(
 
     _assay = AssayEnum.from_clean_name(assay)
     logger.info(f"Found {len(fastq_paths)} FASTQ files for assay '{_assay.value}'")
+
+    # Set default output filename if not provided
+    if output is None:
+        output = Path(f"metadata_{_assay.clean_name}.csv")
 
     if _assay in {AssayEnum.CHIP, AssayEnum.CAT}:
         design_obj = FastqCollectionForIP.from_fastq_files(
@@ -883,7 +887,10 @@ def design(
 def pipeline(
     ctx: typer.Context,
     assay: Optional[str] = typer.Argument(
-        None, metavar="ASSAY", autocompletion=assay_autocomplete
+        None, 
+        metavar="[ASSAY]",
+        autocompletion=assay_autocomplete,
+        help="Assay type (required for single-assay, optional for multi-assay mode)"
     ),
     config_file: Optional[Path] = typer.Option(
         None,
@@ -930,37 +937,61 @@ def pipeline(
         )
         raise typer.Exit(code=127)
 
-    if not assay:
-        logger.error(
-            "No assay provided. Use `seqnado pipeline ASSAY` or `--version` to print the version."
-        )
-        raise typer.Exit(code=2)
-
     # Local import for helper
     from seqnado.helpers import extract_cores_from_options
 
     extra_args = list(ctx.args)
+    
+    # Check for multi-assay mode before requiring assay argument
+    config_files = list(Path(".").glob("config_*.yaml"))
+    use_multi_assay = len(config_files) > 1 and not config_file and not assay
+    
+    # Debug: check if assay looks like a flag (starts with -)
+    if assay and assay.startswith('-'):
+        # This is actually a flag, not an assay - treat as multi-assay mode
+        logger.debug(f"Detected flag '{assay}' in assay position, checking for multi-assay mode")
+        extra_args.insert(0, assay)  # Put it back in extra args
+        assay = None
+        use_multi_assay = len(config_files) > 1 and not config_file
+    
+    if not assay and not use_multi_assay:
+        logger.error(
+            "No assay provided. Use `seqnado pipeline ASSAY` or run from a directory with multiple config_*.yaml files for multi-assay mode."
+        )
+        raise typer.Exit(code=2)
+    
     cleaned_opts, cores = extract_cores_from_options(extra_args)
 
     os.environ["SCALE_RESOURCES"] = str(scale_resources)
 
     if clean_symlinks:
-        target = Path("seqnado_output/fastqs")
+        target = Path(f"seqnado_output/{assay}/fastqs")
         logger.info(f"Cleaning symlinks in {target} ...")
         for link in target.glob("*"):
             if link.is_symlink():
                 link.unlink(missing_ok=True)
 
     pkg_root_trav = _pkg_traversable("seqnado")
-    snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile")
-
-    if not config_file:
-        config_file = Path(f"config_{assay}.yaml")
-        if not config_file.exists():
-            logger.error(
-                f"No config file provided and default not found: {config_file}"
-            )
-            raise typer.Exit(code=1)
+    
+    if use_multi_assay:
+        # Multi-assay mode: use Snakefile_multi
+        logger.info(
+            f"Multi-assay mode detected: found {len(config_files)} config files"
+        )
+        logger.info(f"Assays: {', '.join([f.stem.replace('config_', '') for f in config_files])}")
+        snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile_multi")
+        config_file = None  # Multi-assay mode doesn't use --configfile
+    else:
+        # Single-assay mode: use standard Snakefile
+        snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile")
+        
+        if not config_file:
+            config_file = Path(f"config_{assay}.yaml")
+            if not config_file.exists():
+                logger.error(
+                    f"No config file provided and default not found: {config_file}"
+                )
+                raise typer.Exit(code=1)
 
     # Use resources.as_file to ensure the packaged Snakefile is available as a path
     try:
@@ -973,17 +1004,51 @@ def pipeline(
 
             cmd: List[str] = [
                 "snakemake",
-                "-c",
-                str(cores),
                 "--snakefile",
                 str(snakefile_path),
-                "--show-failed-logs",
-                "--configfile",
-                str(config_file),
-                *cleaned_opts,
+                "--show-failed-logs",   
             ]
+            
+            # Set cores: use user-specified cores, or default based on mode
+            if use_multi_assay:
+                # For multi-assay, default to number of assays if cores not specified
+                if cores == 1:  # Default from extract_cores_from_options
+                    cores = cores + len(config_files)
+            
+            cmd += ["-c", str(cores)]
+            
+            # Build workflow arguments to pass to nested snakemake calls (multi-assay mode)
+            workflow_args = []
+            if use_multi_assay:
+                # Collect arguments that should be passed to nested snakemake calls
+                if preset:
+                    profiles = _preset_profiles()
+                    profile_dir = profiles.get(preset.lower())
+                    workflow_args.append(f"--profile {profile_dir}")
+                if queue and preset and preset.startswith("s"):
+                    workflow_args.append(f"--default-resources slurm_partition={queue}")
+                # Add other common flags
+                workflow_args.extend(["--use-singularity", "--printshellcmds", "--rerun-incomplete", "--show-failed-logs"])
+                # Add any extra cleaned opts
+                workflow_args.extend(cleaned_opts)
+                
+                # Pass workflow_args via config with proper quoting
+                workflow_args_str = " ".join(workflow_args)
+                cmd += ["--config", f'workflow_args="{workflow_args_str}"']
+            
+            # Add config file only for single-assay mode
+            if config_file:
+                cmd += ["--configfile", str(config_file)]
+            
+            # For multi-assay mode, use project directory as working directory to avoid lock conflicts
+            # Single-assay mode runs in current directory as before
+            if use_multi_assay:
+                cmd += ["--directory", "."]
+            
+            if not use_multi_assay:
+                cmd += cleaned_opts
 
-            if preset:
+            if preset and not use_multi_assay:
                 profiles = _preset_profiles()
                 profile_dir = profiles.get(preset.lower())
                 cmd += ["--profile", profile_dir]
@@ -991,7 +1056,7 @@ def pipeline(
                     f"Using Snakemake profile preset '{preset}' -> {profile_dir}"
                 )
 
-            if queue and preset.startswith("s"):
+            if queue and preset.startswith("s") and not use_multi_assay:
                 cmd += ['--default-resources', f'slurm_partition={queue}']
 
             logo_trav = pkg_root_trav.joinpath("data").joinpath("logo.txt")

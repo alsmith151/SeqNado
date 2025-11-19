@@ -27,6 +27,8 @@ SCALE_RESOURCES = float(os.environ.get("SCALE_RESOURCES", "1"))
 CONFIG = SeqnadoConfig(**config)  # pyright: ignore[reportUndefinedVariable]
 ASSAY = CONFIG.assay
 INPUT_FILES = get_sample_collection(assay=ASSAY, path=CONFIG.metadata)
+OUTPUT_DIR = config.get("output_dir", f"seqnado_output/{ASSAY}")
+
 
 ################################
 # Define Sample Groupings
@@ -68,10 +70,16 @@ OUTPUT: SeqnadoOutputFiles = (
 )
 SAMPLE_NAMES = OUTPUT.sample_names
 
+# Replace seqnado_output with OUTPUT_DIR in all output file paths
+if OUTPUT_DIR != f"seqnado_output/{ASSAY}":
+    import re
+    OUTPUT.files = [re.sub(r'^seqnado_output/', OUTPUT_DIR + '/', f) for f in OUTPUT.files]
+
 ################################
 # Set-Up Workflow
 ################################
-INPUT_FILES.symlink_fastq_files(output_dir="seqnado_output/fastqs/")
+fastq_dir = f"{OUTPUT_DIR}/fastqs/"
+INPUT_FILES.symlink_fastq_files(output_dir=fastq_dir)
 
 
 ################################
@@ -138,7 +146,9 @@ onsuccess:
 
 onerror:
     log_out = "seqnado_error.log"
-    shutil.copyfile(log, log_out)  # pyright: ignore[reportUndefinedVariable]
+    # log is a list in Snakemake, get the first element
+    log_file = log[0] if isinstance(log, list) else log  # pyright: ignore[reportUndefinedVariable]
+    shutil.copyfile(log_file, log_out)
     print(
         f"An error occurred. Please check the log file {log_out} for more information."
     )

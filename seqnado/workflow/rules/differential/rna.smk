@@ -2,13 +2,13 @@ from pathlib import Path
 
 rule deseq2_report_rnaseq:
     input:
-        counts="seqnado_output/readcounts/feature_counts/read_counts.tsv",
+        counts=OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
         qmd=f"deseq2_{PROJECT_NAME}.qmd".replace(" ", ""),
-        yml="seqnado_output/resources/deseq2_params.yml"
+        yml=OUTPUT_DIR + "/resources/deseq2_params.yml"
     output:
         deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
     log:
-        "seqnado_output/logs/deseq2/deseq2.log",
+        OUTPUT_DIR + "/logs/deseq2/deseq2.log",
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     shell:
@@ -23,10 +23,10 @@ rule deseq2_report_rnaseq:
 
 rule deseq2_params:
     output:
-        yml="seqnado_output/resources/deseq2_params.yml"
+        yml=OUTPUT_DIR + "/resources/deseq2_params.yml"
     params:
         spikein_genes=["AmpR_seq", "Cas9_5p_seq", "Cas9_3p_seq"],
-        size_factors_out="seqnado_output/resources/all_normalisation_factors.json",
+        size_factors_out=OUTPUT_DIR + "/resources/all_normalisation_factors.json",
         de_dir=str(Path(rules.deseq2_report_rnaseq.output.deseq2).parent),
         counts=rules.deseq2_report_rnaseq.input.counts,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"

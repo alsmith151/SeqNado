@@ -1,10 +1,10 @@
 rule save_design:
     output:
-        "seqnado_output/metadata.csv",
+        OUTPUT_DIR + "/metadata.csv",
     container:
         None
     run:
-        DESIGN.to_dataframe().to_csv("seqnado_output/metadata.csv", index=False)
+        DESIGN.to_dataframe().to_csv(OUTPUT_DIR + "/metadata.csv", index=False)
 
 
 rule make_genomic_bins:
@@ -13,9 +13,9 @@ rule make_genomic_bins:
     params:
         bin_size=CONFIG.genome.bin_size,
     output:
-        bed="seqnado_output/resources/genomic_bins.bed",
+        bed=OUTPUT_DIR + "/resources/genomic_bins.bed",
     log:
-        "seqnado_output/logs/genomic_bins.log",
+        OUTPUT_DIR + "/logs/genomic_bins.log",
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
@@ -29,11 +29,11 @@ rule make_genomic_bins:
 
 rule bed_to_saf:
     input:
-        bed="seqnado_output/resources/genomic_bins.bed",
+        bed=OUTPUT_DIR + "/resources/genomic_bins.bed",
     output:
-        saf="seqnado_output/resources/genomic_bins.saf",
+        saf=OUTPUT_DIR + "/resources/genomic_bins.saf",
     log:
-        "seqnado_output/logs/genomic_bins_saf.log",
+        OUTPUT_DIR + "/logs/genomic_bins_saf.log",
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
@@ -46,9 +46,9 @@ rule bed_to_saf:
 
 rule get_fasta:
     input:
-        peaks="seqnado_output/peaks/{method}/{sample}.bed",
+        peaks=OUTPUT_DIR + "/peaks/{method}/{sample}.bed",
     output:
-        fasta="seqnado_output/motifs/fasta/{sample}.fa",
+        fasta=OUTPUT_DIR + "/motifs/fasta/{sample}.fa",
         bed=temp("motifs/fasta/{sample}_clean.bed"),
     params:
         genome=CONFIG.genome.fasta,
@@ -56,7 +56,7 @@ rule get_fasta:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/motifs/fasta/{sample}.log",
+        OUTPUT_DIR + "/logs/motifs/fasta/{sample}.log",
     shell:
         """
     cat {input.peaks} | cut -f 1-3 > {output.bed} &&
@@ -67,11 +67,11 @@ rule validate_peaks:
     input:
         peaks=OUTPUT.peak_files,
     output:
-        sentinel="seqnado_output/peaks/.validated",
+        sentinel=OUTPUT_DIR + "/peaks/.validated",
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/validate_peaks.log",
+        OUTPUT_DIR + "/logs/validate_peaks.log",
     run:
         from loguru import logger
 
@@ -89,17 +89,17 @@ rule validate_peaks:
 
 rule bed_to_bigbed:
     input:
-        bed="seqnado_output/peaks/{directory}/{sample}.bed",
-        sentinel="seqnado_output/peaks/.validated",
+        bed=OUTPUT_DIR + "/peaks/{directory}/{sample}.bed",
+        sentinel=OUTPUT_DIR + "/peaks/.validated",
     output:
-        bigbed="seqnado_output/peaks/{directory}/{sample}.bigBed",
+        bigbed=OUTPUT_DIR + "/peaks/{directory}/{sample}.bigBed",
     params:
         chrom_sizes=config["genome"]["chromosome_sizes"],
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
-        "seqnado_output/logs/bed_to_bigbed/{directory}/{sample}.log",
+        OUTPUT_DIR + "/logs/bed_to_bigbed/{directory}/{sample}.log",
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v | cut -f 1-4 > {input.bed}.tmp &&

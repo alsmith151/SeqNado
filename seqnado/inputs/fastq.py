@@ -2,28 +2,27 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from collections import defaultdict
+from itertools import chain
+from pathlib import Path
+from typing import Any, Callable, Iterable
 
 import numpy as np
 import pandas as pd
 from loguru import logger
+from pandera.typing import DataFrame
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 from .core import (
+    Assay,
+    BaseCollection,
+    Metadata,
     clean_sample_name,
     extract_read_number,
     is_control_sample,
     is_valid_path,
 )
-from pathlib import Path
-from collections import defaultdict
-from itertools import chain
-from typing import Any, Callable, Iterable
-import pandas as pd
-from pydantic import BaseModel, field_validator
-from pandera.typing import DataFrame
-from .core import Metadata, Assay, BaseCollection
 from .validation import DesignDataFrame
 
 
@@ -522,6 +521,13 @@ class FastqCollection(BaseFastqCollection):
             rows.append(row)
 
         df = pd.DataFrame(rows).sort_values("sample_id").set_index("uid")
+        
+        # Define column order: critical columns first (assay, sample info, files), then other metadata
+        core_cols = ["assay", "sample_id", "r1", "r2"]
+        metadata_cols = [col for col in df.columns if col not in core_cols]
+        ordered_cols = core_cols + sorted(metadata_cols)
+        df = df[[col for col in ordered_cols if col in df.columns]]
+        
         if validate:
             return DataFrame[DesignDataFrame](df)
         else:
@@ -853,6 +859,10 @@ class FastqCollectionForIP(BaseFastqCollection):
             base = exp.ip.sample_id
             row: dict[str, Any] = {
                 "sample_id": base,
+                # IP/control labels
+                "ip": exp.ip_performed,
+                "control": exp.control_fullname if exp.has_control else None,
+                "uid": f"{base}_{exp.ip_performed}",
                 # IP reads
                 "r1": exp.ip.r1.path,
                 "r2": exp.ip.r2.path if exp.ip.r2 else None,
@@ -861,15 +871,18 @@ class FastqCollectionForIP(BaseFastqCollection):
                 "r2_control": exp.control.r2.path
                 if exp.control and exp.control.r2
                 else None,
-                # IP/control labels
-                "ip": exp.ip_performed,
-                "control": exp.control_fullname if exp.has_control else None,
-                "uid": f"{base}_{exp.ip_performed}",
             }
             row.update(md.model_dump(exclude_none=True, mode="json"))
             rows.append(row)
 
         df = pd.DataFrame(rows).sort_values("sample_id").set_index("uid")
+        
+        # Define column order: critical columns first (assay, sample info, IP info, files), then other metadata
+        core_cols = ["assay", "sample_id", "ip", "control", "r1", "r2", "r1_control", "r2_control"]
+        metadata_cols = [col for col in df.columns if col not in core_cols]
+        ordered_cols = core_cols + sorted(metadata_cols)
+        df = df[[col for col in ordered_cols if col in df.columns]]
+        
         return DataFrame[DesignDataFrame](df)
 
     @classmethod

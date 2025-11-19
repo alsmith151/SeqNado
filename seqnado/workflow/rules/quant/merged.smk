@@ -3,9 +3,9 @@
 
 rule merged_saf:
     input:
-        peaks="seqnado_output/peaks/merged/lanceotron/{group}.bed",
+        peaks=OUTPUT_DIR + "/peaks/merged/lanceotron/{group}.bed",
     output:
-        saf=temp("seqnado_output/readcounts/featurecounts/{group}.saf"),
+        saf=temp(OUTPUT_DIR + "/readcounts/featurecounts/{group}.saf"),
     threads: 1,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
@@ -21,7 +21,7 @@ rule merged_counts:
         bai=lambda wildcards: [Path(b).with_suffix(".bai") for b in get_bam_files_for_consensus(wildcards)],
         saf=rules.merged_saf.output.saf,
     output:
-        counts="seqnado_output/readcounts/featurecounts/{group}_counts.tsv",
+        counts=OUTPUT_DIR + "/readcounts/featurecounts/{group}_counts.tsv",
     params:
         options=str(CONFIG.third_party_tools.subread.feature_counts.command_line_arguments),
     threads: CONFIG.third_party_tools.subread.feature_counts.threads,
@@ -29,7 +29,7 @@ rule merged_counts:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:"seqnado_output/logs/readcounts/featurecounts/{group}_counts.log",
+    log:OUTPUT_DIR + "/logs/readcounts/featurecounts/{group}_counts.log",
     shell:"""
     featureCounts -a {input.saf} -F SAF -T {threads} --donotsort {params.options} -o {output.counts} {input.bam} > {log} 2>&1
     """

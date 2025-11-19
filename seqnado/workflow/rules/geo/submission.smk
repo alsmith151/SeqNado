@@ -13,7 +13,7 @@ def get_files_for_symlink(wc: Any = None) -> List[str]:
                          config=OUTPUT.config,
                          processed_files=[str(p) for p in OUTPUT.files])
 
-    fastq_dir = Path("seqnado_output/fastqs")
+    fastq_dir = Path(OUTPUT_DIR + "/fastqs")
     fastqs = sorted([str(fastq_dir / fn) for fq_pair in geo_files.raw_files.values() for fn in fq_pair])
     processed_files = [str(p) for p in geo_files.processed_data_files['path'].tolist()]
     return [*fastqs, *processed_files]
@@ -23,7 +23,7 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
     Get all files that have been symlinked for GEO submission
     """
     from seqnado.design import GEOFiles
-    outdir = Path("seqnado_output/geo_submission")
+    outdir = Path(OUTPUT_DIR + "/geo_submission")
 
     geo_files = GEOFiles(make_geo_submission_files=True,
                          assay=OUTPUT.assay,
@@ -64,8 +64,8 @@ rule geo_symlink:
         fastqs = geo_files.raw_files
         processed_files = geo_files.processed_data_files
 
-        src = Path("seqnado_output/fastqs")
-        dest = Path("seqnado_output/geo_submission")
+        src = Path(OUTPUT_DIR + "/fastqs")
+        dest = Path(OUTPUT_DIR + "/geo_submission")
 
         # Create symlinks for raw files
         for sample_name, fastq in fastqs.items():
@@ -88,7 +88,7 @@ rule md5sum:
     input:
         files=get_symlinked_files,
     output:
-        "seqnado_output/geo_submission/md5sums.txt",
+        OUTPUT_DIR + "/geo_submission/md5sums.txt",
     shell:
         """
         cd seqnado_output/geo_submission
@@ -106,10 +106,10 @@ rule md5sum:
 
 rule geo_md5_table:
     input:
-        md5sums="seqnado_output/geo_submission/md5sums.txt",
+        md5sums=OUTPUT_DIR + "/geo_submission/md5sums.txt",
     output:
-        raw="seqnado_output/geo_submission/raw_data_checksums.txt",
-        processed="seqnado_output/geo_submission/processed_data_checksums.txt",
+        raw=OUTPUT_DIR + "/geo_submission/raw_data_checksums.txt",
+        processed=OUTPUT_DIR + "/geo_submission/processed_data_checksums.txt",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         import pandas as pd 
@@ -125,7 +125,7 @@ rule geo_md5_table:
 
 rule samples_table:
     output:
-        "seqnado_output/geo_submission/samples_table.txt",
+        OUTPUT_DIR + "/geo_submission/samples_table.txt",
     params: 
         output=OUTPUT,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
@@ -143,7 +143,7 @@ rule samples_table:
 
 rule geo_protocol:
     output:
-        "seqnado_output/geo_submission/protocol.txt",
+        OUTPUT_DIR + "/geo_submission/protocol.txt",
     params:
         assay=ASSAY,
     script:
@@ -151,7 +151,7 @@ rule geo_protocol:
 
 rule geo_upload_instructions:
     output:
-        instructions="seqnado_output/geo_submission/upload_instructions.txt",
+        instructions=OUTPUT_DIR + "/geo_submission/upload_instructions.txt",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         import importlib.resources
@@ -165,9 +165,9 @@ rule geo_upload_instructions:
 rule move_to_upload:
     input:
         infiles = get_symlinked_files,
-        validated="seqnado_output/geo_submission/.validated",
+        validated=OUTPUT_DIR + "/geo_submission/.validated",
     output:
-        outdir = directory(f"seqnado_output/geo_submission/{ASSAY.replace('&', '_and_')}")
+        outdir = directory(OUTPUT_DIR + "/geo_submission/{ASSAY.replace('&', '_and_')}")
     shell:
         """
         mkdir -p {output.outdir}
@@ -181,7 +181,7 @@ rule remove_headers_for_security:
     input:
         infiles = get_symlinked_files
     output:
-        validated="seqnado_output/geo_submission/.validated",
+        validated=OUTPUT_DIR + "/geo_submission/.validated",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     run:
         from pathlib import Path
@@ -201,7 +201,7 @@ rule remove_headers_for_security:
                 path.unlink()
                 dest.rename(path)
         
-        Path("seqnado_output/geo_submission/.validated").touch()
+        Path(OUTPUT_DIR + "/geo_submission/.validated").touch()
 
 
 
