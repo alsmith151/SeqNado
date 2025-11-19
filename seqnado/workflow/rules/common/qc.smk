@@ -291,9 +291,11 @@ def get_frip_files(wildcards):
     Gets the calculated FRiP (Fraction of Reads in Peaks) enrichment files.
     """
     if ASSAY in AssaysWithPeakCalling and CONFIG.assay_config.call_peaks:
+        # For IP-based assays, only calculate FRIP for IP samples (not controls)
+        sample_list = IP_SAMPLE_NAMES if 'IP_SAMPLE_NAMES' in globals() else SAMPLE_NAMES
         return expand(
             OUTPUT_DIR + "/qc/frip_enrichment/{directory}/{sample}_frip.txt",
-            sample=SAMPLE_NAMES,
+            sample=sample_list,
             directory=[m.value for m in CONFIG.assay_config.peak_calling.method],
         )
     else:

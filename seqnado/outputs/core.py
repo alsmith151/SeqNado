@@ -206,9 +206,16 @@ class SeqnadoOutputBuilder:
             ):
                 raise ValueError(f"For BigWigCollection, only {PeakCallingMethod.LANCEOTRON} is allowed.")
 
+        # For IP-based assays, only call peaks on IP samples (not controls)
+        from seqnado.inputs import FastqCollectionForIP
+        if isinstance(self.samples, FastqCollectionForIP):
+            sample_names = self.samples.ip_sample_names
+        else:
+            sample_names = self.samples.sample_names
+
         peaks = PeakCallingFiles(
             assay=self.assay,
-            names=self.samples.sample_names,
+            names=sample_names,
             peak_calling_method=self.config.assay_config.peak_calling.method,
             output_dir=self.output_dir,
         )

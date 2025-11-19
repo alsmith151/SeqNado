@@ -72,6 +72,13 @@ OUTPUT: SeqnadoOutputFiles = (
 )
 SAMPLE_NAMES = OUTPUT.sample_names
 
+# For IP-based assays, create a separate list for IP-only samples (used for peak calling)
+from seqnado.inputs import FastqCollectionForIP
+if isinstance(INPUT_FILES, FastqCollectionForIP):
+    IP_SAMPLE_NAMES = INPUT_FILES.ip_sample_names
+else:
+    IP_SAMPLE_NAMES = SAMPLE_NAMES
+
 ################################
 # Set-Up Workflow
 ################################

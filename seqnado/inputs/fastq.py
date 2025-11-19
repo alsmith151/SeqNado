@@ -620,6 +620,14 @@ class FastqCollectionForIP(BaseFastqCollection):
         return self.sample_ids
 
     @property
+    def ip_sample_names(self) -> list[str]:
+        """
+        Only IP sample names (excludes control samples).
+        Use this for peak calling to avoid calling peaks on input controls.
+        """
+        return sorted({exp.ip_set_fullname for exp in self.experiments})
+
+    @property
     def ips_performed(self) -> list[str]:
         """
         Unique IP antibodies/proteins used across experiments.
