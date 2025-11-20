@@ -44,9 +44,11 @@ def test_pipeline(
         print("STDERR:\n", res.stderr)
     assert res.returncode == 0
 
-    assert not os.path.exists("seqnado_error.log")
-    assert os.path.exists("seqnado_output/")
-    assert os.path.exists("seqnado_output/seqnado_report.html")
+    # Check outputs relative to the test working directory
+    test_dir = config_yaml_for_testing.parent
+    assert not (test_dir / "seqnado_error.log").exists()
+    assert (test_dir / "seqnado_output").exists()
+    assert (test_dir / f"seqnado_output/{assay_type}/seqnado_report.html").exists()
 
 
 @pytest.mark.pipeline

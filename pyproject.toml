@@ -55,10 +55,6 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=seqnado",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
 ]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -71,6 +67,9 @@ markers = [
     "slow: Slow tests (may take significant time)",
     "requires_data: Tests that require test data files",
     "parametrize: Parametrized tests",
+    "pipeline: End-to-end Snakemake pipeline tests (opt-in)",
+    "snakemake: Tests that invoke Snakemake via subprocess",
+    "requires_apptainer: Tests that require Apptainer/Singularity",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
