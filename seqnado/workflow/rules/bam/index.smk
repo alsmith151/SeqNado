@@ -12,6 +12,8 @@ rule sort_bam:
     threads: CONFIG.third_party_tools.samtools.sort.threads
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_sort.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_sort.tsv",
+    message: "Sorting aligned BAM for sample {wildcards.sample} using samtools",
     shell: """
         samtools sort {input.bam} -@ {threads} -o {output.bam} -m 900M
         echo 'Step\tRead Count' > {output.read_log}
@@ -30,7 +32,10 @@ rule index_bam:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    shell:"samtools index -@ {threads} -b {input.bam}"
+    log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_index.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_index.tsv",
+    message: "Indexing aligned BAM for sample {wildcards.sample} using samtools",
+    shell: "samtools index -@ {threads} -b {input.bam}"
 
 
 rule move_bam_to_final_location:
@@ -46,7 +51,9 @@ rule move_bam_to_final_location:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_final.log",
-    shell:"""
+    benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_final.tsv",
+    message: "Moving final BAM for sample {wildcards.sample} to final location",
+    shell: """
     mv {input.bam} {output.bam} &&
     mv {input.bai} {output.bai} &&
     echo -e "Final reads\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}

@@ -5,20 +5,20 @@ rule identify_ligation_junctions:
         bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
     output:
         pairs=temp(expand(OUTPUT_DIR + "/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS)),
-    log:
-        OUTPUT_DIR + "/logs/ligation_junctions/{group}.log",
+    params:
+        outdir=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/raw/",
     threads: 1
     resources:
         mem="1GB",
     container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
-    params:
-        outdir=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/raw/",
-    shell:
-        """
-        mccnado identify-ligation-junctions \
-        {input.bam} \
-        {params.outdir}
-        """
+    log: OUTPUT_DIR + "/logs/ligation_junctions/{group}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/ligation_junctions/{group}.tsv",
+    message: "Identifying ligation junctions for group {wildcards.group}",
+    shell: """
+    mccnado identify-ligation-junctions \
+    {input.bam} \
+    {params.outdir}
+    """
 
 
 rule sort_ligation_junctions:
@@ -30,24 +30,25 @@ rule sort_ligation_junctions:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        OUTPUT_DIR + "/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
-    shell:
-        """
-        sort -k2,2 -k4,4 -k3,3n -k5,5n {input.pairs} > {output.pairs}
-        """
+    log: OUTPUT_DIR + "/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/sort_ligation_junctions/{group}_{viewpoint}.tsv",
+    message: "Sorting ligation junctions for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
+    shell: """
+    sort -k2,2 -k4,4 -k3,3n -k5,5n {input.pairs} > {output.pairs}
+    """
 
 rule bgzip_pairs:
     input:
         pairs=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.pairs",
     output:
         pairs=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.pairs.gz",
-    log:
-        OUTPUT_DIR + "/logs/bgzip_pairs/{group}_{viewpoint}.log",
-    shell:
-        """
-        bgzip -c {input.pairs} > {output.pairs}
-        """
+    log: OUTPUT_DIR + "/logs/bgzip_pairs/{group}_{viewpoint}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/bgzip_pairs/{group}_{viewpoint}.tsv",
+    message: "Bgzipping pairs file for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
+    resources:
+    shell: """
+    bgzip -c {input.pairs} > {output.pairs}
+    """
 
 rule make_cooler:
     input:
@@ -55,8 +56,6 @@ rule make_cooler:
         bins=OUTPUT_DIR + "/resources/genomic_bins.bed",
     output:
         cooler=temp(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.cool"),
-    log:
-        OUTPUT_DIR + "/logs/make_cooler/{group}_{viewpoint}.log",
     params:
         resolution=CONFIG.assay_config.mcc.resolution,
         genome=CONFIG.genome.name,
@@ -64,33 +63,35 @@ rule make_cooler:
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        """
-        cooler cload pairs \
-        {input.bins} \
-        {input.pairs} \
-        {output.cooler} \
-        --assembly {params.genome} \
-        -c1 2 -p1 3 -c2 4 -p2 5 > {log} 2>&1
-        """
+    log: OUTPUT_DIR + "/logs/make_cooler/{group}_{viewpoint}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/make_cooler/{group}_{viewpoint}.tsv",
+    message: "Creating cooler file for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
+    shell: """
+    cooler cload pairs \
+    {input.bins} \
+    {input.pairs} \
+    {output.cooler} \
+    --assembly {params.genome} \
+    -c1 2 -p1 3 -c2 4 -p2 5 > {log} 2>&1
+    """
 
 rule zoomify_cooler:
     input:
         cooler=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.cool",
     output:
         cooler=temp(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.mcool"),
-    log:
-        OUTPUT_DIR + "/logs/zoomify_cooler/{group}_{viewpoint}.log",
     params:
         resolutions=CONFIG.assay_config.mcc.resolutions,
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    shell:
-        """
-        cooler zoomify {input.cooler} -r {params.resolutions} -o {output.cooler} > {log} 2>&1
-        """
+    log: OUTPUT_DIR + "/logs/zoomify_cooler/{group}_{viewpoint}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/zoomify_cooler/{group}_{viewpoint}.tsv",
+    message: "Zoomifying cooler file for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
+    shell: """
+    cooler zoomify {input.cooler} -r {params.resolutions} -o {output.cooler} > {log} 2>&1
+    """
 
 
 rule aggregate_coolers:
@@ -100,14 +101,14 @@ rule aggregate_coolers:
                     viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     output:
         mcool=OUTPUT_DIR + "/mcc/{group}/{group}.mcool",
-    log:
-        OUTPUT_DIR + "/logs/{group}_aggregate_coolers.log",
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    shell:
-        """
+    log: OUTPUT_DIR + "/logs/{group}_aggregate_coolers.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/{group}_aggregate_coolers.tsv",
+    message: "Aggregating cooler files for group {wildcards.group}",
+    shell: """
         mccnado combine-ligation-junction-coolers \
         {input.mcools} \
         {output.mcool}

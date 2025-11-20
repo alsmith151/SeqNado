@@ -14,17 +14,18 @@ rule make_genomic_bins:
         bin_size=CONFIG.genome.bin_size,
     output:
         bed=OUTPUT_DIR + "/resources/genomic_bins.bed",
-    log:
-        OUTPUT_DIR + "/logs/genomic_bins.log",
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        """
-        cooler makebins {input.chrom_sizes} {params.bin_size} -o {output.bed} > {log} 2>&1
-        """
+    log: OUTPUT_DIR + "/logs/genomic_bins.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/genomic_bins.tsv",
+    message: "Generating genomic bins of size {params.bin_size} from chromosome sizes",
+    shell: """
+    cooler makebins {input.chrom_sizes} {params.bin_size} -o {output.bed} > {log} 2>&1
+    """
+
 
 
 rule bed_to_saf:
@@ -32,17 +33,18 @@ rule bed_to_saf:
         bed=OUTPUT_DIR + "/resources/genomic_bins.bed",
     output:
         saf=OUTPUT_DIR + "/resources/genomic_bins.saf",
-    log:
-        OUTPUT_DIR + "/logs/genomic_bins_saf.log",
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    shell:
-        """
-        awk 'BEGIN{{OFS="\t"}} {{print $4, $1, $2, $3, "."}}' {input.bed} > {output.saf} 2> {log}
-        """
+    log:
+        OUTPUT_DIR + "/logs/genomic_bins_saf.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/genomic_bins_saf.tsv",
+    message: "Converting genomic bins BED to SAF format",
+    shell: """
+    awk 'BEGIN{{OFS="\t"}} {{print $4, $1, $2, $3, "."}}' {input.bed} > {output.saf} 2> {log}
+    """
 
 rule get_fasta:
     input:
@@ -55,10 +57,10 @@ rule get_fasta:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/motifs/fasta/{sample}.log",
-    shell:
-        """
+    log: OUTPUT_DIR + "/logs/motifs/fasta/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/motifs/fasta/{sample}.tsv",
+    message: "Extracting FASTA sequences for peaks of sample {wildcards.sample}",
+    shell: """
     cat {input.peaks} | cut -f 1-3 > {output.bed} &&
     bedtools getfasta -fullHeader -fi {params.genome} -bed {output.bed} -fo {output.fasta}
     """
@@ -72,6 +74,8 @@ rule validate_peaks:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:
         OUTPUT_DIR + "/logs/validate_peaks.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/validate_peaks.tsv",
+    message: "Validating peak files to ensure they are not empty",
     run:
         from loguru import logger
 
@@ -98,8 +102,9 @@ rule bed_to_bigbed:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/bed_to_bigbed/{directory}/{sample}.log",
+    log: OUTPUT_DIR + "/logs/bed_to_bigbed/{directory}/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/bed_to_bigbed/{directory}/{sample}.tsv",
+    message: "Converting BED to BigBed for sample {wildcards.sample} in directory {wildcards.directory}",
     shell:
         """
         sort -k1,1 -k2,2n {input.bed} | grep '#' -v | cut -f 1-4 > {input.bed}.tmp &&

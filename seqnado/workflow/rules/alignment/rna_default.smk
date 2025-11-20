@@ -19,21 +19,21 @@ rule align_paired:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=35, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/align/{sample}.log",
-    shell:
-        """
-        STAR \
-        --genomeDir {params.index} \
-        --readFilesIn {input.fq1} {input.fq2} \
-        --readFilesCommand zcat \
-        --outSAMtype BAM SortedByCoordinate \
-        --runThreadN {threads} \
-        --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
-        --outFileNamePrefix {params.prefix} \
-        {params.options} \
-        > {log} 2>&1
-        """
+    log: OUTPUT_DIR + "/logs/align/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/align/{sample}.tsv",
+    message: "Aligning reads for sample {wildcards.sample} using STAR",
+    shell: """
+    STAR \
+    --genomeDir {params.index} \
+    --readFilesIn {input.fq1} {input.fq2} \
+    --readFilesCommand zcat \
+    --outSAMtype BAM SortedByCoordinate \
+    --runThreadN {threads} \
+    --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
+    --outFileNamePrefix {params.prefix} \
+    {params.options} \
+    > {log} 2>&1
+    """
 
 
 rule rename_aligned:
@@ -42,8 +42,10 @@ rule rename_aligned:
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    shell:
-        "mv {input.bam} {output.bam}"
+    log: OUTPUT_DIR + "/logs/rename_aligned/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/rename_aligned/{sample}.tsv",
+    message: "Renaming aligned BAM for sample {wildcards.sample} to standard format",
+    shell: "mv {input.bam} {output.bam}"
 
 
 localrules:

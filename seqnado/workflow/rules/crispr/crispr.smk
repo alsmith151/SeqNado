@@ -14,9 +14,10 @@ rule crispr_trimming:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/trimming/{sample}.log",
-    shell:"""
+    log: OUTPUT_DIR + "/logs/trimming/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/trimming/{sample}.tsv",
+    message: "Trimming adapters from CRISPR sample {wildcards.sample} using cutadapt",
+    shell: """
     cutadapt {params.options} -o {output.trimmed} {input.fq} > {log} 2>&1
     """
 
@@ -34,9 +35,10 @@ rule align_crispr:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: config["bowtie2"]["threads"]
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/align/{sample}.log",
-    shell:"""
+    log: OUTPUT_DIR + "/logs/align/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/align/{sample}.tsv",
+    message: "Aligning CRISPR sample {wildcards.sample} using Bowtie2",
+    shell: """
     bowtie2 -p {threads} -x {params.index} -U {input.fq1} {params.options} 2> {log} |
     samtools view -bS - > {output.bam}
     """
@@ -55,9 +57,10 @@ rule feature_counts:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/readcounts/featurecounts/featurecounts.log",
-    shell:"""
+    log: OUTPUT_DIR + "/logs/readcounts/featurecounts/featurecounts.log",   
+    benchmark: OUTPUT_DIR + "/.benchmark/readcounts/featurecounts/featurecounts.tsv",
+    message: "Counting features using featureCounts",
+    shell: """
     featureCounts \
     -a \
     {input.annotation} \

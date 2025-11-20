@@ -14,6 +14,9 @@ use rule align_paired as align_paired_spikein with:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/aligned_spikein/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/aligned_spikein/{sample}.tsv",
+    message: "Aligning spike-in reads for sample {wildcards.sample} using Bowtie
 
 
 use rule align_single as align_single_spikein with:
@@ -23,6 +26,9 @@ use rule align_single as align_single_spikein with:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/aligned_spikein/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/aligned_spikein/{sample}.tsv",
+    message: "Aligning spike-in reads for sample {wildcards.sample} using Bowtie2"
 
 
 use rule sort_bam as sort_bam_spikein with:
@@ -35,8 +41,9 @@ use rule sort_bam as sort_bam_spikein with:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/aligned_spikein/{sample}_sort.log",
+    log: OUTPUT_DIR + "/logs/aligned_spikein/{sample}_sort.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/aligned_spikein/{sample}_sort.tsv",
+    message: "Sorting spike-in aligned BAM for sample {wildcards.sample} using samtools"
 
 
 use rule index_bam as index_bam_spikein with:
@@ -45,8 +52,9 @@ use rule index_bam as index_bam_spikein with:
     output:
         bai=temp(OUTPUT_DIR + "/aligned/spikein/sorted/{sample}.bam.bai"),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/aligned_spikein/{sample}_index.log",
+    log: OUTPUT_DIR + "/logs/aligned_spikein/{sample}_index.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/aligned_spikein/{sample}_index.tsv",
+    message: "Indexing spike-in aligned BAM for sample {wildcards.sample} using samtools"
 
 
 rule filter_bam_spikein:
@@ -55,10 +63,10 @@ rule filter_bam_spikein:
     output:
         bam=temp(OUTPUT_DIR + "/aligned/spikein/filtered/{sample}.bam"),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/aligned_spikein/{sample}_filter.log",
-    shell:
-        """
+    log: OUTPUT_DIR + "/logs/aligned_spikein/{sample}_filter.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/aligned_spikein/{sample}_filter.tsv",
+    message: "Filtering spike-in aligned BAM for sample {wildcards.sample} using samtools",
+    shell: """
     samtools view -b -F 260 -@ 8 {input.bam} > {output.bam} &&
     echo 'Filtered bam number of mapped reads:' > {log} 2>&1 &&
     samtools view -c {output.bam} >> {log} 2>&1
@@ -71,8 +79,9 @@ use rule index_bam as index_bam_spikein_filtered with:
     output:
         bai=temp(OUTPUT_DIR + "/aligned/spikein/filtered/{sample}.bam.bai"),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/aligned_spikein/{sample}_filter_index.log",
+    log: OUTPUT_DIR + "/logs/aligned_spikein/{sample}_filter_index.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/aligned_spikein/{sample}_filter_index.tsv",
+    message: "Indexing filtered spike-in aligned BAM for sample {wildcards.sample} using samtools"
 
 
 rule split_bam:
@@ -92,10 +101,10 @@ rule split_bam:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/split_bam/{sample}.log",
-    shell:
-        """
+    log: OUTPUT_DIR + "/logs/split_bam/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/split_bam/{sample}.tsv",
+    message: "Splitting BAM into reference and spike-in for sample {wildcards.sample} using samtools",
+    shell: """
         samtools view -h {input.bam} | awk '{{if($0 ~ /^@/ || $3 ~ /^chr/) print}}' | samtools view -b -o {output.ref_bam} &&
         samtools view -h {input.bam} | awk '{{if($0 ~ /^@/ || $3 ~ /^{params.exo_prefix}/) print}}' | samtools view -b -o {output.exo_bam} &&
         echo -e "sample\treference_reads\tspikein_reads" > {output.stats} &&
@@ -109,8 +118,10 @@ rule move_ref_bam:
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     container: None
-    shell:
-        """
+    log: OUTPUT_DIR + "/logs/move_ref_bam/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/move_ref_bam/{sample}.tsv",
+    message: "Moving reference BAM for sample {wildcards.sample} to raw aligned directory",
+    shell: """
     mv {input.bam} {output.bam}
     """
 

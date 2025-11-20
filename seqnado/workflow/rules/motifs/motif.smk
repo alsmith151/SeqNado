@@ -10,12 +10,12 @@ rule motif_meme_chip:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/motifs/meme/{sample}.log",
-    shell:
-        """
-        meme-chip -oc {params.meme_dir} {params.meme_chip_db} {params.meme_chip_params} {input.fasta}
-        """
+    log: OUTPUT_DIR + "/logs/motifs/meme/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/motifs/meme/{sample}.tsv",
+    message: "Running MEME-ChIP motif analysis for sample {wildcards.sample}"
+    shell: """
+    meme-chip -oc {params.meme_dir} {params.meme_chip_db} {params.meme_chip_params} {input.fasta}
+    """
 
 
 rule motif_homer:
@@ -30,12 +30,12 @@ rule motif_homer:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/motifs/homer/{sample}.log",
-    shell:
-        """
-        findMotifsGenome.pl {input.fasta} {params.genome} {params.homer_dir} {params.homer_params}
-        """
+    log: OUTPUT_DIR + "/logs/motifs/homer/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/motifs/homer/{sample}.tsv",
+    message: "Running HOMER motif analysis for sample {wildcards.sample}"
+    shell: """
+    findMotifsGenome.pl {input.fasta} {params.genome} {params.homer_dir} {params.homer_params}
+    """
 
 
 ruleorder: motif_meme_chip > motif_homer

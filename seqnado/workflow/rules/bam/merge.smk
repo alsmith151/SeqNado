@@ -21,7 +21,9 @@ rule merge_bams:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/merge_bam/{group}.log",
-    shell:"""
+    benchmark: OUTPUT_DIR + "/.benchmark/merge_bam/{group}.tsv",
+    message: "Merging BAM files for group {wildcards.group} using samtools",
+    shell: """
     samtools merge {output} {input} -@ {threads}
     """
 
@@ -32,3 +34,6 @@ use rule index_bam as index_consensus_bam with:
     output:
         bai=temp(OUTPUT_DIR + "/aligned/merged/{group}.bam.bai"),
     threads: 8
+    log: OUTPUT_DIR + "/logs/merge_bam/{group}_index.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/merge_bam/{group}_index.tsv",
+    message: "Indexing merged BAM for group {wildcards.group} using samtools"

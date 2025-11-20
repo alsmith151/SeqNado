@@ -11,7 +11,10 @@ rule merged_saf:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    shell:"""
+    log: OUTPUT_DIR + "/logs/readcounts/featurecounts/{group}_saf.log",
+    benchmark: OUTPUT_DIR + "/.benchmarks/readcounts/featurecounts/{group}_saf.tsv",
+    message: "Generating SAF file from merged peaks for group {wildcards.group}"    
+    shell: """
     awk 'BEGIN{{OFS="\\t"}}{{print $1":"$2"-"$3,$1,$2,$3,"\\*"}}' {input.peaks} > {output.saf}
     """
 
@@ -29,8 +32,10 @@ rule merged_counts:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:OUTPUT_DIR + "/logs/readcounts/featurecounts/{group}_counts.log",
-    shell:"""
+    log: OUTPUT_DIR + "/logs/readcounts/featurecounts/{group}_counts.log",
+    benchmark: OUTPUT_DIR + "/.benchmarks/readcounts/featurecounts/{group}_counts.tsv",
+    message: "Running featureCounts to quantify reads for merged peaks in group {wildcards.group}"
+    shell: """
     featureCounts -a {input.saf} -F SAF -T {threads} --donotsort {params.options} -o {output.counts} {input.bam} > {log} 2>&1
     """
 

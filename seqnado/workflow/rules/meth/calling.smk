@@ -9,15 +9,16 @@ checkpoint methylation_split_bams:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        OUTPUT_DIR + "/logs/methylation/split_bams/{sample}_{genome}.log"
+    log: OUTPUT_DIR + "/logs/methylation/split_bams/{sample}_{genome}.log"
+    benchmark: OUTPUT_DIR + "/.benchmark/methylation_split_bams/{sample}_{genome}.tsv"
+    message: "Splitting BAM for sample {wildcards.sample} into genome {wildcards.genome}"
     shell: """
-        if [[ "{wildcards.genome}" == "{params.ref_genome}" ]]; then
-            samtools view -h {input} | awk '{{if($0 ~ /^@/ || $3 ~ /^chr/) print}}' | samtools view -b -o {output.bam} 2> {log}
-        else
-            samtools view -h {input} | awk '{{if($0 ~ /^@/ || $3 ~ /^{wildcards.genome}/) print}}' | samtools view -b -o {output.bam} 2> {log}
-        fi
-        samtools index {output.bam}
+    if [[ "{wildcards.genome}" == "{params.ref_genome}" ]]; then
+        samtools view -h {input} | awk '{{if($0 ~ /^@/ || $3 ~ /^chr/) print}}' | samtools view -b -o {output.bam} 2> {log}
+    else
+        samtools view -h {input} | awk '{{if($0 ~ /^@/ || $3 ~ /^{wildcards.genome}/) print}}' | samtools view -b -o {output.bam} 2> {log}
+    fi
+    samtools index {output.bam}
     """
 
 
@@ -41,8 +42,10 @@ rule methyldackel_bias:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container:"oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log:OUTPUT_DIR + "/logs/methylation/methyldackel/bias/{sample}_{genome}.log"
+    benchmark: OUTPUT_DIR + "/.benchmark/methylation/methyldackel/bias/{sample}_{genome}.tsv"
+    message: "Running MethylDackel bias for sample {wildcards.sample} and genome {wildcards.genome}"
     shell: """
-        MethylDackel mbias -@ {threads} --txt {params.fasta} {input.bam} {params.prefix} > {output.bias} 2> {log}
+    MethylDackel mbias -@ {threads} --txt {params.fasta} {input.bam} {params.prefix} > {output.bias} 2> {log}
     """
 
 rule calculate_conversion:
@@ -54,8 +57,9 @@ rule calculate_conversion:
     params:
         assay=CONFIG.methylation.method,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/methylation/conversion.log"
+    log: OUTPUT_DIR + "/logs/methylation/conversion.log"
+    benchmark: OUTPUT_DIR + "/.benchmark/methylation/calculate_conversion.tsv"
+    message: "Calculating methylation conversion rates across all samples"
     script: "../scripts/methylation_conversion.py"
     
 
@@ -73,10 +77,11 @@ rule methyldackel_extract:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/methylation/methyldackel/{sample}_{genome}.log"
+    log: OUTPUT_DIR + "/logs/methylation/methyldackel/{sample}_{genome}.log"
+    benchmark: OUTPUT_DIR + "/.benchmark/methylation/methyldackel/{sample}_{genome}.tsv"
+    message: "Running MethylDackel extract for sample {wildcards.sample} and genome {wildcards.genome}"
     shell: """
-        MethylDackel extract -@ {threads} {params.options} -o {params.prefix} {params.fasta} {input.bam} > {log} 2>&1
+    MethylDackel extract -@ {threads} {params.options} -o {params.prefix} {params.fasta} {input.bam} > {log} 2>&1
     """
 
 
@@ -89,11 +94,12 @@ rule taps_inverted:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/methylation/taps_inverted/{sample}_{genome}.log"
+    log: OUTPUT_DIR + "/logs/methylation/taps_inverted/{sample}_{genome}.log"
+    benchmark: OUTPUT_DIR + "/.benchmark/methylation/taps_inverted/{sample}_{genome}.tsv"
+    message: "Converting to TAPS methylation for sample {wildcards.sample} and genome {wildcards.genome}"
     shell: """
-        awk -v OFS="\t" '{{print $1, $2, $3, (100-$4), $5, $6}}' {input.bdg} > {output.taps} 2> {log}
-        rm {input.bdg}
+    awk -v OFS="\t" '{{print $1, $2, $3, (100-$4), $5, $6}}' {input.bdg} > {output.taps} 2> {log}
+    rm {input.bdg}
     """
 
 localrules:

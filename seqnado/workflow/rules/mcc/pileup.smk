@@ -45,23 +45,23 @@ rule make_bigwigs_mcc_replicates:
         cis_or_trans_stats=OUTPUT_DIR + "/resources/{sample}_ligation_stats.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig"
-    log:
-        OUTPUT_DIR + "/logs/bigwig/{sample}_{viewpoint_group}.log",
     params:
         options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
-    shell:
-        """
-        bamnado \
-        bam-coverage \
-        -b {input.bam} \
-        -o {output.bigwig} \
-        --scale-factor {params.scale_factor} \
-        --blacklisted-locations {input.excluded_regions} \
-        --min-mapq 0 \
-        --read-group {wildcards.viewpoint_group} \
-        {params.options} > {log} 2>&1
-        """
+    log: OUTPUT_DIR + "/logs/bigwig/{sample}_{viewpoint_group}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{sample}_{viewpoint_group}.tsv",
+    message: "Generating bigWig for MCC sample {wildcards.sample} and viewpoint group {wildcards.viewpoint_group}",
+    shell: """
+    bamnado \
+    bam-coverage \
+    -b {input.bam} \
+    -o {output.bigwig} \
+    --scale-factor {params.scale_factor} \
+    --blacklisted-locations {input.excluded_regions} \
+    --min-mapq 0 \
+    --read-group {wildcards.viewpoint_group} \
+    {params.options} > {log} 2>&1
+    """
         
 def get_mcc_bam_files_for_merge(wildcards):
     """Get BAM files for merging based on sample names."""
@@ -82,12 +82,12 @@ rule merge_mcc_bams:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        OUTPUT_DIR + "/logs/merge_bam/{group}.log",
-    shell:
-        """
-        samtools merge {output} {input} -@ {threads}
-        """
+    log: OUTPUT_DIR + "/logs/merge_bam/{group}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/merge_bam/{group}.tsv",
+    message: "Merging BAM files for group {wildcards.group}",
+    shell: """
+    samtools merge {output} {input} -@ {threads}
+    """
 
 
 use rule index_bam as index_bam_merged with:
@@ -95,10 +95,9 @@ use rule index_bam as index_bam_merged with:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
     output:
         bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
-    log:
-        OUTPUT_DIR + "/logs/index_bam_merged/{group}.log",
-
-
+    log: OUTPUT_DIR + "/logs/index_bam_merged/{group}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/index_bam_merged/{group}.tsv",
+    message: "Indexing merged BAM for group {wildcards.group}"
 
 
 use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
@@ -112,8 +111,9 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     params:
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
         options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
-    log:
-        OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
+    log: OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_n_cis.tsv",
+    message: "Generating n_cis normalized bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
     container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest'
 
 
@@ -128,7 +128,9 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=1,
         options=check_options(config["bamnado"]["bamcoverage"]),
-    log:
-        OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
+    log: OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_unscaled.tsv",
+    message: "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
+    
 
 

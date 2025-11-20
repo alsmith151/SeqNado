@@ -17,8 +17,9 @@ rule trimgalore_paired:
     params:
         options=str(CONFIG.third_party_tools.trim_galore.trim.command_line_arguments),
         trim_dir=OUTPUT_DIR + "/trimmed",
-    log:
-        OUTPUT_DIR + "/logs/trimming/{sample}.log",
+    log: OUTPUT_DIR + "/logs/trimming/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/trimming/{sample}.tsv",
+    message: "Trimming reads for sample {wildcards.sample} using Trim Galore",
     shell:
         """
         trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --paired --output_dir {params.trim_dir} {input.fq1} {input.fq2} >> {log} 2>&1 &&
@@ -41,8 +42,9 @@ rule trimgalore_single:
     params:
         options=str(CONFIG.third_party_tools.trim_galore.trim.command_line_arguments),
         trim_dir=OUTPUT_DIR + "/trimmed",
-    log:
-        OUTPUT_DIR + "/logs/trimming/{sample}.log",
+    log: OUTPUT_DIR + "/logs/trimming/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/trimming/{sample}.tsv",
+    message: "Trimming reads for sample {wildcards.sample} using Trim Galore",
     shell:
         """
         trim_galore --cores {threads} {params.options} --basename {wildcards.sample} --output_dir {params.trim_dir} {input.fq} >> {log} 2>&1 &&

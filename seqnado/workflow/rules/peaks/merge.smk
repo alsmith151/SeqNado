@@ -15,9 +15,10 @@ rule lanceotron_no_input_consensus:
         options=str(CONFIG.third_party_tools.lanceotron.call_peaks.command_line_arguments)
     container:
         "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest"
-    log:
-        OUTPUT_DIR + "/logs/lanceotron/{group}.log",
-    shell:"""
+    log: OUTPUT_DIR + "/logs/lanceotron/{group}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/lanceotron/{group}.tsv",
+    message: "Calling peaks with LanceOtron for merged group {wildcards.group}"
+    shell: """
     lanceotron callPeaks {input.bigwig} -f {params.outdir} --skipheader  {params.options} > {log} 2>&1 &&
     cat {output.ltron_peaks} | cut -f 1-3 > {output.peaks}
     """

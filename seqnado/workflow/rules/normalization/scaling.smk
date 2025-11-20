@@ -13,8 +13,9 @@ use rule feature_counts as feature_counts_genome with:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log:
-        OUTPUT_DIR + "/logs/readcounts/featurecounts/featurecounts.log",
+    log: OUTPUT_DIR + "/logs/readcounts/featurecounts/featurecounts.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/readcounts/featurecounts/featurecounts.tsv",
+    message: "Calculating feature counts for all samples"
 
 
 # rule setup_for_scaling_factors:

@@ -19,13 +19,14 @@ rule fastqc_raw_paired:
     params:
         extra="--quiet",
         output_dir=OUTPUT_DIR + "/qc/fastqc_raw/",
-    threads: 1
+    threads: CONFIG.third_party_tools.fastqc.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/fastqc_raw/{sample}.log",
+    log: OUTPUT_DIR + "/logs/fastqc_raw/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/fastqc_raw/{sample}.tsv",
+    message: "Running FastQC on raw FASTQ files for sample {wildcards.sample}",
     shell:
         """
         fastqc -o {params.output_dir} {input.fq1} {input.fq2} > {log} 2>&1
@@ -88,7 +89,9 @@ rule qualimap_bamqc:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: 16
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:OUTPUT_DIR + "/logs/qualimap_bamqc/{sample}.log",
+    log: OUTPUT_DIR + "/logs/qualimap_bamqc/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/qualimap_bamqc/{sample}.tsv",
+    message: "Running Qualimap BAMQC for sample {wildcards.sample}",
     shell:"""
     qualimap --java-mem-size={resources.mem} bamqc \
     {params.options} \
@@ -113,8 +116,9 @@ rule qualimap_rnaseq:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     threads: 16
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/qualimap_rnaseq/{sample}.log",
+    log: OUTPUT_DIR + "/logs/qualimap_rnaseq/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/qualimap_rnaseq/{sample}.tsv",
+    message: "Running Qualimap RNA-seq for sample {wildcards.sample}",
     shell:"""
     qualimap --java-mem-size={resources.mem} rnaseq \
     {params.options} \
@@ -141,6 +145,9 @@ rule bam_stats:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_alignment_stats.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_alignment_stats.tsv",
+    message: "Compiling alignment post-processing stats for sample {wildcards.sample}",
     shell: """
         cat {input.sort} {input.blacklist} {input.remove_duplicates} {input.atac_shift} {input.filtered} {input.final} > {output}
     """
@@ -154,8 +161,9 @@ rule prepare_stats_report:
     output:
         OUTPUT_DIR + "/qc/alignment_stats.tsv",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/alignment_stats.log",
+    log: OUTPUT_DIR + "/logs/alignment_stats.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/alignment_stats.tsv",
+    message: "Generating alignment stats report for all samples",
     script:
         "../scripts/alignment_stats.py"
 
@@ -187,7 +195,9 @@ rule frip_enrichment:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:OUTPUT_DIR + "/logs/frip_enrichment/{directory}/{sample}.log",
+    log: OUTPUT_DIR + "/logs/frip_enrichment/{directory}/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/frip_enrichment/{directory}/{sample}.tsv",
+    message: "Calculating FRiP enrichment for sample {wildcards.sample} in directory {wildcards.directory}",
     shell:
         """
         plotEnrichment -p {threads} \
@@ -364,11 +374,13 @@ rule seqnado_report:
     params:
         multiqc_config = "/opt/seqnado/multiqc_config.yaml",
         output_dir = OUTPUT_DIR,
-    log: OUTPUT_DIR + "/logs/seqnado_report.log",
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/multiqc/seqnado_report.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/multiqc/seqnado_report.tsv",
+    message: "Generating SeqNado report",
     shell:"""
     multiqc -o {params.output_dir} {params.output_dir} \
     --config {params.multiqc_config} \

@@ -10,8 +10,9 @@ if CONFIG.assay_config.spikein.method == SpikeInMethod.ORLANDO:
         output:
             normalisation_table=OUTPUT_DIR + "/resources/{group}_normalisation_factors.tsv",
             normalisation_factors=OUTPUT_DIR + "/resources/{group}_normalisation_factors.json",
-        log:
-            OUTPUT_DIR + "/logs/normalisation_factors_{group}.log",
+        log: OUTPUT_DIR + "/logs/normalisation_factors_{group}.log",
+        benchmark: OUTPUT_DIR + "/.benchmark/normalisation_factors_{group}.tsv",
+        message: "Calculating normalisation factors for group {wildcards.group}"
         script:
             "../scripts/calculate_spikein_norm_orlando.py"
 
@@ -27,7 +28,8 @@ elif CONFIG.assay_config.spikein.method == SpikeInMethod.WITH_INPUT:
         output:
             normalisation_table=OUTPUT_DIR + "/resources/{group}_normalisation_factors.tsv",
             normalisation_factors=OUTPUT_DIR + "/resources/{group}_normalisation_factors.json",
-        log:
-            OUTPUT_DIR + "/logs/normalisation_factors_{group}.log",
+        log: OUTPUT_DIR + "/logs/normalisation_factors_{group}.log",
+        benchmark: OUTPUT_DIR + "/.benchmark/normalisation_factors_{group}.tsv",
+        message: "Calculating normalisation factors for group {wildcards.group}"
         script:
             "../scripts/calculate_spikein_norm_factors.py"

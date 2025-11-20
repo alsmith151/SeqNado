@@ -19,7 +19,9 @@ if CONFIG.pcr_duplicates.tool == PCRDuplicateTool.PICARD:
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_remove_duplicates.log",
-        shell:"""
+        benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_remove_duplicates.tsv",
+        message: "Removing duplicates from aligned BAM for sample {wildcards.sample} using Picard",
+        shell: """
         picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.metrics} --REMOVE_DUPLICATES true --CREATE_INDEX true {params.options} 2> {log} &&
         mv seqnado_output/aligned/duplicates_removed/{wildcards.sample}.bai {output.bai} &&
         echo -e "duplicate removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
@@ -40,7 +42,9 @@ elif CONFIG.pcr_duplicates.tool == PCRDuplicateTool.SAMTOOLS:
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_remove_duplicates.log",
-        shell:"""
+        benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_remove_duplicates.tsv",
+        message: "Removing duplicates from aligned BAM for sample {wildcards.sample} using samtools",
+        shell: """
         samtools rmdup -@ {threads} {input.bam} {output.bam} &&
         samtools index {output.bam} &&
         echo -e "duplicate removal\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
@@ -59,6 +63,8 @@ else:
             mem="500MB",
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_remove_duplicates.log",
+        benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_remove_duplicates.tsv",
+        message: "Skipping duplicate removal for sample {wildcards.sample}",
         shell: """
         mv {input.bam} {output.bam} &&
         mv {input.bai} {output.bai} &&

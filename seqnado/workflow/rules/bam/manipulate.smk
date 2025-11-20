@@ -20,7 +20,9 @@ if CONFIG.shift_for_tn5_insertion:
         threads: 1
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
         log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_atac_shift.log",
-        shell:"""
+        benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_atac_shift.tsv",
+        message: "Shifting ATAC-seq alignments for sample {wildcards.sample} using bamnado",
+        shell: """
         bamnado modify --input {input.bam} --output {output.tmp} --tn5-shift &&
         samtools sort {output.tmp} -@ {threads} -o {output.bam} &&
         samtools index {output.bam} &&
@@ -40,7 +42,10 @@ else:
             read_log=temp(OUTPUT_DIR + "/qc/alignment_post_process/{sample}_atac_shift.tsv"),
         threads: 1
         container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-        shell:"""
+        log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_atac_shift.log",
+        benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_atac_shift.tsv",
+        message: "Skipping ATAC-seq shift for sample {wildcards.sample}",
+        shell: """
         mv {input.bam} {output.bam} &&
         mv {input.bam}.bai {output.bai} &&
         echo -e "ATAC shift\t$(samtools view -c {output.bam})" >> {output.read_log}

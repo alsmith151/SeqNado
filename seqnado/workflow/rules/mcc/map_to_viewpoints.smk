@@ -5,15 +5,14 @@ rule viewpoints_to_fasta:
         genome=CONFIG.genome.fasta,
     output:
         fasta=OUTPUT_DIR + "/resources/viewpoints.fa",
-    log:
-        OUTPUT_DIR + "/logs/bed_to_fasta/viewpoints.log",
-    
-    shell:
-        """
-        bedtools getfasta -fi {input.genome} -bed {input.bed} -fo {output.fasta} -name 2> {log} &&
-        cat {output.fasta} | sed -E 's/:+/-/g' > {output.fasta}.tmp &&
-        mv {output.fasta}.tmp {output.fasta}
-        """
+    log: OUTPUT_DIR + "/logs/bed_to_fasta/viewpoints.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/bed_to_fasta/viewpoints.tsv",
+    message: "Converting viewpoints BED to FASTA",
+    shell: """
+    bedtools getfasta -fi {input.genome} -bed {input.bed} -fo {output.fasta} -name 2> {log} &&
+    cat {output.fasta} | sed -E 's/:+/-/g' > {output.fasta}.tmp &&
+    mv {output.fasta}.tmp {output.fasta}
+    """
 
 
 rule fasta_index:
@@ -21,27 +20,27 @@ rule fasta_index:
         fasta=OUTPUT_DIR + "/resources/viewpoints.fa",
     output:
         index=OUTPUT_DIR + "/resources/viewpoints.fa.fai",
-    log:
-        OUTPUT_DIR + "/logs/bed_to_fasta/index.log",
-    shell:
-        """
-        samtools faidx {input.fasta} -o {output.index}
-        """
+    log: OUTPUT_DIR + "/logs/bed_to_fasta/index.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/bed_to_fasta/index.tsv",
+    message: "Indexing viewpoints FASTA",
+    shell: """
+    samtools faidx {input.fasta} -o {output.index}
+    """
 
 rule exclusion_regions:
     input:
         bed=CONFIG.mcc_viewpoints,
     output:
         bed=OUTPUT_DIR + "/resources/exclusion_regions.bed"
-    log:
-        OUTPUT_DIR + "/logs/exclusion_regions.log"
     params:
         genome=CONFIG.genome.chromosome_sizes,
         exclusion_zone=CONFIG.assay_config.mcc.exclusion_zone
-    shell:
-        """
-        bedtools slop -i {input.bed} -g {params.genome}  -b {params.exclusion_zone} > {output.bed}
-        """
+    log: OUTPUT_DIR + "/logs/exclusion_regions.log"
+    benchmark: OUTPUT_DIR + "/.benchmark/exclusion_regions.tsv",
+    message: "Creating exclusion regions BED file",
+    shell: """
+    bedtools slop -i {input.bed} -g {params.genome}  -b {params.exclusion_zone} > {output.bed}
+    """
 
 
 rule minimap2_to_viewpoints:
@@ -54,13 +53,13 @@ rule minimap2_to_viewpoints:
     resources:
         mem="4GB",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/aligned/{sample}.log",
-    shell:
-        """
-        minimap2 -x sr -a -k 8 -w 1 --cs=long {input.viewpoints} {input.fq} 2> {log} |
-        samtools view -h -b -o {output.bam} 2>> {log} &&
-        samtools sort -@ 4 -o {output.bam}.sorted {output.bam} 2>> {log} &&
-        mv {output.bam}.sorted {output.bam} &&
-        samtools index {output.bam}
-        """ 
+    log: OUTPUT_DIR + "/logs/aligned/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/aligned/{sample}.tsv",
+    message: "Aligning reads to viewpoints for sample {wildcards.sample}",
+    shell: """
+    minimap2 -x sr -a -k 8 -w 1 --cs=long {input.viewpoints} {input.fq} 2> {log} |
+    samtools view -h -b -o {output.bam} 2>> {log} &&
+    samtools sort -@ 4 -o {output.bam}.sorted {output.bam} 2>> {log} &&
+    mv {output.bam}.sorted {output.bam} &&
+    samtools index {output.bam}
+    """ 

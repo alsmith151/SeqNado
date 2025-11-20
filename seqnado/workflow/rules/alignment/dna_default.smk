@@ -5,19 +5,20 @@ rule align_paired:
     input:
         fq1=OUTPUT_DIR + "/trimmed/{sample}_1.fastq.gz",
         fq2=OUTPUT_DIR + "/trimmed/{sample}_2.fastq.gz",
+    output:
+        bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     params:
         index=CONFIG.genome.index.prefix,
         options=str(CONFIG.third_party_tools.bowtie2.align.command_line_arguments),
         rg="--rg-id {sample} --rg SM:{sample}",
-    output:
-        bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     threads: CONFIG.third_party_tools.bowtie2.align.threads,
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/align/{sample}.log",
+    log: OUTPUT_DIR + "/logs/align/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/align/{sample}.tsv",
+    message: "Aligning reads for sample {wildcards.sample} using Bowtie2",
     shell:
         """
         bowtie2 \
@@ -34,6 +35,9 @@ rule align_paired:
 rule align_single:
     input:
         fq1=OUTPUT_DIR + "/trimmed/{sample}.fastq.gz",
+
+    output:
+        bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     params:
         index=CONFIG.genome.index.prefix,
         options=str(CONFIG.third_party_tools.bowtie2.align.command_line_arguments),
@@ -43,10 +47,9 @@ rule align_single:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/align/{sample}.log",
-    output:
-        bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
+    log: OUTPUT_DIR + "/logs/align/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/align/{sample}.tsv",
+    message: "Aligning reads for sample {wildcards.sample} using Bowtie2",
     shell:
         """
         bowtie2 \

@@ -50,6 +50,9 @@ rule geo_symlink:
     params:
         output=OUTPUT,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/geo/geo_symlink.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_symlink.tsv",
+    message: "Creating symlinks for GEO submission files",
     run:
         from pathlib import Path
         from seqnado.design import GEOFiles
@@ -89,6 +92,9 @@ rule md5sum:
         files=get_symlinked_files,
     output:
         OUTPUT_DIR + "/geo_submission/md5sums.txt",
+    log: OUTPUT_DIR + "/logs/geo/md5sum.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/md5sum.tsv",
+    message: "Generating MD5 checksums for GEO submission files",
     shell:
         """
         cd seqnado_output/geo_submission
@@ -111,6 +117,9 @@ rule geo_md5_table:
         raw=OUTPUT_DIR + "/geo_submission/raw_data_checksums.txt",
         processed=OUTPUT_DIR + "/geo_submission/processed_data_checksums.txt",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/geo/geo_md5_table.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_md5_table.tsv",
+    message: "Creating separate MD5 checksum tables for raw and processed data",
     run:
         import pandas as pd 
 
@@ -129,6 +138,9 @@ rule samples_table:
     params: 
         output=OUTPUT,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/geo/samples_table.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/samples_table.tsv",
+    message: "Generating samples table for GEO submission",
     run:
         from seqnado.design import GEOFiles
         df = GEOFiles(make_geo_submission_files=True,
@@ -146,6 +158,9 @@ rule geo_protocol:
         OUTPUT_DIR + "/geo_submission/protocol.txt",
     params:
         assay=ASSAY,
+    log: OUTPUT_DIR + "/logs/geo/geo_protocol.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_protocol.tsv",
+    message: "Producing data processing protocol for GEO submission",
     script:
         "../scripts/produce_data_processing_protocol.py"
 
@@ -153,6 +168,9 @@ rule geo_upload_instructions:
     output:
         instructions=OUTPUT_DIR + "/geo_submission/upload_instructions.txt",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/geo/geo_upload_instructions.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_upload_instructions.tsv",
+    message: "Creating GEO upload instructions",
     run:
         import importlib.resources
         import seqnado.data
@@ -168,14 +186,18 @@ rule move_to_upload:
         validated=OUTPUT_DIR + "/geo_submission/.validated",
     output:
         outdir = directory(OUTPUT_DIR + "/geo_submission/{ASSAY.replace('&', '_and_')}")
-    shell:
-        """
-        mkdir -p {output.outdir}
-        for f in {input.infiles}
-        do
-            cp $f {output.outdir}
-        done
-        """
+    params:
+        output=OUTPUT,
+    log: OUTPUT_DIR + "/logs/geo/move_to_upload.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/move_to_upload.tsv",
+    message: "Moving files to final GEO upload directory",
+    shell: """
+    mkdir -p {output.outdir}
+    for f in {input.infiles}
+    do
+        cp $f {output.outdir}
+    done
+    """
 
 rule remove_headers_for_security:
     input:
@@ -183,6 +205,9 @@ rule remove_headers_for_security:
     output:
         validated=OUTPUT_DIR + "/geo_submission/.validated",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/geo/remove_headers.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/remove_headers.tsv",
+    message: "Removing headers from TSV files for GEO submission",
     run:
         from pathlib import Path
 

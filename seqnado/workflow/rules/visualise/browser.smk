@@ -17,8 +17,10 @@ rule generate_plotnado_visualisation:
     resources:
         mem="1.5GB",
          runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    container:
-        "library://asmith151/plotnado/plotnado:latest"
+    container: "library://asmith151/plotnado/plotnado:latest"
+    log: OUTPUT_DIR + "/logs/visualise/plotnado.log",
+    benchmark: OUTPUT_DIR + "/.benchmarks/visualise/plotnado.tsv",
+    message: "Generating genome browser visualisations with Plotnado"
     script:
         "../scripts/run_plotnado.py"
 

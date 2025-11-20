@@ -7,17 +7,20 @@ rule deseq2_report_rnaseq:
         yml=OUTPUT_DIR + "/resources/deseq2_params.yml"
     output:
         deseq2=f"deseq2_{PROJECT_NAME}.html".replace(" ", ""),
-    log:
-        OUTPUT_DIR + "/logs/deseq2/deseq2.log",
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    shell:
-        """
-        input_file=$(realpath "{input.qmd}")
-        base_dir=$(dirname $input_file)
-        cd "$base_dir"
-        quarto render {input.qmd} --no-cache --output {output.deseq2} --log {log} --execute-params {input.yml}
-        """
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    log: OUTPUT_DIR + "/logs/deseq2/deseq2.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/deseq2/deseq2.tsv",
+    message: "Generating DESeq2 report for RNA-seq data",
+    shell: """
+    input_file=$(realpath "{input.qmd}")
+    base_dir=$(dirname $input_file)
+    cd "$base_dir"
+    quarto render {input.qmd} --no-cache --output {output.deseq2} --log {log} --execute-params {input.yml}
+    """
 
 
 
@@ -30,6 +33,12 @@ rule deseq2_params:
         de_dir=str(Path(rules.deseq2_report_rnaseq.output.deseq2).parent),
         counts=rules.deseq2_report_rnaseq.input.counts,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    log: OUTPUT_DIR + "/logs/deseq2/deseq2_params.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/deseq2/deseq2_params.tsv",
+    message: "Preparing DESeq2 parameters for RNA-seq analysis",
     run:
         import yaml
 
