@@ -40,6 +40,15 @@ if TYPE_CHECKING:
     import pandas as pd
 
 from seqnado import Assay
+from seqnado._version import __version__
+
+
+def version_callback(value: bool):
+    """Print version and exit."""
+    if value:
+        typer.echo(f"SeqNado version {__version__}")
+        raise typer.Exit()
+
 
 app = typer.Typer(
     add_completion=True,
@@ -50,7 +59,23 @@ app = typer.Typer(
 Initialize your environment, build configs, create design files, and run pipelines.
 Use --help on any subcommand for details.
 """,
+    callback=lambda version: version_callback(version) if version else None,
 )
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-v",
+        help="Show version and exit.",
+        callback=version_callback,
+        is_eager=True,
+    )
+):
+    """SeqNado CLI main entry point."""
+    pass
 
 
 # ------------------------------- Utilities ---------------------------------- #

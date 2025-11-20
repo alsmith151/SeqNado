@@ -18,20 +18,21 @@ requires-python = ">=3.10"
 license = {file = "LICENSE"}
 dynamic = ["version"]
 dependencies = [
-    "typer",
-    "rich",
     "click",
     "cookiecutter",
     "pandas",
     "pandera",
+    "pexpect",
     "pulp<=3.3.0",
     "pydantic",
     "pyyaml",
+    "rich",
     "seaborn",
+    "snakemake-executor-plugin-slurm",
     "snakemake-wrapper-utils",
     "snakemake>=9.12.0,<10",
-    "snakemake-executor-plugin-slurm",
     "tracknado",
+    "typer",
     "wget",
 ]
 

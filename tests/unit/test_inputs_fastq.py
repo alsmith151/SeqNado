@@ -60,7 +60,7 @@ def test_get_sample_collection_from_csv(tmp_path: Path):
     csv_path = tmp_path / "metadata.csv"
     with csv_path.open("w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["sample", "r1", "r2"])
+        w.writerow(["sample_id", "r1", "r2"])
         w.writerow(["s1", str(_write_fastq(tmp_path, "s1_R1.fastq.gz")), str(_write_fastq(tmp_path, "s1_R2.fastq.gz"))])
 
     sc = get_sample_collection(Assay.RNA, csv_path)

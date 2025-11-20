@@ -12,6 +12,10 @@ def test_common_computed_flags(tmp_path: Path):
     star_dir = tmp_path / "star"
     star_dir.mkdir()
 
+    # Create parent directory for hub (validator checks parent exists)
+    hub_parent = tmp_path
+    hub_parent.mkdir(exist_ok=True)
+
     genome = GenomeConfig(name="hg38", index=STARIndex(prefix=star_dir))
     assay_cfg = ATACAssayConfig(
         bigwigs=BigwigConfig(pileup_method=[]),

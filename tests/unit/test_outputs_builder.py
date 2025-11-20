@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from seqnado import Assay
+from seqnado import Assay, PileupMethod
 from seqnado.outputs.core import SeqnadoOutputBuilder, SeqnadoOutputFactory
 from seqnado.inputs.fastq import FastqFile, FastqSet, FastqCollection
 from seqnado.inputs.grouping import SampleGroups, SampleGroup, SampleGroupings
@@ -12,7 +12,7 @@ def _minimal_config(tmp: Path) -> SeqnadoConfig:
     star = tmp / "star"
     star.mkdir()
     genome = GenomeConfig(name="hg38", index=STARIndex(prefix=star))
-    assay_cfg = ATACAssayConfig(bigwigs=BigwigConfig(pileup_method=[]))
+    assay_cfg = ATACAssayConfig(bigwigs=BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS]))
     return SeqnadoConfig(
         assay=Assay.ATAC,
         project=dict(name="p"),
@@ -23,8 +23,12 @@ def _minimal_config(tmp: Path) -> SeqnadoConfig:
 
 
 def _small_collection(tmp: Path) -> FastqCollection:
-    r1 = FastqFile(path=(tmp / "s1_R1.fastq.gz").write_text("@r\nN\n+\n#\n") or (tmp / "s1_R1.fastq.gz"))
-    r2 = FastqFile(path=(tmp / "s1_R2.fastq.gz").write_text("@r\nN\n+\n#\n") or (tmp / "s1_R2.fastq.gz"))
+    r1_path = tmp / "s1_R1.fastq.gz"
+    r1_path.write_text("@r\nN\n+\n#\n")
+    r2_path = tmp / "s1_R2.fastq.gz"
+    r2_path.write_text("@r\nN\n+\n#\n")
+    r1 = FastqFile(path=r1_path)
+    r2 = FastqFile(path=r2_path)
     fs = FastqSet(sample_id="s1", r1=r1, r2=r2)
     return FastqCollection(assay=Assay.ATAC, metadata=[], fastq_sets=[fs])
 

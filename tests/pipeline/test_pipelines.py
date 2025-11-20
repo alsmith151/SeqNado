@@ -24,7 +24,7 @@ def test_pipeline(
     """
     res = subprocess.run(
         [
-            "seqnado",
+            "seqnado pipeline",
             assay_type,
             "-c",
             str(cores),
@@ -53,3 +53,4 @@ def test_config_created(assay: str, config_yaml: Path, assay_type: str):
 
 def test_design_created(assay: str, design: Path, assay_type: str):
     assert os.path.exists(design), f"{assay_type} design file not created."
+

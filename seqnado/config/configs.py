@@ -127,12 +127,12 @@ class GenomeConfig(BaseModel):
 
     name: str
     index: BowtieIndex | STARIndex
-    fasta: Path | None = None
-    chromosome_sizes: Path | None = None
-    gtf: Path | None = None
-    genes: Path | None = None
-    blacklist: Path | None = None
-    fastq_screen_config: Path | None = None
+    fasta: Annotated[Path | None, BeforeValidator(none_str_to_none)] = None
+    chromosome_sizes: Annotated[Path | None, BeforeValidator(none_str_to_none)] = None
+    gtf: Annotated[Path | None, BeforeValidator(none_str_to_none)] = None
+    genes: Annotated[Path | None, BeforeValidator(none_str_to_none)] = None
+    blacklist: Annotated[Path | None, BeforeValidator(none_str_to_none)] = None
+    fastq_screen_config: Annotated[Path | None, BeforeValidator(none_str_to_none)] = None
     bin_size: int = 1000
     organism: str | None = None
     version: str | None = None
@@ -321,11 +321,15 @@ class UCSCHubConfig(BaseModel):
     @field_validator("directory")
     def validate_directory(cls, v: str) -> str:
         """
-        Make sure that at least the parent directory exists.
+        Make sure that at least the parent directory exists for absolute paths.
+        Skip validation for relative paths (used during config generation).
         """
-        parent = Path(v).parent
-        if not parent.is_dir():
-            raise ValueError(f"Parent directory {parent} does not exist.")
+        path = Path(v)
+        # Only validate if it's an absolute path
+        if path.is_absolute():
+            parent = path.parent
+            if not parent.is_dir():
+                raise ValueError(f"Parent directory {parent} does not exist.")
         return v
 
     @field_validator("name")

@@ -380,7 +380,7 @@ class FastqCollection(BaseFastqCollection):
         return [
             path
             for fs in self.fastq_sets
-            for path in (fs.r1.path, *(fs.r2.path if fs.r2 else []))
+            for path in ([fs.r1.path] + ([fs.r2.path] if fs.r2 else []))
         ]
 
     def get_file_paths(self, kind: str | None = None) -> list[Path]:

@@ -27,6 +27,9 @@ def test_cli_config_rna_non_interactive_no_makedirs(tmp_path: Path, monkeypatch)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
 
+    # Create seqnado_output dir so UCSCHubConfig validator doesn't fail
+    (tmp_path / "seqnado_output").mkdir()
+
     out = tmp_path / "config_RNA.yaml"
     res = subprocess.run(
         [
@@ -55,6 +58,9 @@ def test_cli_config_rna_non_interactive_creates_project_dir(tmp_path: Path, monk
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
 
+    # Create seqnado_output dir for UCSCHubConfig validation
+    (tmp_path / "seqnado_output").mkdir()
+
     res = subprocess.run(
         [
             "seqnado",
@@ -69,6 +75,6 @@ def test_cli_config_rna_non_interactive_creates_project_dir(tmp_path: Path, monk
     )
     assert res.returncode == 0, f"stderr=\n{res.stderr}\nstdout=\n{res.stdout}"
 
-    # Expect a directory named YYYY-MM-DD_rna_<project>/config_rna.yaml
-    candidates = list(tmp_path.glob("*_rna_*/config_rna.yaml"))
+    # Expect a directory named YYYY-MM-DD_<project>/config_rna.yaml
+    candidates = list(tmp_path.glob("*/config_rna.yaml"))
     assert candidates, "Expected config_rna.yaml inside a dated project directory"

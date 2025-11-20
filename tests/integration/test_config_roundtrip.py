@@ -72,6 +72,9 @@ def test_cli_config_roundtrip_with_tests_data(tmp_path: Path):
     os.environ["SEQNADO_CONFIG"] = str(tmp_path)
     _write_genome_config(tmp_path, assay, star_dir, bt2_dir)
 
+    # Create seqnado_output dir for UCSCHubConfig validation
+    (tmp_path / "seqnado_output").mkdir()
+
     # Generate config via CLI (non-interactive) into a known file
     out = tmp_path / f"config_{assay}.yaml"
     res = subprocess.run(

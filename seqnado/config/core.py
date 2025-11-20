@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, Annotated
 from enum import Enum
-from pydantic import BaseModel, computed_field, field_validator, Field, model_validator
+from pydantic import BaseModel, computed_field, field_validator, Field, model_validator, BeforeValidator
 from seqnado import Assay
 from .configs import (
     BigwigConfig,
@@ -18,6 +18,7 @@ from .configs import (
     SpikeInConfig,
     MethylationConfig,
     MCCConfig,
+    none_str_to_none,
 )
 from .mixins import (
     CommonComputedFieldsMixin,
@@ -51,7 +52,7 @@ class ATACAssayConfig(BaseAssayConfig, PeakCallingMixin):
 class ChIPAssayConfig(BaseAssayConfig, PeakCallingMixin):
     """Configuration specific to ChIP-seq assays."""
 
-    spikein: SpikeInConfig | None = None
+    spikein: Annotated[SpikeInConfig | None, BeforeValidator(none_str_to_none)] = None
     peak_calling: PeakCallingConfig | None = None
     create_heatmaps: bool = False
 
@@ -59,7 +60,7 @@ class ChIPAssayConfig(BaseAssayConfig, PeakCallingMixin):
 class CATAssayConfig(BaseAssayConfig, PeakCallingMixin):
     """Configuration specific to CAT-seq assays."""
 
-    spikein: SpikeInConfig | None = None
+    spikein: Annotated[SpikeInConfig | None, BeforeValidator(none_str_to_none)] = None
     tn5_shift: bool = False
     peak_calling: PeakCallingConfig | None = None
     create_heatmaps: bool = False

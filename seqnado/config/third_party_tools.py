@@ -3,11 +3,18 @@ from typing import Optional, Literal, Annotated
 from enum import Enum
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, BeforeValidator
 from pydantic.functional_serializers import PlainSerializer
 
 from seqnado import Assay
 from typing import get_origin, get_args, Union
+
+
+def none_str_to_none(v):
+    """Convert string 'None' to actual None value."""
+    if isinstance(v, str) and v.strip().lower() == "none":
+        return None
+    return v
 
 
 # =============================================================================
@@ -595,43 +602,43 @@ class ThirdPartyToolsConfig(BaseModel):
     """Configuration for all third-party bioinformatics tools."""
     
     # Quality control tools
-    fastq_screen: Optional[FastqScreen] = Field(default=None, description="FastqScreen configuration")
-    fastqc: Optional[FastQC] = Field(
+    fastq_screen: Annotated[Optional[FastqScreen], BeforeValidator(none_str_to_none)] = Field(default=None, description="FastqScreen configuration")
+    fastqc: Annotated[Optional[FastQC], BeforeValidator(none_str_to_none)] = Field(
         default=None, description="FastQC quality control configuration"
     )
-    qualimap: Optional[Qualimap] = Field(
+    qualimap: Annotated[Optional[Qualimap], BeforeValidator(none_str_to_none)] = Field(
         default=None, description="Qualimap quality control configuration"
     )
 
     # Alignment tools
-    bowtie2: Optional[Bowtie2] = Field(default=None, description="Bowtie2 aligner configuration")
-    star: Optional[Star] = Field(default=None, description="STAR RNA-seq aligner configuration")
+    bowtie2: Annotated[Optional[Bowtie2], BeforeValidator(none_str_to_none)] = Field(default=None, description="Bowtie2 aligner configuration")
+    star: Annotated[Optional[Star], BeforeValidator(none_str_to_none)] = Field(default=None, description="STAR RNA-seq aligner configuration")
 
     # Processing tools
-    samtools: Optional[Samtools] = Field(default=None, description="Samtools suite configuration")
-    picard: Optional[Picard] = Field(default=None, description="Picard tools configuration")
+    samtools: Annotated[Optional[Samtools], BeforeValidator(none_str_to_none)] = Field(default=None, description="Samtools suite configuration")
+    picard: Annotated[Optional[Picard], BeforeValidator(none_str_to_none)] = Field(default=None, description="Picard tools configuration")
     
     # Trimming tools
-    cutadapt: Optional[Cutadapt] = Field(default=None, description="Cutadapt trimming configuration")
-    trim_galore: Optional[Trimgalore] = Field(default=None, description="Trim Galore configuration")
+    cutadapt: Annotated[Optional[Cutadapt], BeforeValidator(none_str_to_none)] = Field(default=None, description="Cutadapt trimming configuration")
+    trim_galore: Annotated[Optional[Trimgalore], BeforeValidator(none_str_to_none)] = Field(default=None, description="Trim Galore configuration")
     
     # Peak calling tools
-    macs: Optional[Macs] = Field(default=None, description="MACS peak caller configuration")
-    lanceotron: Optional[Lanceotron] = Field(default=None, description="Lanceotron peak caller configuration")
-    lanceotron_mcc: Optional[LanceotronMCC] = Field(default=None, description="Lanceotron MCC configuration")
-    seacr: Optional[Seacr] = Field(default=None, description="SEACR peak caller configuration")
+    macs: Annotated[Optional[Macs], BeforeValidator(none_str_to_none)] = Field(default=None, description="MACS peak caller configuration")
+    lanceotron: Annotated[Optional[Lanceotron], BeforeValidator(none_str_to_none)] = Field(default=None, description="Lanceotron peak caller configuration")
+    lanceotron_mcc: Annotated[Optional[LanceotronMCC], BeforeValidator(none_str_to_none)] = Field(default=None, description="Lanceotron MCC configuration")
+    seacr: Annotated[Optional[Seacr], BeforeValidator(none_str_to_none)] = Field(default=None, description="SEACR peak caller configuration")
     
     # Analysis tools
-    deeptools: Optional[Deeptools] = Field(default=None, description="Deeptools suite configuration")
-    homer: Optional[Homer] = Field(default=None, description="HOMER suite configuration")
-    bamnado: Optional[Bamnado] = Field(default=None, description="Bamnado coverage analysis configuration")
-    subread: Optional[Subread] = Field(default=None, description="Subread feature counting configuration")
-    salmon: Optional[Salmon] = Field(default=None, description="Salmon quantification configuration")
+    deeptools: Annotated[Optional[Deeptools], BeforeValidator(none_str_to_none)] = Field(default=None, description="Deeptools suite configuration")
+    homer: Annotated[Optional[Homer], BeforeValidator(none_str_to_none)] = Field(default=None, description="HOMER suite configuration")
+    bamnado: Annotated[Optional[Bamnado], BeforeValidator(none_str_to_none)] = Field(default=None, description="Bamnado coverage analysis configuration")
+    subread: Annotated[Optional[Subread], BeforeValidator(none_str_to_none)] = Field(default=None, description="Subread feature counting configuration")
+    salmon: Annotated[Optional[Salmon], BeforeValidator(none_str_to_none)] = Field(default=None, description="Salmon quantification configuration")
 
     
     # Specialized tools
-    methyldackel: Optional[Methyldackel] = Field(default=None, description="Methyldackel methylation analysis configuration")
-    bcftools: Optional[BcfTools] = Field(default=None, description="BCFtools variant calling suite configuration")
+    methyldackel: Annotated[Optional[Methyldackel], BeforeValidator(none_str_to_none)] = Field(default=None, description="Methyldackel methylation analysis configuration")
+    bcftools: Annotated[Optional[BcfTools], BeforeValidator(none_str_to_none)] = Field(default=None, description="BCFtools variant calling suite configuration")
 
     @classmethod
     def _class_to_field_map(cls) -> dict[type[BaseModel], str]:

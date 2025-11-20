@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from click.testing import CliRunner
 import json
-import builtins
+import subprocess
 
 
 def _write_minimal_genome_config(tmp_root: Path) -> Path:
@@ -32,66 +31,77 @@ def _write_minimal_genome_config(tmp_root: Path) -> Path:
 
 
 def test_cli_config_rna_creates_config_file(monkeypatch, tmp_path: Path):
-    # Arrange workspace: minimal genome config, metadata file, and template
+    # Arrange workspace: minimal genome config, metadata file
     _write_minimal_genome_config(tmp_path)
-    (tmp_path / "metadata.csv").write_text("sample,fastq\n")
-    # No need to copy template; cli now uses packaged resource
+    (tmp_path / "metadata.csv").write_text("sample_id,fastq\n")
 
     # Ensure CLI reads genome config from our tmp root
+    monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
-    # Fake package version lookup
-    monkeypatch.setenv("PYTHONHASHSEED", "0")  # reduce flakiness
-    def fake_version(_):
-        return "0.0.0-test"
-    import importlib.metadata as _md
-    monkeypatch.setattr(_md, "version", fake_version)
 
-    # Avoid file lookup inside get_tool_options by returning a minimal string
-    import seqnado.config.user_input as ui
-    monkeypatch.setattr(ui, "get_tool_options", lambda assay: "options: {}\n")
+    # Create seqnado_output dir for UCSCHubConfig validation
+    (tmp_path / "seqnado_output").mkdir()
 
-    # Simulate pressing Enter for every prompt to accept defaults
-    monkeypatch.setattr(builtins, "input", lambda _: "")
-
-    # Change to temp working directory
-    monkeypatch.chdir(tmp_path)
-
-    # Act: invoke CLI to generate config for RNA, without creating extra directories
-    from seqnado.cli import cli_config
-    runner = CliRunner()
-    res = runner.invoke(cli_config, ["rna", "--dont-make-directories"])  # type: ignore[arg-type]
+    # Act: invoke CLI via subprocess to generate config for RNA
+    out_file = tmp_path / "config_rna.yaml"
+    result = subprocess.run(
+        [
+            "seqnado",
+            "config",
+            "rna",
+            "--no-interactive",
+            "--no-make-dirs",
+            "--render-options",
+            "-o",
+            str(out_file),
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
 
     # Assert
-    assert res.exit_code == 0, res.output
-    out_file = tmp_path / "config_RNA.yaml"
+    assert result.returncode == 0, f"stderr:\n{result.stderr}\nstdout:\n{result.stdout}"
     assert out_file.exists(), "Config file should be created"
     text = out_file.read_text()
     # Light sanity checks on content
-    assert "Project" in text or "project" in text
-    assert "metadata.csv" in text
+    assert "project" in text.lower()
+    assert "metadata" in text  # Check for metadata field (could be metadata.csv or metadata_rna.csv)
     assert "assay_config" in text
 
 
 def test_cli_config_rna_all_options_flag(monkeypatch, tmp_path: Path):
-    # Arrange: environment and inputs as above
+    # Arrange: environment and inputs
     _write_minimal_genome_config(tmp_path)
-    (tmp_path / "metadata.csv").write_text("sample,fastq\n")
-    # No need to copy template; cli now uses packaged resource
+    (tmp_path / "metadata.csv").write_text("sample_id,fastq\n")
 
+    monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
-    def fake_version(_):
-        return "0.0.0-test"
-    import importlib.metadata as _md
-    monkeypatch.setattr(_md, "version", fake_version)
 
-    import seqnado.config.user_input as ui
-    monkeypatch.setattr(builtins, "input", lambda _: "")
-    monkeypatch.chdir(tmp_path)
+    # Create seqnado_output dir for UCSCHubConfig validation
+    (tmp_path / "seqnado_output").mkdir()
 
-    from seqnado.cli import cli_config
-    runner = CliRunner()
-    res = runner.invoke(cli_config, ["rna", "--dont-make-directories", "--all-options"])  # type: ignore[arg-type]
+    # Act: invoke CLI with --render-options flag
+    out_file = tmp_path / "config_rna.yaml"
+    result = subprocess.run(
+        [
+            "seqnado",
+            "config",
+            "rna",
+            "--no-interactive",
+            "--no-make-dirs",
+            "--render-options",
+            "-o",
+            str(out_file),
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
 
-    assert res.exit_code == 0, res.output
-    out_file = tmp_path / "config_RNA.yaml"
+    # Assert
+    assert result.returncode == 0, f"stderr:\n{result.stderr}\nstdout:\n{result.stdout}"
     assert out_file.exists()
+    # When --render-options is used, the config should include detailed comments/options
+    text = out_file.read_text()
+    assert len(text) > 100  # Should have substantial content with options
