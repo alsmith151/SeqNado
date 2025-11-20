@@ -521,6 +521,14 @@ class FastqScreen(BaseModel):
         default_factory=lambda: CommandLineArguments()
     )
     
+    @field_validator("threads", mode="before")
+    @classmethod
+    def validate_threads(cls, v):
+        # Handle when threads comes in as a string from YAML
+        if isinstance(v, str):
+            return int(v)
+        return v
+    
     @field_validator("config", mode="before")
     @classmethod
     def validate_config_path(cls, v):
