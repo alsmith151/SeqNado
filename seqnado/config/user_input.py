@@ -289,7 +289,9 @@ def get_ucsc_hub_config() -> Optional[UCSCHubConfig]:
         "What is your email address?", default=f"{username}@example.com"
     )
 
-    color_by = get_user_input("Color by (for UCSC hub):", default="samplename")
+    color_by_input = get_user_input("Color by (for UCSC hub):", default="samplename")
+    # Convert to list if it's a string
+    color_by = [color_by_input] if isinstance(color_by_input, str) else color_by_input
 
     return UCSCHubConfig(directory=directory, email=email, color_by=color_by)
 
