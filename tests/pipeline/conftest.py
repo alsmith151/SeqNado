@@ -296,6 +296,12 @@ def run_init(index: Path, chromsizes: Path, gtf: Path, blacklist: Path, run_dire
     with open(genome_config_file, "w") as f:
         json.dump(genome_config_dict, f, indent=4)
 
+    # Create a dummy fastq_screen.conf file
+    fastq_screen_config = run_directory / ".config" / "seqnado" / "fastq_screen.conf"
+    fastq_screen_config.parent.mkdir(parents=True, exist_ok=True)
+    with open(fastq_screen_config, "w") as f:
+        f.write("# Dummy fastq_screen config for testing\n")
+
     assert process.returncode == 0, f"seqnado init failed: {process.stderr}"
     assert genome_config_file.exists(), "genome_config.json missing after init"
 

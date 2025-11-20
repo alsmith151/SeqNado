@@ -49,6 +49,25 @@ def test_pipeline(
     assert os.path.exists("seqnado_output/seqnado_report.html")
 
 
+@pytest.mark.pipeline
+@pytest.mark.snakemake
+@pytest.mark.requires_apptainer
+@pytest.mark.slow
+@pytest.mark.parametrize("multi_assays", [["atac", "chip", "rna"]])
+def test_pipeline_multi(
+    multi_assays: list[str],
+    cores: int,
+    test_profile_path: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Execute the Snakefile_multi workflow with multiple assays."""
+    # This test would need additional fixtures for multi-assay setup
+    # For now, this is a placeholder that can be expanded
+    pytest.skip("Multi-assay pipeline test not yet fully implemented")
+
+
+
 def test_config_created(assay: str, config_yaml: Path, assay_type: str):
     assert os.path.exists(config_yaml), f"{assay_type} config file not created."
 
