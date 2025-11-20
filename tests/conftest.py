@@ -4,8 +4,10 @@ This file defines global pytest options, markers and lightweight fixtures used
 across unit, CLI and pipeline tests. Heavyweight pipeline fixtures live in
 ``tests/pipeline/conftest.py`` to keep scope clear.
 """
-from pathlib import Path
+
 import shutil
+from pathlib import Path
+
 import pytest
 
 
@@ -27,7 +29,7 @@ def sample_metadata_dict():
     return {
         "scaling_group": "treatment",
         "condition": "high_dose",
-        "spikein_ratio": 0.25
+        "spikein_ratio": 0.25,
     }
 
 
@@ -49,18 +51,10 @@ def sample_names():
 
 def pytest_configure(config):
     """Configure pytest with custom markers and settings."""
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "edge_case: mark test as an edge case test"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
-    )
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "edge_case: mark test as an edge case test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
     config.addinivalue_line(
         "markers", "requires_data: mark test as requiring data files"
     )
@@ -114,31 +108,43 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     for item in items:
         # Add unit marker to all tests by default
-        if not any(mark.name in ["integration", "slow"] for mark in item.iter_markers()):
+        if not any(
+            mark.name in ["integration", "slow"] for mark in item.iter_markers()
+        ):
             item.add_marker(pytest.mark.unit)
-        
+
         # Add edge_case marker to tests with "edge" in name
         if "edge" in item.name.lower():
             item.add_marker(pytest.mark.edge_case)
-        
+
         # Add requires_data marker to tests that use test data
-        if any(fixture in item.fixturenames for fixture in ["test_data_dir", "test_fastq_dir"]):
+        if any(
+            fixture in item.fixturenames
+            for fixture in ["test_data_dir", "test_fastq_dir"]
+        ):
             item.add_marker(pytest.mark.requires_data)
 
         # If tests are marked as pipeline and user did not opt in, skip them
         if any(m.name == "pipeline" for m in item.iter_markers()):
             if not config.getoption("--run-pipeline"):
-                item.add_marker(pytest.mark.skip(reason="Use --run-pipeline to enable pipeline tests"))
+                item.add_marker(
+                    pytest.mark.skip(
+                        reason="Use --run-pipeline to enable pipeline tests"
+                    )
+                )
 
         # If a test requires Apptainer and it's not available, skip it
         if any(m.name == "requires_apptainer" for m in item.iter_markers()):
             if not apptainer_available:
-                item.add_marker(pytest.mark.skip(reason="Apptainer/Singularity not found in PATH"))
+                item.add_marker(
+                    pytest.mark.skip(reason="Apptainer/Singularity not found in PATH")
+                )
 
 
 # -------------------------
 # Global lightweight fixtures
 # -------------------------
+
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Parametrize tests that accept the 'assay' fixture using --assays values."""

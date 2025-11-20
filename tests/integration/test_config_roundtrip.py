@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -31,6 +31,7 @@ def _find_star_or_bt2(genome_root: Path) -> tuple[str, Path | None, Path | None]
 
     # Bowtie2 index: look for any *.bt2 under subdirectories and infer prefix
     import re
+
     for bt2 in genome_root.rglob("*.bt2*"):
         name = bt2.name
         # remove .1.bt2, .2.bt2, .rev.1.bt2(l), etc.
@@ -41,7 +42,9 @@ def _find_star_or_bt2(genome_root: Path) -> tuple[str, Path | None, Path | None]
     return (None, None, None)
 
 
-def _write_genome_config(home: Path, assay: str, star_dir: Path | None, bt2_prefix: Path | None) -> Path:
+def _write_genome_config(
+    home: Path, assay: str, star_dir: Path | None, bt2_prefix: Path | None
+) -> Path:
     cfg_dir = home / ".config" / "seqnado"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     # Use a real genome key so organism prediction works in model
@@ -104,6 +107,7 @@ def test_cli_config_roundtrip_with_tests_data(tmp_path: Path):
     assert cfg.assay.value.lower() == assay
     # Roundtrip: dump to YAML-equivalent dict and reload
     import yaml
+
     dump = tmp_path / "roundtrip.yaml"
     with dump.open("w") as f:
         yaml.safe_dump(cfg.model_dump(mode="json"), f)

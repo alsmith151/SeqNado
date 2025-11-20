@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 import csv
+from pathlib import Path
 
-from seqnado.inputs.fastq import FastqFile, FastqFileIP, FastqSet, FastqCollection
-from seqnado.inputs.core import clean_sample_name
-from seqnado.inputs.helpers import get_sample_collection
 from seqnado import Assay
+from seqnado.inputs.core import clean_sample_name
+from seqnado.inputs.fastq import FastqCollection, FastqFile, FastqFileIP, FastqSet
+from seqnado.inputs.helpers import get_sample_collection
 
 
 def _write_fastq(tmp: Path, name: str) -> Path:
@@ -47,7 +47,11 @@ def test_fastqcollection_symlink(tmp_path: Path):
     # Create simple paired sample
     r1 = FastqFile(path=_write_fastq(tmp_path, "s1_R1.fastq.gz"))
     r2 = FastqFile(path=_write_fastq(tmp_path, "s1_R2.fastq.gz"))
-    fc = FastqCollection(assay=Assay.RNA, metadata=[], fastq_sets=[FastqSet(sample_id="s1", r1=r1, r2=r2)])
+    fc = FastqCollection(
+        assay=Assay.RNA,
+        metadata=[],
+        fastq_sets=[FastqSet(sample_id="s1", r1=r1, r2=r2)],
+    )
 
     out = tmp_path / "links"
     fc.symlink_fastq_files(out)
@@ -61,7 +65,13 @@ def test_get_sample_collection_from_csv(tmp_path: Path):
     with csv_path.open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["sample_id", "r1", "r2"])
-        w.writerow(["s1", str(_write_fastq(tmp_path, "s1_R1.fastq.gz")), str(_write_fastq(tmp_path, "s1_R2.fastq.gz"))])
+        w.writerow(
+            [
+                "s1",
+                str(_write_fastq(tmp_path, "s1_R1.fastq.gz")),
+                str(_write_fastq(tmp_path, "s1_R2.fastq.gz")),
+            ]
+        )
 
     sc = get_sample_collection(Assay.RNA, csv_path)
     # The returned type implements CollectionLike; check basic behavior

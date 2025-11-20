@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -67,11 +67,9 @@ def test_pipeline_multi(
     pytest.skip("Multi-assay pipeline test not yet fully implemented")
 
 
-
 def test_config_created(assay: str, config_yaml: Path, assay_type: str):
     assert os.path.exists(config_yaml), f"{assay_type} config file not created."
 
 
 def test_design_created(assay: str, design: Path, assay_type: str):
     assert os.path.exists(design), f"{assay_type} design file not created."
-

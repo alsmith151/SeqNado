@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import subprocess
+from pathlib import Path
 
 
 def _write_minimal_genome_config(tmp_root: Path) -> Path:
@@ -14,7 +14,7 @@ def _write_minimal_genome_config(tmp_root: Path) -> Path:
     star_dir = tmp_root / "star_index"
     star_dir.mkdir(parents=True, exist_ok=True)
     fasta = tmp_root / "genome.fa"
-    fasta.write_text(">chr1\n" "NNNNNNNNNNNNNNNNNNNN\n")
+    fasta.write_text(">chr1\nNNNNNNNNNNNNNNNNNNNN\n")
 
     genome_cfg = {
         "test": {
@@ -27,7 +27,6 @@ def _write_minimal_genome_config(tmp_root: Path) -> Path:
     cfg_path = cfg_dir / "genome_config.json"
     cfg_path.write_text(json.dumps(genome_cfg, indent=2))
     return cfg_path
-
 
 
 def test_cli_config_rna_creates_config_file(monkeypatch, tmp_path: Path):
@@ -66,7 +65,9 @@ def test_cli_config_rna_creates_config_file(monkeypatch, tmp_path: Path):
     text = out_file.read_text()
     # Light sanity checks on content
     assert "project" in text.lower()
-    assert "metadata" in text  # Check for metadata field (could be metadata.csv or metadata_rna.csv)
+    assert (
+        "metadata" in text
+    )  # Check for metadata field (could be metadata.csv or metadata_rna.csv)
     assert "assay_config" in text
 
 

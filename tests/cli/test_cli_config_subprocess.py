@@ -1,7 +1,7 @@
-import os
-from pathlib import Path
 import json
+import os
 import subprocess
+from pathlib import Path
 
 
 def _write_minimal_star_genome_config(root: Path) -> Path:
@@ -53,7 +53,9 @@ def test_cli_config_rna_non_interactive_no_makedirs(tmp_path: Path, monkeypatch)
     assert "genome" in text.lower() or "project" in text.lower()
 
 
-def test_cli_config_rna_non_interactive_creates_project_dir(tmp_path: Path, monkeypatch):
+def test_cli_config_rna_non_interactive_creates_project_dir(
+    tmp_path: Path, monkeypatch
+):
     _write_minimal_star_genome_config(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))

@@ -1,18 +1,20 @@
 from pathlib import Path
 
 from seqnado import Assay, PileupMethod
+from seqnado.config.configs import BigwigConfig, GenomeConfig, STARIndex
+from seqnado.config.core import ATACAssayConfig, SeqnadoConfig
+from seqnado.inputs.fastq import FastqCollection, FastqFile, FastqSet
+from seqnado.inputs.grouping import SampleGroup, SampleGroupings, SampleGroups
 from seqnado.outputs.core import SeqnadoOutputBuilder, SeqnadoOutputFactory
-from seqnado.inputs.fastq import FastqFile, FastqSet, FastqCollection
-from seqnado.inputs.grouping import SampleGroups, SampleGroup, SampleGroupings
-from seqnado.config.configs import GenomeConfig, STARIndex, BigwigConfig
-from seqnado.config.core import SeqnadoConfig, ATACAssayConfig
 
 
 def _minimal_config(tmp: Path) -> SeqnadoConfig:
     star = tmp / "star"
     star.mkdir()
     genome = GenomeConfig(name="hg38", index=STARIndex(prefix=star))
-    assay_cfg = ATACAssayConfig(bigwigs=BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS]))
+    assay_cfg = ATACAssayConfig(
+        bigwigs=BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS])
+    )
     return SeqnadoConfig(
         assay=Assay.ATAC,
         project=dict(name="p"),
@@ -49,9 +51,11 @@ def test_output_builder_bigwigs_only(tmp_path: Path):
 def test_output_factory_with_consensus_groups(tmp_path: Path):
     cfg = _minimal_config(tmp_path)
     samples = _small_collection(tmp_path)
-    groups = SampleGroupings(groupings={
-        "consensus": SampleGroups(groups=[SampleGroup(name="cons", samples=["s1"])])
-    })
+    groups = SampleGroupings(
+        groupings={
+            "consensus": SampleGroups(groups=[SampleGroup(name="cons", samples=["s1"])])
+        }
+    )
     factory = SeqnadoOutputFactory(Assay.ATAC, samples, cfg, sample_groupings=groups)
     out = factory.create_output_builder().build()
     assert out.files, "Expected some files listed from factory"

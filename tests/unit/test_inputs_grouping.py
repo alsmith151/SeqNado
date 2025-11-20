@@ -1,11 +1,15 @@
 import pandas as pd
-from seqnado.inputs.grouping import SampleGroup, SampleGroups, SampleGroupings
+
+from seqnado.inputs.grouping import SampleGroup, SampleGroupings, SampleGroups
 
 
 def test_samplegroups_from_dataframe():
-    df = pd.DataFrame({
-        "scaling_group": ["g1", "g1", "g2"],
-    }, index=["s1", "s2", "s3"])
+    df = pd.DataFrame(
+        {
+            "scaling_group": ["g1", "g1", "g2"],
+        },
+        index=["s1", "s2", "s3"],
+    )
 
     groups = SampleGroups.from_dataframe(df, subset_column="scaling_group")
     assert len(groups) == 2

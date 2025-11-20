@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from seqnado.config.configs import GenomeConfig, BowtieIndex, STARIndex, UserFriendlyError
+from seqnado.config.configs import (
+    BowtieIndex,
+    GenomeConfig,
+    STARIndex,
+    UserFriendlyError,
+)
 
 
 def test_bowtie_index_files_validation(tmp_path: Path):
@@ -28,4 +33,6 @@ def test_star_index_validation(tmp_path: Path):
 def test_missing_optional_paths_raise_userfriendlyerror(tmp_path: Path):
     # fasta points to a missing file -> should raise our friendly error
     with pytest.raises(UserFriendlyError):
-        GenomeConfig(name="hg38", index=STARIndex(prefix=tmp_path), fasta=tmp_path / "missing.fa")
+        GenomeConfig(
+            name="hg38", index=STARIndex(prefix=tmp_path), fasta=tmp_path / "missing.fa"
+        )

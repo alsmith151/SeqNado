@@ -2,9 +2,13 @@ from pathlib import Path
 
 from seqnado import Assay
 from seqnado.config.configs import (
-    GenomeConfig, STARIndex, BigwigConfig, PlottingConfig, UCSCHubConfig,
+    BigwigConfig,
+    GenomeConfig,
+    PlottingConfig,
+    STARIndex,
+    UCSCHubConfig,
 )
-from seqnado.config.core import SeqnadoConfig, ATACAssayConfig
+from seqnado.config.core import ATACAssayConfig, SeqnadoConfig
 
 
 def test_common_computed_flags(tmp_path: Path):

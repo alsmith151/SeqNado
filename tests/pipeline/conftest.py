@@ -7,17 +7,18 @@ the SeqNado CLI and Snakemake pipeline can run under pytest.
 They are intentionally scoped at session/function levels to balance reuse and
 isolation across assays when --assays is used.
 """
+
 from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import tarfile
-from datetime import datetime
 import time
+from datetime import datetime
+from pathlib import Path
 
 import pytest
 import requests
@@ -30,7 +31,9 @@ def _parse_assays(config: pytest.Config) -> list[str]:
     return assays or ["chip"]
 
 
-def _download_with_retry(url: str, dest: Path, max_retries: int = 3, timeout: int = 30) -> None:
+def _download_with_retry(
+    url: str, dest: Path, max_retries: int = 3, timeout: int = 30
+) -> None:
     """Download a file with retry logic."""
     for attempt in range(max_retries):
         try:
@@ -41,14 +44,17 @@ def _download_with_retry(url: str, dest: Path, max_retries: int = 3, timeout: in
             return
         except (requests.RequestException, OSError) as e:
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)  # Exponential backoff
+                time.sleep(2**attempt)  # Exponential backoff
                 continue
-            raise RuntimeError(f"Failed to download {url} after {max_retries} attempts") from e
+            raise RuntimeError(
+                f"Failed to download {url} after {max_retries} attempts"
+            ) from e
 
 
 # ------------------
 # Path convenience
 # ------------------
+
 
 @pytest.fixture(scope="session")
 def repo_path() -> Path:
@@ -92,6 +98,7 @@ def genome_path(test_data_path: Path) -> Path:
 # ------------------
 # Reference bundles
 # ------------------
+
 
 @pytest.fixture(scope="function")
 def genome_index_path(genome_path: Path, assay: str) -> Path:
@@ -141,10 +148,12 @@ def chromsizes(genome_path: Path) -> Path:
     if not (genome_path / "chr21_rename.fa.fai").exists():
         url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/{suffix}"
         _download_with_retry(url, dest)
-        
+
         # Append dm6 chromsizes
         with open(dest, "ab") as f:
-            url2 = "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
+            url2 = (
+                "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
+            )
             for attempt in range(3):
                 try:
                     r2 = requests.get(url2, stream=True, timeout=30)
@@ -154,7 +163,7 @@ def chromsizes(genome_path: Path) -> Path:
                     break
                 except requests.RequestException:
                     if attempt < 2:
-                        time.sleep(2 ** attempt)
+                        time.sleep(2**attempt)
                         continue
                     raise
 
@@ -188,7 +197,7 @@ def genome_files(genome_path: Path, assay: str) -> tuple[Path, Path]:
     """Only download genome files if needed for meth/snp assays."""
     fasta = genome_path / "chr21_meth.fa"
     fasta_fai = genome_path / "chr21_meth.fa.fai"
-    
+
     # Only download if this assay actually needs it
     if assay in ["meth", "snp"]:
         if not fasta.exists():
@@ -197,7 +206,7 @@ def genome_files(genome_path: Path, assay: str) -> tuple[Path, Path]:
         if not fasta_fai.exists():
             url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
             _download_with_retry(url, fasta_fai)
-    
+
     return fasta, fasta_fai
 
 
@@ -215,6 +224,7 @@ def mcc_files(genome_path: Path) -> dict[str, Path]:
 # ------------------
 # Assay helpers
 # ------------------
+
 
 @pytest.fixture(scope="session")
 def cores(pytestconfig: pytest.Config) -> int:
@@ -297,12 +307,28 @@ def set_up_run_dir(run_directory: Path, fastqs: dict[str, list[Path]], assay: st
 
 
 @pytest.fixture(scope="function", autouse=True)
-def run_init(index: Path, chromsizes: Path, gtf: Path, blacklist: Path, run_directory: Path, assay: str, monkeypatch: pytest.MonkeyPatch, genome_files: tuple[Path, Path], genome_path: Path):
+def run_init(
+    index: Path,
+    chromsizes: Path,
+    gtf: Path,
+    blacklist: Path,
+    run_directory: Path,
+    assay: str,
+    monkeypatch: pytest.MonkeyPatch,
+    genome_files: tuple[Path, Path],
+    genome_path: Path,
+):
     """Run `seqnado init` and materialize genome_config.json with appropriate indices."""
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    process = subprocess.run(["seqnado", "init"], input="y\n", text=True, cwd=run_directory, capture_output=True)
+    process = subprocess.run(
+        ["seqnado", "init"],
+        input="y\n",
+        text=True,
+        cwd=run_directory,
+        capture_output=True,
+    )
 
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
     if "rna" in assay:
@@ -328,20 +354,18 @@ def run_init(index: Path, chromsizes: Path, gtf: Path, blacklist: Path, run_dire
 
     # Copy fastq_screen.conf from test data, updating the index path
     source_fastq_screen_config = genome_path / "fastq_screen.conf"
-    dest_fastq_screen_config = run_directory / ".config" / "seqnado" / "fastq_screen.conf"
+    dest_fastq_screen_config = (
+        run_directory / ".config" / "seqnado" / "fastq_screen.conf"
+    )
     dest_fastq_screen_config.parent.mkdir(parents=True, exist_ok=True)
-    
+
     if source_fastq_screen_config.exists():
         # Read template and replace index path using regex for robustness
         with open(source_fastq_screen_config, "r") as f:
             config_content = f.read()
         # Replace DATABASE lines with actual index path
         # Pattern: DATABASE\tName\t/any/path -> DATABASE\tName\t{actual_index}
-        config_content = re.sub(
-            r'(DATABASE\s+\S+\s+).*',
-            rf'\1{index}',
-            config_content
-        )
+        config_content = re.sub(r"(DATABASE\s+\S+\s+).*", rf"\1{index}", config_content)
         with open(dest_fastq_screen_config, "w") as f:
             f.write(config_content)
     else:
@@ -357,7 +381,9 @@ DATABASE\tTest\t{index}
 
 
 @pytest.fixture(scope="function")
-def config_yaml(run_directory: Path, assay_type: str, monkeypatch: pytest.MonkeyPatch) -> Path:
+def config_yaml(
+    run_directory: Path, assay_type: str, monkeypatch: pytest.MonkeyPatch
+) -> Path:
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
@@ -369,7 +395,7 @@ def config_yaml(run_directory: Path, assay_type: str, monkeypatch: pytest.Monkey
     project_dir = run_directory / f"{date}_{assay_type}_test"
     project_dir.mkdir(parents=True, exist_ok=True)
     config_file_path = project_dir / f"config_{assay_type}.yaml"
-    
+
     result = subprocess.run(
         [
             "seqnado",
@@ -385,8 +411,10 @@ def config_yaml(run_directory: Path, assay_type: str, monkeypatch: pytest.Monkey
         capture_output=True,
         text=True,
     )
-    
-    assert result.returncode == 0, f"seqnado config failed: {result.stderr}\n{result.stdout}"
+
+    assert result.returncode == 0, (
+        f"seqnado config failed: {result.stderr}\n{result.stdout}"
+    )
     assert config_file_path.exists(), f"{assay_type} config file not created."
     return config_file_path
 
@@ -394,6 +422,7 @@ def config_yaml(run_directory: Path, assay_type: str, monkeypatch: pytest.Monkey
 @pytest.fixture(scope="function")
 def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
     import yaml
+
     with open(config_yaml, "r") as f:
         config = yaml.safe_load(f)
 
@@ -426,15 +455,25 @@ def seqnado_run_dir(config_yaml_for_testing: Path) -> Path:
 
 
 @pytest.fixture(scope="function")
-def design(seqnado_run_dir: Path, assay_type: str, assay: str, run_directory: Path) -> Path:
+def design(
+    seqnado_run_dir: Path, assay_type: str, assay: str, run_directory: Path
+) -> Path:
     import pandas as pd
-    
+
     # Copy FASTQs from run_directory to seqnado_run_dir
     for fq in run_directory.glob("*.fastq.gz"):
         shutil.copy(fq, seqnado_run_dir)
-    
+
     metadata_file = f"metadata_{assay_type}.csv"
-    cmd = ["seqnado", "design", assay_type, "-o", metadata_file, "--no-interactive", "--accept-all-defaults"]
+    cmd = [
+        "seqnado",
+        "design",
+        assay_type,
+        "-o",
+        metadata_file,
+        "--no-interactive",
+        "--accept-all-defaults",
+    ]
     completed = subprocess.run(cmd, cwd=seqnado_run_dir, capture_output=True, text=True)
     assert completed.returncode == 0, f"seqnado design failed: {completed.stderr}"
 
@@ -452,18 +491,30 @@ def design(seqnado_run_dir: Path, assay_type: str, assay: str, run_directory: Pa
 @pytest.fixture(scope="function", autouse=True)
 def apptainer_args(index: Path, test_data_path: Path, monkeypatch: pytest.MonkeyPatch):
     import importlib.resources
+
     import seqnado.data
 
     indicies_mount = index.parent if not index.is_dir() else index
     tmpdir = Path(os.environ.get("TMPDIR", "/tmp") or "/tmp")
     wd = Path(os.getcwd()).resolve()
-    apptainer_cache_dir = Path.home() / ".apptainer" / "cache"
-    multiqc_config = Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml").absolute().resolve()
+    # Use environment variable if set, otherwise fall back to home directory
+    apptainer_cache_dir = Path(
+        os.environ.get("APPTAINER_CACHEDIR") 
+        or os.environ.get("SINGULARITY_CACHEDIR") 
+        or (Path.home() / ".apptainer" / "cache")
+    )
+    multiqc_config = (
+        Path(importlib.resources.files(seqnado.data) / "multiqc_config.yaml")
+        .absolute()
+        .resolve()
+    )
     multiqc_config_parent = multiqc_config.parent
 
     monkeypatch.setenv(
         "APPTAINER_BINDPATH",
         f"{wd}:{wd},{test_data_path}:{test_data_path},{indicies_mount}:{indicies_mount},{tmpdir}:{tmpdir},{multiqc_config_parent}:{multiqc_config_parent}",
     )
+    # Set both for compatibility (Apptainer supports both variable names)
     monkeypatch.setenv("APPTAINER_CACHEDIR", str(apptainer_cache_dir), prepend=False)
+    monkeypatch.setenv("SINGULARITY_CACHEDIR", str(apptainer_cache_dir), prepend=False)
     monkeypatch.setenv("APPTAINER_TMPDIR", str(tmpdir), prepend=False)
