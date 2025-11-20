@@ -31,7 +31,7 @@ jobs:
           
           # Verify installation
           python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
-          which seqnado-init
+          which seqnado
           python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
 
       - name: Setup Apptainer runtime
