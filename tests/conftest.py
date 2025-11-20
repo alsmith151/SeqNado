@@ -136,44 +136,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
                 item.add_marker(pytest.mark.skip(reason="Apptainer/Singularity not found in PATH"))
 
 
-# Custom assertions for SeqNado
-def assert_valid_sample_name(sample_name: str):
-    """Assert that a sample name is valid."""
-    assert isinstance(sample_name, str), "Sample name must be a string"
-    assert len(sample_name) > 0, "Sample name cannot be empty"
-    assert not sample_name.isspace(), "Sample name cannot be only whitespace"
-
-
-def assert_valid_file_path(path: Path):
-    """Assert that a file path is valid and exists."""
-    assert isinstance(path, Path), "Path must be a Path object"
-    assert path.exists(), f"Path does not exist: {path}"
-    assert path.is_file(), f"Path is not a file: {path}"
-
-
-# Make custom assertions available to all tests
-pytest.assert_valid_sample_name = assert_valid_sample_name
-pytest.assert_valid_file_path = assert_valid_file_path
-
-
 # -------------------------
 # Global lightweight fixtures
 # -------------------------
-
-@pytest.fixture(scope="session")
-def cores(pytestconfig: pytest.Config) -> int:
-    """Number of cores to use for pipeline executions."""
-    return int(pytestconfig.getoption("--cores"))
-
-
-@pytest.fixture(scope="session")
-def selected_assays(pytestconfig: pytest.Config) -> list[str]:
-    """List of assays to parametrize pipeline tests with."""
-    assays_str: str = pytestconfig.getoption("--assays") or "chip"
-    assays = [a.strip() for a in assays_str.split(",") if a.strip()]
-    # Normalize to known set; leave as-is to allow custom experimental names if needed
-    return assays or ["chip"]
-
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Parametrize tests that accept the 'assay' fixture using --assays values."""

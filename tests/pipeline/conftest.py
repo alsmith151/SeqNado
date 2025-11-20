@@ -17,9 +17,33 @@ import shutil
 import subprocess
 import tarfile
 from datetime import datetime
+import time
 
 import pytest
 import requests
+
+
+def _parse_assays(config: pytest.Config) -> list[str]:
+    """Parse --assays option into list. Single source of truth for assay parsing."""
+    assays_str: str = config.getoption("--assays") or "chip"
+    assays = [a.strip() for a in assays_str.split(",") if a.strip()]
+    return assays or ["chip"]
+
+
+def _download_with_retry(url: str, dest: Path, max_retries: int = 3, timeout: int = 30) -> None:
+    """Download a file with retry logic."""
+    for attempt in range(max_retries):
+        try:
+            r = requests.get(url, stream=True, timeout=timeout)
+            r.raise_for_status()
+            with open(dest, "wb") as f:
+                f.write(r.content)
+            return
+        except (requests.RequestException, OSError) as e:
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)  # Exponential backoff
+                continue
+            raise RuntimeError(f"Failed to download {url} after {max_retries} attempts") from e
 
 
 # ------------------
@@ -116,17 +140,23 @@ def chromsizes(genome_path: Path) -> Path:
 
     if not (genome_path / "chr21_rename.fa.fai").exists():
         url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/{suffix}"
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
-        with open(dest, "wb") as f:
-            f.write(r.content)
-
-            # Append dm6 chromsizes
+        _download_with_retry(url, dest)
+        
+        # Append dm6 chromsizes
+        with open(dest, "ab") as f:
             url2 = "https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes"
-            r2 = requests.get(url2, stream=True)
-            r2.raise_for_status()
-            for line in r2.iter_lines():
-                f.write(b"dm6_" + line + b"\n")
+            for attempt in range(3):
+                try:
+                    r2 = requests.get(url2, stream=True, timeout=30)
+                    r2.raise_for_status()
+                    for line in r2.iter_lines():
+                        f.write(b"dm6_" + line + b"\n")
+                    break
+                except requests.RequestException:
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                        continue
+                    raise
 
     return dest
 
@@ -140,10 +170,7 @@ def gtf(genome_path: Path, assay: str, index: Path) -> Path:
 
     if not gtf_path.exists():
         url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/{gtf_path.name}"
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
-        with open(gtf_path, "wb") as f:
-            f.write(r.content)
+        _download_with_retry(url, gtf_path)
     return gtf_path
 
 
@@ -152,41 +179,35 @@ def blacklist(genome_path: Path) -> Path:
     blacklist_path = genome_path / "hg38-blacklist.v2.bed.gz"
     if not blacklist_path.exists():
         url = "https://github.com/Boyle-Lab/Blacklist/raw/master/lists/hg38-blacklist.v2.bed.gz"
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
-        with open(blacklist_path, "wb") as f:
-            f.write(r.content)
+        _download_with_retry(url, blacklist_path)
     return blacklist_path
 
 
-@pytest.fixture(scope="session")
-def genome_files(genome_path: Path) -> tuple[Path, Path]:
+@pytest.fixture(scope="function")
+def genome_files(genome_path: Path, assay: str) -> tuple[Path, Path]:
+    """Only download genome files if needed for meth/snp assays."""
     fasta = genome_path / "chr21_meth.fa"
     fasta_fai = genome_path / "chr21_meth.fa.fai"
-    if not fasta.exists():
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
-        with open(fasta, "wb") as f:
-            f.write(r.content)
-    if not fasta_fai.exists():
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
-        with open(fasta_fai, "wb") as f:
-            f.write(r.content)
+    
+    # Only download if this assay actually needs it
+    if assay in ["meth", "snp"]:
+        if not fasta.exists():
+            url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
+            _download_with_retry(url, fasta)
+        if not fasta_fai.exists():
+            url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
+            _download_with_retry(url, fasta_fai)
+    
     return fasta, fasta_fai
 
 
 @pytest.fixture(scope="session")
 def mcc_files(genome_path: Path) -> dict[str, Path]:
     files: dict[str, Path] = {}
-    url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/test_viewpoints.bed"
-    r = requests.get(url, stream=True)
-    r.raise_for_status()
     mcc_viewpoints = genome_path / "mcc_viewpoints.bed"
-    with open(mcc_viewpoints, "wb") as f:
-        f.write(r.content)
+    if not mcc_viewpoints.exists():
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/test_viewpoints.bed"
+        _download_with_retry(url, mcc_viewpoints)
     files["viewpoints"] = mcc_viewpoints
     return files
 
@@ -194,6 +215,18 @@ def mcc_files(genome_path: Path) -> dict[str, Path]:
 # ------------------
 # Assay helpers
 # ------------------
+
+@pytest.fixture(scope="session")
+def cores(pytestconfig: pytest.Config) -> int:
+    """Number of cores to use for pipeline executions."""
+    return int(pytestconfig.getoption("--cores"))
+
+
+@pytest.fixture(scope="session")
+def selected_assays(pytestconfig: pytest.Config) -> list[str]:
+    """List of assays to parametrize pipeline tests with."""
+    return _parse_assays(pytestconfig)
+
 
 @pytest.fixture(scope="function")
 def assay_type(assay: str) -> str:
@@ -209,11 +242,8 @@ def fastqs(test_data_path: Path, selected_assays: list[str]) -> dict[str, list[P
     # Download archive only if directory is empty
     if not any(target_dir.glob("*.fastq.gz")):
         url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/fastq.tar.gz"
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
         tar_path = target_dir.parent / "fastq.tar.gz"
-        with open(tar_path, "wb") as f:
-            f.write(r.content)
+        _download_with_retry(url, tar_path)
         temp_extract_dir = target_dir.parent / "temp_fastq_extracted"
         temp_extract_dir.mkdir(parents=True, exist_ok=True)
         with tarfile.open(tar_path, "r:gz") as tar:
@@ -302,13 +332,15 @@ def run_init(index: Path, chromsizes: Path, gtf: Path, blacklist: Path, run_dire
     dest_fastq_screen_config.parent.mkdir(parents=True, exist_ok=True)
     
     if source_fastq_screen_config.exists():
-        # Read template and replace index path
+        # Read template and replace index path using regex for robustness
         with open(source_fastq_screen_config, "r") as f:
             config_content = f.read()
-        # Replace the template path with actual index path
-        config_content = config_content.replace(
-            "/path",
-            str(index)
+        # Replace DATABASE lines with actual index path
+        # Pattern: DATABASE\tName\t/any/path -> DATABASE\tName\t{actual_index}
+        config_content = re.sub(
+            r'(DATABASE\s+\S+\s+).*',
+            rf'\1{index}',
+            config_content
         )
         with open(dest_fastq_screen_config, "w") as f:
             f.write(config_content)
