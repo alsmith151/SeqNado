@@ -1,9 +1,7 @@
 name: Pipeline Tests
 
 on: 
-  pull_request:
-    branches: ["main", "develop"]
-  workflow_dispatch:
+  push
 
 jobs:
   test-pipelines:

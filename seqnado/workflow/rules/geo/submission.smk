@@ -162,7 +162,7 @@ rule geo_protocol:
     benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_protocol.tsv",
     message: "Producing data processing protocol for GEO submission",
     script:
-        "../scripts/produce_data_processing_protocol.py"
+        "../../scripts/produce_data_processing_protocol.py"
 
 rule geo_upload_instructions:
     output:
