@@ -518,3 +518,136 @@ def apptainer_args(index: Path, test_data_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.setenv("APPTAINER_CACHEDIR", str(apptainer_cache_dir), prepend=False)
     monkeypatch.setenv("SINGULARITY_CACHEDIR", str(apptainer_cache_dir), prepend=False)
     monkeypatch.setenv("APPTAINER_TMPDIR", str(tmpdir), prepend=False)
+
+
+# -------------------------
+# Multi-assay test fixtures
+# -------------------------
+
+
+@pytest.fixture(scope="function")
+def multi_assay_run_directory(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Create a shared directory for multi-assay tests."""
+    return tmp_path_factory.mktemp("multi_assay")
+
+
+@pytest.fixture(scope="function")
+def multi_assay_configs(
+    multi_assays: list[str],
+    multi_assay_run_directory: Path,
+    fastqs: dict[str, list[Path]],
+    index: Path,
+    chromsizes: Path,
+    gtf: Path,
+    blacklist: Path,
+    genome_path: Path,
+    genome_files: tuple[Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> dict[str, dict[str, Path]]:
+    """Set up configs and metadata for multiple assays in one directory.
+    
+    Returns:
+        Dict mapping assay -> {"config": Path, "metadata": Path}
+    """
+    import yaml
+    
+    result = {}
+    cwd = Path.cwd()
+    
+    try:
+        os.chdir(multi_assay_run_directory)
+        
+        # Run seqnado init once for the shared directory
+        monkeypatch.setenv("SEQNADO_CONFIG", str(multi_assay_run_directory))
+        monkeypatch.setenv("HOME", str(multi_assay_run_directory))
+        
+        init_process = subprocess.run(
+            ["seqnado", "init"],
+            input="y\n",
+            text=True,
+            cwd=multi_assay_run_directory,
+            capture_output=True,
+        )
+        assert init_process.returncode == 0, f"seqnado init failed: {init_process.stderr}"
+        
+        # Update genome config with test paths
+        genome_config_path = multi_assay_run_directory / ".seqnado" / "genome_config.json"
+        with open(genome_config_path, "r") as f:
+            genome_config = json.load(f)
+        
+        genome_config["hg38"]["fasta"] = str(genome_files[0])
+        genome_config["hg38"]["chromsizes"] = str(chromsizes)
+        genome_config["hg38"]["gtf"] = str(gtf)
+        genome_config["hg38"]["blacklist"] = str(blacklist)
+        genome_config["hg38"]["bowtie2_index"] = str(index)
+        genome_config["hg38"]["star_index"] = str(genome_path / "star_index")
+        
+        with open(genome_config_path, "w") as f:
+            json.dump(genome_config, f, indent=2)
+        
+        # Create config and metadata for each assay
+        for assay in multi_assays:
+            # Copy fastqs for this assay
+            for fq in fastqs.get(assay, []):
+                shutil.copy(fq, multi_assay_run_directory)
+            
+            # Create config
+            config_result = subprocess.run(
+                ["seqnado", "config", assay],
+                input="\n".join([
+                    "hg38",
+                    "no",
+                    "",
+                    "",
+                    "",
+                    "",
+                ]),
+                text=True,
+                cwd=multi_assay_run_directory,
+                capture_output=True,
+            )
+            assert config_result.returncode == 0, f"seqnado config {assay} failed: {config_result.stderr}"
+            
+            config_path = multi_assay_run_directory / f"config_{assay}.yaml"
+            assert config_path.exists(), f"config_{assay}.yaml not created"
+            
+            # Modify config for testing
+            with open(config_path, "r") as f:
+                config = yaml.safe_load(f)
+            
+            # Apply test-specific modifications
+            config["assay_config"]["create_ucsc_hub"] = False
+            
+            if assay == "chip":
+                config["scale"] = "yes"
+                config["library_complexity"] = False
+            elif assay == "atac":
+                config["pileup_method"] = ["deeptools"]
+                config["call_peaks"] = True
+                config["peak_calling_method"] = ["macs"]
+            
+            with open(config_path, "w") as f:
+                yaml.dump(config, f)
+            
+            # Create metadata/design
+            design_result = subprocess.run(
+                ["seqnado", "design", assay],
+                cwd=multi_assay_run_directory,
+                capture_output=True,
+                text=True,
+            )
+            assert design_result.returncode == 0, f"seqnado design {assay} failed: {design_result.stderr}"
+            
+            metadata_path = multi_assay_run_directory / f"metadata_{assay}.csv"
+            assert metadata_path.exists(), f"metadata_{assay}.csv not created"
+            
+            result[assay] = {
+                "config": config_path,
+                "metadata": metadata_path,
+            }
+        
+        yield result
+        
+    finally:
+        os.chdir(cwd)
+
