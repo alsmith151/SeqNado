@@ -17,6 +17,8 @@ import os
 from pathlib import Path
 import yaml
 
+from seqnado.cli import config
+
 ################################
 # Auto-detect assay configs
 ################################
@@ -70,11 +72,22 @@ for assay in ASSAYS:
 
 OUTPUT_DIR = "seqnado_output/"
 
-# Get workflow arguments and cores from top-level command
-WORKFLOW_ARGS = config.get("workflow_args", "--use-singularity --printshellcmds --rerun-incomplete")
-# Get cores from config, default to all available
-CORES = config.get("cores", 16)  # Default to 16 if not specified
+# Snakemake provides the 'workflow' object - access cores from command line -c flag
+CORES = workflow.cores if hasattr(workflow, 'cores') else 1
+CORES_PER_ASSAY = max(1, CORES // len(ASSAYS)) if ASSAYS else CORES
 
+# Get workflow arguments from config (passed by seqnado CLI)
+# workflow.config_settings.config is the dict containing config values
+WORKFLOW_ARGS = workflow.config_settings.config.get('workflow_args', '--rerun-incomplete --printshellcmds')
+
+# Extract profile from workflow args if present
+import re
+profile_match = re.search(r'--profile\s+(\S+)', WORKFLOW_ARGS)
+if profile_match:
+    PROFILE_DIR = profile_match.group(1)
+else:
+    # Fallback to default profile path
+    PROFILE_DIR = str(Path(workflow.basedir) / "envs" / "profiles" / "profile_slurm_singularity")
 
 ################################
 # Master rule - runs all assays
@@ -106,10 +119,11 @@ rule run_assay:
         metadata = lambda wildcards: str(Path(f"metadata_{wildcards.assay}.csv").resolve()),
         main_snakefile = str(Path(workflow.basedir) / "Snakefile"),
         output_dir = OUTPUT_DIR + "{assay}",
-        project_root = str(Path.cwd())
+        project_root = str(Path.cwd()),
+        cores_for_assay = CORES_PER_ASSAY
     log:
         OUTPUT_DIR + "{assay}/logs/snakemake.log"
-    threads: CORES  # Use all available cores for nested snakemake
+    threads: 1  # Orchestration uses 1 thread so multiple assays can run in parallel
     resources:
         mem_mb = 16000,  # Allocate some memory for the orchestration step
         runtime = 259200  # 3 days in seconds
@@ -136,7 +150,7 @@ rule run_assay:
             --snakefile {params.main_snakefile} \
             --configfile {params.config_file} \
             --config output_dir=../../{params.output_dir} metadata={params.metadata} \
-            --cores {threads} \
+            --cores {params.cores_for_assay} \
             {WORKFLOW_ARGS} \
             2>&1 | tee -a ../../{log}
         
