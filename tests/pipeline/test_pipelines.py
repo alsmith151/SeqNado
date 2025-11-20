@@ -24,7 +24,8 @@ def test_pipeline(
     """
     res = subprocess.run(
         [
-            "seqnado pipeline",
+            "seqnado",
+            "pipeline",
             assay_type,
             "-c",
             str(cores),
