@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          submodules: true
 
       - name: Setup Conda environment and install SeqNado
         uses: conda-incubator/setup-miniconda@v3
@@ -24,7 +26,6 @@ jobs:
           environment-file: testing.yml
           miniforge-version: latest
           use-mamba: true
-          python-version: ${{ matrix.python-version }}
 
       - name: Install SeqNado package
         shell: bash -el {0}
