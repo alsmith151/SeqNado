@@ -1,8 +1,10 @@
 rule save_design:
     output:
         OUTPUT_DIR + "/metadata.csv",
-    container:
-        None
+    container: None
+    log: OUTPUT_DIR + "/logs/save_design.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/save_design.tsv",
+    message: "Saving design dataframe to metadata.csv in output directory",
     run:
         DESIGN.to_dataframe().to_csv(OUTPUT_DIR + "/metadata.csv", index=False)
 

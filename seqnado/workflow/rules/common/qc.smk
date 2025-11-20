@@ -43,8 +43,9 @@ rule fastqc_raw_single:
         extra="--quiet",
         output_dir=OUTPUT_DIR + "/qc/fastqc_raw/",
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log:
-        OUTPUT_DIR + "/logs/fastqc_raw/{sample}.log",
+    log: OUTPUT_DIR + "/logs/fastqc_raw/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/fastqc_raw/{sample}.tsv",
+    message: "Running FastQC on raw FASTQ files for sample {wildcards.sample}",
     shell:
         """
         fastqc -o {params.output_dir} {input} > {log} 2>&1
