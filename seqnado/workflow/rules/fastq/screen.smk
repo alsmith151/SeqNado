@@ -1,15 +1,26 @@
 from seqnado.helpers import  define_time_requested, define_memory_requested
+import shutil
+
+localrules: copy_fastq_screen_config
+
+rule copy_fastq_screen_config:
+    input:
+        conf=CONFIG.third_party_tools.fastq_screen.config,
+    output:
+        conf=temp(OUTPUT_DIR + "/qc/fastq_screen/fastq_screen.conf"),
+    run:
+        shutil.copy(input.conf, output.conf)
 
 rule fastq_screen_paired:
     input:
         fq=OUTPUT_DIR + "/fastqs/{sample}_{read}.fastq.gz",
+        conf=OUTPUT_DIR + "/qc/fastq_screen/fastq_screen.conf",
     output:
         fq_screen=temp(OUTPUT_DIR + "/qc/fastq_screen/{sample}_{read}_screen.html"),
         fq_screen_png=temp(OUTPUT_DIR + "/qc/fastq_screen/{sample}_{read}_screen.png"),
         fq_screen_txt=OUTPUT_DIR + "/qc/fastq_screen/{sample}_{read}_screen.txt",
     params:
         outdir=temp(OUTPUT_DIR + "/qc/fastq_screen"),
-        conf=CONFIG.third_party_tools.fastq_screen.config,
     threads: CONFIG.third_party_tools.fastq_screen.threads,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -18,12 +29,13 @@ rule fastq_screen_paired:
     log:
         OUTPUT_DIR + "/logs/fastq_screen/{sample}_{read}.log",
     shell:
-        """ fastq_screen --conf {params.conf} --subset 10000 --aligner bowtie2 --threads {threads} {input.fq}  --outdir {params.outdir} > {log} 2>&1 """
+        """ fastq_screen --conf {input.conf} --subset 10000 --aligner bowtie2 --threads {threads} {input.fq}  --outdir {params.outdir} > {log} 2>&1 """
 
 
 use rule fastq_screen_paired as fastq_screen_single with:
     input:
         fq=OUTPUT_DIR + "/fastqs/{sample}.fastq.gz",
+        conf=OUTPUT_DIR + "/qc/fastq_screen/fastq_screen.conf",
     output:
         fq_screen=temp(OUTPUT_DIR + "/qc/fastq_screen/{sample}_screen.html"),
         fq_screen_png=temp(OUTPUT_DIR + "/qc/fastq_screen/{sample}_screen.png"),

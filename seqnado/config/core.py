@@ -262,13 +262,3 @@ class SeqnadoConfig(BaseModel):
             )
 
         return config_class(**kwargs)
-    
-    @classmethod
-    def from_yaml(cls, path: Path) -> "SeqnadoConfig":
-        """Load configuration from a YAML file."""
-        import yaml
-
-        with open(path, "r") as f:
-            data = yaml.safe_load(f)
-
-        return cls(**data)
