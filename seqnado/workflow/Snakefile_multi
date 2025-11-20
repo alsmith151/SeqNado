@@ -70,8 +70,10 @@ for assay in ASSAYS:
 
 OUTPUT_DIR = "seqnado_output/"
 
-# Get workflow arguments passed from top-level command
+# Get workflow arguments and cores from top-level command
 WORKFLOW_ARGS = config.get("workflow_args", "--use-singularity --printshellcmds --rerun-incomplete")
+# Get cores from config, default to all available
+CORES = config.get("cores", 16)  # Default to 16 if not specified
 
 
 ################################
@@ -80,7 +82,7 @@ WORKFLOW_ARGS = config.get("workflow_args", "--use-singularity --printshellcmds 
 
 rule all:
     input:
-        expand(OUTPUT_DIR + "{assay}/.complete", assay=ASSAYS)
+        expand(OUTPUT_DIR + "{assay}/logs/.complete", assay=ASSAYS)
     default_target: True
 
 
@@ -96,7 +98,7 @@ rule run_assay:
     Runs as a regular rule (not checkpoint) to enable parallel execution of multiple assays.
     """
     output:
-        complete = OUTPUT_DIR + "{assay}/.complete",
+        complete = OUTPUT_DIR + "{assay}/logs/.complete",
         report = OUTPUT_DIR + "{assay}/seqnado_report.html"
     params:
         assay = lambda wildcards: wildcards.assay,
@@ -107,7 +109,7 @@ rule run_assay:
         project_root = str(Path.cwd())
     log:
         OUTPUT_DIR + "{assay}/logs/snakemake.log"
-    threads: 1  # Orchestration job uses minimal resources; nested snakemake manages its own threads
+    threads: CORES  # Use all available cores for nested snakemake
     resources:
         mem_mb = 16000,  # Allocate some memory for the orchestration step
         runtime = 259200  # 3 days in seconds
@@ -155,7 +157,7 @@ rule run_assay:
 rule summary:
     """Generate a summary report of all assays."""
     input:
-        expand(OUTPUT_DIR + "{assay}/.complete", assay=ASSAYS)
+        expand(OUTPUT_DIR + "{assay}/logs/.complete", assay=ASSAYS)
     output:
         "multi_assay_summary.txt"
     run:
@@ -179,33 +181,3 @@ rule summary:
                 else:
                     f.write(f"  Report:   ✗ Not found\n")
 
-
-################################
-# Convenience rules
-################################
-
-# Generate per-assay convenience rules
-for assay in ASSAYS:
-    rule:
-        name: f"run_{assay}"
-        input: f"{OUTPUT_DIR}{assay}/.complete"
-
-
-rule clean:
-    """Clean all assay outputs."""
-    shell:
-        "rm -rf seqnado_output/ multi_assay_summary.txt"
-
-
-rule clean_assay:
-    """Clean outputs for a specific assay. Usage: snakemake clean_assay --config assay=chip"""
-    params:
-        assay = config.get("assay", "")
-    shell:
-        """
-        if [ -z "{params.assay}" ]; then
-            echo "Error: Specify assay to clean with --config assay=<name>"
-            exit 1
-        fi
-        rm -rf seqnado_output/{params.assay}
-        """

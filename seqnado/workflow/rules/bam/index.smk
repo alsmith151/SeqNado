@@ -43,8 +43,8 @@ rule move_bam_to_final_location:
         bam=OUTPUT_DIR + "/aligned/filtered/{sample}.bam",
         bai=OUTPUT_DIR + "/aligned/filtered/{sample}.bam.bai",
     output:
-        bam=OUTPUT_DIR + "/aligned/{sample,[A-Za-z\\d\-_]+}.bam",
-        bai=OUTPUT_DIR + "/aligned/{sample,[A-Za-z\\d\-_]+}.bam.bai",
+        bam=OUTPUT_DIR + "/aligned/{sample,[A-Za-z\\d\\-_]+}.bam",
+        bai=OUTPUT_DIR + "/aligned/{sample,[A-Za-z\\d\\-_]+}.bam.bai",
         read_log=temp(OUTPUT_DIR + "/qc/alignment_post_process/{sample}_final.tsv"),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),

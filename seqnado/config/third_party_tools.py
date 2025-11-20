@@ -233,7 +233,7 @@ class Cutadapt(ToolConfig):
         data = dict(data)
         data.setdefault("threads", 4)
         data.setdefault(
-            "options",
+            "command_line_arguments",
             CommandLineArguments(value="-g 'ACACCG' --cut 0 -l 20 -m 20 -M 20 --discard-untrimmed"),
         )
         return data
@@ -248,7 +248,7 @@ class LanceotronMCC(ToolConfig):
         data = dict(data)
         data.setdefault("threads", 8)
         data.setdefault(
-            "options",
+            "command_line_arguments",
             CommandLineArguments(
                 value="--max-peak-size 2000 --no-mcc-filter-enriched-regions --no-mcc-filter-background"
             ),
@@ -264,7 +264,7 @@ class Methyldackel(ToolConfig):
     def set_defaults(cls, data: dict) -> dict:
         data = dict(data)
         data.setdefault("threads", 8)
-        data.setdefault("options", CommandLineArguments(value=""))
+        data.setdefault("command_line_arguments", CommandLineArguments(value=""))
         return data
 
 
@@ -510,24 +510,19 @@ class Seacr(BaseModel):
     )
 
 
-class FastqScreen(BaseModel):
+class FastqScreen(ToolConfig):
     """FastqScreen tool configuration."""
-    
-    threads: int = Field(default=4, description="Number of threads to use")
-    config: str = Field(
-        default="", description="Path to FastqScreen configuration file"
-    )
-    command_line_arguments: CommandLineArgumentsType = Field(
-        default_factory=lambda: CommandLineArguments()
-    )
-    
-    @field_validator("threads", mode="before")
+
+    config: str = Field(default="", description="Path to FastqScreen configuration file")
+
+    @model_validator(mode="before")
     @classmethod
-    def validate_threads(cls, v):
-        # Handle when threads comes in as a string from YAML
-        if isinstance(v, str):
-            return int(v)
-        return v
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 4)
+        data.setdefault("config", str(Path.home() / ".config/seqnado/fastq_screen.conf"))
+        data.setdefault("command_line_arguments", CommandLineArguments(value="--subset 10000"))
+        return data
     
     @field_validator("config", mode="before")
     @classmethod
@@ -537,17 +532,6 @@ class FastqScreen(BaseModel):
         if isinstance(v, Path):
             return str(v)
         return str(v) if v else ""
-    
-    @field_validator("command_line_arguments", mode="before")
-    @classmethod
-    def validate_command_line_arguments(cls, v):
-        # Handle when value comes in as a string from YAML
-        if isinstance(v, str):
-            return CommandLineArguments(value=v)
-        # Handle when it's already a CommandLineArguments object or dict
-        if isinstance(v, dict):
-            return CommandLineArguments(**v)
-        return v
 
 class FastQC(ToolConfig):
     """FastQC quality control tool configuration."""
@@ -557,7 +541,7 @@ class FastQC(ToolConfig):
     def set_defaults(cls, data: dict) -> dict:
         data = dict(data)
         data.setdefault("threads", 4)
-        data.setdefault("options", CommandLineArguments(value="--noextract"))
+        data.setdefault("command_line_arguments", CommandLineArguments(value="--noextract"))
         return data
 
 class Qualimap(ToolConfig):
@@ -568,7 +552,7 @@ class Qualimap(ToolConfig):
     def set_defaults(cls, data: dict) -> dict:
         data = dict(data)
         data.setdefault("threads", 4)
-        data.setdefault("options", CommandLineArguments(value="--java-mem-size=4G"))
+        data.setdefault("command_line_arguments", CommandLineArguments(value="--java-mem-size=4G"))
         return data
 
 
