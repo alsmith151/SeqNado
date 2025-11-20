@@ -543,7 +543,7 @@ def multi_assay_configs(
     genome_path: Path,
     genome_files: tuple[Path, Path],
     monkeypatch: pytest.MonkeyPatch,
-) -> dict[str, dict[str, Path]]:
+):
     """Set up configs and metadata for multiple assays in one directory.
     
     Returns:
@@ -568,19 +568,39 @@ def multi_assay_configs(
             cwd=multi_assay_run_directory,
             capture_output=True,
         )
+        
+        if init_process.returncode != 0:
+            print(f"seqnado init STDOUT:\n{init_process.stdout}")
+            print(f"seqnado init STDERR:\n{init_process.stderr}")
+        
         assert init_process.returncode == 0, f"seqnado init failed: {init_process.stderr}"
         
-        # Update genome config with test paths
-        genome_config_path = multi_assay_run_directory / ".seqnado" / "genome_config.json"
-        with open(genome_config_path, "r") as f:
-            genome_config = json.load(f)
+        # Check if .config/seqnado directory was created
+        seqnado_dir = multi_assay_run_directory / ".config" / "seqnado"
+        if not seqnado_dir.exists():
+            print(f"ERROR: .config/seqnado directory not created at {seqnado_dir}")
+            print(f"Directory contents: {list(multi_assay_run_directory.iterdir())}")
+            raise FileNotFoundError(f".config/seqnado directory not created at {seqnado_dir}")
         
-        genome_config["hg38"]["fasta"] = str(genome_files[0])
-        genome_config["hg38"]["chromsizes"] = str(chromsizes)
-        genome_config["hg38"]["gtf"] = str(gtf)
-        genome_config["hg38"]["blacklist"] = str(blacklist)
-        genome_config["hg38"]["bowtie2_index"] = str(index)
-        genome_config["hg38"]["star_index"] = str(genome_path / "star_index")
+        # Update genome config with test paths
+        genome_config_path = seqnado_dir / "genome_config.json"
+        
+        # Create genome config if it doesn't exist (init might not create it)
+        if not genome_config_path.exists():
+            genome_config_path.parent.mkdir(parents=True, exist_ok=True)
+            genome_config = {}
+        else:
+            with open(genome_config_path, "r") as f:
+                genome_config = json.load(f)
+        
+        genome_config["hg38"] = {
+            "fasta": str(genome_files[0]),
+            "chromsizes": str(chromsizes),
+            "gtf": str(gtf),
+            "blacklist": str(blacklist),
+            "bowtie2_index": str(index),
+            "star_index": str(genome_path / "star_index"),
+        }
         
         with open(genome_config_path, "w") as f:
             json.dump(genome_config, f, indent=2)
