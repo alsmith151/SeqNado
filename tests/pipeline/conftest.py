@@ -267,7 +267,7 @@ def set_up_run_dir(run_directory: Path, fastqs: dict[str, list[Path]], assay: st
 
 
 @pytest.fixture(scope="function", autouse=True)
-def run_init(index: Path, chromsizes: Path, gtf: Path, blacklist: Path, run_directory: Path, assay: str, monkeypatch: pytest.MonkeyPatch, genome_files: tuple[Path, Path]):
+def run_init(index: Path, chromsizes: Path, gtf: Path, blacklist: Path, run_directory: Path, assay: str, monkeypatch: pytest.MonkeyPatch, genome_files: tuple[Path, Path], genome_path: Path):
     """Run `seqnado init` and materialize genome_config.json with appropriate indices."""
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
@@ -296,11 +296,29 @@ def run_init(index: Path, chromsizes: Path, gtf: Path, blacklist: Path, run_dire
     with open(genome_config_file, "w") as f:
         json.dump(genome_config_dict, f, indent=4)
 
-    # Create a dummy fastq_screen.conf file
-    fastq_screen_config = run_directory / ".config" / "seqnado" / "fastq_screen.conf"
-    fastq_screen_config.parent.mkdir(parents=True, exist_ok=True)
-    with open(fastq_screen_config, "w") as f:
-        f.write("# Dummy fastq_screen config for testing\n")
+    # Copy fastq_screen.conf from test data, updating the index path
+    source_fastq_screen_config = genome_path / "fastq_screen.conf"
+    dest_fastq_screen_config = run_directory / ".config" / "seqnado" / "fastq_screen.conf"
+    dest_fastq_screen_config.parent.mkdir(parents=True, exist_ok=True)
+    
+    if source_fastq_screen_config.exists():
+        # Read template and replace index path
+        with open(source_fastq_screen_config, "r") as f:
+            config_content = f.read()
+        # Replace the template path with actual index path
+        config_content = config_content.replace(
+            "/path",
+            str(index)
+        )
+        with open(dest_fastq_screen_config, "w") as f:
+            f.write(config_content)
+    else:
+        # Fallback: create minimal config
+        with open(dest_fastq_screen_config, "w") as f:
+            f.write(f"""# Test fastq_screen.conf file
+
+DATABASE\tTest\t{index}
+""")
 
     assert process.returncode == 0, f"seqnado init failed: {process.stderr}"
     assert genome_config_file.exists(), "genome_config.json missing after init"
