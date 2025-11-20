@@ -21,7 +21,7 @@ if CONFIG.assay_config.create_ucsc_hub:
         log: OUTPUT_DIR + f"/logs/{CONFIG.assay_config.ucsc_hub.name}.hub.log",
         benchmark: OUTPUT_DIR + f"/.benchmarks/visualise/{CONFIG.assay_config.ucsc_hub.name}_hub.tsv",
         message: f"Generating UCSC Genome Browser hub: {CONFIG.assay_config.ucsc_hub.name}"
-        script: "../scripts/create_hub.py"
+        script: "../../scripts/create_hub.py"
 
 
     localrules:
