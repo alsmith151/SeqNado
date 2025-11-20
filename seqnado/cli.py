@@ -538,9 +538,11 @@ def init(
 # -------------------------------- utils ----------------------------------- #
 
 
-@app.command()
+@app.command(
+    help="Manage genome configurations (list, edit, build, or generate fastq-screen config)"
+)
 def genomes(
-    subcommand: str = typer.Argument(..., help="Subcommand: list | edit | build"),
+    subcommand: str = typer.Argument(..., help="list, edit, build, or fastqscreen"),
     assay: str = typer.Argument(
         "atac",
         metavar="ASSAY",
@@ -557,12 +559,30 @@ def genomes(
     outdir: Path = typer.Option(
         Path.cwd() / "genome_build", "--outdir", "-o", help="Output directory for build"
     ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Output path for fastqscreen config (fastqscreen subcommand)"
+    ),
+    threads: int = typer.Option(
+        8, "-t", "--threads", help="Number of threads for Bowtie2 (fastqscreen subcommand)"
+    ),
+    no_contaminants: bool = typer.Option(
+        False, "--no-contaminants", help="Exclude contaminant databases (fastqscreen subcommand)"
+    ),
+    contaminant_path: Optional[Path] = typer.Option(
+        None, "--contaminant-path", help="Path to contaminant reference files (fastqscreen subcommand)"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Increase logging verbosity"
+    ),
 ) -> None:
     """
-    Subcommands for genomes:
-      - list  : show packaged and user genome presets
-      - edit  : open user genome config in $EDITOR (creates if missing)
-      - build : build a genome from a fasta using a Snakemake pipeline
+    Manage genome configurations.
+    
+    Subcommands:
+      list        Show packaged and user genome presets
+      edit        Open user genome config in $EDITOR
+      build       Build a genome from FASTA (not yet implemented)
+      fastqscreen Generate FastqScreen configuration file
     """
     # Import locally for snappy startup
     from seqnado.config import load_genome_configs  # local import
@@ -646,6 +666,59 @@ def genomes(
         outdir.mkdir(parents=True, exist_ok=True)
 
         raise NotImplementedError("Genome build not yet implemented.")
+
+    elif sub == "fastqscreen":
+        from seqnado.config.fastq_screen_generator import (
+            generate_fastq_screen_config,
+            load_genome_configs_for_fastqscreen
+        )
+        
+        _configure_logging(verbose)
+        
+        try:
+            # Set default output path
+            if output is None:
+                output = Path.home() / ".config" / "seqnado" / "fastq_screen.conf"
+            
+            # Prompt for contaminant path if not provided and not explicitly disabled
+            if not no_contaminants and contaminant_path is None:
+                contaminant_input = typer.prompt(
+                    "Path to contaminant references (leave empty to skip contaminants)",
+                    default="",
+                    show_default=False
+                )
+                if contaminant_input.strip():
+                    contaminant_path = Path(contaminant_input.strip())
+                else:
+                    logger.info("Skipping contaminant databases")
+            
+            # Load genome configs
+            logger.info("Loading genome configurations...")
+            genome_configs = load_genome_configs_for_fastqscreen()
+            logger.info(f"Found {len(genome_configs)} genome configurations")
+            
+            # Generate config
+            logger.info(f"Generating FastqScreen config: {output}")
+            
+            generate_fastq_screen_config(
+                genome_configs=genome_configs,
+                output_path=output,
+                threads=threads,
+                include_contaminants=not no_contaminants and contaminant_path is not None,
+                contaminant_base_path=contaminant_path
+            )
+            
+            logger.success(f"FastqScreen config generated successfully: {output}")
+            
+        except FileNotFoundError as e:
+            logger.error(str(e))
+            raise typer.Exit(code=1)
+        except Exception as e:
+            logger.error(f"Failed to generate FastqScreen config: {e}")
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            raise typer.Exit(code=1)
 
     else:
         logger.error("Unknown subcommand for genomes: %s", sub)
@@ -748,6 +821,42 @@ def config(
         raise typer.Exit(code=1)
 
     logger.success(f"Wrote config → {config_output}")
+    
+    # Check if FastqScreen config exists at default location
+    default_fastqscreen_config = Path.home() / ".config/seqnado/fastq_screen.conf"
+    if not default_fastqscreen_config.exists():
+        logger.warning(f"FastqScreen config not found at {default_fastqscreen_config}")
+        if interactive:
+            generate_fs = typer.confirm(
+                "Would you like to generate a FastqScreen config now?",
+                default=True
+            )
+            if generate_fs:
+                contaminant_path_input = typer.prompt(
+                    "Path to contaminant references (leave empty to skip contaminants)",
+                    default="",
+                    show_default=False
+                )
+                
+                from seqnado.config.fastq_screen_generator import (
+                    generate_fastq_screen_config,
+                    load_genome_configs_for_fastqscreen
+                )
+                
+                try:
+                    genome_configs = load_genome_configs_for_fastqscreen()
+                    generate_fastq_screen_config(
+                        genome_configs=genome_configs,
+                        output_path=default_fastqscreen_config,
+                        threads=8,
+                        include_contaminants=bool(contaminant_path_input),
+                        contaminant_base_path=contaminant_path_input if contaminant_path_input else None
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to generate FastqScreen config: {e}")
+                    logger.info("You can generate it later with: seqnado genomes fastqscreen")
+        else:
+            logger.info("Run 'seqnado genomes fastqscreen' to generate FastqScreen configuration")
 
 
 # -------------------------------- design ------------------------------------ #

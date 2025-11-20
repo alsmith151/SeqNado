@@ -132,13 +132,14 @@ class GenomeConfig(BaseModel):
     gtf: Path | None = None
     genes: Path | None = None
     blacklist: Path | None = None
+    fastq_screen_config: Path | None = None
     bin_size: int = 1000
     organism: str | None = None
     version: str | None = None
 
     # --- Serialization helpers to avoid Pydantic union/path warnings ---
 
-    @field_serializer("fasta", "chromosome_sizes", "gtf", "genes", "blacklist", when_used="json")
+    @field_serializer("fasta", "chromosome_sizes", "gtf", "genes", "blacklist", "fastq_screen_config", when_used="json")
     def _serialize_optional_path(self, v):
         from pathlib import Path as _Path
         return str(v) if isinstance(v, _Path) else v

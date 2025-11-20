@@ -514,12 +514,32 @@ class FastqScreen(BaseModel):
     """FastqScreen tool configuration."""
     
     threads: int = Field(default=4, description="Number of threads to use")
-    config: Path | None = Field(
-        default=None, description="Path to FastqScreen configuration file"
+    config: str = Field(
+        default="", description="Path to FastqScreen configuration file"
     )
-    command_line_arguments: CommandLineArguments = Field(
+    command_line_arguments: CommandLineArgumentsType = Field(
         default_factory=lambda: CommandLineArguments()
     )
+    
+    @field_validator("config", mode="before")
+    @classmethod
+    def validate_config_path(cls, v):
+        if v is None or v == "None":
+            return ""
+        if isinstance(v, Path):
+            return str(v)
+        return str(v) if v else ""
+    
+    @field_validator("command_line_arguments", mode="before")
+    @classmethod
+    def validate_command_line_arguments(cls, v):
+        # Handle when value comes in as a string from YAML
+        if isinstance(v, str):
+            return CommandLineArguments(value=v)
+        # Handle when it's already a CommandLineArguments object or dict
+        if isinstance(v, dict):
+            return CommandLineArguments(**v)
+        return v
 
 class FastQC(ToolConfig):
     """FastQC quality control tool configuration."""
