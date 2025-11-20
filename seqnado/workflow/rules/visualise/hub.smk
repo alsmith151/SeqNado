@@ -17,7 +17,7 @@ if CONFIG.assay_config.create_ucsc_hub:
             assay=ASSAY,
             params=CONFIG.assay_config.ucsc_hub,
             has_consensus_peaks=OUTPUT.has_consensus_peaks,
-        container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+        containerized: False
         log: OUTPUT_DIR + f"/logs/{CONFIG.assay_config.ucsc_hub.name}.hub.log",
         benchmark: OUTPUT_DIR + f"/.benchmarks/visualise/{CONFIG.assay_config.ucsc_hub.name}_hub.tsv",
         message: f"Generating UCSC Genome Browser hub: {CONFIG.assay_config.ucsc_hub.name}"
