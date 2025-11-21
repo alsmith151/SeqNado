@@ -1,13 +1,10 @@
 """Tests for seqnado.config.user_input module."""
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
-from pydantic import ValidationError
 
 from seqnado import (
     Assay,
@@ -28,16 +25,11 @@ from seqnado.config import (
     MCCAssayConfig,
     MCCConfig,
     MethylationAssayConfig,
-    MethylationConfig,
-    MLDatasetConfig,
-    PeakCallingConfig,
     PlottingConfig,
     ProjectConfig,
     RNAAssayConfig,
-    RNAQuantificationConfig,
     SeqnadoConfig,
     SNPAssayConfig,
-    SNPCallingConfig,
     STARIndex,
     UCSCHubConfig,
 )
@@ -217,20 +209,31 @@ class TestBuildDefaultAssayConfig:
         # Create the directory structure
         genome_dir = tmp_path / "genome"
         genome_dir.mkdir(parents=True, exist_ok=True)
-        
+
         bt2_dir = genome_dir / "bt2_chr21_dm6_chr2L"
         bt2_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Touch the index files
         for suffix in [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]:
             (bt2_dir / f"bt2_chr21_dm6_chr2L{suffix}").touch()
-        
-        # Create fasta index file
-        (genome_dir / "chr21.fa.fai").touch()
-        
-        # Create GTF file for RNA tests
-        (genome_dir / "chr21.gtf").touch()
-        
+
+        # Create fasta index file with minimal content
+        fasta_index = genome_dir / "chr21.fa.fai"
+        fasta_index.write_text("chr21\t48129895\t4\t50\t51\n")
+
+        # Create GTF file with minimal content
+        gtf_file = genome_dir / "chr21.gtf"
+        gtf_file.write_text("chr21\tENSEMBL\texon\t1\t1000\t.\t+\t.\tgene_id \"gene1\";\n")
+
+        # Create MCC viewpoints file
+        (genome_dir / "mcc_viewpoints.bed").touch()
+
+        # Create STAR index directory and mock files with minimal content
+        star_dir = genome_dir / "STAR_chr21_rna_spikein"
+        star_dir.mkdir(parents=True, exist_ok=True)
+        for i in range(1, 6):
+            (star_dir / f"SA_{i}.txt").write_text(f"Mock content for SA_{i}.txt\n")
+
         return genome_dir
 
     @pytest.fixture
@@ -238,7 +241,7 @@ class TestBuildDefaultAssayConfig:
         """Create a mock genome configuration with temporary paths."""
         bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
         fasta = str(test_data_dir / "chr21.fa.fai")
-        
+
         return GenomeConfig(
             name="hg38",
             index=BowtieIndex(prefix=bt2_index),
@@ -301,13 +304,14 @@ class TestBuildDefaultAssayConfig:
         # Temporarily patch the hardcoded path in build_default_assay_config
         # to use the actual test viewpoints file
         viewpoints_file = test_data_dir / "mcc_viewpoints.bed"
-        
+
         # We need to mock the MCCConfig creation in the function
         original_func = build_default_assay_config
-        
+
         def patched_build(assay, genome_config):
             if assay == Assay.MCC:
                 from seqnado.config import BigwigConfig, PlottingConfig, UCSCHubConfig
+
                 bigwigs = BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS], binsize=10)
                 plotting = PlottingConfig()
                 ucsc_hub = UCSCHubConfig(
@@ -328,9 +332,9 @@ class TestBuildDefaultAssayConfig:
                     mcc=mcc,
                 )
             return original_func(assay, genome_config)
-        
+
         result = patched_build(Assay.MCC, mock_genome_config)
-        
+
         assert isinstance(result, MCCAssayConfig)
         assert result.mcc is not None
         assert result.mcc.resolutions == [100, 1000]
@@ -408,17 +412,28 @@ class TestBuildWorkflowConfig:
         # Create the directory structure
         genome_dir = tmp_path / "genome"
         genome_dir.mkdir(parents=True, exist_ok=True)
-        
+
         bt2_dir = genome_dir / "bt2_chr21_dm6_chr2L"
         bt2_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Touch the index files
         for suffix in [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]:
             (bt2_dir / f"bt2_chr21_dm6_chr2L{suffix}").touch()
-        
-        # Create fasta index file
-        (genome_dir / "chr21.fa.fai").touch()
-        
+
+        # Create fasta index file with minimal content
+        fasta_index = genome_dir / "chr21.fa.fai"
+        fasta_index.write_text("chr21\t48129895\t4\t50\t51\n")
+
+        # Create GTF file with minimal content
+        gtf_file = genome_dir / "chr21.gtf"
+        gtf_file.write_text("chr21\tENSEMBL\texon\t1\t1000\t.\t+\t.\tgene_id \"gene1\";\n")
+
+        # Create STAR index directory and mock files with minimal content
+        star_dir = genome_dir / "STAR_chr21_rna_spikein"
+        star_dir.mkdir(parents=True, exist_ok=True)
+        for i in range(1, 6):
+            (star_dir / f"SA_{i}.txt").write_text(f"Mock content for SA_{i}.txt\n")
+
         return genome_dir
 
     @pytest.fixture
@@ -426,7 +441,7 @@ class TestBuildWorkflowConfig:
         """Create a mock genome configuration with temporary paths."""
         bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
         fasta = str(test_data_dir / "chr21.fa.fai")
-        
+
         return GenomeConfig(
             name="hg38",
             index=BowtieIndex(prefix=bt2_index),
@@ -481,7 +496,7 @@ class TestBuildWorkflowConfig:
         star_index = str(test_data_dir / "STAR_chr21_rna_spikein")
         fasta = str(test_data_dir / "chr21.fa.fai")
         gtf = str(test_data_dir / "chr21.gtf")
-        
+
         genome_rna = GenomeConfig(
             name="hg38",
             index=STARIndex(prefix=star_index),
@@ -516,7 +531,7 @@ class TestGetUserInput:
     def test_get_user_input_with_default(self, monkeypatch):
         """Test get_user_input accepts default on empty input."""
         from seqnado.config.user_input import get_user_input
-        
+
         monkeypatch.setattr('builtins.input', lambda _: "")
         result = get_user_input("Enter value", default="default_val")
         assert result == "default_val"
@@ -524,7 +539,7 @@ class TestGetUserInput:
     def test_get_user_input_with_choices(self, monkeypatch):
         """Test get_user_input validates choices."""
         from seqnado.config.user_input import get_user_input
-        
+
         inputs = iter(["invalid", "valid"])
         monkeypatch.setattr('builtins.input', lambda _: next(inputs))
         result = get_user_input("Select", choices=["valid", "other"])
@@ -533,7 +548,7 @@ class TestGetUserInput:
     def test_get_user_input_boolean_yes(self, monkeypatch):
         """Test get_user_input accepts boolean yes values."""
         from seqnado.config.user_input import get_user_input
-        
+
         for value in ["yes", "y", "true", "1"]:
             monkeypatch.setattr('builtins.input', lambda _, v=value: v)
             result = get_user_input("Bool?", is_boolean=True)
@@ -542,7 +557,7 @@ class TestGetUserInput:
     def test_get_user_input_boolean_no(self, monkeypatch):
         """Test get_user_input accepts boolean no values."""
         from seqnado.config.user_input import get_user_input
-        
+
         for value in ["no", "n", "false", "0"]:
             monkeypatch.setattr('builtins.input', lambda _, v=value: v)
             result = get_user_input("Bool?", is_boolean=True)
@@ -551,7 +566,7 @@ class TestGetUserInput:
     def test_get_user_input_invalid_boolean(self, monkeypatch):
         """Test get_user_input rejects invalid boolean."""
         from seqnado.config.user_input import get_user_input
-        
+
         inputs = iter(["maybe", "yes"])
         monkeypatch.setattr('builtins.input', lambda _: next(inputs))
         result = get_user_input("Bool?", is_boolean=True)
@@ -560,10 +575,10 @@ class TestGetUserInput:
     def test_get_user_input_path_validation(self, monkeypatch, tmp_path):
         """Test get_user_input validates path existence."""
         from seqnado.config.user_input import get_user_input
-        
+
         existing_path = tmp_path / "exists.txt"
         existing_path.touch()
-        
+
         inputs = iter([str(tmp_path / "missing.txt"), str(existing_path)])
         monkeypatch.setattr('builtins.input', lambda _: next(inputs))
         result = get_user_input("Path?", is_path=True)
@@ -572,7 +587,7 @@ class TestGetUserInput:
     def test_get_user_input_not_required(self, monkeypatch):
         """Test get_user_input returns None when not required."""
         from seqnado.config.user_input import get_user_input
-        
+
         monkeypatch.setattr('builtins.input', lambda _: "")
         result = get_user_input("Optional?", required=False)
         assert result is None
@@ -580,7 +595,7 @@ class TestGetUserInput:
     def test_get_user_input_empty_retries(self, monkeypatch):
         """Test get_user_input retries on empty when required."""
         from seqnado.config.user_input import get_user_input
-        
+
         inputs = iter(["", "value"])
         monkeypatch.setattr('builtins.input', lambda _: next(inputs))
         result = get_user_input("Required?", required=True)
