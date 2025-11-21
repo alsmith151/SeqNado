@@ -499,8 +499,8 @@ def apptainer_args(index: Path, test_data_path: Path, monkeypatch: pytest.Monkey
     wd = Path(os.getcwd()).resolve()
     # Use environment variable if set, otherwise fall back to home directory
     apptainer_cache_dir = Path(
-        os.environ.get("APPTAINER_CACHEDIR") 
-        or os.environ.get("SINGULARITY_CACHEDIR") 
+        os.environ.get("APPTAINER_CACHEDIR")
+        or os.environ.get("SINGULARITY_CACHEDIR")
         or (Path.home() / ".apptainer" / "cache")
     )
     multiqc_config = (
@@ -545,22 +545,22 @@ def multi_assay_configs(
     monkeypatch: pytest.MonkeyPatch,
 ):
     """Set up configs and metadata for multiple assays in one directory.
-    
+
     Returns:
         Dict mapping assay -> {"config": Path, "metadata": Path}
     """
     import yaml
-    
+
     result = {}
     cwd = Path.cwd()
-    
+
     try:
         os.chdir(multi_assay_run_directory)
-        
+
         # Run seqnado init once for the shared directory
         monkeypatch.setenv("SEQNADO_CONFIG", str(multi_assay_run_directory))
         monkeypatch.setenv("HOME", str(multi_assay_run_directory))
-        
+
         init_process = subprocess.run(
             ["seqnado", "init"],
             input="y\n",
@@ -568,106 +568,138 @@ def multi_assay_configs(
             cwd=multi_assay_run_directory,
             capture_output=True,
         )
-        
+
         if init_process.returncode != 0:
             print(f"seqnado init STDOUT:\n{init_process.stdout}")
             print(f"seqnado init STDERR:\n{init_process.stderr}")
-        
-        assert init_process.returncode == 0, f"seqnado init failed: {init_process.stderr}"
-        
+
+        assert init_process.returncode == 0, (
+            f"seqnado init failed: {init_process.stderr}"
+        )
+
         # Check if .config/seqnado directory was created
         seqnado_dir = multi_assay_run_directory / ".config" / "seqnado"
         if not seqnado_dir.exists():
             print(f"ERROR: .config/seqnado directory not created at {seqnado_dir}")
             print(f"Directory contents: {list(multi_assay_run_directory.iterdir())}")
-            raise FileNotFoundError(f".config/seqnado directory not created at {seqnado_dir}")
-        
-        # Update genome config with test paths
+            raise FileNotFoundError(
+                f".config/seqnado directory not created at {seqnado_dir}"
+            )
+
+        # Update genome config with test paths - OVERWRITE to exclude dm6 placeholders
         genome_config_path = seqnado_dir / "genome_config.json"
-        
-        # Create genome config if it doesn't exist (init might not create it)
-        if not genome_config_path.exists():
-            genome_config_path.parent.mkdir(parents=True, exist_ok=True)
-            genome_config = {}
-        else:
-            with open(genome_config_path, "r") as f:
-                genome_config = json.load(f)
-        
-        genome_config["hg38"] = {
-            "fasta": str(genome_files[0]),
-            "chromsizes": str(chromsizes),
-            "gtf": str(gtf),
-            "blacklist": str(blacklist),
-            "bowtie2_index": str(index),
-            "star_index": str(genome_path / "star_index"),
+
+        # Create genome config with ONLY hg38 (overwrite any dm6 from seqnado init)
+        genome_config = {
+            "hg38": {
+                "star_index": str(genome_path / "star_index"),
+                "bt2_index": str(index),
+                "chromosome_sizes": str(chromsizes),
+                "gtf": str(gtf),
+                "blacklist": str(blacklist),
+                "genes": "",
+                "fasta": str(genome_files[0]),
+            }
         }
-        
+
         with open(genome_config_path, "w") as f:
             json.dump(genome_config, f, indent=2)
+
+        # Create fastq_screen.conf file
+        fastq_screen_config_path = seqnado_dir / "fastq_screen.conf"
+        with open(fastq_screen_config_path, "w") as f:
+            f.write(f"""# Test fastq_screen.conf file
+
+DATABASE\tTest\t{index}
+""")
+
+        # Copy ALL fastqs for all assays to the shared directory
+        all_fastqs = set()
+        for assay in multi_assays:
+            all_fastqs.update(fastqs.get(assay, []))
         
+        for fq in all_fastqs:
+            shutil.copy(fq, multi_assay_run_directory)
+
         # Create config and metadata for each assay
         for assay in multi_assays:
-            # Copy fastqs for this assay
-            for fq in fastqs.get(assay, []):
-                shutil.copy(fq, multi_assay_run_directory)
-            
             # Create config
             config_result = subprocess.run(
-                ["seqnado", "config", assay],
-                input="\n".join([
-                    "hg38",
-                    "no",
-                    "",
-                    "",
-                    "",
-                    "",
-                ]),
+                [
+                    "seqnado",
+                    "config",
+                    assay,
+                    "--no-interactive",
+                    "--no-make-dirs",
+                    "--render-options",
+                ],
                 text=True,
                 cwd=multi_assay_run_directory,
                 capture_output=True,
             )
-            assert config_result.returncode == 0, f"seqnado config {assay} failed: {config_result.stderr}"
-            
+
+            assert config_result.returncode == 0, (
+                f"seqnado config {assay} failed: {config_result.stderr}"
+            )
+
             config_path = multi_assay_run_directory / f"config_{assay}.yaml"
             assert config_path.exists(), f"config_{assay}.yaml not created"
-            
+
             # Modify config for testing
             with open(config_path, "r") as f:
                 config = yaml.safe_load(f)
-            
+
             # Apply test-specific modifications
             config["assay_config"]["create_ucsc_hub"] = False
-            
+            config["call_peaks"] = False  # Disable peak calling for tests (test data too small for LanceOtron)
+
             if assay == "chip":
                 config["scale"] = "yes"
                 config["library_complexity"] = False
             elif assay == "atac":
                 config["pileup_method"] = ["deeptools"]
-                config["call_peaks"] = True
-                config["peak_calling_method"] = ["macs"]
-            
+
             with open(config_path, "w") as f:
                 yaml.dump(config, f)
-            
+
             # Create metadata/design
+            metadata_file = f"metadata_{assay}.csv"
+            
+            # Get list of FASTQs for this assay that were just copied 
+            assay_fastqs = list(multi_assay_run_directory.glob("*.fastq.gz"))
+            
+            design_cmd = [
+                "seqnado",
+                "design",
+                assay,
+                "-o",
+                metadata_file,
+                "--no-interactive",
+                "--accept-all-defaults",
+                f"fastq/{assay}*.fastq.gz"
+            ]
+            # Add FASTQ files as arguments
+            design_cmd.extend([str(fq) for fq in assay_fastqs])
+            
             design_result = subprocess.run(
-                ["seqnado", "design", assay],
+                design_cmd,
                 cwd=multi_assay_run_directory,
                 capture_output=True,
                 text=True,
             )
-            assert design_result.returncode == 0, f"seqnado design {assay} failed: {design_result.stderr}"
-            
-            metadata_path = multi_assay_run_directory / f"metadata_{assay}.csv"
+            assert design_result.returncode == 0, (
+                f"seqnado design {assay} failed: {design_result.stderr}"
+            )
+
+            metadata_path = multi_assay_run_directory / metadata_file
             assert metadata_path.exists(), f"metadata_{assay}.csv not created"
-            
+
             result[assay] = {
                 "config": config_path,
                 "metadata": metadata_path,
             }
-        
+
         yield result
-        
+
     finally:
         os.chdir(cwd)
-

@@ -31,8 +31,6 @@ def test_pipeline(
             str(cores),
             "--configfile",
             str(config_yaml_for_testing),
-            "--workflow-profile",
-            str(test_profile_path),
         ],
         cwd=config_yaml_for_testing.parent,
         capture_output=True,

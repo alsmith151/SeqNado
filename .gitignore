@@ -37,7 +37,7 @@ seqnado.sif
 seqnado/_version.py
 sps*
 test_rna_size_factors.ipynb
-test_output.log
+*.log
 test_run.sh
 test.json
 tests/data/*
