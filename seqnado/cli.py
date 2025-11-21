@@ -11,11 +11,11 @@ import tempfile
 from datetime import date, datetime
 from importlib import resources
 from pathlib import Path
-from typing import Any, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Optional
 
+import click
 import typer
 from loguru import logger
-import click
 
 # Optional: prettier tracebacks/console with rich if available
 try:
@@ -72,7 +72,7 @@ def main(
         help="Show version and exit.",
         callback=version_callback,
         is_eager=True,
-    )
+    ),
 ):
     """SeqNado CLI main entry point."""
     pass
@@ -482,7 +482,6 @@ def init(
     template_trav = _pkg_traversable(data_pkg).joinpath(template_name)
     template_config_trav = _pkg_traversable(data_pkg).joinpath(template_config)
 
-    
     # move to ~/.config/snakemake.
     profile_target_dir = Path.home().joinpath(".config", "snakemake")
     profile_target_dir.mkdir(parents=True, exist_ok=True)
@@ -585,16 +584,26 @@ def genomes(
         Path.cwd() / "genome_build", "--outdir", "-o", help="Output directory for build"
     ),
     output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Output path for fastqscreen config (fastqscreen subcommand)"
+        None,
+        "-o",
+        "--output",
+        help="Output path for fastqscreen config (fastqscreen subcommand)",
     ),
     threads: int = typer.Option(
-        8, "-t", "--threads", help="Number of threads for Bowtie2 (fastqscreen subcommand)"
+        8,
+        "-t",
+        "--threads",
+        help="Number of threads for Bowtie2 (fastqscreen subcommand)",
     ),
     no_contaminants: bool = typer.Option(
-        False, "--no-contaminants", help="Exclude contaminant databases (fastqscreen subcommand)"
+        False,
+        "--no-contaminants",
+        help="Exclude contaminant databases (fastqscreen subcommand)",
     ),
     contaminant_path: Optional[Path] = typer.Option(
-        None, "--contaminant-path", help="Path to contaminant reference files (fastqscreen subcommand)"
+        None,
+        "--contaminant-path",
+        help="Path to contaminant reference files (fastqscreen subcommand)",
     ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Increase logging verbosity"
@@ -602,7 +611,7 @@ def genomes(
 ) -> None:
     """
     Manage genome configurations.
-    
+
     Subcommands:
       list        Show packaged and user genome presets
       edit        Open user genome config in $EDITOR
@@ -695,46 +704,47 @@ def genomes(
     elif sub == "fastqscreen":
         from seqnado.config.fastq_screen_generator import (
             generate_fastq_screen_config,
-            load_genome_configs_for_fastqscreen
+            load_genome_configs_for_fastqscreen,
         )
-        
+
         _configure_logging(verbose)
-        
+
         try:
             # Set default output path
             if output is None:
                 output = Path.home() / ".config" / "seqnado" / "fastq_screen.conf"
-            
+
             # Prompt for contaminant path if not provided and not explicitly disabled
             if not no_contaminants and contaminant_path is None:
                 contaminant_input = typer.prompt(
                     "Path to contaminant references (leave empty to skip contaminants)",
                     default="",
-                    show_default=False
+                    show_default=False,
                 )
                 if contaminant_input.strip():
                     contaminant_path = Path(contaminant_input.strip())
                 else:
                     logger.info("Skipping contaminant databases")
-            
+
             # Load genome configs
             logger.info("Loading genome configurations...")
             genome_configs = load_genome_configs_for_fastqscreen()
             logger.info(f"Found {len(genome_configs)} genome configurations")
-            
+
             # Generate config
             logger.info(f"Generating FastqScreen config: {output}")
-            
+
             generate_fastq_screen_config(
                 genome_configs=genome_configs,
                 output_path=output,
                 threads=threads,
-                include_contaminants=not no_contaminants and contaminant_path is not None,
-                contaminant_base_path=contaminant_path
+                include_contaminants=not no_contaminants
+                and contaminant_path is not None,
+                contaminant_base_path=contaminant_path,
             )
-            
+
             logger.success(f"FastqScreen config generated successfully: {output}")
-            
+
         except FileNotFoundError as e:
             logger.error(str(e))
             raise typer.Exit(code=1)
@@ -742,6 +752,7 @@ def genomes(
             logger.error(f"Failed to generate FastqScreen config: {e}")
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             raise typer.Exit(code=1)
 
@@ -786,12 +797,13 @@ def config(
 
     # Local imports to keep help fast
     from importlib.metadata import version as _pkg_version
-    from seqnado.inputs import Assay
+
     from seqnado.config import (
+        build_default_workflow_config,
         build_workflow_config,
         render_config,
-        build_default_workflow_config,
     )
+    from seqnado.inputs import Assay
 
     if assay not in Assay.all_assay_clean_names():
         allowed = ", ".join(Assay.all_assay_clean_names())
@@ -846,28 +858,27 @@ def config(
         raise typer.Exit(code=1)
 
     logger.success(f"Wrote config → {config_output}")
-    
+
     # Check if FastqScreen config exists at default location
     default_fastqscreen_config = Path.home() / ".config/seqnado/fastq_screen.conf"
     if not default_fastqscreen_config.exists():
         logger.warning(f"FastqScreen config not found at {default_fastqscreen_config}")
         if interactive:
             generate_fs = typer.confirm(
-                "Would you like to generate a FastqScreen config now?",
-                default=True
+                "Would you like to generate a FastqScreen config now?", default=True
             )
             if generate_fs:
                 contaminant_path_input = typer.prompt(
                     "Path to contaminant references (leave empty to skip contaminants)",
                     default="",
-                    show_default=False
+                    show_default=False,
                 )
-                
+
                 from seqnado.config.fastq_screen_generator import (
                     generate_fastq_screen_config,
-                    load_genome_configs_for_fastqscreen
+                    load_genome_configs_for_fastqscreen,
                 )
-                
+
                 try:
                     genome_configs = load_genome_configs_for_fastqscreen()
                     generate_fastq_screen_config(
@@ -875,13 +886,19 @@ def config(
                         output_path=default_fastqscreen_config,
                         threads=8,
                         include_contaminants=bool(contaminant_path_input),
-                        contaminant_base_path=contaminant_path_input if contaminant_path_input else None
+                        contaminant_base_path=contaminant_path_input
+                        if contaminant_path_input
+                        else None,
                     )
                 except Exception as e:
                     logger.warning(f"Failed to generate FastqScreen config: {e}")
-                    logger.info("You can generate it later with: seqnado genomes fastqscreen")
+                    logger.info(
+                        "You can generate it later with: seqnado genomes fastqscreen"
+                    )
         else:
-            logger.info("Run 'seqnado genomes fastqscreen' to generate FastqScreen configuration")
+            logger.info(
+                "Run 'seqnado genomes fastqscreen' to generate FastqScreen configuration"
+            )
 
 
 # -------------------------------- design ------------------------------------ #
@@ -900,7 +917,10 @@ def design(
         None, metavar="[FASTQ ...]", autocompletion=fastq_autocomplete
     ),
     output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Output CSV filename (default: metadata_{assay}.csv)."
+        None,
+        "-o",
+        "--output",
+        help="Output CSV filename (default: metadata_{assay}.csv).",
     ),
     group_by: bool = typer.Option(
         False, "--group-by", help="Group samples by a regular expression or a column."
@@ -927,10 +947,11 @@ def design(
     _configure_logging(verbose)
 
     # Local imports
+    import pandas as pd
+
+    from seqnado.inputs import Assay as AssayEnum
     from seqnado.inputs import FastqCollection, FastqCollectionForIP
     from seqnado.inputs.validation import DesignDataFrame
-    from seqnado.inputs import Assay as AssayEnum
-    import pandas as pd
 
     if assay not in AssayEnum.all_assay_clean_names():
         allowed = ", ".join(AssayEnum.all_assay_clean_names())
@@ -1021,10 +1042,10 @@ def design(
 def pipeline(
     ctx: typer.Context,
     assay: Optional[str] = typer.Argument(
-        None, 
+        None,
         metavar="[ASSAY]",
         autocompletion=assay_autocomplete,
-        help="Assay type (required for single-assay, optional for multi-assay mode)"
+        help="Assay type (required for single-assay, optional for multi-assay mode)",
     ),
     config_file: Optional[Path] = typer.Option(
         None,
@@ -1051,7 +1072,7 @@ def pipeline(
         False, "--verbose", "-v", help="Increase logging verbosity."
     ),
     queue: Optional[str] = typer.Option(
-        'short', "-q", "--queue", help="Slurm queue/partition for the `ss` preset."
+        "short", "-q", "--queue", help="Slurm queue/partition for the `ss` preset."
     ),
     print_cmd: bool = typer.Option(
         False, "--print-cmd", help="Print the Snakemake command before running it."
@@ -1075,25 +1096,27 @@ def pipeline(
     from seqnado.helpers import extract_cores_from_options
 
     extra_args = list(ctx.args)
-    
+
     # Check for multi-assay mode before requiring assay argument
     config_files = list(Path(".").glob("config_*.yaml"))
     use_multi_assay = len(config_files) > 1 and not config_file and not assay
-    
+
     # Debug: check if assay looks like a flag (starts with -)
-    if assay and assay.startswith('-'):
+    if assay and assay.startswith("-"):
         # This is actually a flag, not an assay - treat as multi-assay mode
-        logger.debug(f"Detected flag '{assay}' in assay position, checking for multi-assay mode")
+        logger.debug(
+            f"Detected flag '{assay}' in assay position, checking for multi-assay mode"
+        )
         extra_args.insert(0, assay)  # Put it back in extra args
         assay = None
         use_multi_assay = len(config_files) > 1 and not config_file
-    
+
     if not assay and not use_multi_assay:
         logger.error(
             "No assay provided. Use `seqnado pipeline ASSAY` or run from a directory with multiple config_*.yaml files for multi-assay mode."
         )
         raise typer.Exit(code=2)
-    
+
     cleaned_opts, cores = extract_cores_from_options(extra_args)
 
     os.environ["SCALE_RESOURCES"] = str(scale_resources)
@@ -1106,19 +1129,21 @@ def pipeline(
                 link.unlink(missing_ok=True)
 
     pkg_root_trav = _pkg_traversable("seqnado")
-    
+
     if use_multi_assay:
         # Multi-assay mode: use Snakefile_multi
         logger.info(
             f"Multi-assay mode detected: found {len(config_files)} config files"
         )
-        logger.info(f"Assays: {', '.join([f.stem.replace('config_', '') for f in config_files])}")
+        logger.info(
+            f"Assays: {', '.join([f.stem.replace('config_', '') for f in config_files])}"
+        )
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile_multi")
         config_file = None  # Multi-assay mode doesn't use --configfile
     else:
         # Single-assay mode: use standard Snakefile
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile")
-        
+
         if not config_file:
             config_file = Path(f"config_{assay}.yaml")
             if not config_file.exists():
@@ -1140,17 +1165,17 @@ def pipeline(
                 "snakemake",
                 "--snakefile",
                 str(snakefile_path),
-                "--show-failed-logs",   
+                "--show-failed-logs",
             ]
-            
+
             # Set cores: use user-specified cores, or default based on mode
             if use_multi_assay:
                 # For multi-assay, default to number of assays if cores not specified
                 if cores == 1:  # Default from extract_cores_from_options
                     cores = cores + len(config_files)
-            
+
             cmd += ["-c", str(cores)]
-            
+
             # Build workflow arguments to pass to nested snakemake calls (multi-assay mode)
             workflow_args = []
             if use_multi_assay:
@@ -1162,23 +1187,30 @@ def pipeline(
                 if queue and preset and preset.startswith("s"):
                     workflow_args.append(f"--default-resources slurm_partition={queue}")
                 # Add other common flags
-                workflow_args.extend(["--use-singularity", "--printshellcmds", "--rerun-incomplete", "--show-failed-logs"])
+                workflow_args.extend(
+                    [
+                        "--use-singularity",
+                        "--printshellcmds",
+                        "--rerun-incomplete",
+                        "--show-failed-logs",
+                    ]
+                )
                 # Add any extra cleaned opts
                 workflow_args.extend(cleaned_opts)
-                
+
                 # Pass workflow_args via config with proper quoting
                 workflow_args_str = " ".join(workflow_args)
                 cmd += ["--config", f'workflow_args="{workflow_args_str}"']
-            
+
             # Add config file only for single-assay mode
             if config_file:
                 cmd += ["--configfile", str(config_file)]
-            
+
             # For multi-assay mode, use project directory as working directory to avoid lock conflicts
             # Single-assay mode runs in current directory as before
             if use_multi_assay:
                 cmd += ["--directory", "."]
-            
+
             if not use_multi_assay:
                 cmd += cleaned_opts
 
@@ -1191,7 +1223,7 @@ def pipeline(
                 )
 
             if queue and preset.startswith("s") and not use_multi_assay:
-                cmd += ['--default-resources', f'slurm_partition={queue}']
+                cmd += ["--default-resources", f"slurm_partition={queue}"]
 
             logo_trav = pkg_root_trav.joinpath("data").joinpath("logo.txt")
             try:

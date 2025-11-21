@@ -285,7 +285,12 @@ def fastqs(test_data_path: Path, selected_assays: list[str]) -> dict[str, list[P
 
 @pytest.fixture(scope="function")
 def run_directory(tmp_path_factory: pytest.TempPathFactory, assay: str) -> Path:
-    return tmp_path_factory.mktemp(assay)
+    # Use getbasetemp() to get shared base temp directory, then create assay-specific subdirectory
+    # This ensures all tests for the same assay use the same directory
+    base_temp = tmp_path_factory.getbasetemp()
+    run_dir = base_temp / assay
+    run_dir.mkdir(exist_ok=True)
+    return run_dir
 
 
 @pytest.fixture(scope="function")
@@ -387,8 +392,6 @@ def config_yaml(
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    # Create seqnado_output dir for UCSCHubConfig validation
-    (run_directory / "seqnado_output").mkdir(exist_ok=True)
 
     # Use subprocess with --no-interactive and --render-options for non-interactive config generation
     date = datetime.now().strftime("%Y-%m-%d")

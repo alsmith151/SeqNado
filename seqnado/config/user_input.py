@@ -560,7 +560,7 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
             return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
         case Assay.SNP:
             snp_calling = SNPCallingConfig(
-                method=SNPCallingMethod.BCFTTOOLS,
+                method=SNPCallingMethod.BCFTOOLS,
                 annotate_snps=False,
                 snp_database=None,
             )
