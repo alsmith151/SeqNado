@@ -52,6 +52,7 @@ class QCFiles(BaseModel):
                         f"{self.output_dir}/qc/qualimap_bamqc/{{sample}}/qualimapReport.html",
                         sample=self.samples.sample_names,
                     )
+        return []
 
     @computed_field
     @property
@@ -390,8 +391,9 @@ class QuantificationFiles(BaseModel):
         return f"{self.output_dir}/quantification"
 
     @field_validator("methods", mode="before")
-    def validate_methods_and_assays(cls, v: list[QuantificationMethod], values: dict[str, Any]) -> list[QuantificationMethod]:
-        assay = values.get("assay")
+    def validate_methods_and_assays(cls, v: list[QuantificationMethod], info) -> list[QuantificationMethod]:
+        # In Pydantic v2, use info.data to access other fields
+        assay = info.data.get("assay") if hasattr(info, 'data') else None
         if assay == Assay.RNA:
             return [m for m in v if m in [QuantificationMethod.FEATURE_COUNTS, QuantificationMethod.SALMON]]
         return [m for m in v if m == QuantificationMethod.FEATURE_COUNTS]
@@ -465,14 +467,15 @@ class GeoSubmissionFiles(BaseModel):
         """Return processed files for GEO submission."""
         files = []
         for file in self.seqnado_files:
-            if Path(file).suffix in self.allowed_extensions:
+            file_path = Path(file)
+            # Check both single suffix and compound suffix (e.g., .vcf.gz)
+            ext = ''.join(file_path.suffixes)
+            if ext in self.allowed_extensions or file_path.suffix in self.allowed_extensions:
                 # Need to flatten the file un-nest the directory structure
                 # e.g. seqnado_output/bigwigs/METHOD/SCALE/NAME.bigWig
-                file = Path(file)
-                basename = file.stem
-                ext = ''.join(file.suffixes)
-                scale_method = file.parent.name
-                method = file.parent.parent.name
+                basename = file_path.stem
+                scale_method = file_path.parent.name
+                method = file_path.parent.parent.name
                 
                 files.append(
                     str(self.upload_directory / f"{basename}_{method}_{scale_method}{ext}")

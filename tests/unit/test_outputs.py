@@ -1,0 +1,832 @@
+"""Tests for seqnado.outputs.files module."""
+
+import pytest
+from pathlib import Path
+import pandas as pd
+
+from seqnado import (
+    Assay,
+    PileupMethod,
+    DataScalingTechnique,
+    PeakCallingMethod,
+    MethylationMethod,
+    QuantificationMethod,
+)
+from seqnado.outputs.files import (
+    QCFiles,
+    BigWigFiles,
+    PeakCallingFiles,
+    HeatmapFiles,
+    HubFiles,
+    SpikeInFiles,
+    PlotFiles,
+    SNPFilesRaw,
+    SNPFilesAnnotated,
+    MethylationFiles,
+    BigBedFiles,
+    GeoSubmissionFiles,
+    QuantificationFiles,
+)
+from seqnado.inputs.fastq import FastqCollection, FastqFile, FastqSet
+from seqnado.inputs.bam import BamCollection, BamFile
+from seqnado.inputs.bigwigs import BigWigCollection, BigWigFile
+from seqnado.inputs.core import Metadata
+from seqnado.inputs.grouping import SampleGroup, SampleGroups
+
+from pathlib import Path
+
+from seqnado import Assay, PileupMethod
+from seqnado.config.configs import BigwigConfig, GenomeConfig, STARIndex
+from seqnado.config.core import ATACAssayConfig, SeqnadoConfig
+from seqnado.inputs.fastq import FastqCollection, FastqFile, FastqSet
+from seqnado.inputs.grouping import SampleGroup, SampleGroupings, SampleGroups
+from seqnado.outputs.core import SeqnadoOutputBuilder, SeqnadoOutputFactory
+
+
+def _minimal_config(tmp: Path) -> SeqnadoConfig:
+    star = tmp / "star"
+    star.mkdir()
+    genome = GenomeConfig(name="hg38", index=STARIndex(prefix=star))
+    assay_cfg = ATACAssayConfig(
+        bigwigs=BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS])
+    )
+    return SeqnadoConfig(
+        assay=Assay.ATAC,
+        project=dict(name="p"),
+        genome=genome,
+        metadata=tmp / "m.csv",
+        assay_config=assay_cfg,
+    )
+
+
+def _small_collection(tmp: Path) -> FastqCollection:
+    r1_path = tmp / "s1_R1.fastq.gz"
+    r1_path.write_text("@r\nN\n+\n#\n")
+    r2_path = tmp / "s1_R2.fastq.gz"
+    r2_path.write_text("@r\nN\n+\n#\n")
+    r1 = FastqFile(path=r1_path)
+    r2 = FastqFile(path=r2_path)
+    fs = FastqSet(sample_id="s1", r1=r1, r2=r2)
+    return FastqCollection(assay=Assay.ATAC, metadata=[], fastq_sets=[fs])
+
+
+def test_output_builder_bigwigs_only(tmp_path: Path):
+    cfg = _minimal_config(tmp_path)
+    samples = _small_collection(tmp_path)
+
+    builder = SeqnadoOutputBuilder(Assay.ATAC, samples, cfg)
+    builder.add_qc_files()
+    builder.add_individual_bigwig_files()
+    out = builder.build()
+
+    assert any("seqnado_report.html" in f for f in out.files)
+    assert any(f.endswith(".bigWig") for f in out.files)
+
+
+def test_output_factory_with_consensus_groups(tmp_path: Path):
+    cfg = _minimal_config(tmp_path)
+    samples = _small_collection(tmp_path)
+    groups = SampleGroupings(
+        groupings={
+            "consensus": SampleGroups(groups=[SampleGroup(name="cons", samples=["s1"])])
+        }
+    )
+    factory = SeqnadoOutputFactory(Assay.ATAC, samples, cfg, sample_groupings=groups)
+    out = factory.create_output_builder().build()
+    assert out.files, "Expected some files listed from factory"
+
+
+# Helper functions
+def _create_fastq_collection(tmp_path: Path, sample_ids: list[str], assay: Assay) -> FastqCollection:
+    """Create a minimal FastqCollection for testing."""
+    fastq_sets = []
+    for sample_id in sample_ids:
+        r1_path = tmp_path / f"{sample_id}_R1.fastq.gz"
+        r1_path.write_text("@r\nN\n+\n#\n")
+        r1 = FastqFile(path=r1_path)
+        fastq_sets.append(FastqSet(sample_id=sample_id, r1=r1))
+    
+    return FastqCollection(
+        assay=assay,
+        metadata=[Metadata(assay=assay) for _ in sample_ids],
+        fastq_sets=fastq_sets
+    )
+
+
+def _create_bam_collection(tmp_path: Path, sample_ids: list[str], assay: Assay) -> BamCollection:
+    """Create a minimal BamCollection for testing."""
+    bam_files = []
+    for sample_id in sample_ids:
+        bam_path = tmp_path / f"{sample_id}.bam"
+        bam_path.touch()
+        bam_files.append(BamFile(path=bam_path))
+    
+    return BamCollection(
+        assay=assay,
+        bam_files=bam_files,
+        metadata=[Metadata(assay=assay) for _ in sample_ids]
+    )
+
+
+def _create_bigwig_collection(tmp_path: Path, sample_ids: list[str], assay: Assay) -> BigWigCollection:
+    """Create a minimal BigWigCollection for testing."""
+    bigwig_files = []
+    for sample_id in sample_ids:
+        bw_path = tmp_path / f"{sample_id}.bigWig"
+        bw_path.touch()
+        bigwig_files.append(BigWigFile(path=bw_path))
+    
+    return BigWigCollection(
+        assay=assay,
+        bigwig_files=bigwig_files,
+        metadata=[Metadata(assay=assay) for _ in sample_ids]
+    )
+
+
+class TestQCFiles:
+    """Tests for QCFiles class."""
+
+    def test_qc_files_with_fastq_collection(self, tmp_path):
+        """Test QCFiles with FastqCollection."""
+        samples = _create_fastq_collection(tmp_path, ["sample1", "sample2"], Assay.ATAC)
+        qc = QCFiles(assay=Assay.ATAC, samples=samples, output_dir="test_output")
+        
+        files = qc.files
+        assert "test_output/seqnado_report.html" in files
+        assert any("qualimap_bamqc" in f for f in files)
+        assert len([f for f in files if "qualimap" in f]) == 2  # One per sample
+
+    def test_qc_files_rna_assay(self, tmp_path):
+        """Test QCFiles with RNA assay uses qualimap_rnaseq."""
+        samples = _create_fastq_collection(tmp_path, ["sample1"], Assay.RNA)
+        qc = QCFiles(assay=Assay.RNA, samples=samples)
+        
+        files = qc.files
+        assert any("qualimap_rnaseq" in f for f in files)
+        assert all("qualimap_bamqc" not in f for f in files)
+
+    def test_qc_files_with_bam_collection(self, tmp_path):
+        """Test QCFiles with BamCollection."""
+        samples = _create_bam_collection(tmp_path, ["sample1"], Assay.ATAC)
+        qc = QCFiles(assay=Assay.ATAC, samples=samples)
+        
+        files = qc.files
+        assert "seqnado_output/seqnado_report.html" in files
+        assert any("qualimap_bamqc" in f for f in files)
+
+    def test_qc_files_with_bigwig_collection(self, tmp_path):
+        """Test QCFiles with BigWigCollection (no qualimap files)."""
+        samples = _create_bigwig_collection(tmp_path, ["sample1"], Assay.ATAC)
+        qc = QCFiles(assay=Assay.ATAC, samples=samples)
+        
+        files = qc.files
+        assert "seqnado_output/seqnado_report.html" in files
+
+    def test_default_files_property(self, tmp_path):
+        """Test default_files property."""
+        samples = _create_fastq_collection(tmp_path, ["sample1"], Assay.ATAC)
+        qc = QCFiles(assay=Assay.ATAC, samples=samples)
+        
+        assert qc.default_files == ["seqnado_output/seqnado_report.html"]
+
+
+class TestBigWigFiles:
+    """Tests for BigWigFiles class."""
+
+    def test_bigwig_files_chip_basic(self):
+        """Test BigWigFiles for ChIP assay."""
+        bw = BigWigFiles(
+            assay=Assay.CHIP,
+            names=["sample1", "sample2"],
+            pileup_methods=[PileupMethod.DEEPTOOLS],
+            scale_methods=[DataScalingTechnique.UNSCALED]
+        )
+        
+        files = bw.files
+        assert len(files) == 2  # One per sample
+        assert all(f.endswith(".bigWig") for f in files)
+        assert all("deeptools" in f for f in files)
+
+    def test_bigwig_files_rna_stranded(self):
+        """Test BigWigFiles for RNA assay generates plus/minus files."""
+        bw = BigWigFiles(
+            assay=Assay.RNA,
+            names=["sample1"],
+            pileup_methods=[PileupMethod.DEEPTOOLS],
+            scale_methods=[DataScalingTechnique.UNSCALED]
+        )
+        
+        files = bw.files
+        assert len(files) == 2  # Plus and minus
+        assert any("plus.bigWig" in f for f in files)
+        assert any("minus.bigWig" in f for f in files)
+
+    def test_bigwig_files_multiple_methods(self):
+        """Test BigWigFiles with multiple pileup methods."""
+        bw = BigWigFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            pileup_methods=[PileupMethod.DEEPTOOLS, PileupMethod.HOMER],
+            scale_methods=[DataScalingTechnique.UNSCALED]
+        )
+        
+        files = bw.files
+        assert len(files) == 2  # One per method
+        assert any("deeptools" in f for f in files)
+        assert any("homer" in f for f in files)
+
+    def test_bigwig_files_multiple_scales(self):
+        """Test BigWigFiles with multiple scaling methods."""
+        bw = BigWigFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            pileup_methods=[PileupMethod.DEEPTOOLS],
+            scale_methods=[DataScalingTechnique.UNSCALED, DataScalingTechnique.CPM]
+        )
+        
+        files = bw.files
+        assert len(files) == 2  # One per scale method
+        assert any("unscaled" in f for f in files)
+        assert any("cpm" in f for f in files)
+
+    def test_bigwig_incompatible_methods_filtered(self):
+        """Test that incompatible method/scale combinations are filtered."""
+        bw = BigWigFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            pileup_methods=[PileupMethod.HOMER],
+            scale_methods=[DataScalingTechnique.CSAW, DataScalingTechnique.UNSCALED]
+        )
+        
+        files = bw.files
+        # HOMER with CSAW should be filtered out
+        assert not any("csaw" in f for f in files)
+        assert any("unscaled" in f for f in files)
+
+    def test_bigwig_prefix_property(self):
+        """Test prefix property."""
+        bw = BigWigFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            pileup_methods=[PileupMethod.DEEPTOOLS],
+            output_dir="custom_output"
+        )
+        
+        assert bw.prefix == "custom_output/bigwigs/"
+
+    def test_is_rna_property(self):
+        """Test is_rna property."""
+        bw_chip = BigWigFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            pileup_methods=[PileupMethod.DEEPTOOLS]
+        )
+        bw_rna = BigWigFiles(
+            assay=Assay.RNA,
+            names=["sample1"],
+            pileup_methods=[PileupMethod.DEEPTOOLS]
+        )
+        
+        assert bw_chip.is_rna is False
+        assert bw_rna.is_rna is True
+
+    def test_is_compatible_method(self):
+        """Test _is_compatible method."""
+        bw = BigWigFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            pileup_methods=[PileupMethod.HOMER]
+        )
+        
+        assert bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.UNSCALED)
+        assert not bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.CSAW)
+        assert not bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.SPIKEIN)
+
+
+class TestPeakCallingFiles:
+    """Tests for PeakCallingFiles class."""
+
+    def test_peak_calling_files_chip(self):
+        """Test PeakCallingFiles for ChIP assay."""
+        pcf = PeakCallingFiles(
+            assay=Assay.CHIP,
+            names=["sample1", "sample2"],
+            peak_calling_method=[PeakCallingMethod.MACS2]
+        )
+        
+        files = pcf.files
+        assert len(files) == 2
+        assert all(f.endswith(".bed") for f in files)
+        assert all("macs2" in f for f in files)
+
+    def test_peak_calling_files_atac(self):
+        """Test PeakCallingFiles for ATAC assay."""
+        pcf = PeakCallingFiles(
+            assay=Assay.ATAC,
+            names=["sample1"],
+            peak_calling_method=[PeakCallingMethod.MACS2, PeakCallingMethod.SEACR]
+        )
+        
+        files = pcf.files
+        assert len(files) == 2  # One per method
+        assert any("macs2" in f for f in files)
+        assert any("seacr" in f for f in files)
+
+    def test_peak_calling_invalid_assay(self):
+        """Test PeakCallingFiles raises error for invalid assay."""
+        with pytest.raises(ValueError, match="Invalid assay for peak calling"):
+            PeakCallingFiles(
+                assay=Assay.RNA,  # RNA doesn't support peak calling
+                names=["sample1"],
+                peak_calling_method=[PeakCallingMethod.MACS2]
+            )
+
+    def test_peak_calling_prefix(self):
+        """Test prefix property."""
+        pcf = PeakCallingFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            peak_calling_method=[PeakCallingMethod.MACS2],
+            output_dir="custom_output"
+        )
+        
+        assert pcf.prefix == "custom_output/peaks/"
+
+
+class TestHeatmapFiles:
+    """Tests for HeatmapFiles class."""
+
+    def test_heatmap_files_chip(self):
+        """Test HeatmapFiles for ChIP assay."""
+        hf = HeatmapFiles(assay=Assay.CHIP)
+        
+        files = hf.files
+        assert len(files) == 2
+        assert any("heatmap.pdf" in f for f in files)
+        assert any("metaplot.pdf" in f for f in files)
+
+    def test_heatmap_files_atac(self):
+        """Test HeatmapFiles for ATAC assay."""
+        hf = HeatmapFiles(assay=Assay.ATAC, output_dir="custom_output")
+        
+        files = hf.files
+        assert all("custom_output/heatmap/" in f for f in files)
+
+    def test_heatmap_invalid_assay(self):
+        """Test HeatmapFiles raises error for invalid assay."""
+        with pytest.raises(ValueError, match="Invalid assay for heatmap"):
+            HeatmapFiles(assay=Assay.SNP)
+
+
+class TestHubFiles:
+    """Tests for HubFiles class."""
+
+    def test_hub_files_basic(self, tmp_path):
+        """Test HubFiles basic functionality."""
+        hub = HubFiles(hub_dir=tmp_path, hub_name="test_hub")
+        
+        files = hub.files
+        assert len(files) == 1
+        assert files[0].endswith("test_hub.hub.txt")
+
+    def test_hub_txt_property(self, tmp_path):
+        """Test hub_txt property."""
+        hub = HubFiles(hub_dir=tmp_path, hub_name="my_hub")
+        
+        assert hub.hub_txt == tmp_path / "my_hub.hub.txt"
+
+
+class TestSpikeInFiles:
+    """Tests for SpikeInFiles class."""
+
+    def test_spikein_files_chip(self):
+        """Test SpikeInFiles for ChIP assay."""
+        sif = SpikeInFiles(
+            assay=Assay.CHIP,
+            names=["sample1", "sample2"]
+        )
+        
+        files = sif.files
+        assert len(files) == 1
+        assert "normalisation_factors.tsv" in files[0]
+
+    def test_spikein_invalid_assay(self):
+        """Test SpikeInFiles raises error for invalid assay."""
+        with pytest.raises(ValueError, match="Invalid assay for spike-in"):
+            SpikeInFiles(assay=Assay.SNP, names=["sample1"])
+
+    def test_norm_factors_property(self):
+        """Test norm_factors property."""
+        sif = SpikeInFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            output_dir="custom_output"
+        )
+        
+        assert sif.norm_factors == "custom_output/resources/normalisation_factors.tsv"
+
+
+class TestPlotFiles:
+    """Tests for PlotFiles class."""
+
+    def test_plot_files_with_bed(self, tmp_path):
+        """Test PlotFiles with BED file."""
+        bed_file = tmp_path / "coords.bed"
+        bed_file.write_text("chr1\t1000\t2000\tregion1\n")
+        
+        pf = PlotFiles(coordinates=bed_file, file_format="svg")
+        
+        files = pf.files
+        assert len(files) == 1
+        assert "region1.svg" in str(files[0])
+
+    def test_plot_files_without_names(self, tmp_path):
+        """Test PlotFiles without region names uses coordinates."""
+        bed_file = tmp_path / "coords.bed"
+        bed_file.write_text("chr1\t1000\t2000\n")
+        
+        pf = PlotFiles(coordinates=bed_file)
+        
+        files = pf.files
+        assert len(files) == 1
+        assert "chr1-1000-2000" in str(files[0])
+
+    def test_plot_files_multiple_regions(self, tmp_path):
+        """Test PlotFiles with multiple regions."""
+        bed_file = tmp_path / "coords.bed"
+        bed_file.write_text("chr1\t1000\t2000\tregion1\nchr2\t3000\t4000\tregion2\n")
+        
+        pf = PlotFiles(coordinates=bed_file, file_format="pdf")
+        
+        files = pf.files
+        assert len(files) == 2
+        assert any("region1.pdf" in str(f) for f in files)
+        assert any("region2.pdf" in str(f) for f in files)
+
+    def test_plot_files_missing_coordinates(self, tmp_path):
+        """Test PlotFiles with missing coordinates file."""
+        pf = PlotFiles(coordinates=tmp_path / "missing.bed")
+        
+        # Should not raise error, just return empty list
+        files = pf.files
+        assert files == []
+
+    def test_plot_files_custom_format(self, tmp_path):
+        """Test PlotFiles with custom format."""
+        bed_file = tmp_path / "coords.bed"
+        bed_file.write_text("chr1\t1000\t2000\n")
+        
+        pf = PlotFiles(coordinates=bed_file, file_format="png", output_dir="custom")
+        
+        files = pf.files
+        assert str(files[0]).endswith(".png")
+        assert "custom/genome_browser_plots/" in str(files[0])
+
+
+class TestSNPFilesRaw:
+    """Tests for SNPFilesRaw class."""
+
+    def test_snp_files_raw_basic(self):
+        """Test SNPFilesRaw basic functionality."""
+        snp = SNPFilesRaw(
+            assay=Assay.SNP,
+            names=["sample1", "sample2"]
+        )
+        
+        files = snp.files
+        assert len(files) == 2
+        assert all(f.endswith(".vcf.gz") for f in files)
+        assert all("variant" in f for f in files)
+
+
+class TestSNPFilesAnnotated:
+    """Tests for SNPFilesAnnotated class."""
+
+    def test_snp_files_annotated_basic(self):
+        """Test SNPFilesAnnotated basic functionality."""
+        snp = SNPFilesAnnotated(
+            assay=Assay.SNP,
+            names=["sample1", "sample2"]
+        )
+        
+        files = snp.files
+        assert len(files) == 2
+        assert all(f.endswith(".anno.vcf.gz") for f in files)
+
+
+class TestMethylationFiles:
+    """Tests for MethylationFiles class."""
+
+    def test_methylation_files_basic(self):
+        """Test MethylationFiles basic functionality."""
+        mf = MethylationFiles(
+            assay=Assay.METH,
+            names=["sample1"],
+            genomes=["hg38", "spikein"],
+            method=MethylationMethod.TAPS
+        )
+        
+        files = mf.files
+        # Should have split_bams, methyldackel, and bias files
+        assert len(files) > 0
+        assert any(".bam" in f for f in files)
+        assert any(".bedGraph" in f for f in files)
+
+    def test_methylation_prefix_property(self):
+        """Test prefix property."""
+        mf = MethylationFiles(
+            assay=Assay.METH,
+            names=["sample1"],
+            genomes=["hg38"],
+            method=MethylationMethod.TAPS,
+            output_dir="custom_output"
+        )
+        
+        assert mf.prefix == "custom_output/methylation/"
+
+    def test_methylation_split_bams_files(self):
+        """Test split_bams_files property."""
+        mf = MethylationFiles(
+            assay=Assay.METH,
+            names=["sample1"],
+            genomes=["hg38", "spikein"],
+            method=MethylationMethod.TAPS
+        )
+        
+        files = mf.split_bams_files
+        assert len(files) == 2  # One per genome
+        assert all("spikein" in f or "hg38" in f for f in files)
+
+    def test_methylation_methyldackel_files(self):
+        """Test methyldackel_files property."""
+        mf = MethylationFiles(
+            assay=Assay.METH,
+            names=["sample1"],
+            genomes=["hg38"],
+            method=MethylationMethod.TAPS
+        )
+        
+        files = mf.methyldackel_files
+        assert len(files) == 1
+        assert "CpG.bedGraph" in files[0]
+        assert "taps" in files[0]
+
+    def test_methylation_bias_files(self):
+        """Test methylation_bias property."""
+        mf = MethylationFiles(
+            assay=Assay.METH,
+            names=["sample1"],
+            genomes=["hg38"],
+            method=MethylationMethod.TAPS
+        )
+        
+        files = mf.methylation_bias
+        assert len(files) > 0
+        assert any("methylation_conversion.tsv" in f for f in files)
+        assert any("bias" in f for f in files)
+
+
+class TestBigBedFiles:
+    """Tests for BigBedFiles class."""
+
+    def test_bigbed_files_basic(self, tmp_path):
+        """Test BigBedFiles basic functionality."""
+        bed1 = tmp_path / "file1.bed"
+        bed2 = tmp_path / "file2.bed"
+        bed1.touch()
+        bed2.touch()
+        
+        bbf = BigBedFiles(bed_files=[bed1, bed2])
+        
+        files = bbf.files
+        assert len(files) == 2
+        assert all(f.endswith(".bb") for f in files)
+
+    def test_bigbed_files_with_strings(self, tmp_path):
+        """Test BigBedFiles accepts string paths."""
+        bed1 = tmp_path / "file1.bed"
+        bed1.touch()
+        
+        bbf = BigBedFiles(bed_files=[str(bed1)])
+        
+        files = bbf.files
+        assert len(files) == 1
+        assert files[0].endswith(".bb")
+
+    def test_bigbed_files_filters_non_bed(self, tmp_path):
+        """Test BigBedFiles filters non-BED files."""
+        bed1 = tmp_path / "file1.bed"
+        txt1 = tmp_path / "file2.txt"
+        bed1.touch()
+        txt1.touch()
+        
+        bbf = BigBedFiles(bed_files=[bed1, txt1])
+        
+        files = bbf.files
+        # Only .bed files should be converted to .bb
+        assert len(files) == 1
+        assert "file1.bb" in files[0]
+
+    def test_bigbed_files_empty_list(self):
+        """Test BigBedFiles with empty list."""
+        bbf = BigBedFiles(bed_files=[])
+        
+        assert bbf.files == []
+
+
+class TestQuantificationFiles:
+    """Tests for QuantificationFiles class."""
+
+    def test_quantification_files_rna_featurecounts(self):
+        """Test QuantificationFiles for RNA with FeatureCounts."""
+        groups = SampleGroups(groups=[SampleGroup(name="group1", samples=["sample1"])])
+        qf = QuantificationFiles(
+            assay=Assay.RNA,
+            methods=[QuantificationMethod.FEATURE_COUNTS],
+            names=["sample1"],
+            groups=groups
+        )
+        
+        files = qf.files
+        assert len(files) > 0
+        assert any("read_counts.tsv" in f for f in files)
+
+    def test_quantification_files_rna_salmon(self):
+        """Test QuantificationFiles for RNA with Salmon."""
+        groups = SampleGroups(groups=[SampleGroup(name="group1", samples=["sample1"])])
+        qf = QuantificationFiles(
+            assay=Assay.RNA,
+            methods=[QuantificationMethod.SALMON],
+            names=["sample1"],
+            groups=groups
+        )
+        
+        files = qf.files
+        assert any("salmon" in f or "read_counts.tsv" in f for f in files)
+
+    def test_quantification_files_chip_only_featurecounts(self):
+        """Test QuantificationFiles for ChIP filters to only FeatureCounts."""
+        groups = SampleGroups(groups=[SampleGroup(name="group1", samples=["sample1"])])
+        qf = QuantificationFiles(
+            assay=Assay.CHIP,
+            methods=[QuantificationMethod.FEATURE_COUNTS, QuantificationMethod.SALMON],
+            names=["sample1"],
+            groups=groups
+        )
+        
+        # Should filter out SALMON for non-RNA assays
+        files = qf.files
+        assert not any("salmon" in f for f in files)
+
+    def test_quantification_combined_counts(self):
+        """Test combined_counts_file property."""
+        groups = SampleGroups(groups=[SampleGroup(name="group1", samples=["sample1"])])
+        qf = QuantificationFiles(
+            assay=Assay.RNA,
+            methods=[QuantificationMethod.FEATURE_COUNTS],
+            names=["sample1"],
+            groups=groups
+        )
+        
+        files = qf.combined_counts_file
+        assert len(files) == 1
+        assert "read_counts.tsv" in files[0]
+
+    def test_quantification_grouped_counts(self):
+        """Test grouped_counts_files property."""
+        groups = SampleGroups(groups=[
+            SampleGroup(name="group1", samples=["sample1"]),
+            SampleGroup(name="group2", samples=["sample2"])
+        ])
+        qf = QuantificationFiles(
+            assay=Assay.RNA,
+            methods=[QuantificationMethod.FEATURE_COUNTS],
+            names=["sample1", "sample2"],
+            groups=groups
+        )
+        
+        files = qf.grouped_counts_files
+        # Should have files for each group
+        assert len(files) >= 2
+
+
+class TestGeoSubmissionFiles:
+    """Tests for GeoSubmissionFiles class."""
+
+    def test_geo_submission_default_files(self):
+        """Test default_files property."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.CHIP,
+            names=["sample1"]
+        )
+        
+        files = geo.default_files
+        assert len(files) == 5
+        assert any("md5sums.txt" in f for f in files)
+        assert any("samples_table.txt" in f for f in files)
+        assert any("protocol.txt" in f for f in files)
+
+    def test_geo_submission_raw_files(self):
+        """Test raw_files property."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.CHIP,
+            names=["sample1", "sample2"]
+        )
+        
+        files = geo.raw_files
+        # Should have R1 and R2 for each sample
+        assert len(files) == 4
+        assert all(f.endswith(".fastq.gz") for f in files)
+
+    def test_geo_submission_processed_files(self):
+        """Test processed_data_files property."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            seqnado_files=[
+                "seqnado_output/bigwigs/deeptools/unscaled/sample1.bigWig",
+                "seqnado_output/peaks/macs2/sample1.bed"
+            ]
+        )
+        
+        files = geo.processed_data_files
+        assert len(files) == 2
+        # Check that files are flattened and renamed
+        assert any("deeptools_unscaled" in f for f in files)
+        assert any("macs2" in f for f in files)
+
+    def test_geo_submission_filters_extensions(self):
+        """Test that only allowed extensions are processed."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            seqnado_files=[
+                "seqnado_output/file.bigWig",
+                "seqnado_output/file.txt",  # Not in allowed extensions
+                "seqnado_output/file.bed"
+            ]
+        )
+        
+        files = geo.processed_data_files
+        assert len(files) == 2  # .txt should be filtered out
+        assert all(f.endswith((".bigWig", ".bed")) for f in files)
+
+    def test_geo_submission_all_files(self):
+        """Test files property includes all file types."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            seqnado_files=["seqnado_output/file.bigWig"]
+        )
+        
+        files = geo.files
+        # Should include default, raw, and processed files
+        assert len(files) > 5
+
+    def test_geo_submission_upload_directory(self):
+        """Test upload_directory property."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            output_dir="custom_output"
+        )
+        
+        assert "custom_output/geo_submission" in str(geo.upload_directory)
+        assert geo.assay.clean_name in str(geo.upload_directory)
+
+    def test_geo_submission_upload_instructions(self):
+        """Test upload_instructions property."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.CHIP,
+            names=["sample1"]
+        )
+        
+        assert geo.upload_instructions == Path("seqnado_output/geo_submission/upload_instructions.txt")
+
+    def test_geo_submission_vcf_gz_files(self):
+        """Test that .vcf.gz files are included."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.SNP,
+            names=["sample1"],
+            seqnado_files=["seqnado_output/variant/sample1.vcf.gz"]
+        )
+        
+        files = geo.processed_data_files
+        assert any(f.endswith(".vcf.gz") for f in files)
+
+    def test_geo_submission_custom_allowed_extensions(self):
+        """Test custom allowed_extensions."""
+        geo = GeoSubmissionFiles(
+            assay=Assay.CHIP,
+            names=["sample1"],
+            seqnado_files=[
+                "seqnado_output/file.bigWig",
+                "seqnado_output/file.txt"
+            ],
+            allowed_extensions=[".txt"]
+        )
+        
+        files = geo.processed_data_files
+        # Only .txt should be included with custom extensions
+        assert len(files) == 1
+        assert files[0].endswith(".txt")
