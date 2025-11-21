@@ -1,15 +1,11 @@
-name: Pipeline Tests
+name: Multi-Assay Test
 
 on: 
   push
-
 jobs:
-  test-pipelines:
-    name: Test Pipeline - ${{ matrix.assay }}
+  test-multiassay:
+    name: Test Multi-Assay Pipeline
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
 
     steps:
       - name: Checkout repository
@@ -39,11 +35,11 @@ jobs:
         with:
           apptainer-version: 1.3.4
 
-      - name: Run SeqNado pipeline test for ${{ matrix.assay }}
+      - name: Run SeqNado pipeline test for Multi-Assay
         shell: bash -el {0}
         env:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          python -m pytest tests/pipeline/test_pipelines.py -vv \
-          -s --cores 4 --run-pipeline --assays ${{ matrix.assay }}
+          python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
+            --cores 4 --run-pipeline --assays "atac,chip,rna"

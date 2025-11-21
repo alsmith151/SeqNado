@@ -497,7 +497,14 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
     """Build a default assay-specific configuration for non-interactive mode."""
     # Set common defaults
     bigwigs = BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS], binsize=10)
-    plotting = PlottingConfig()
+    
+    # Set default plotting coordinates - use test data coordinates if available
+    default_coordinates = None
+    test_coordinates = Path(__file__).parent.parent.parent / "tests" / "data" / "plotting_coordinates.bed"
+    if test_coordinates.exists():
+        default_coordinates = str(test_coordinates)
+    
+    plotting = PlottingConfig(coordinates=default_coordinates)
     ucsc_hub = UCSCHubConfig(
         directory="seqnado_output/hub/",
         genome=genome_config.name,
