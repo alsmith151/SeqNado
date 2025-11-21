@@ -204,7 +204,7 @@ class SpikeInFiles(BaseModel):
 
 
 class PlotFiles(BaseModel):
-    coordinates: Path
+    coordinates: Path | None = None
     file_format: Literal["svg", "png", "pdf"] = "svg"
     output_dir: str = "seqnado_output"
 
@@ -213,6 +213,9 @@ class PlotFiles(BaseModel):
         import pandas as pd
 
         plots = []
+        
+        if self.coordinates is None:
+            return plots
 
         try:
             # Read BED file using pandas (pyranges replacement)
