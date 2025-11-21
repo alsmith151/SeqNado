@@ -5,11 +5,12 @@ on:
 
 jobs:
   test-fast:
-    name: Fast Tests (Unit + Integration + CLI)
+    name: Unit and Integration Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
+        test-type: ["unit", "integration", "cli"]
 
     steps:
       - name: Checkout repository
@@ -34,17 +35,16 @@ jobs:
           which seqnado
           python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
 
-      - name: Run unit tests
+      - name: Run Tests
         shell: bash -el {0}
         run: |
-          pytest tests/unit/ -v --tb=short
-
-      - name: Run integration tests
-        shell: bash -el {0}
-        run: |
-          pytest tests/integration/ -v --tb=short
-
-      - name: Run CLI tests
-        shell: bash -el {0}
-        run: |
-          pytest tests/cli/ -v --tb=short
+          if [ "${{ matrix.test-type }}" == "unit" ]; then
+            pytest tests/unit --maxfail=1 --disable-warnings -q
+          elif [ "${{ matrix.test-type }}" == "integration" ]; then
+            pytest tests/integration --maxfail=1 --disable-warnings -q
+          elif [ "${{ matrix.test-type }}" == "cli" ]; then
+            pytest tests/cli --maxfail=1 --disable-warnings -q
+          else
+            echo "Unknown test type: ${{ matrix.test-type }}"
+            exit 1
+          fi
