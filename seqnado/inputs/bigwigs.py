@@ -150,7 +150,9 @@ class BigWigCollection(BaseModel):
 			md_index = self.sample_ids.index(sid)
 			row.update(self.metadata[md_index].model_dump(exclude_none=True))
 			rows.append(row)
-		return pd.DataFrame(rows).sort_values("sample_id")
+		# Sort rows by sample_id before creating DataFrame to avoid pandas/numpy compatibility issues
+		rows_sorted = sorted(rows, key=lambda x: x["sample_id"])
+		return pd.DataFrame(rows_sorted)
 
 	# ---------------------------------------------------------------
 	# File ops

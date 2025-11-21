@@ -61,6 +61,20 @@ class TestAssayEnum:
         assert Assay.MCC.clean_name == "mcc"
         assert Assay.CRISPR.clean_name == "crispr"
 
+    def test_clean_name_unknown_assay_raises_error(self):
+        """Test clean_name raises error for unmapped assay."""
+        # Create a mock assay instance that won't be in the short_names dict
+        from unittest.mock import MagicMock
+        mock_assay = MagicMock(spec=Assay)
+        mock_assay.__class__ = Assay
+        
+        # Get the clean_name property function
+        clean_name_prop = Assay.clean_name.fget
+        
+        # Call it with the mock - should raise ValueError
+        with pytest.raises(ValueError, match="Unknown assay type"):
+            clean_name_prop(mock_assay)
+
     def test_from_clean_name(self):
         """Test from_clean_name class method."""
         assert Assay.from_clean_name("rna") == Assay.RNA
