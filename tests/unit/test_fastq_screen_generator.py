@@ -11,9 +11,29 @@ from seqnado.config.fastq_screen_generator import (
     load_genome_configs_for_fastqscreen,
 )
 
-# Path to test genome data
-TEST_GENOME_DIR = Path(__file__).parent.parent / "data" / "genome"
-BT2_INDEX_PATH = TEST_GENOME_DIR / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L"
+
+@pytest.fixture
+def test_genome_dir(tmp_path):
+    """Create temporary test genome data directory."""
+    genome_dir = tmp_path / "genome"
+    genome_dir.mkdir(parents=True)
+    
+    # Create Bowtie2 index directory
+    bt2_dir = genome_dir / "bt2_chr21_dm6_chr2L"
+    bt2_dir.mkdir(parents=True)
+    for suffix in [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]:
+        (bt2_dir / f"bt2_chr21_dm6_chr2L{suffix}").touch()
+    
+    # Create fasta index file
+    (genome_dir / "chr21.fa.fai").write_text("chr21\t48129895\t4\t50\t51\n")
+    
+    return genome_dir
+
+
+@pytest.fixture
+def bt2_index_path(test_genome_dir):
+    """Get the Bowtie2 index path."""
+    return test_genome_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L"
 
 
 @pytest.fixture
@@ -141,7 +161,7 @@ def test_generate_fastq_screen_config_creates_parent_dir(mock_genome_configs, tm
     assert nested_path.parent.exists()
 
 
-def test_load_genome_configs_for_fastqscreen_success(tmp_path, monkeypatch):
+def test_load_genome_configs_for_fastqscreen_success(tmp_path, monkeypatch, test_genome_dir, bt2_index_path):
     """Test loading genome configs from config file."""
     # Create mock config file
     config_dir = tmp_path / ".config" / "seqnado"
@@ -150,12 +170,12 @@ def test_load_genome_configs_for_fastqscreen_success(tmp_path, monkeypatch):
 
     config_data = {
         "hg38": {
-            "fasta": str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            "bt2_index": str(BT2_INDEX_PATH),
+            "fasta": str(test_genome_dir / "chr21.fa.fai"),
+            "bt2_index": str(bt2_index_path),
         },
         "mm39": {
-            "fasta": str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            "bt2_index": str(BT2_INDEX_PATH),
+            "fasta": str(test_genome_dir / "chr21.fa.fai"),
+            "bt2_index": str(bt2_index_path),
         },
     }
 
@@ -170,7 +190,7 @@ def test_load_genome_configs_for_fastqscreen_success(tmp_path, monkeypatch):
     assert "hg38" in configs
     assert "mm39" in configs
     assert configs["hg38"].name == "hg38"
-    assert str(BT2_INDEX_PATH) in configs["hg38"].index.prefix
+    assert str(bt2_index_path) in configs["hg38"].index.prefix
 
 
 def test_load_genome_configs_for_fastqscreen_missing_file(tmp_path, monkeypatch):
@@ -181,18 +201,18 @@ def test_load_genome_configs_for_fastqscreen_missing_file(tmp_path, monkeypatch)
         load_genome_configs_for_fastqscreen()
 
 
-def test_generate_fastq_screen_config_skips_combined_genomes(tmp_path):
+def test_generate_fastq_screen_config_skips_combined_genomes(tmp_path, test_genome_dir, bt2_index_path):
     """Test that combined genomes (e.g., dm6_mm39) are skipped."""
     configs = {
         "dm6": GenomeConfig(
             name="dm6",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
         "dm6_mm39": GenomeConfig(  # Combined genome - should be skipped
             name="dm6_mm39",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
     }
 
@@ -212,7 +232,7 @@ def test_generate_fastq_screen_config_skips_combined_genomes(tmp_path):
     assert "dm6_mm39" not in content
 
 
-def test_generate_fastq_screen_config_missing_index_files(tmp_path, capsys):
+def test_generate_fastq_screen_config_missing_index_files(tmp_path, capsys, test_genome_dir):
     """Test warning when index files don't exist."""
     # Create directory with index files first
     empty_dir = tmp_path / "empty"
@@ -223,7 +243,7 @@ def test_generate_fastq_screen_config_missing_index_files(tmp_path, capsys):
     # Create the config
     config = GenomeConfig(
         name="hg38",
-        fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
+        fasta=str(test_genome_dir / "chr21.fa.fai"),
         index=BowtieIndex(prefix=str(empty_dir / "test")),
     )
 
@@ -245,7 +265,7 @@ def test_generate_fastq_screen_config_missing_index_files(tmp_path, capsys):
     assert "Warning: No bowtie2 index files found" in captured.out
 
 
-def test_generate_fastq_screen_config_missing_index_directory(tmp_path, capsys):
+def test_generate_fastq_screen_config_missing_index_directory(tmp_path, capsys, test_genome_dir):
     """Test warning when index directory doesn't exist."""
     # Create directory and index files first
     temp_dir = tmp_path / "temp"
@@ -254,7 +274,7 @@ def test_generate_fastq_screen_config_missing_index_directory(tmp_path, capsys):
 
     config = GenomeConfig(
         name="hg38",
-        fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
+        fasta=str(test_genome_dir / "chr21.fa.fai"),
         index=BowtieIndex(prefix=str(temp_dir / "hg38")),
     )
 
@@ -277,13 +297,13 @@ def test_generate_fastq_screen_config_missing_index_directory(tmp_path, capsys):
     assert "Warning: Index path does not exist" in captured.out
 
 
-def test_generate_fastq_screen_config_unknown_organism(tmp_path):
+def test_generate_fastq_screen_config_unknown_organism(tmp_path, test_genome_dir, bt2_index_path):
     """Test display name for unknown organism (custom genome)."""
     configs = {
         "custom_genome": GenomeConfig(
             name="custom_genome",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
     }
 
@@ -299,13 +319,13 @@ def test_generate_fastq_screen_config_unknown_organism(tmp_path):
     assert "Custom Genome" in content
 
 
-def test_generate_fastq_screen_config_contaminants_no_path(tmp_path, capsys):
+def test_generate_fastq_screen_config_contaminants_no_path(tmp_path, capsys, test_genome_dir, bt2_index_path):
     """Test warning when include_contaminants=True but no path provided."""
     configs = {
         "hg38": GenomeConfig(
             name="hg38",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
     }
 
@@ -325,15 +345,15 @@ def test_generate_fastq_screen_config_contaminants_no_path(tmp_path, capsys):
     assert "Skipping contaminant databases" in captured.out
 
 
-def test_generate_fastq_screen_config_contaminants_path_not_exist(tmp_path, capsys):
+def test_generate_fastq_screen_config_contaminants_path_not_exist(tmp_path, capsys, test_genome_dir, bt2_index_path):
     """Test warning when contaminant path doesn't exist."""
     nonexistent_path = tmp_path / "nonexistent_contaminants"
     
     configs = {
         "hg38": GenomeConfig(
             name="hg38",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
     }
     
@@ -350,28 +370,28 @@ def test_generate_fastq_screen_config_contaminants_path_not_exist(tmp_path, caps
     assert "Skipping contaminant databases" in captured.out
 
 
-def test_generate_fastq_screen_config_version_selection():
+def test_generate_fastq_screen_config_version_selection(test_genome_dir, bt2_index_path):
     """Test that newer genome version is selected over older."""
     configs = {
         "mm10": GenomeConfig(
             name="mm10",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
         "mm39": GenomeConfig(
             name="mm39",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
         "hg19": GenomeConfig(
             name="hg19",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
         "hg38": GenomeConfig(
             name="hg38",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(test_genome_dir / "chr21.fa.fai"),
+            index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
     }
     
@@ -394,7 +414,7 @@ def test_generate_fastq_screen_config_version_selection():
     output_path.unlink()
 
 
-def test_generate_fastq_screen_config_dict_index():
+def test_generate_fastq_screen_config_dict_index(bt2_index_path):
     """Test handling of dict-based index (alternative to object)."""
     # Create a GenomeConfig with dict-like index access
     from unittest.mock import Mock
@@ -402,7 +422,7 @@ def test_generate_fastq_screen_config_dict_index():
     mock_config = Mock(spec=GenomeConfig)
     mock_config.name = "test_genome"
     # Simulate dict index (no 'prefix' attribute)
-    mock_config.index = {"prefix": str(BT2_INDEX_PATH)}
+    mock_config.index = {"prefix": str(bt2_index_path)}
     
     configs = {"test_genome": mock_config}
     

@@ -40,6 +40,6 @@ test_rna_size_factors.ipynb
 *.log
 test_run.sh
 test.json
-tests/data/*
+tests/data*
 test_output
 .coverage
