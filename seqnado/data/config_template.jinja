@@ -10,6 +10,8 @@
 {%- for item in value %}
 {{ space }}  - {{ item }}
 {%- endfor -%}
+{%- elif value is none -%}
+{{ space }}{{ key }}: null
 {%- elif value is number or value is boolean -%}
 {{ space }}{{ key }}: {{ value }}
 {%- else -%}

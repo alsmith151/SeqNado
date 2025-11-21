@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any, List, Literal, Optional, Union
 
 import pandas as pd
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator, ValidationInfo
 
 from seqnado import Assay, Molecule, Organism
 
@@ -30,15 +30,14 @@ class GEOSample(BaseModel):
         """Return the library strategy based on the assay."""
         return self.assay.value
 
-    @field_validator("antibody", mode="before")
-    def validate_antibody_with_assay(cls, v: Optional[str], values: dict[str, Any]) -> Optional[str]:
+    @model_validator(mode="after")
+    def validate_antibody_with_assay(self) -> "GEOSample":
         """Ensure antibody is set for ChIP and CUT&TAG assays."""
-        assay = values.get("assay")
-        if assay in Assay.ip_assays() and not v:
-            raise ValueError(f"Antibody must be specified for {assay.clean_name} assays.")
-        elif assay not in Assay.ip_assays() and v:
-            raise ValueError(f"Antibody should not be specified for {assay.clean_name} assays.")
-        return v
+        if self.assay in Assay.ip_assays() and not self.antibody:
+            raise ValueError(f"Antibody must be specified for {self.assay.clean_name} assays.")
+        elif self.assay not in Assay.ip_assays() and self.antibody:
+            raise ValueError(f"Antibody should not be specified for {self.assay.clean_name} assays.")
+        return self
 
     @computed_field
     @property
@@ -81,9 +80,17 @@ class GEOSample(BaseModel):
         """Create a GEOSample instance from a pandas Series."""
         data = series.to_dict()
 
+        # Rename ChIP antibody back to antibody if present
+        if "ChIP antibody" in data:
+            data["antibody"] = data.pop("ChIP antibody")
+
         # Extract dynamic file columns
         processed_files = [data.pop(key) for key in list(data.keys()) if key.startswith("processed data file")]
         raw_files = [data.pop(key) for key in list(data.keys()) if key.startswith("raw file")]
+
+        # Remove default factory fields if they exist in data
+        data.pop("processed_data_file", None)
+        data.pop("raw_file", None)
 
         # Create the GEOSample instance
         return cls(

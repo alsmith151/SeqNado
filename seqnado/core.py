@@ -207,7 +207,8 @@ class GenomicCoordinate(BaseModel):
     # Check that end is greater than start
     @field_validator("end")
     def validate_end_greater_than_start(cls, v: int, info) -> int:
-        if v < info.data["start"]:
+        # Only validate if start is available (i.e., it passed validation)
+        if "start" in info.data and v < info.data["start"]:
             raise ValueError("End coordinate must be greater than start coordinate.")
         return v
 

@@ -119,12 +119,12 @@ def get_scale_method(config: Dict) -> List[str]:
     Returns the scale method based on the config.
     """
 
-    method = [DataScalingTechnique.unscaled]
+    method = [DataScalingTechnique.UNSCALED]
 
     if config.get("spikein"):
-        method.append(DataScalingTechnique.spikein)
+        method.append(DataScalingTechnique.SPIKEIN)
     elif config.get("scale"):
-        method.append(DataScalingTechnique.csaw)
+        method.append(DataScalingTechnique.CSAW)
     return [m.value for m in method]
 
 def remove_unwanted_run_files():

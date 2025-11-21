@@ -559,12 +559,15 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
             )
             return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
         case Assay.SNP:
+            # SNP assays don't use UCSC hub
+            base_config_snp = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
+            base_config_snp['ucsc_hub'] = None
             snp_calling = SNPCallingConfig(
                 method=SNPCallingMethod.BCFTOOLS,
                 annotate_snps=False,
                 snp_database=None,
             )
-            return SNPAssayConfig(**base_config, snp_calling=snp_calling)
+            return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
         case Assay.MCC:
             mcc = MCCConfig(
                 viewpoints=Path("path/to/viewpoints.bed"),
@@ -572,10 +575,16 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
             )
             return MCCAssayConfig(**base_config, mcc=mcc)
         case Assay.METH:
-            methylation = MethylationConfig(assay=MethylationMethod.TAPS)
-            return MethylationAssayConfig(**base_config, methylation=methylation)
+            # Methylation assays don't use UCSC hub
+            base_config_meth = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
+            base_config_meth['ucsc_hub'] = None
+            methylation = MethylationConfig(method=MethylationMethod.TAPS)
+            return MethylationAssayConfig(**base_config_meth, methylation=methylation)
         case Assay.CRISPR:
-            return CRISPRAssayConfig(**base_config)
+            # CRISPR assays don't use UCSC hub
+            base_config_crispr = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
+            base_config_crispr['ucsc_hub'] = None
+            return CRISPRAssayConfig(**base_config_crispr)
         case _:
             raise ValueError(f"Unsupported assay type: {assay}")
 
