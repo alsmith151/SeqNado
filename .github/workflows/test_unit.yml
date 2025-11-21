@@ -34,6 +34,25 @@ jobs:
           which seqnado
           python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
 
+      - name: Download test genome data
+        shell: bash -el {0}
+        run: |
+          # Create genome directory
+          mkdir -p tests/data/genome
+          
+          # Download Bowtie2 index
+          wget -q https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/bt2_chr21_dm6_chr2L.tar.gz -O tests/data/genome/bt2_chr21_dm6_chr2L.tar.gz
+          tar -xzf tests/data/genome/bt2_chr21_dm6_chr2L.tar.gz -C tests/data/genome/
+          rm tests/data/genome/bt2_chr21_dm6_chr2L.tar.gz
+          
+          # Download STAR index
+          wget -q https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/STAR_chr21_rna_spikein.tar.gz -O tests/data/genome/STAR_chr21_rna_spikein.tar.gz
+          tar -xzf tests/data/genome/STAR_chr21_rna_spikein.tar.gz -C tests/data/genome/
+          rm tests/data/genome/STAR_chr21_rna_spikein.tar.gz
+          
+          # Download chromosome sizes
+          wget -q https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21.fa.fai -O tests/data/genome/chr21.fa.fai
+
       - name: Run unit tests
         shell: bash -el {0}
         run: |
