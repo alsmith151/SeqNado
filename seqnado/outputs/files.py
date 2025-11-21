@@ -1,9 +1,8 @@
-from typing import Any, List, Protocol, Optional
+from typing import Protocol, List
 from pathlib import Path
-from itertools import chain
 
 from pydantic import BaseModel, computed_field, Field, field_validator
-from typing import List, Literal
+from typing import Literal
 from snakemake.io import expand
 from loguru import logger
 
@@ -16,8 +15,7 @@ from seqnado import (
     QuantificationMethod,
 )
 from seqnado.core import AssaysWithHeatmaps, AssaysWithSpikein, AssaysWithPeakCalling
-from seqnado.inputs import FastqCollection, FastqCollectionForIP, SampleGroups, CollectionLike, BamCollection, BigWigCollection
-from seqnado.config import SeqnadoConfig
+from seqnado.inputs import FastqCollection, FastqCollectionForIP, SampleGroups, BamCollection, BigWigCollection
 
 
 class FileCollection(Protocol):
@@ -33,11 +31,25 @@ class QCFiles(BaseModel):
     output_dir: str = "seqnado_output"
 
     @property
-    def default_files(self) -> list[str]:
-        return [
-            f"{self.output_dir}/seqnado_report.html",
-        ]
+    def fastqc_files(self) -> list[str]:
+        if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)):
+            return expand(
+                f"{self.output_dir}/qc/fastqc_raw/{{sample}}_{{read}}_fastqc.html",
+                sample=self.samples.sample_names,
+                read=["1", "2"],
+            )
+        return []
 
+    @property
+    def fastqscreen_files(self) -> list[str]:
+        if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)):
+            return expand(
+                f"{self.output_dir}/qc/fastq_screen/{{sample}}_{{read}}_screen.html",
+                sample=self.samples.sample_names,
+                read=["1", "2"],
+            )
+        return []
+    
     @property
     def qualimap_files(self) -> list[str]:
         if not isinstance(self.samples, (BigWigCollection)):
@@ -57,7 +69,21 @@ class QCFiles(BaseModel):
     @computed_field
     @property
     def files(self) -> List[str]:
-        return [*self.default_files, *self.qualimap_files]
+        return [*self.fastqc_files, *self.fastqscreen_files, *self.qualimap_files]
+    
+class SeqNadoReportFile(BaseModel):
+    output_dir: str = "seqnado_output"
+
+    @property
+    def report_file(self) -> list[str]:
+        return [
+            f"{self.output_dir}/seqnado_report.html",
+        ]
+    
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        return self.report_file
 
 
 class BigWigFiles(BaseModel):
@@ -387,8 +413,8 @@ class QuantificationFiles(BaseModel):
     @property
     def combined_counts_file(self) -> list[str]:
         """Return the combined read counts file."""
-        return expand(self.prefix + "/{methods}/read_counts.tsv", methods=self.methods)
-    
+        return expand(self.prefix + "/{methods}/read_counts.tsv", methods=[m.value for m in self.methods])
+
     @property
     def grouped_counts_files(self) -> list[str]:
         """Return the grouped read counts files."""
@@ -398,7 +424,7 @@ class QuantificationFiles(BaseModel):
                 expand(
                     f"{self.prefix}{group}/read_counts.tsv",
                     group=group,
-                    methods=self.methods,
+                    methods=[m.value for m in self.methods],
                 )
             )
         return files
@@ -474,20 +500,3 @@ class GeoSubmissionFiles(BaseModel):
     def files(self) -> list[str]:
         """Return a list of all files for GEO submission."""
         return [*self.default_files, *self.raw_files, *self.processed_data_files]
-    
-    
-        
-        
-
-    
-
-
-
-
-
-
-
-
-    
-    
-    

@@ -1,7 +1,9 @@
 import os
+
 from seqnado import Assay, AssaysWithPeakCalling, QuantificationMethod
-from seqnado.helpers import define_time_requested, define_memory_requested
 from seqnado.config.third_party_tools import CommandLineArguments
+from seqnado.helpers import define_memory_requested, define_time_requested
+from seqnado.outputs.core import SeqNadoReportFiles
 
 ##############################################
 #                   FastQC                   #
@@ -111,7 +113,7 @@ rule qualimap_rnaseq:
     params:
         output_dir=OUTPUT_DIR + "/qc/qualimap_rnaseq/{sample}/",
         annotation=config["genome"]["gtf"],
-        options=format_qualimap_options,
+        options=lambda wc: format_qualimap_options(wc, str(CONFIG.third_party_tools.qualimap.command_line_arguments)),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -209,167 +211,22 @@ rule frip_enrichment:
         > {log} 2>&1
         """
 
-
-##############################################
-#                Gather Stats                #
-##############################################
-
-def get_fastqc_files_all(wildcards):
-    single_end_assays = [name for name in SAMPLE_NAMES if not INPUT_FILES.is_paired_end(name)]
-    paired_end_assays = [name for name in SAMPLE_NAMES if INPUT_FILES.is_paired_end(name)]
-    fastqc_raw_paired = expand(
-        OUTPUT_DIR + "/qc/fastqc_raw/{sample}_{read}_fastqc.html",
-        sample=paired_end_assays,
-        read=[1, 2],
-    )
-    fastqc_raw_single = expand(
-        OUTPUT_DIR + "/qc/fastqc_raw/{sample}_fastqc.html",
-        sample=single_end_assays,
-    )
-    all_qc_files = []
-    for files in [fastqc_raw_paired, fastqc_raw_single]:
-        if files:
-            all_qc_files.extend(files)
-    
-    return all_qc_files
-
-
-def get_fastq_screen_all(wildcards):
-    single_end_assays = [name for name in SAMPLE_NAMES if not INPUT_FILES.is_paired_end(name)]
-    paired_end_assays = [name for name in SAMPLE_NAMES if INPUT_FILES.is_paired_end(name)]
-    fastq_screen_single = expand(
-        OUTPUT_DIR + "/qc/fastq_screen/{sample}_screen.txt",
-        sample=single_end_assays,
-    )
-    fastq_screen_paired = expand(
-        OUTPUT_DIR + "/qc/fastq_screen/{sample}_{read}_screen.txt",
-        sample=paired_end_assays,
-        read=[1, 2],
-    )
-    all_fastq_screen_files = []
-    if CONFIG.qc.run_fastq_screen:
-        for files in [fastq_screen_paired, fastq_screen_single]:
-            if files:
-                all_fastq_screen_files.extend(files)
-        
-    return all_fastq_screen_files
-
-
-def get_library_complexity_qc(wildcards):
-    if CONFIG.qc.calculate_library_complexity:
-        return expand(
-            OUTPUT_DIR + "/qc/library_complexity/{sample}.metrics",
-            sample=SAMPLE_NAMES,
-        )
-    else:
-        return []
-
-
-def get_alignment_logs(wildcards):
-    
-    match ASSAY:
-        case Assay.MCC:
-            return []
-        case Assay.RNA:
-            return expand(
-                OUTPUT_DIR + "/aligned/star/{sample}_Log.final.out",
-                sample=SAMPLE_NAMES,
-            )
-        case _:
-            return expand(
-                OUTPUT_DIR + "/logs/align/{sample}.log",
-                sample=SAMPLE_NAMES,
-            )
-
-def get_qualimap_files(wildcards):
-    match ASSAY:
-        case Assay.MCC:
-            return []
-        case Assay.RNA:
-            return expand(
-                OUTPUT_DIR + "/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
-                sample=SAMPLE_NAMES,
-            )
-        case _:
-            return expand(
-                OUTPUT_DIR + "/qc/qualimap_bamqc/{sample}/qualimapReport.html",
-            sample=SAMPLE_NAMES,
-        )
-
-
-def get_frip_files(wildcards):
-    """
-    Gets the calculated FRiP (Fraction of Reads in Peaks) enrichment files.
-    """
-    if ASSAY in AssaysWithPeakCalling and CONFIG.assay_config.call_peaks:
-        # For IP-based assays, only calculate FRIP for IP samples (not controls)
-        sample_list = IP_SAMPLE_NAMES if 'IP_SAMPLE_NAMES' in globals() else SAMPLE_NAMES
-        return expand(
-            OUTPUT_DIR + "/qc/frip_enrichment/{directory}/{sample}_frip.txt",
-            sample=sample_list,
-            directory=[m.value for m in CONFIG.assay_config.peak_calling.method],
-        )
-    else:
-        return []
-
-
-def get_counts_files(wildcards):
-    match ASSAY:
-        case Assay.RNA:
-            match CONFIG.assay_config.rna_quantification:
-                case QuantificationMethod.FEATURECOUNTS:
-                    return expand(
-                        OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
-                    )
-                case QuantificationMethod.SALMON:
-                    return expand(
-                        OUTPUT_DIR + "/readcounts/salmon/salmon_{sample}/quant.sf",
-                        sample=SAMPLE_NAMES,
-                    )
-        case Assay.CRISPR:
-            return expand(
-                OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
-            )
-        case _:
-            return []
-
-
-
-def get_snp_qc(wildcards):
-    if ASSAY != Assay.SNP:
-        return []
-    
-    files = []
-    
-    files.extend(
-        expand(
-            OUTPUT_DIR + "/qc/variant/{sample}.stats.txt",
-            sample=SAMPLE_NAMES,
-        )
-    )
-    if CONFIG.assay_config.annotate_snps:
-        files.extend(
-            expand(
-                OUTPUT_DIR + "/qc/variant/{sample}.anno.stats.txt",
-                sample=SAMPLE_NAMES,
-            )
-        )
-    return files
-
 ##############################################
 #                  MultiQC                   #
 ##############################################
 
+multiqc_input_files = SeqNadoReportFiles(
+    assay=ASSAY,
+    samples=INPUT_FILES,
+    config=CONFIG,
+    sample_groupings=SAMPLE_GROUPINGS,
+    output_dir=OUTPUT_DIR,
+).gather_input_files
+
+
 rule seqnado_report:
     input:
-        get_fastqc_files_all,
-        get_fastq_screen_all,
-        get_alignment_logs,
-        get_library_complexity_qc,
-        get_qualimap_files,
-        get_frip_files,
-        get_counts_files,
-        get_snp_qc,
+        multiqc_input_files,
     output:
         report = OUTPUT_DIR + "/seqnado_report.html",
     params:

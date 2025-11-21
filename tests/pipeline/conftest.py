@@ -139,6 +139,34 @@ def index(genome_index_path: Path, genome_path: Path) -> Path:
 
     return indicies_path
 
+@pytest.fixture(scope="session")
+def star_index(genome_path: Path) -> Path:
+    suffix = "STAR_chr21_rna_spikein.tar.gz"
+    dest = genome_path / "STAR_chr21_rna_spikein"
+
+    if not dest.exists():
+        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
+        _download_with_retry(url, genome_path / suffix)
+        with tarfile.open(genome_path / suffix) as tar:
+            tar.extractall(path=genome_path)
+        os.remove(genome_path / suffix)
+
+    return dest
+
+@pytest.fixture(scope="session")
+def bt2_index(genome_path: Path) -> Path:
+    suffix = "bt2_chr21_dm6_chr2L.tar.gz"
+    dest = genome_path / "bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L"
+
+    if not dest.exists():
+        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
+        _download_with_retry(url, genome_path / suffix)
+        with tarfile.open(genome_path / suffix) as tar:
+            dest.mkdir(parents=True, exist_ok=True)
+            tar.extractall(path=dest)
+        os.remove(genome_path / suffix)
+
+    return dest
 
 @pytest.fixture(scope="session")
 def chromsizes(genome_path: Path) -> Path:
@@ -313,7 +341,8 @@ def set_up_run_dir(run_directory: Path, fastqs: dict[str, list[Path]], assay: st
 
 @pytest.fixture(scope="function", autouse=True)
 def run_init(
-    index: Path,
+    star_index: Path,
+    bt2_index: Path,
     chromsizes: Path,
     gtf: Path,
     blacklist: Path,
@@ -336,16 +365,12 @@ def run_init(
     )
 
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
-    if "rna" in assay:
-        index_dict = {"star_index": str(index), "bt2_index": "NA"}
-    else:
-        index_dict = {"star_index": "NA", "bt2_index": str(index)}
 
     fasta, _ = genome_files
     genome_config_dict = {
         "hg38": {
-            "star_index": index_dict["star_index"],
-            "bt2_index": index_dict["bt2_index"],
+            "star_index": str(star_index),
+            "bt2_index": str(bt2_index),
             "chromosome_sizes": str(chromsizes),
             "gtf": str(gtf),
             "blacklist": str(blacklist),
@@ -370,7 +395,9 @@ def run_init(
             config_content = f.read()
         # Replace DATABASE lines with actual index path
         # Pattern: DATABASE\tName\t/any/path -> DATABASE\tName\t{actual_index}
-        config_content = re.sub(r"(DATABASE\s+\S+\s+).*", rf"\1{index}", config_content)
+        config_content = re.sub(
+            r"(DATABASE\s+\S+\s+).*", rf"\1{str(bt2_index)}", config_content
+        )
         with open(dest_fastq_screen_config, "w") as f:
             f.write(config_content)
     else:
@@ -378,7 +405,7 @@ def run_init(
         with open(dest_fastq_screen_config, "w") as f:
             f.write(f"""# Test fastq_screen.conf file
 
-DATABASE\tTest\t{index}
+DATABASE\tTest\t{str(bt2_index)}
 """)
 
     assert process.returncode == 0, f"seqnado init failed: {process.stderr}"
@@ -391,7 +418,6 @@ def config_yaml(
 ) -> Path:
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
-
 
     # Use subprocess with --no-interactive and --render-options for non-interactive config generation
     date = datetime.now().strftime("%Y-%m-%d")
@@ -433,20 +459,24 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
     config["assay_config"]["plot_with_plotnado"] = False
 
     match assay:
-        case "chip":
-            config["scale"] = "yes"
-            config["library_complexity"] = False
-        case "chip-rx":
-            config["peak_calling_method"] = ["seacr"]
         case "atac":
             config["pileup_method"] = ["deeptools", "homer"]
             config["call_peaks"] = True
             config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
         case "cat":
             config["pileup_method"] = ["deeptools", "bamnado"]
+        case "chip":
+            config["scale"] = "yes"
+            config["library_complexity"] = False
+        case "chip-rx":
+            config["peak_calling_method"] = ["seacr"]
         case "mcc":
             config["call_peaks"] = False
             config["peak_calling_method"] = ["lanceotron-mcc"]
+        case "rna":
+            config["pileup_method"] = ["deeptools", "bamnado"]
+        case "rna-rx":
+            config["pileup_method"] = ["deeptools", "bamnado"]
         case _:
             pass
 
@@ -623,7 +653,7 @@ DATABASE\tTest\t{index}
         all_fastqs = set()
         for assay in multi_assays:
             all_fastqs.update(fastqs.get(assay, []))
-        
+
         for fq in all_fastqs:
             shutil.copy(fq, multi_assay_run_directory)
 
@@ -657,7 +687,9 @@ DATABASE\tTest\t{index}
 
             # Apply test-specific modifications
             config["assay_config"]["create_ucsc_hub"] = False
-            config["call_peaks"] = False  # Disable peak calling for tests (test data too small for LanceOtron)
+            config["call_peaks"] = (
+                False  # Disable peak calling for tests (test data too small for LanceOtron)
+            )
 
             if assay == "chip":
                 config["scale"] = "yes"
@@ -670,10 +702,10 @@ DATABASE\tTest\t{index}
 
             # Create metadata/design
             metadata_file = f"metadata_{assay}.csv"
-            
-            # Get list of FASTQs for this assay that were just copied 
+
+            # Get list of FASTQs for this assay that were just copied
             assay_fastqs = list(multi_assay_run_directory.glob("*.fastq.gz"))
-            
+
             design_cmd = [
                 "seqnado",
                 "design",
@@ -682,11 +714,11 @@ DATABASE\tTest\t{index}
                 metadata_file,
                 "--no-interactive",
                 "--accept-all-defaults",
-                f"fastq/{assay}*.fastq.gz"
+                f"fastq/{assay}*.fastq.gz",
             ]
             # Add FASTQ files as arguments
             design_cmd.extend([str(fq) for fq in assay_fastqs])
-            
+
             design_result = subprocess.run(
                 design_cmd,
                 cwd=multi_assay_run_directory,

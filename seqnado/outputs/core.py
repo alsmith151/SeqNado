@@ -1,35 +1,37 @@
 from itertools import chain
 from pathlib import Path
 from typing import List
+
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from seqnado import Assay, PileupMethod, DataScalingTechnique, PeakCallingMethod
+from seqnado import Assay, DataScalingTechnique, PeakCallingMethod, PileupMethod
 from seqnado.config import SeqnadoConfig
 from seqnado.inputs import (
-    FastqCollectionForIP,
-    FastqCollection,
-    SampleGroupings,
-    CollectionLike,
     BamCollection,
-    BigWigCollection
+    BigWigCollection,
+    CollectionLike,
+    FastqCollection,
+    FastqCollectionForIP,
+    SampleGroupings,
 )
 from seqnado.outputs.files import (
     BigBedFiles,
     BigWigFiles,
+    ContactFiles,
     FileCollection,
+    GeoSubmissionFiles,
     HeatmapFiles,
     HubFiles,
+    MethylationFiles,
     PeakCallingFiles,
     PlotFiles,
     QCFiles,
     QuantificationFiles,
-    SpikeInFiles,
-    SNPFilesRaw,
+    SeqNadoReportFile,
     SNPFilesAnnotated,
-    MethylationFiles,
-    ContactFiles,
-    GeoSubmissionFiles,
+    SNPFilesRaw,
+    SpikeInFiles,
 )
 
 
@@ -89,7 +91,7 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def peak_files(self):
         return self._filter_by_suffix(".bed")
-    
+
     @property
     def bigbed_files(self):
         return self._filter_by_suffix(".bigBed")
@@ -105,14 +107,94 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def heatmap_files(self):
         return self._filter_by_suffix(".pdf", "heatmap")
-    
+
     @property
     def genome_browser_plots(self):
         return self._filter_by_suffix(".pdf", "genome_browser")
-    
+
     @property
     def ucsc_hub_files(self):
         return self._filter_by_suffix(".txt", "hub")
+
+
+class SeqNadoReportFiles:
+    def __init__(
+        self,
+        assay: Assay,
+        samples: CollectionLike,
+        config: SeqnadoConfig,
+        sample_groupings: SampleGroupings = None,
+        output_dir: str = "seqnado_output",
+    ):
+        """Initializes the SeqNadoReportFiles with the given assay, samples, config, sample_groupings, and output directory.
+        Args:
+            assay (Assay): The type of assay being processed.
+            samples (SampleCollection | IPSampleCollection): The collection of samples to process.
+            config (SeqnadoConfig): The configuration for the SeqNado project.
+            sample_groupings (SampleGroupings, optional): Sample groupings for the project.
+            output_dir (str): The output directory for all files. Defaults to "seqnado_output".
+        """
+        self.assay = assay
+        self.samples = samples
+        self.config = config
+        self.sample_groupings = sample_groupings
+        self.output_dir = output_dir
+
+    @property
+    def gather_input_files(self) -> List[str]:
+        """Gather input files for the SeqNado report, excluding hub and report files.
+
+        Returns:
+            List[str]: A list of input file paths for the report.
+        """
+        builder = SeqnadoOutputBuilder(
+            assay=self.assay,
+            samples=self.samples,
+            config=self.config,
+            sample_groupings=self.sample_groupings,
+            output_dir=self.output_dir,
+        )
+        # Add all file types except hub and report
+        builder.add_qc_files()
+
+        if (
+            "create_bigwigs" in self.config.assay_config
+            and self.config.assay_config.create_bigwigs
+        ):
+            builder.add_individual_bigwig_files()
+
+        if (
+            "call_peaks" in self.config.assay_config
+            and self.config.assay_config.call_peaks
+        ):
+            builder.add_peak_files()
+
+        if (
+            "create_quantification_files" in self.config.assay_config
+            and self.config.assay_config.create_quantification_files
+        ):
+            builder.add_quantification_files()
+
+        if (
+            "has_spikein" in self.config.assay_config
+            and self.config.assay_config.has_spikein
+        ):
+            builder.add_spikein_files()
+
+        if self.assay == Assay.SNP:
+            builder.add_snp_files()
+
+        if self.assay == Assay.METH:
+            builder.add_methylation_files()
+
+        all_files = builder.build().all_files
+        filtered_files = [
+            f
+            for f in all_files
+            if not f.endswith(".hub.txt") and not f.endswith("seqnado_report.html")
+        ]
+        return filtered_files
+
 
 class SeqnadoOutputBuilder:
     def __init__(
@@ -142,26 +224,36 @@ class SeqnadoOutputBuilder:
         self.sample_groupings = sample_groupings
         self.output_dir = output_dir
 
-        # Set sample groupings that do provide file names. 
+        # Set sample groupings that do provide file names.
         # These need to be used when creating grouped bigwig and peak files.
         self.provide_filenames = ["consensus"]
 
         # Determine scale methods from config, default to UNSCALED if not specified
-                # Default to UNSCALED when scale_methods aren't provided in config
+        # Default to UNSCALED when scale_methods aren't provided in config
         self.scale_methods = getattr(
             getattr(self.config.assay_config, "bigwigs", object()),
             "scale_methods",
             [DataScalingTechnique.UNSCALED],
         )
 
-
         # Initialize an empty list to hold file collections
         self.file_collections: list[FileCollection] = []
 
     def add_qc_files(self) -> None:
         """Add quality control files to the output collection."""
-        qc_files = QCFiles(assay=self.assay, samples=self.samples, output_dir=self.output_dir)
+
+        qc_files = QCFiles(
+            assay=self.assay, samples=self.samples, output_dir=self.output_dir
+        )
         self.file_collections.append(qc_files)
+
+    def add_report_files(self) -> None:
+        """Add report files to the output collection."""
+
+        report_file = SeqNadoReportFile(
+            output_dir=self.output_dir,
+        )
+        self.file_collections.append(report_file)
 
     def add_individual_bigwig_files(self) -> None:
         """Add individual bigwig files to the output collection."""
@@ -194,7 +286,6 @@ class SeqnadoOutputBuilder:
                     output_dir=self.output_dir,
                 )
                 self.file_collections.append(bigwig_files)
-            
 
     def add_peak_files(self) -> None:
         """Add peak files to the output collection."""
@@ -203,12 +294,16 @@ class SeqnadoOutputBuilder:
         if isinstance(self.samples, BigWigCollection):
             if (
                 self.config.assay_config.peak_calling
-                and self.config.assay_config.peak_calling.method != [PeakCallingMethod.LANCEOTRON]
+                and self.config.assay_config.peak_calling.method
+                != [PeakCallingMethod.LANCEOTRON]
             ):
-                raise ValueError(f"For BigWigCollection, only {PeakCallingMethod.LANCEOTRON} is allowed.")
+                raise ValueError(
+                    f"For BigWigCollection, only {PeakCallingMethod.LANCEOTRON} is allowed."
+                )
 
         # For IP-based assays, only call peaks on IP samples (not controls)
         from seqnado.inputs import FastqCollectionForIP
+
         if isinstance(self.samples, FastqCollectionForIP):
             sample_names = self.samples.ip_sample_names
         else:
@@ -227,12 +322,16 @@ class SeqnadoOutputBuilder:
 
         # Go through the sample groupings e.g. ['consensus', 'scaling']
         if not self.sample_groupings:
-            raise ValueError("Sample groupings must be provided to add grouped peak files.")
-        if 'consensus' not in self.sample_groupings.groupings:
-            raise ValueError("Consensus groupings must be defined to add grouped peak files.")
-        
+            raise ValueError(
+                "Sample groupings must be provided to add grouped peak files."
+            )
+        if "consensus" not in self.sample_groupings.groupings:
+            raise ValueError(
+                "Consensus groupings must be defined to add grouped peak files."
+            )
+
         # Create peak files for each consensus group
-        for group in self.sample_groupings.groupings['consensus'].groups:
+        for group in self.sample_groupings.groupings["consensus"].groups:
             peaks = PeakCallingFiles(
                 assay=self.assay,
                 names=[group.name],
@@ -241,10 +340,9 @@ class SeqnadoOutputBuilder:
             )
             self.file_collections.append(peaks)
 
-
     def add_bigbed_files(self) -> None:
         """Add bigBed files to the output collection."""
-        
+
         # Note this will build the bigBed files from the peak files already added
         # So ensure peak files are added before calling this method
         outfiles = self.build().peak_files
@@ -326,8 +424,9 @@ class SeqnadoOutputBuilder:
             groups = self.sample_groupings.groupings["consensus"]
         else:
             from seqnado.inputs.grouping import SampleGroups
+
             groups = SampleGroups(groups=[])
-        
+
         quantification_files = QuantificationFiles(
             assay=self.assay,
             methods=[self.config.assay_config.rna_quantification.method],
@@ -346,11 +445,16 @@ class SeqnadoOutputBuilder:
         """
 
         if isinstance(self.samples, (BamCollection, BigWigCollection)):
-            raise ValueError("GEO submission files can only be generated from FASTQ inputs.")
+            raise ValueError(
+                "GEO submission files can only be generated from FASTQ inputs."
+            )
 
         outfiles = self.build().all_files
         geo_files = GeoSubmissionFiles(
-            assay=self.assay, names=self.samples.sample_names, seqnado_files=outfiles, output_dir=self.output_dir
+            assay=self.assay,
+            names=self.samples.sample_names,
+            seqnado_files=outfiles,
+            output_dir=self.output_dir,
         )
         self.file_collections.append(geo_files)
 
@@ -400,6 +504,7 @@ class SeqnadoOutputFactory:
         )
 
         builder.add_qc_files()
+        builder.add_report_files()
 
         if self.assay_config.create_bigwigs:
             builder.add_individual_bigwig_files()
@@ -408,7 +513,7 @@ class SeqnadoOutputFactory:
 
         if bool(getattr(self.assay_config, "call_peaks", False)):
             builder.add_peak_files()
-            if self.sample_groupings.groupings.get('consensus'):
+            if self.sample_groupings.groupings.get("consensus"):
                 builder.add_grouped_peak_files()
 
         if self.assay_config.create_heatmaps:

@@ -127,7 +127,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     params:
         bin_size=config['bamnado'].get("bin_size", 10),
         scale_factor=1,
-        options=check_options(config["bamnado"]["bamcoverage"]),
+        options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
     log: OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_unscaled.tsv",
     message: "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",

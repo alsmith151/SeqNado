@@ -26,6 +26,7 @@ from seqnado.outputs.files import (
     BigBedFiles,
     BigWigFiles,
     FileCollection,
+    SeqNadoReportFile,
     GeoSubmissionFiles,
     HeatmapFiles,
     HubFiles,
@@ -105,7 +106,7 @@ def test_output_builder_bigwigs_only(tmp_path: Path):
     builder.add_individual_bigwig_files()
     out = builder.build()
 
-    assert any("seqnado_report.html" in f for f in out.files)
+    # Only expect bigwig files, not seqnado_report.html
     assert any(f.endswith(".bigWig") for f in out.files)
 
 
@@ -184,7 +185,6 @@ class TestQCFiles:
         qc = QCFiles(assay=Assay.ATAC, samples=samples, output_dir="test_output")
 
         files = qc.files
-        assert "test_output/seqnado_report.html" in files
         assert any("qualimap_bamqc" in f for f in files)
         assert len([f for f in files if "qualimap" in f]) == 2  # One per sample
 
@@ -203,7 +203,6 @@ class TestQCFiles:
         qc = QCFiles(assay=Assay.ATAC, samples=samples)
 
         files = qc.files
-        assert "seqnado_output/seqnado_report.html" in files
         assert any("qualimap_bamqc" in f for f in files)
 
     def test_qc_files_with_bigwig_collection(self, tmp_path):
@@ -212,15 +211,25 @@ class TestQCFiles:
         qc = QCFiles(assay=Assay.ATAC, samples=samples)
 
         files = qc.files
-        assert "seqnado_output/seqnado_report.html" in files
+        assert files == []
 
-    def test_default_files_property(self, tmp_path):
-        """Test default_files property."""
-        samples = _create_fastq_collection(tmp_path, ["sample1"], Assay.ATAC)
-        qc = QCFiles(assay=Assay.ATAC, samples=samples)
+    # Removed test_default_files_property: QCFiles no longer has default_files property
 
-        assert qc.default_files == ["seqnado_output/seqnado_report.html"]
+class SeqNadoReportFileTest:
+    """Tests for SeqNadoReportFiles class."""
 
+    def test_seqnado_report_file_basic(self, tmp_path):
+        """Test SeqNadoReportFile basic functionality."""
+        report = SeqNadoReportFile(
+            assay=Assay.ATAC,
+            samples=_create_fastq_collection(tmp_path, ["sample1"], Assay.ATAC),
+            config=_minimal_config(tmp_path),
+            output_dir="test_output",
+        )
+        files = report.files
+        assert isinstance(files, list)
+        assert all(isinstance(f, str) for f in files)
+        assert any("seqnado_report.html" in f for f in files)
 
 class TestBigWigFiles:
     """Tests for BigWigFiles class."""

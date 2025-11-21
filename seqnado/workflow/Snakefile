@@ -110,7 +110,7 @@ match ASSAY:
         include: "rules/bam/all.smk"
         include: "rules/quant/featurecounts.smk"
         include: "rules/quant/salmon.smk"
-        include: "rules/pileup/default.smk"
+        include: "rules/pileup/rna_default.smk"
         include: "rules/visualise/hub.smk"
         include: "rules/visualise/browser.smk"
     case Assay.MCC:
@@ -140,7 +140,8 @@ include: "rules/common/qc.smk"
 ################################
 rule all:
     input:
-        OUTPUT.all_files,
+        OUTPUT.all_files
+    message: "All workflow steps completed successfully."
 
 
 ################################

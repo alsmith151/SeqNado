@@ -4,7 +4,7 @@ import numpy as np
 
 # Only create hub if enabled AND bigwigs/bigbeds will be created
 if CONFIG.assay_config.create_ucsc_hub and (OUTPUT.bigwig_files or OUTPUT.bigbed_files):
-
+    
     rule generate_hub:
         input:
             data=[

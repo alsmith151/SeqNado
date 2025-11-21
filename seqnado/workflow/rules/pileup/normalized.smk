@@ -12,7 +12,7 @@ rule deeptools_make_bigwigs_scale:
             OUTPUT_DIR + "/resources/{get_group_for_sample(wc , DESIGN)}_scaling_factors.tsv",
         ),
         options=lambda wc: format_deeptools_bamcoverage_options(wc)
-    threads: config["deeptools"]["threads"]
+    threads: CONFIG.third_party_tools.deeptools.bamcoverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),    
@@ -48,7 +48,7 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
         scale=get_norm_factor_spikein,
-    threads: config["deeptools"]["threads"]
+    threads: CONFIG.third_party_tools.deeptools.bamcoverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -70,7 +70,7 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     params:
         options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
         scale=lambda wc: get_norm_factor_spikein(wc, negative=True),
-    threads: config["deeptools"]["threads"]
+    threads: CONFIG.third_party_tools.deeptools.bamcoverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

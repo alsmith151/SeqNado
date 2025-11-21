@@ -13,7 +13,7 @@ if CONFIG.pcr_duplicates.tool == PCRDuplicateTool.PICARD:
             read_log=temp(OUTPUT_DIR + "/qc/alignment_post_process/{sample}_remove_duplicates.tsv"),
         threads: 8
         params:
-            options=check_options(config["picard"]["options"]),
+            options=str(CONFIG.third_party_tools.picard.duplicate_removal.command_line_arguments),
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -36,7 +36,7 @@ elif CONFIG.pcr_duplicates.tool == PCRDuplicateTool.SAMTOOLS:
             bam=temp(OUTPUT_DIR + "/aligned/duplicates_removed/{sample}.bam"),
             bai=temp(OUTPUT_DIR + "/aligned/duplicates_removed/{sample}.bam.bai"),
             read_log=temp(OUTPUT_DIR + "/qc/alignment_post_process/{sample}_remove_duplicates.tsv"),
-        threads: config["samtools"]["threads"]
+        threads: CONFIG.third_party_tools.samtools.duplicate_removal.threads
         resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=5, attempts=attempt, scale=SCALE_RESOURCES),
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

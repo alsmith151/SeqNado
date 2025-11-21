@@ -1,4 +1,4 @@
-from seqnado.helpers import check_options, define_time_requested, define_memory_requested
+from seqnado.helpers import str, define_time_requested, define_memory_requested
 
 rule crispr_trimming:
     input:
@@ -7,9 +7,9 @@ rule crispr_trimming:
     output:
         trimmed=temp(OUTPUT_DIR + "/trimmed/{sample}.fastq.gz"),
     params:
-        options=check_options(config["cutadapt"]["options"]),
+        options=str(CONFIG.third_party_tools.cutadapt.trimming.command_line_arguments),
         trim_dir=OUTPUT_DIR + "/trimmed",
-    threads: config["cutadapt"]["threads"]
+    threads: CONFIG.third_party_tools.cutadapt.trimming.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -26,14 +26,14 @@ rule align_crispr:
     input:
         fq1=OUTPUT_DIR + "/trimmed/{sample}.fastq.gz",
     params:
-        index=config["genome"]["index"],
-        options=check_options(config["bowtie2"]["options"]),
+        index=CONFIG.genome.index.prefix,
+        options=str(CONFIG.third_party_tools.bowtie2.options),
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-    threads: config["bowtie2"]["threads"]
+    threads: CONFIG.third_party_tools.bowtie2.threads
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/align/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/align/{sample}.tsv",
@@ -51,8 +51,8 @@ rule feature_counts:
     output:
         counts=OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
     params:
-        options=check_options(config["featurecounts"]["options"]),
-    threads: config["featurecounts"]["threads"]
+        options=str(CONFIG.third_party_tools.featurecounts.command_line_arguments),
+    threads: CONFIG.third_party_tools.featurecounts.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
