@@ -41,4 +41,4 @@ use rule feature_counts as feature_counts_genome with:
 #     container:
 #         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
 #     script:
-#         "../scripts/calculate_scaling_factors.R"
+#         "../../scripts/calculate_scaling_factors.R"

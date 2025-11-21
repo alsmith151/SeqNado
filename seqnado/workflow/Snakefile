@@ -102,6 +102,7 @@ match ASSAY:
         include: "rules/peaks/merge.smk"
         include: "rules/pileup/merge.smk"
         include: "rules/visualise/hub.smk"
+        include: "rules/visualise/browser.smk"
         include: "rules/quant/merged.smk"
     case Assay.RNA:
         include: "rules/fastq/trim.smk"
@@ -111,6 +112,7 @@ match ASSAY:
         include: "rules/quant/salmon.smk"
         include: "rules/pileup/default.smk"
         include: "rules/visualise/hub.smk"
+        include: "rules/visualise/browser.smk"
     case Assay.MCC:
         include: "rules/fastq/manipulate.smk"
         include: "rules/fastq/trim.smk"

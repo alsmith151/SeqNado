@@ -166,7 +166,7 @@ rule prepare_stats_report:
     benchmark: OUTPUT_DIR + "/.benchmark/alignment_stats.tsv",
     message: "Generating alignment stats report for all samples",
     script:
-        "../scripts/alignment_stats.py"
+        "../../scripts/alignment_stats.py"
 
 
 ##############################################

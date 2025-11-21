@@ -60,7 +60,7 @@ rule calculate_conversion:
     log: OUTPUT_DIR + "/logs/methylation/conversion.log"
     benchmark: OUTPUT_DIR + "/.benchmark/methylation/calculate_conversion.tsv"
     message: "Calculating methylation conversion rates across all samples"
-    script: "../scripts/methylation_conversion.py"
+    script: "../../scripts/methylation_conversion.py"
     
 
 rule methyldackel_extract:

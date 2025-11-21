@@ -429,6 +429,9 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
     with open(config_yaml, "r") as f:
         config = yaml.safe_load(f)
 
+    # set plot_with_plotnado to False
+    config["assay_config"]["plot_with_plotnado"] = False
+
     match assay:
         case "chip":
             config["scale"] = "yes"

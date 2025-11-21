@@ -14,7 +14,7 @@ if CONFIG.assay_config.spikein.method == SpikeInMethod.ORLANDO:
         benchmark: OUTPUT_DIR + "/.benchmark/normalisation_factors_{group}.tsv",
         message: "Calculating normalisation factors for group {wildcards.group}"
         script:
-            "../scripts/calculate_spikein_norm_orlando.py"
+            "../../scripts/calculate_spikein_norm_orlando.py"
 
 elif CONFIG.assay_config.spikein.method == SpikeInMethod.WITH_INPUT:
 
@@ -32,4 +32,4 @@ elif CONFIG.assay_config.spikein.method == SpikeInMethod.WITH_INPUT:
         benchmark: OUTPUT_DIR + "/.benchmark/normalisation_factors_{group}.tsv",
         message: "Calculating normalisation factors for group {wildcards.group}"
         script:
-            "../scripts/calculate_spikein_norm_factors.py"
+            "../../scripts/calculate_spikein_norm_factors.py"

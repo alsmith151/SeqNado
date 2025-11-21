@@ -55,6 +55,6 @@ rule get_salmon_counts:
     benchmark: OUTPUT_DIR + "/.benchmarks/readcounts/salmon/salmon_counts.tsv",
     message: "Aggregating Salmon counts into a single count table"
     script:
-        "../scripts/get_salmon_counts.py"
+        "../../scripts/get_salmon_counts.py"
 
 ruleorder: salmon_counts_paired > salmon_counts_single

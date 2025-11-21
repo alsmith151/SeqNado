@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,14 +7,37 @@ import pandas as pd
 import plotnado.api as pn
 import pyranges as pr
 import seaborn as sns
+from loguru import logger
+
+
+# Configure logger to write to snakemake log file if available
+if "snakemake" in globals():
+    logger.remove()
+    logger.add(
+        snakemake.log[0],
+        format="{time} {level} {message}",
+        level="DEBUG",
+    )
+    logger.add(sys.stderr, format="{time} {level} {message}", level="DEBUG")
+else:
+    logger.add(sys.stderr, format="{time} {level} {message}", level="DEBUG")
+
+logger.info("Starting Plotnado visualization")
+
 
 plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams["svg.fonttype"] = "none"
 
 ASSAY = snakemake.params.assay
+logger.info(f"Processing {ASSAY} assay")
+logger.debug(f"Input files: {snakemake.input.data}")
+logger.debug(f"Output plots: {snakemake.output.plots}")
+logger.debug(f"Plotting regions: {snakemake.params.regions}")
+logger.debug(f"Output directory: {snakemake.params.outdir}")
 
 
 # Load the tracks into a DataFrame
+logger.info("Loading input tracks...")
 df = pd.DataFrame([Path(p) for p in snakemake.input.data], columns=["path"])
 df["name"] = df["path"].apply(lambda x: x.stem)
 df["type"] = df["path"].apply(lambda x: x.suffix)
@@ -38,9 +62,14 @@ if ASSAY == "ChIP":
 
 
 # Load the regions
+logger.info("Loading plotting regions...")
 coords = pr.read_bed(snakemake.params.regions)
+logger.info(f"Found {len(coords)} regions to plot")
 plotting_format = snakemake.params.plotting_format
+logger.info(f"Output format: {plotting_format}")
+
 # Generate the figure
+logger.info("Creating Plotnado figure...")
 fig = pn.Figure(
     autospacing=True,
 )
@@ -94,6 +123,9 @@ for track in df.itertuples():
 
 
 outdir = Path(snakemake.params.outdir)
+logger.info(f"Output directory: {outdir}")
+outdir.mkdir(parents=True, exist_ok=True)
+
 for region in coords.df.itertuples():
     fig_name = (
         f"{region.Chromosome}-{region.Start}-{region.End}"
@@ -101,6 +133,10 @@ for region in coords.df.itertuples():
         else region.Name
     )
     region_coords = f"{region.Chromosome}:{region.Start}-{region.End}"
-    fig.save(output=outdir / f"{fig_name}.{plotting_format}", gr=region_coords)
+    output_file = outdir / f"{fig_name}.{plotting_format}"
+    logger.info(f"Saving plot for region {fig_name}: {output_file}")
+    fig.save(output=output_file, gr=region_coords)
 
+logger.info("Saving Plotnado template...")
 fig.to_toml(snakemake.output.template)
+logger.info("Plotnado visualization complete!")

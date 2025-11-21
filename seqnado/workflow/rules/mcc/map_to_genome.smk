@@ -12,7 +12,7 @@ rule split_reads_aligned_to_viewpoints:
     benchmark: OUTPUT_DIR + "/.benchmark/split_reads/{sample}.tsv",
     message: "Splitting reads aligned to viewpoints for sample {wildcards.sample}",
     script:
-        "../scripts/mcc_split_reads_aligned_to_viewpoints.py"
+        "../../scripts/mcc_split_reads_aligned_to_viewpoints.py"
 
 
 use rule align_single as align_mcc_reads_to_genome with:
