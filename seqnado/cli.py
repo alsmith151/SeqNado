@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import shlex
@@ -1152,9 +1153,18 @@ def pipeline(
                 )
                 raise typer.Exit(code=1)
 
-    # Use resources.as_file to ensure the packaged Snakefile is available as a path
+    # Prepare profile context manager if needed
+    profile_trav = None
+    if preset:
+        profiles = _preset_profiles()
+        profile_dir_name = profiles.get(preset.lower())
+        if profile_dir_name:
+            profile_trav = pkg_root_trav.joinpath("workflow").joinpath("envs").joinpath("profiles").joinpath(profile_dir_name)
+
+    # Use resources.as_file to ensure the packaged Snakefile and profile are available as paths
+    profile_ctx = resources.as_file(profile_trav) if profile_trav else contextlib.nullcontext()
     try:
-        with resources.as_file(snake_trav) as snakefile_path:
+        with resources.as_file(snake_trav) as snakefile_path, profile_ctx as profile_path:
             if not Path(snakefile_path).exists():
                 logger.error(
                     f"Snakefile for assay '{assay}' not found: {snakefile_path}"
@@ -1180,10 +1190,8 @@ def pipeline(
             workflow_args = []
             if use_multi_assay:
                 # Collect arguments that should be passed to nested snakemake calls
-                if preset:
-                    profiles = _preset_profiles()
-                    profile_dir = profiles.get(preset.lower())
-                    workflow_args.append(f"--profile {profile_dir}")
+                if preset and profile_path:
+                    workflow_args.append(f"--profile {profile_path}")
                 if queue and preset and preset.startswith("s"):
                     workflow_args.append(f"--default-resources slurm_partition={queue}")
                 # Add other common flags
@@ -1214,12 +1222,10 @@ def pipeline(
             if not use_multi_assay:
                 cmd += cleaned_opts
 
-            if preset and not use_multi_assay:
-                profiles = _preset_profiles()
-                profile_dir = profiles.get(preset.lower())
-                cmd += ["--profile", profile_dir]
+            if preset and not use_multi_assay and profile_path:
+                cmd += ["--profile", str(profile_path)]
                 logger.info(
-                    f"Using Snakemake profile preset '{preset}' -> {profile_dir}"
+                    f"Using Snakemake profile preset '{preset}' -> {profile_path}"
                 )
 
             if queue and preset.startswith("s") and not use_multi_assay:
