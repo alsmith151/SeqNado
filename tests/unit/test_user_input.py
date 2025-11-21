@@ -477,3 +477,82 @@ class TestBuildWorkflowConfig:
         assert config.assay == Assay.RNA
         assert isinstance(config.assay_config, RNAAssayConfig)
         assert isinstance(config.genome.index, STARIndex)
+
+
+class TestGetUserInput:
+    """Tests for get_user_input helper function."""
+
+    def test_get_user_input_with_default(self, monkeypatch):
+        """Test get_user_input accepts default on empty input."""
+        from seqnado.config.user_input import get_user_input
+        
+        monkeypatch.setattr('builtins.input', lambda _: "")
+        result = get_user_input("Enter value", default="default_val")
+        assert result == "default_val"
+
+    def test_get_user_input_with_choices(self, monkeypatch):
+        """Test get_user_input validates choices."""
+        from seqnado.config.user_input import get_user_input
+        
+        inputs = iter(["invalid", "valid"])
+        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        result = get_user_input("Select", choices=["valid", "other"])
+        assert result == "valid"
+
+    def test_get_user_input_boolean_yes(self, monkeypatch):
+        """Test get_user_input accepts boolean yes values."""
+        from seqnado.config.user_input import get_user_input
+        
+        for value in ["yes", "y", "true", "1"]:
+            monkeypatch.setattr('builtins.input', lambda _, v=value: v)
+            result = get_user_input("Bool?", is_boolean=True)
+            assert result is True
+
+    def test_get_user_input_boolean_no(self, monkeypatch):
+        """Test get_user_input accepts boolean no values."""
+        from seqnado.config.user_input import get_user_input
+        
+        for value in ["no", "n", "false", "0"]:
+            monkeypatch.setattr('builtins.input', lambda _, v=value: v)
+            result = get_user_input("Bool?", is_boolean=True)
+            assert result is False
+
+    def test_get_user_input_invalid_boolean(self, monkeypatch):
+        """Test get_user_input rejects invalid boolean."""
+        from seqnado.config.user_input import get_user_input
+        
+        inputs = iter(["maybe", "yes"])
+        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        result = get_user_input("Bool?", is_boolean=True)
+        assert result is True
+
+    def test_get_user_input_path_validation(self, monkeypatch, tmp_path):
+        """Test get_user_input validates path existence."""
+        from seqnado.config.user_input import get_user_input
+        
+        existing_path = tmp_path / "exists.txt"
+        existing_path.touch()
+        
+        inputs = iter([str(tmp_path / "missing.txt"), str(existing_path)])
+        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        result = get_user_input("Path?", is_path=True)
+        assert result == str(existing_path)
+
+    def test_get_user_input_not_required(self, monkeypatch):
+        """Test get_user_input returns None when not required."""
+        from seqnado.config.user_input import get_user_input
+        
+        monkeypatch.setattr('builtins.input', lambda _: "")
+        result = get_user_input("Optional?", required=False)
+        assert result is None
+
+    def test_get_user_input_empty_retries(self, monkeypatch):
+        """Test get_user_input retries on empty when required."""
+        from seqnado.config.user_input import get_user_input
+        
+        inputs = iter(["", "value"])
+        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        result = get_user_input("Required?", required=True)
+        assert result == "value"
+
+
