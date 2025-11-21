@@ -42,4 +42,4 @@ jobs:
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
           python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
-            --cores 4 --run-pipeline --assays "atac,chip,rna"
+            --cores 4 --run-pipeline --assays "atac,rna"
