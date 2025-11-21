@@ -252,8 +252,6 @@ def mcc_files(genome_path: Path) -> dict[str, Path]:
 # ------------------
 # Assay helpers
 # ------------------
-
-
 @pytest.fixture(scope="session")
 def cores(pytestconfig: pytest.Config) -> int:
     """Number of cores to use for pipeline executions."""
@@ -572,6 +570,8 @@ def multi_assay_configs(
     multi_assays: list[str],
     multi_assay_run_directory: Path,
     fastqs: dict[str, list[Path]],
+    bt2_index: Path,
+    star_index: Path,
     index: Path,
     chromsizes: Path,
     gtf: Path,
@@ -628,8 +628,8 @@ def multi_assay_configs(
         # Create genome config with ONLY hg38 (overwrite any dm6 from seqnado init)
         genome_config = {
             "hg38": {
-                "star_index": str(genome_path / "star_index"),
-                "bt2_index": str(index),
+                "star_index": str(star_index),
+                "bt2_index": str(bt2_index),
                 "chromosome_sizes": str(chromsizes),
                 "gtf": str(gtf),
                 "blacklist": str(blacklist),
@@ -706,6 +706,7 @@ DATABASE\tTest\t{index}
             # Get list of FASTQs for this assay that were just copied
             assay_fastqs = list(multi_assay_run_directory.glob("*.fastq.gz"))
 
+
             design_cmd = [
                 "seqnado",
                 "design",
@@ -714,9 +715,8 @@ DATABASE\tTest\t{index}
                 metadata_file,
                 "--no-interactive",
                 "--accept-all-defaults",
-                f"fastq/{assay}*.fastq.gz",
             ]
-            # Add FASTQ files as arguments
+            # Add FASTQ files as arguments (only actual files, no globs)
             design_cmd.extend([str(fq) for fq in assay_fastqs])
 
             design_result = subprocess.run(

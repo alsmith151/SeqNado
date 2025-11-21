@@ -14,7 +14,7 @@ import pytest
 @pytest.mark.snakemake
 @pytest.mark.requires_apptainer
 @pytest.mark.slow
-@pytest.mark.parametrize("multi_assays", [["atac", "chip"]])
+@pytest.mark.parametrize("multi_assays", [["atac", "rna"]])
 def test_pipeline_multi(
     multi_assays: list[str],
     multi_assay_configs: dict[str, dict[str, Path]],

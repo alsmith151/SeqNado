@@ -1,12 +1,13 @@
-import os
-import pandas as pd
 import itertools
-import numpy as np
-from pathlib import Path
+import os
 import re
 import sys
-from loguru import logger
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 import tracknado
+from loguru import logger
 
 # configre logger to write to snakemake log file if available
 if "snakemake" in globals():
@@ -18,72 +19,68 @@ if "snakemake" in globals():
     )
     logger.add(sys.stderr, format="{time} {level} {message}", level="ERROR")
 
+
 def get_rna_samplename(path: str):
     p = Path(path)
     return re.split(r"_[plus|minus]", p.name)[0]
 
+
 try:
     logger.info("Generating UCSC Genome Browser hub...")
     logger.info(f"Assay: {snakemake.params.assay}, Files: {len(snakemake.input.data)}")
-    
+
     # Set up details
     df = pd.DataFrame(
         snakemake.input.data,
         columns=["fn"],
     )
-    
+
     # Resolve relative paths to absolute paths for consistent parsing
     df["fn"] = df["fn"].apply(lambda x: str(Path(x).resolve()))
-    
-    # Extract metadata BEFORE TrackFiles processing
-    assay_str = str(snakemake.params.assay).split('.')[-1]  # Convert Assay.ATAC -> 'ATAC'
-    
-    if assay_str in ["ChIP", "CUT&TAG"]:
-        df[["samplename", "antibody"]] = df["fn"].str.extract(
-            r".*/(.*)_(.*)\.(?:bigBed|bigWig)"
-        )
-        df["method"] = df["fn"].apply(lambda x: x.split("/")[-3])
-        df['norm'] = df['fn'].apply(lambda x: x.split("/")[-2])
-    
-    elif assay_str == "ATAC":
-        df["samplename"] = df["fn"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
-        df["method"] = df["fn"].apply(lambda x: x.split("/")[-3])
-        df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
-    
-    elif assay_str == "RNA":
-        df["samplename"] = df["fn"].apply(get_rna_samplename)
-        df["method"] = df["fn"].apply(lambda x: x.split("/")[-3])
-        df["strand"] = np.where(df["fn"].str.contains("_plus.bigWig"), "plus", "minus")
-        df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
-    
-    elif assay_str == 'MCC':
-        # Regex pattern to extract method, normalisation, sample, viewpoint
-        pattern = re.compile(
-        r'seqnado_output/(?:bigwigs|peaks)/'
-        r'(?P<method>[^/]+)/'
-        r'(?:(?P<norm>[^/]+)/)?'
-        r'(?P<samplename>.*?)_(?P<viewpoint>[^/.]+)\.(?:bigWig|bigBed)'
-    )
-        # Extract the method, normalisation, sample, and viewpoint from the file path
-        df_meta = df['fn'].str.extract(pattern)
-        df = df.join(df_meta)
-    
-    logger.debug(f"After metadata extraction - columns: {df.columns.tolist()}")
-    
-    # Check for missing values in critical columns
-    if assay_str == "ATAC":
-        for col in ['samplename', 'method', 'norm']:
-            null_count = df[col].isnull().sum()
-            if null_count > 0:
-                logger.error(f"Column '{col}' has {null_count} null values!")
-    
-    # Use the TrackFiles class to deduplicate files (it will preserve existing columns)
-    df = tracknado.TrackFiles(files=df, deduplicate=True).files
-    
-    # Check that the dataframe is not empty i.e. no files were found
-    if df.empty:
-        raise ValueError("No bigwigs or bigbeds found in the input directory. Please ensure that create_bigwigs has been set to True in the config file.")
-    
+
+    # extract extra cols
+    def extract_metadata_from_path(path: str, key: str) -> str:
+        p = Path(path)
+        if key == "samplename":
+            return p.stem.split(".")[0]
+        elif key == "method":
+            # e.g., ATAC_Tn5, ChIP_IP, RNA_plus, RNA_minus
+            parts = p.stem.split("/")
+            if len(parts) > 1:
+                return parts[-2]
+            else:
+                return "unknown"
+        elif key == "norm":
+            # e.g., CPM, RPKM, TPM
+            parts = p.stem.split("/")
+            if len(parts) > 1:
+                return parts[-1]
+            else:
+                return "unknown"
+        else:
+            return "unknown"
+        
+
+
+    color_by = snakemake.params.color_by
+    subgroup_by = snakemake.params.subgroup_by if any(snakemake.params.subgroup_by) else None
+    supergroup_by = snakemake.params.supergroup_by
+    overlay_by = snakemake.params.overlay_by
+
+    # Flatten all groupings to a list of strings
+    grouping_cols = []
+    if color_by:
+        if isinstance(color_by, (list, tuple)):
+            grouping_cols.extend(color_by)
+        else:
+            grouping_cols.append(color_by)
+    for group in [subgroup_by, supergroup_by, overlay_by]:
+        if group:
+            grouping_cols.extend(group)
+
+    for col in grouping_cols:
+        df[col] = df["fn"].apply(lambda x: extract_metadata_from_path(x, col))
+
     # Create hub design
     design = tracknado.TrackDesign.from_design(
         df,
@@ -94,7 +91,10 @@ try:
         supergroup_by=snakemake.params.supergroup_by,
         overlay_by=snakemake.params.overlay_by,
     )
+
     
+    
+
     # Generate hub files
     outdir = Path(str(snakemake.output.hub)).parent
     hub = tracknado.HubGenerator(
@@ -109,18 +109,19 @@ try:
         genome_default_position=snakemake.params.genome_default_position,
         outdir=outdir,
     )
-    
+
     hub.stage_hub()
     design.to_pickle(outdir / ".track_design.pkl")
-    
+
     logger.info(f"✓ Hub files generated successfully in {outdir}")
-    logger.info("="*80)
+    logger.info("=" * 80)
 
 except Exception as e:
-    logger.error("="*80)
+    logger.error("=" * 80)
     logger.error(f"ERROR: Failed to generate UCSC hub: {e}")
     logger.error(f"Exception type: {type(e).__name__}")
     import traceback
+
     logger.error(f"Traceback:\n{traceback.format_exc()}")
-    logger.error("="*80)
+    logger.error("=" * 80)
     raise
