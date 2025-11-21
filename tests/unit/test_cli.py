@@ -258,3 +258,116 @@ def test_extract_candidate_defaults_from_schema():
     assert isinstance(result, dict)
     # Should have some column defaults
     assert len(result) >= 0  # May be empty depending on schema
+
+
+def test_extract_candidate_defaults_atac():
+    """Test extracting defaults for ATAC assay."""
+    from seqnado.inputs.validation import DesignDataFrame
+    from seqnado.core import Assay
+    
+    result = _extract_candidate_defaults_from_schema(
+        DesignDataFrame,
+        Assay.ATAC
+    )
+    
+    assert isinstance(result, dict)
+
+
+def test_configure_logging():
+    """Test logging configuration."""
+    from seqnado.cli import _configure_logging
+    
+    # Should not raise
+    _configure_logging(False)
+    _configure_logging(True)
+
+
+def test_pkg_traversable():
+    """Test getting package traversable."""
+    from seqnado.cli import _pkg_traversable
+    
+    traversable = _pkg_traversable("seqnado")
+    assert traversable is not None
+    # Should be able to access package contents
+    assert hasattr(traversable, "joinpath")
+
+
+def test_coerce_value_invalid_int():
+    """Test coercing invalid int."""
+    try:
+        _coerce_value_to_dtype("not_a_number", int, categories=None)
+        assert False, "Should have raised ValueError"
+    except ValueError:
+        pass
+
+
+def test_coerce_value_invalid_float():
+    """Test coercing invalid float."""
+    try:
+        _coerce_value_to_dtype("not_a_float", float, categories=None)
+        assert False, "Should have raised ValueError"
+    except ValueError:
+        pass
+
+
+def test_format_col_hint_with_description():
+    """Test formatting with description."""
+    meta = {
+        "default": "test",
+        "description": "This is a description",
+        "dtype": str,
+        "categories": None,
+    }
+    
+    result = _format_col_hint("col_name", meta)
+    assert "col_name" in result
+    # Description should be in the hint somehow
+    assert len(result) > len("col_name")
+
+
+def test_write_json_creates_parent_dir(tmp_path):
+    """Test that _write_json creates parent directories."""
+    nested = tmp_path / "nested" / "dir" / "file.json"
+    data = {"test": "data"}
+    
+    _write_json(nested, data)
+    
+    assert nested.exists()
+    loaded = _read_json(nested)
+    assert loaded == data
+
+
+def test_find_fastqs_multiple_hints(tmp_path):
+    """Test finding FASTQs from multiple directory hints."""
+    dir1 = tmp_path / "dir1"
+    dir2 = tmp_path / "dir2"
+    dir1.mkdir()
+    dir2.mkdir()
+    
+    (dir1 / "sample1_R1.fastq.gz").touch()
+    (dir1 / "sample1_R2.fastq.gz").touch()
+    (dir2 / "sample2_R1.fastq.gz").touch()
+    
+    result = _find_fastqs([str(dir1), str(dir2)])
+    
+    assert len(result) == 3
+
+
+def test_coerce_value_empty_string():
+    """Test empty string handling."""
+    result = _coerce_value_to_dtype("", str, categories=None)
+    assert result == ""
+
+
+def test_preset_profiles_has_local_env():
+    """Test that preset profiles includes local environment."""
+    result = _preset_profiles()
+    # Should have at least local environment
+    assert "le" in result or "local" in str(result).lower()
+
+
+def test_profile_autocomplete_returns_strings():
+    """Test profile autocomplete returns valid strings."""
+    result = _profile_autocomplete()
+    assert all(isinstance(p, str) and len(p) > 0 for p in result)
+

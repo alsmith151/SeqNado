@@ -43,10 +43,8 @@ class BigWigFile(BaseModel):
 		return self.stem.rsplit("_", 1)[1]
 
 
-class BigWigCollection(BaseModel):
-	assay: Assay
+class BigWigCollection(BaseCollection):
 	bigwig_files: list[BigWigFile]
-	metadata: list[Metadata]
 
 	@property
 	def primary_file_type(self) -> str:
@@ -128,6 +126,37 @@ class BigWigCollection(BaseModel):
 		return cls.from_files(
 			assay=assay, files=files, metadata=metadata, **metadata_kwargs
 		)
+
+	@classmethod
+	def from_dataframe(
+		cls, assay: Assay, df: Any, **kwargs: Any
+	) -> BigWigCollection:
+		"""Build a BigWigCollection from a DataFrame.
+		
+		Expects columns: sample_id, bigwig (or bigwig_plus/bigwig_minus for RNA), 
+		plus any metadata fields.
+		"""
+		import pandas as pd
+		
+		bigwig_files: list[BigWigFile] = []
+		metadata: list[Metadata] = []
+		metadata_fields = set(Metadata.model_fields.keys())
+
+		for rec in df.to_dict(orient="records"):
+			# Handle strand-specific RNA or single bigwig
+			if assay == Assay.RNA and "bigwig_plus" in rec:
+				if pd.notna(rec.get("bigwig_plus")):
+					bigwig_files.append(BigWigFile(path=Path(rec["bigwig_plus"])))
+				if pd.notna(rec.get("bigwig_minus")):
+					bigwig_files.append(BigWigFile(path=Path(rec["bigwig_minus"])))
+			elif "bigwig" in rec and pd.notna(rec["bigwig"]):
+				bigwig_files.append(BigWigFile(path=Path(rec["bigwig"])))
+
+			# Collect metadata (one per sample, not per file)
+			meta_fields = {k: rec.get(k) for k in metadata_fields if k in rec}
+			metadata.append(Metadata(**meta_fields))
+
+		return cls(assay=assay, bigwig_files=bigwig_files, metadata=metadata)
 
 	# ---------------------------------------------------------------
 	# Export

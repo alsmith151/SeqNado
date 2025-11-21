@@ -93,6 +93,12 @@ class TestMetadata:
         assert md.consensus_group is None
         assert md.deseq2 is None
 
+    def test_metadata_pandas_na_rejected(self):
+        """Test that pandas NA is rejected."""
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            Metadata(assay=Assay.CHIP, consensus_group=pd.NA)
+
 
 class TestUtilityFunctions:
     """Tests for utility functions in core module."""
@@ -132,6 +138,12 @@ class TestUtilityFunctions:
         assert is_valid_path("-") is False
         assert is_valid_path(".") is False
         assert is_valid_path("") is False
+        assert is_valid_path("None") is False
+
+    def test_is_valid_path_type_error(self):
+        """Test is_valid_path with invalid types."""
+        assert is_valid_path(123) is False
+        assert is_valid_path([]) is False
 
     def test_clean_sample_name(self):
         """Test clean_sample_name with Illumina patterns."""
@@ -153,6 +165,61 @@ class TestUtilityFunctions:
         assert is_control_sample("mock_control") is True
         assert is_control_sample("IgG") is True
         assert is_control_sample("H3K4me3") is False
+
+
+class TestBaseCollection:
+    """Tests for BaseCollection class methods."""
+
+    def test_build_metadata_callable(self):
+        """Test _build_metadata with callable."""
+        from seqnado.inputs.core import BaseCollection
+        
+        def metadata_factory(sample_name: str) -> Metadata:
+            return Metadata(assay=Assay.CHIP, consensus_group=sample_name)
+        
+        md = BaseCollection._build_metadata(
+            sample_name="sample1",
+            metadata=metadata_factory,
+            assay=Assay.CHIP
+        )
+        assert md.assay == Assay.CHIP
+        assert md.consensus_group == "sample1"
+
+    def test_build_metadata_instance(self):
+        """Test _build_metadata with Metadata instance."""
+        from seqnado.inputs.core import BaseCollection
+        
+        original_md = Metadata(assay=Assay.RNA, scaling_group="batch1")
+        md = BaseCollection._build_metadata(
+            sample_name="sample1",
+            metadata=original_md,
+            assay=Assay.RNA
+        )
+        assert md.assay == Assay.RNA
+        assert md.scaling_group == "batch1"
+
+    def test_build_metadata_default(self):
+        """Test _build_metadata with None (default)."""
+        from seqnado.inputs.core import BaseCollection
+        
+        md = BaseCollection._build_metadata(
+            sample_name="sample1",
+            metadata=None,
+            assay=Assay.ATAC
+        )
+        assert md.assay == Assay.ATAC
+
+    def test_build_metadata_assay_override(self):
+        """Test that assay is always overridden."""
+        from seqnado.inputs.core import BaseCollection
+        
+        original_md = Metadata(assay=Assay.RNA)
+        md = BaseCollection._build_metadata(
+            sample_name="sample1",
+            metadata=original_md,
+            assay=Assay.CHIP  # Different assay
+        )
+        assert md.assay == Assay.CHIP  # Should be overridden
 
 
 # =============================================================================
@@ -1210,6 +1277,36 @@ class TestHelpers:
 
         with pytest.raises(RuntimeError, match="Could not determine the type of collection"):
             get_sample_collection(Assay.RNA, csv_path)
+
+    def test_get_sample_collection_bam(self, tmp_path):
+        """Test get_sample_collection with BAM metadata."""
+        csv_path = tmp_path / "metadata.csv"
+        bam_file = tmp_path / "sample.bam"
+        bam_file.touch()
+        
+        with csv_path.open("w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["sample_id", "bam"])
+            w.writerow(["s1", str(bam_file)])
+
+        sc = get_sample_collection(Assay.ATAC, csv_path)
+        assert isinstance(sc, BamCollection)
+        assert len(sc.bam_files) == 1
+
+    def test_get_sample_collection_bigwig(self, tmp_path):
+        """Test get_sample_collection with BigWig metadata."""
+        csv_path = tmp_path / "metadata.csv"
+        bw_file = tmp_path / "sample.bigWig"
+        bw_file.touch()
+        
+        with csv_path.open("w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["sample_id", "bigwig"])
+            w.writerow(["s1", str(bw_file)])
+
+        sc = get_sample_collection(Assay.ATAC, csv_path)
+        assert isinstance(sc, BigWigCollection)
+        assert len(sc.bigwig_files) == 1
 
 
 # =============================================================================

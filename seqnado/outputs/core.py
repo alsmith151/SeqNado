@@ -15,6 +15,7 @@ from seqnado.inputs import (
     BigWigCollection
 )
 from seqnado.outputs.files import (
+    BigBedFiles,
     BigWigFiles,
     FileCollection,
     HeatmapFiles,
@@ -247,7 +248,7 @@ class SeqnadoOutputBuilder:
         # Note this will build the bigBed files from the peak files already added
         # So ensure peak files are added before calling this method
         outfiles = self.build().peak_files
-        bigbed_files = [p.with_suffix(".bigBed") for p in outfiles]
+        bigbed_files = BigBedFiles(bed_files=outfiles)
         self.file_collections.append(bigbed_files)
 
     def add_heatmap_files(self) -> None:
@@ -303,6 +304,7 @@ class SeqnadoOutputBuilder:
         methylation_files = MethylationFiles(
             assay=self.assay,
             names=self.samples.sample_names,
+            genomes=[self.config.genome.name],
             method=self.config.assay_config.methylation.method,
             output_dir=self.output_dir,
         )
@@ -319,11 +321,18 @@ class SeqnadoOutputBuilder:
 
     def add_quantification_files(self) -> None:
         """Add quantification files to the output collection."""
+        # Get the consensus grouping if it exists, otherwise use empty SampleGroups
+        if self.sample_groupings and "consensus" in self.sample_groupings.groupings:
+            groups = self.sample_groupings.groupings["consensus"]
+        else:
+            from seqnado.inputs.grouping import SampleGroups
+            groups = SampleGroups(groups=[])
+        
         quantification_files = QuantificationFiles(
             assay=self.assay,
-            methods=self.config.assay_config.quantification.methods,
+            methods=[self.config.assay_config.rna_quantification.method],
             names=self.samples.sample_names,
-            groups=self.sample_groupings,
+            groups=groups,
             output_dir=f"{self.output_dir}/quantification",
         )
         self.file_collections.append(quantification_files)

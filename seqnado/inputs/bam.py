@@ -32,16 +32,14 @@ class BamFile(BaseModel):
         return self.path.stem
 
 
-class BamCollection(BaseModel):
+class BamCollection(BaseCollection):
     """Collection of BAM files with optional per-sample metadata.
 
     Provides convenience constructors analogous to `SampleCollection` but
     without paired-end logic.
     """
 
-    assay: Assay
     bam_files: list[BamFile]
-    metadata: list[Metadata]
 
     @property
     def primary_file_type(self) -> str:
@@ -109,6 +107,30 @@ class BamCollection(BaseModel):
         return cls.from_files(
             assay=assay, files=files, metadata=metadata, **metadata_kwargs
         )
+
+    @classmethod
+    def from_dataframe(
+        cls, assay: Assay, df: Any, **kwargs: Any
+    ) -> BamCollection:
+        """Build a BamCollection from a DataFrame.
+        
+        Expects columns: sample_id, bam, plus any metadata fields.
+        """
+        import pandas as pd
+        
+        bam_files: list[BamFile] = []
+        metadata: list[Metadata] = []
+        metadata_fields = set(Metadata.model_fields.keys())
+
+        for rec in df.to_dict(orient="records"):
+            # Build BamFile
+            bam_files.append(BamFile(path=Path(rec["bam"])))
+
+            # Collect metadata
+            meta_fields = {k: rec.get(k) for k in metadata_fields if k in rec}
+            metadata.append(Metadata(**meta_fields))
+
+        return cls(assay=assay, bam_files=bam_files, metadata=metadata)
 
     # ------------------------------------------------------------------
     # Data export

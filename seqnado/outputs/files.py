@@ -242,7 +242,7 @@ class PlotFiles(BaseModel):
     @property
     def files(self) -> List[str]:
         """Return a list of plot files."""
-        return self.plot_names
+        return [str(p) for p in self.plot_names]
 
 class SNPFilesRaw(BaseModel):
     assay: Assay
@@ -350,30 +350,16 @@ class ContactFiles(BaseModel):
     names: list[str]
     output_dir: str = "seqnado_output"
 
-    @property
-    def prefix(self) -> str:
-        return f"{self.output_dir}/contacts/"
-
-    @property
-    def cooler_files(self) -> List[str]:
-        return expand(
-            str(self.prefix).rstrip("/") + "/{group}/{group}.mcool",
-            group=self.design_dataframe["merge"].unique().tolist(),
-        )
-
-    @property
-    def pairs(self) -> List[str]:
-        return expand(
-            str(self.prefix).rstrip("/") + "/{group}/ligation_junctions/{viewpoint}.pairs.gz",
-            group=self.design_dataframe["merge"].unique().tolist(),
-            viewpoint=self.viewpoints_grouped,
-        )
-
     @computed_field
     @property
     def files(self) -> List[str]:
         """Return a list of contact files."""
-        return [*self.cooler_files, *self.pairs]
+        # Simplified to just return basic files based on sample names
+        # since design_dataframe and viewpoints_grouped are not provided
+        return [
+            f"{self.output_dir}/contacts/{name}/{name}.mcool" 
+            for name in self.names
+        ]
     
 
 
