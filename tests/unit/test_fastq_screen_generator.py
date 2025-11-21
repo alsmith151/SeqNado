@@ -17,23 +17,37 @@ BT2_INDEX_PATH = TEST_GENOME_DIR / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L"
 
 
 @pytest.fixture
-def mock_genome_configs():
-    """Create mock genome configs using real test data paths."""
+def mock_genome_configs(tmp_path):
+    """Create mock genome configs with temporary file structure."""
+    # Create the directory structure that BowtieIndex expects
+    bt2_dir = tmp_path / "bt2_chr21_dm6_chr2L"
+    bt2_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Touch the index files that would exist
+    for suffix in [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]:
+        (bt2_dir / f"bt2_chr21_dm6_chr2L{suffix}").touch()
+    
+    # Create fasta index file
+    fasta_file = tmp_path / "chr21.fa.fai"
+    fasta_file.touch()
+    
+    bt2_prefix = bt2_dir / "bt2_chr21_dm6_chr2L"
+    
     return {
         "hg38": GenomeConfig(
             name="hg38",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(fasta_file),
+            index=BowtieIndex(prefix=str(bt2_prefix)),
         ),
         "mm39": GenomeConfig(
             name="mm39",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(fasta_file),
+            index=BowtieIndex(prefix=str(bt2_prefix)),
         ),
         "mm10": GenomeConfig(  # Older version, should be skipped
             name="mm10",
-            fasta=str(TEST_GENOME_DIR / "chr21.fa.fai"),
-            index=BowtieIndex(prefix=str(BT2_INDEX_PATH)),
+            fasta=str(fasta_file),
+            index=BowtieIndex(prefix=str(bt2_prefix)),
         ),
     }
 

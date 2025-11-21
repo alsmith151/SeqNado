@@ -212,13 +212,30 @@ class TestBuildDefaultAssayConfig:
     """Tests for build_default_assay_config function."""
 
     @pytest.fixture
-    def test_data_dir(self):
-        """Get the test data directory path."""
-        return Path(__file__).parent.parent / "data" / "genome"
+    def test_data_dir(self, tmp_path):
+        """Create test data directory structure with necessary files."""
+        # Create the directory structure
+        genome_dir = tmp_path / "genome"
+        genome_dir.mkdir(parents=True, exist_ok=True)
+        
+        bt2_dir = genome_dir / "bt2_chr21_dm6_chr2L"
+        bt2_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Touch the index files
+        for suffix in [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]:
+            (bt2_dir / f"bt2_chr21_dm6_chr2L{suffix}").touch()
+        
+        # Create fasta index file
+        (genome_dir / "chr21.fa.fai").touch()
+        
+        # Create GTF file for RNA tests
+        (genome_dir / "chr21.gtf").touch()
+        
+        return genome_dir
 
     @pytest.fixture
     def mock_genome_config(self, test_data_dir):
-        """Create a mock genome configuration with real paths."""
+        """Create a mock genome configuration with temporary paths."""
         bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
         fasta = str(test_data_dir / "chr21.fa.fai")
         
@@ -386,13 +403,27 @@ class TestBuildWorkflowConfig:
     """Tests for build functions that might need integration testing."""
 
     @pytest.fixture
-    def test_data_dir(self):
-        """Get the test data directory path."""
-        return Path(__file__).parent.parent / "data" / "genome"
+    def test_data_dir(self, tmp_path):
+        """Create test data directory structure with necessary files."""
+        # Create the directory structure
+        genome_dir = tmp_path / "genome"
+        genome_dir.mkdir(parents=True, exist_ok=True)
+        
+        bt2_dir = genome_dir / "bt2_chr21_dm6_chr2L"
+        bt2_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Touch the index files
+        for suffix in [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]:
+            (bt2_dir / f"bt2_chr21_dm6_chr2L{suffix}").touch()
+        
+        # Create fasta index file
+        (genome_dir / "chr21.fa.fai").touch()
+        
+        return genome_dir
 
     @pytest.fixture
     def mock_genome_config(self, test_data_dir):
-        """Create a mock genome configuration with real paths."""
+        """Create a mock genome configuration with temporary paths."""
         bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
         fasta = str(test_data_dir / "chr21.fa.fai")
         
