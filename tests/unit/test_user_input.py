@@ -43,21 +43,41 @@ class TestLoadGenomeConfigs:
     """Tests for load_genome_configs function."""
 
     @pytest.fixture
-    def test_data_dir(self):
-        """Get the test data directory path."""
-        return Path(__file__).parent.parent / "data" / "genome"
+    def mock_data_dir(self, tmp_path):
+        """Create mock test data directory with required files."""
+        data_dir = tmp_path / "genome_data"
+        data_dir.mkdir(parents=True, exist_ok=True)
 
-    def test_load_genome_configs_rna_assay(self, tmp_path, monkeypatch, test_data_dir):
+        # Create Bowtie2 index directory and files
+        bt2_dir = data_dir / "bt2_chr21_dm6_chr2L"
+        bt2_dir.mkdir(parents=True, exist_ok=True)
+        for suffix in [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]:
+            (bt2_dir / f"bt2_chr21_dm6_chr2L{suffix}").touch()
+
+        # Create fasta index file
+        (data_dir / "chr21.fa.fai").write_text("chr21\t48129895\t4\t50\t51\n")
+
+        # Create GTF file
+        (data_dir / "chr21.gtf").write_text("chr21\tENSEMBL\texon\t1\t1000\t.\t+\t.\tgene_id \"gene1\";\n")
+
+        # Create STAR index directory
+        star_dir = data_dir / "STAR_chr21_rna_spikein"
+        star_dir.mkdir(parents=True, exist_ok=True)
+        for i in range(1, 6):
+            (star_dir / f"SA_{i}.txt").write_text(f"Mock content {i}\n")
+
+        return data_dir
+
+    def test_load_genome_configs_rna_assay(self, tmp_path, monkeypatch, mock_data_dir):
         """Test loading genome configs for RNA assay (STAR index)."""
         config_dir = tmp_path / ".config" / "seqnado"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "genome_config.json"
 
-        # Use actual test data paths
-        star_index = str(test_data_dir / "STAR_chr21_rna_spikein")
-        bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
-        fasta = str(test_data_dir / "chr21.fa.fai")
-        gtf = str(test_data_dir / "chr21.gtf")
+        star_index = str(mock_data_dir / "STAR_chr21_rna_spikein")
+        bt2_index = str(mock_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
+        fasta = str(mock_data_dir / "chr21.fa.fai")
+        gtf = str(mock_data_dir / "chr21.gtf")
 
         genome_data = {
             "hg38": {
@@ -69,7 +89,6 @@ class TestLoadGenomeConfigs:
         }
 
         config_file.write_text(json.dumps(genome_data))
-
         monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
 
         result = load_genome_configs(Assay.RNA)
@@ -79,15 +98,14 @@ class TestLoadGenomeConfigs:
         assert isinstance(result["hg38"].index, STARIndex)
         assert result["hg38"].index.prefix == Path(star_index)
 
-    def test_load_genome_configs_chip_assay(self, tmp_path, monkeypatch, test_data_dir):
+    def test_load_genome_configs_chip_assay(self, tmp_path, monkeypatch, mock_data_dir):
         """Test loading genome configs for ChIP assay (Bowtie index)."""
         config_dir = tmp_path / ".config" / "seqnado"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "genome_config.json"
 
-        # Use actual test data paths
-        bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
-        fasta = str(test_data_dir / "chr21.fa.fai")
+        bt2_index = str(mock_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
+        fasta = str(mock_data_dir / "chr21.fa.fai")
 
         genome_data = {
             "mm10": {
@@ -97,7 +115,6 @@ class TestLoadGenomeConfigs:
         }
 
         config_file.write_text(json.dumps(genome_data))
-
         monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
 
         result = load_genome_configs(Assay.CHIP)
@@ -107,15 +124,14 @@ class TestLoadGenomeConfigs:
         assert isinstance(result["mm10"].index, BowtieIndex)
         assert result["mm10"].index.prefix == bt2_index
 
-    def test_load_genome_configs_atac_assay(self, tmp_path, monkeypatch, test_data_dir):
+    def test_load_genome_configs_atac_assay(self, tmp_path, monkeypatch, mock_data_dir):
         """Test loading genome configs for ATAC assay (Bowtie index)."""
         config_dir = tmp_path / ".config" / "seqnado"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "genome_config.json"
 
-        # Use actual test data paths
-        bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
-        fasta = str(test_data_dir / "chr21.fa.fai")
+        bt2_index = str(mock_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
+        fasta = str(mock_data_dir / "chr21.fa.fai")
 
         genome_data = {
             "dm6": {
@@ -125,7 +141,6 @@ class TestLoadGenomeConfigs:
         }
 
         config_file.write_text(json.dumps(genome_data))
-
         monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
 
         result = load_genome_configs(Assay.ATAC)
@@ -133,15 +148,14 @@ class TestLoadGenomeConfigs:
         assert "dm6" in result
         assert isinstance(result["dm6"].index, BowtieIndex)
 
-    def test_load_genome_configs_multiple_genomes(self, tmp_path, monkeypatch, test_data_dir):
+    def test_load_genome_configs_multiple_genomes(self, tmp_path, monkeypatch, mock_data_dir):
         """Test loading multiple genome configurations."""
         config_dir = tmp_path / ".config" / "seqnado"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "genome_config.json"
 
-        # Use actual test data paths
-        bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
-        fasta = str(test_data_dir / "chr21.fa.fai")
+        bt2_index = str(mock_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
+        fasta = str(mock_data_dir / "chr21.fa.fai")
 
         genome_data = {
             "hg38": {
@@ -159,7 +173,6 @@ class TestLoadGenomeConfigs:
         }
 
         config_file.write_text(json.dumps(genome_data))
-
         monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
 
         result = load_genome_configs(Assay.CHIP)
@@ -174,15 +187,14 @@ class TestLoadGenomeConfigs:
         with pytest.raises(SystemExit):
             load_genome_configs(Assay.CHIP)
 
-    def test_load_genome_configs_sets_name(self, tmp_path, monkeypatch, test_data_dir):
+    def test_load_genome_configs_sets_name(self, tmp_path, monkeypatch, mock_data_dir):
         """Test that genome name is correctly set from key."""
         config_dir = tmp_path / ".config" / "seqnado"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "genome_config.json"
 
-        # Use actual test data paths
-        bt2_index = str(test_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
-        fasta = str(test_data_dir / "chr21.fa.fai")
+        bt2_index = str(mock_data_dir / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L")
+        fasta = str(mock_data_dir / "chr21.fa.fai")
 
         genome_data = {
             "test_genome": {
@@ -192,7 +204,6 @@ class TestLoadGenomeConfigs:
         }
 
         config_file.write_text(json.dumps(genome_data))
-
         monkeypatch.setenv("SEQNADO_CONFIG", str(tmp_path))
 
         result = load_genome_configs(Assay.ATAC)
