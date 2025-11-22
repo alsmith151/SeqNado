@@ -41,5 +41,5 @@ test_rna_size_factors.ipynb
 test_run.sh
 test.json
 tests/data*
-test_output
+test_output/
 .coverage
