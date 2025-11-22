@@ -146,11 +146,27 @@ def star_index(genome_path: Path) -> Path:
     dest = genome_path / "STAR_chr21_rna_spikein"
 
     if not dest.exists():
+        print(f"[DEBUG] STAR index not found at {dest}, downloading...")
         url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
+        print(f"[DEBUG] Downloading STAR index from {url} to {genome_path / suffix}")
         _download_with_retry(url, genome_path / suffix)
+        print(f"[DEBUG] Extracting {genome_path / suffix} to {genome_path}")
         with tarfile.open(genome_path / suffix) as tar:
             tar.extractall(path=genome_path)
+        # Flatten any nested directory structure (e.g., STAR_chr21_rna_spikein/STAR_chr21_rna_spikein/*)
+        nested = dest / dest.name
+        if nested.exists() and nested.is_dir():
+            print(f"[DEBUG] Flattening nested STAR index directory: {nested}")
+            for f in nested.iterdir():
+                print(f"[DEBUG] Moving {f} to {dest}")
+                f.rename(dest / f.name)
+            try:
+                nested.rmdir()
+            except Exception as e:
+                print(f"[DEBUG] Could not remove nested directory {nested}: {e}")
+        print(f"[DEBUG] Removing archive {genome_path / suffix}")
         os.remove(genome_path / suffix)
+        print(f"[DEBUG] STAR index extraction complete. Files in {dest}: {list(dest.glob('*'))}")
 
     return dest
 
@@ -169,9 +185,20 @@ def bt2_index(genome_path: Path) -> Path:
         with tarfile.open(genome_path / suffix) as tar:
             dest.mkdir(parents=True, exist_ok=True)
             tar.extractall(path=dest)
+        # Flatten any nested directory structure (e.g., bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L/*.bt2*)
+        nested = dest / dest.name
+        if nested.exists() and nested.is_dir():
+            print(f"[DEBUG] Flattening nested Bowtie2 index directory: {nested}")
+            for f in nested.glob("*.bt2*"):
+                print(f"[DEBUG] Moving {f} to {dest}")
+                f.rename(dest / f.name)
+            try:
+                nested.rmdir()
+            except Exception as e:
+                print(f"[DEBUG] Could not remove nested directory {nested}: {e}")
         print(f"[DEBUG] Removing archive {genome_path / suffix}")
         os.remove(genome_path / suffix)
-        print(f"[DEBUG] Bowtie2 index extraction complete. Files in {dest.parent}: {list(dest.parent.glob('*'))}")
+        print(f"[DEBUG] Bowtie2 index extraction complete. Files in {dest}: {list(dest.glob('*'))}")
 
     return dest
 
