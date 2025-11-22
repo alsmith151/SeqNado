@@ -161,12 +161,17 @@ def bt2_index(genome_path: Path) -> Path:
     dest = genome_path / "bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L"
 
     if not dest.exists():
+        print(f"[DEBUG] Bowtie2 index not found at {dest}, downloading...")
         url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
+        print(f"[DEBUG] Downloading Bowtie2 index from {url} to {genome_path / suffix}")
         _download_with_retry(url, genome_path / suffix)
+        print(f"[DEBUG] Extracting {genome_path / suffix} to {dest}")
         with tarfile.open(genome_path / suffix) as tar:
             dest.mkdir(parents=True, exist_ok=True)
             tar.extractall(path=dest)
+        print(f"[DEBUG] Removing archive {genome_path / suffix}")
         os.remove(genome_path / suffix)
+        print(f"[DEBUG] Bowtie2 index extraction complete. Files in {dest.parent}: {list(dest.parent.glob('*'))}")
 
     return dest
 
@@ -501,12 +506,13 @@ def design(
     for fq in run_directory.glob(f"{assay_type}*.fastq.gz"):
         shutil.copy(fq, seqnado_run_dir)
 
+    # Only use seqnado_run_dir for globbing FASTQ files
     fastq_files = sorted(
-        str(f) for f in multi_assay_run_directory.glob(f"{assay}*.fastq.gz")
+        str(f) for f in seqnado_run_dir.glob(f"{assay}*.fastq.gz")
     )
     if not fastq_files:
         raise FileNotFoundError(
-            f"No FASTQ files found for assay '{assay}' in {multi_assay_run_directory}"
+            f"No FASTQ files found for assay '{assay}' in {seqnado_run_dir}"
         )
     metadata_file = f"metadata_{assay_type}.csv"
     cmd = [
@@ -661,12 +667,9 @@ def multi_assay_configs(
 DATABASE\tTest\t{index}
 """)
 
-        # Copy ALL fastqs for all assays to the shared directory
-        all_fastqs = set()
-        for assay in multi_assays:
-            all_fastqs.update(fastqs.get(assay, []))
-
-        for fq in all_fastqs:
+        # Copy ALL FASTQ files from the test data directory to the shared directory
+        fastq_data_dir = Path(__file__).parent.parent / "data" / "fastq"
+        for fq in fastq_data_dir.glob("*.fastq.gz"):
             shutil.copy(fq, multi_assay_run_directory)
 
         # Create config and metadata for each assay
