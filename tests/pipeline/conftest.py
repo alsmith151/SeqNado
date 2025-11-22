@@ -13,31 +13,6 @@ from pathlib import Path
 import pytest
 import requests
 
-def _download_with_retry(
-    url: str, dest: Path, max_retries: int = 3, timeout: int = 30
-) -> None:
-    """Download a file with retry logic."""
-    for attempt in range(max_retries):
-        try:
-            r = requests.get(url, stream=True, timeout=timeout)
-            r.raise_for_status()
-            with open(dest, "wb") as f:
-                f.write(r.content)
-            return
-        except (requests.RequestException, OSError) as e:
-            if attempt < max_retries - 1:
-                time.sleep(2**attempt)  # Exponential backoff
-                continue
-            raise RuntimeError(
-                f"Failed to download {url} after {max_retries} attempts"
-            ) from e
-
-def _parse_assays(config: pytest.Config) -> list[str]:
-    """Parse --assays option into list. Single source of truth for assay parsing."""
-    assays_str: str = config.getoption("--assays") or "chip"
-    assays = [a.strip() for a in assays_str.split(",") if a.strip()]
-    return assays or ["chip"]
-
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_all_genome_data(genome_path: Path):
@@ -46,38 +21,14 @@ def ensure_all_genome_data(genome_path: Path):
     Downloads all required files and extracts indices if needed.
     """
     required_files = [
-        (
-            "chr21_meth.fa",
-            "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa",
-        ),
-        (
-            "chr21_meth.fa.fai",
-            "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai",
-        ),
-        (
-            "chr21.fa.fai",
-            "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21.fa.fai",
-        ),
-        (
-            "chr21.gtf",
-            "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21.gtf",
-        ),
-        (
-            "chr21_rna_spikein.gtf",
-            "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21_rna_spikein.gtf",
-        ),
-        (
-            "hg38-blacklist.v2.bed.gz",
-            "https://github.com/Boyle-Lab/Blacklist/raw/master/lists/hg38-blacklist.v2.bed.gz",
-        ),
-        (
-            "STAR_chr21_rna_spikein.tar.gz",
-            "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/STAR_chr21_rna_spikein.tar.gz",
-        ),
-        (
-            "bt2_chr21_dm6_chr2L.tar.gz",
-            "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/bt2_chr21_dm6_chr2L.tar.gz",
-        ),
+        ("chr21_meth.fa", "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"),
+        ("chr21_meth.fa.fai", "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"),
+        ("chr21.fa.fai", "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21.fa.fai"),
+        ("chr21.gtf", "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21.gtf"),
+        ("chr21_rna_spikein.gtf", "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/ngs_pipeline/chr21_rna_spikein.gtf"),
+        ("hg38-blacklist.v2.bed.gz", "https://github.com/Boyle-Lab/Blacklist/raw/master/lists/hg38-blacklist.v2.bed.gz"),
+        ("STAR_chr21_rna_spikein.tar.gz", "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/STAR_chr21_rna_spikein.tar.gz"),
+        ("bt2_chr21_dm6_chr2L.tar.gz", "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/bt2_chr21_dm6_chr2L.tar.gz"),
     ]
 
     # Download all required files if missing
@@ -119,6 +70,7 @@ def ensure_all_genome_data(genome_path: Path):
                 nested.rmdir()
             except Exception as e:
                 print(f"[ERROR] Could not remove nested directory {nested}: {e}")
+
 
 
 def _parse_assays(config: pytest.Config) -> list[str]:
@@ -675,3 +627,189 @@ def apptainer_args(index: Path, test_data_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.setenv("APPTAINER_CACHEDIR", str(apptainer_cache_dir), prepend=False)
     monkeypatch.setenv("SINGULARITY_CACHEDIR", str(apptainer_cache_dir), prepend=False)
     monkeypatch.setenv("APPTAINER_TMPDIR", str(tmpdir), prepend=False)
+
+
+# -------------------------
+# Multi-assay test fixtures
+# -------------------------
+
+
+@pytest.fixture(scope="function")
+def multi_assay_run_directory(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Create a shared directory for multi-assay tests."""
+    return tmp_path_factory.mktemp("multi_assay")
+
+
+@pytest.fixture(scope="function")
+def multi_assay_configs(
+    multi_assays: list[str],
+    multi_assay_run_directory: Path,
+    fastqs: dict[str, list[Path]],
+    bt2_index: Path,
+    star_index: Path,
+    index: Path,
+    chromsizes: Path,
+    gtf: Path,
+    blacklist: Path,
+    genome_path: Path,
+    genome_files: tuple[Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Set up configs and metadata for multiple assays in one directory.
+
+    Returns:
+        Dict mapping assay -> {"config": Path, "metadata": Path}
+    """
+    import yaml
+
+    result = {}
+    cwd = Path.cwd()
+
+    try:
+        os.chdir(multi_assay_run_directory)
+
+        # Run seqnado init once for the shared directory
+        monkeypatch.setenv("SEQNADO_CONFIG", str(multi_assay_run_directory))
+        monkeypatch.setenv("HOME", str(multi_assay_run_directory))
+
+        init_process = subprocess.run(
+            ["seqnado", "init"],
+            input="y\n",
+            text=True,
+            cwd=multi_assay_run_directory,
+            capture_output=True,
+        )
+
+        if init_process.returncode != 0:
+            print(f"seqnado init STDOUT:\n{init_process.stdout}")
+            print(f"seqnado init STDERR:\n{init_process.stderr}")
+
+        assert init_process.returncode == 0, (
+            f"seqnado init failed: {init_process.stderr}"
+        )
+
+        # Check if .config/seqnado directory was created
+        seqnado_dir = multi_assay_run_directory / ".config" / "seqnado"
+        if not seqnado_dir.exists():
+            print(f"ERROR: .config/seqnado directory not created at {seqnado_dir}")
+            print(f"Directory contents: {list(multi_assay_run_directory.iterdir())}")
+            raise FileNotFoundError(
+                f".config/seqnado directory not created at {seqnado_dir}"
+            )
+
+        # Update genome config with test paths - OVERWRITE to exclude dm6 placeholders
+        genome_config_path = seqnado_dir / "genome_config.json"
+
+        # Create genome config with ONLY hg38 (overwrite any dm6 from seqnado init)
+        genome_config = {
+            "hg38": {
+                "star_index": str(star_index),
+                "bt2_index": str(bt2_index),
+                "chromosome_sizes": str(chromsizes),
+                "gtf": str(gtf),
+                "blacklist": str(blacklist),
+                "genes": "",
+                "fasta": str(genome_files[0]),
+            }
+        }
+
+        with open(genome_config_path, "w") as f:
+            json.dump(genome_config, f, indent=2)
+
+        # Create fastq_screen.conf file
+        fastq_screen_config_path = seqnado_dir / "fastq_screen.conf"
+        with open(fastq_screen_config_path, "w") as f:
+            f.write(f"""# Test fastq_screen.conf file
+
+DATABASE\tTest\t{index}
+""")
+
+        # Copy ALL FASTQ files from the test data directory to the shared directory
+        fastq_data_dir = Path(__file__).parent.parent / "data" / "fastq"
+        for fq in fastq_data_dir.glob("*.fastq.gz"):
+            shutil.copy(fq, multi_assay_run_directory)
+
+        # Create config and metadata for each assay
+        for assay in multi_assays:
+            # Create config
+            config_result = subprocess.run(
+                [
+                    "seqnado",
+                    "config",
+                    assay,
+                    "--no-interactive",
+                    "--no-make-dirs",
+                    "--render-options",
+                ],
+                text=True,
+                cwd=multi_assay_run_directory,
+                capture_output=True,
+            )
+
+            assert config_result.returncode == 0, (
+                f"seqnado config {assay} failed: {config_result.stderr}"
+            )
+
+            config_path = multi_assay_run_directory / f"config_{assay}.yaml"
+            assert config_path.exists(), f"config_{assay}.yaml not created"
+
+            # Modify config for testing
+            with open(config_path, "r") as f:
+                config = yaml.safe_load(f)
+
+            # Apply test-specific modifications
+            config["assay_config"]["create_ucsc_hub"] = False
+            config["call_peaks"] = (
+                False  # Disable peak calling for tests (test data too small for LanceOtron)
+            )
+
+            if assay == "chip":
+                config["scale"] = "yes"
+                config["library_complexity"] = False
+            elif assay == "atac":
+                config["pileup_method"] = ["deeptools"]
+
+            with open(config_path, "w") as f:
+                yaml.dump(config, f)
+
+            # Create metadata/design
+            metadata_file = f"metadata_{assay}.csv"
+            # Find all FASTQ files for this assay in the run directory
+            fastq_files = sorted(
+                str(f) for f in multi_assay_run_directory.glob(f"{assay}*.fastq.gz")
+            )
+            if not fastq_files:
+                raise FileNotFoundError(
+                    f"No FASTQ files found for assay '{assay}' in {multi_assay_run_directory}"
+                )
+            design_cmd = [
+                "seqnado",
+                "design",
+                assay,
+                "-o",
+                metadata_file,
+                "--accept-all-defaults",
+            ] + fastq_files
+
+            design_result = subprocess.run(
+                design_cmd,
+                cwd=multi_assay_run_directory,
+                capture_output=True,
+                text=True,
+            )
+            assert design_result.returncode == 0, (
+                f"seqnado design {assay} failed: {design_result.stderr}"
+            )
+
+            metadata_path = multi_assay_run_directory / metadata_file
+            assert metadata_path.exists(), f"metadata_{assay}.csv not created"
+
+            result[assay] = {
+                "config": config_path,
+                "metadata": metadata_path,
+            }
+
+        yield result
+
+    finally:
+        os.chdir(cwd)
