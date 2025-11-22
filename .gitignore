@@ -42,4 +42,5 @@ test_run.sh
 test.json
 tests/data*
 test_output/
+testing
 .coverage

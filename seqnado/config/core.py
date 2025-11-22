@@ -78,19 +78,21 @@ class SNPAssayConfig(BaseAssayConfig, SNPCallingMixin):
 
     snp_calling: SNPCallingConfig | None = None
     ucsc_hub: None
+    create_heatmaps: bool = False
 
 
 class MCCAssayConfig(BaseAssayConfig):
     """Configuration specific to MCC (Capture-C) assays."""
 
     mcc: MCCConfig | None = None
-
+    create_heatmaps: bool = False
 
 class MethylationAssayConfig(BaseAssayConfig, MethylationMixin):
     """Configuration specific to methylation assays."""
 
     methylation: MethylationConfig | None = None
     ucsc_hub: None
+    create_heatmaps: bool = False
 
 
 class CRISPRAssayConfig(BaseAssayConfig):
@@ -98,6 +100,7 @@ class CRISPRAssayConfig(BaseAssayConfig):
 
     # CRISPR-specific options can be added here
     ucsc_hub: None
+    create_heatmaps: bool = False
 
 
 # Union type for all assay-specific configurations

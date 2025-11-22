@@ -139,6 +139,7 @@ def index(genome_index_path: Path, genome_path: Path) -> Path:
 
     return indicies_path
 
+
 @pytest.fixture(scope="session")
 def star_index(genome_path: Path) -> Path:
     suffix = "STAR_chr21_rna_spikein.tar.gz"
@@ -152,6 +153,7 @@ def star_index(genome_path: Path) -> Path:
         os.remove(genome_path / suffix)
 
     return dest
+
 
 @pytest.fixture(scope="session")
 def bt2_index(genome_path: Path) -> Path:
@@ -167,6 +169,7 @@ def bt2_index(genome_path: Path) -> Path:
         os.remove(genome_path / suffix)
 
     return dest
+
 
 @pytest.fixture(scope="session")
 def chromsizes(genome_path: Path) -> Path:
@@ -495,9 +498,16 @@ def design(
     import pandas as pd
 
     # Copy FASTQs from run_directory to seqnado_run_dir
-    for fq in run_directory.glob("*.fastq.gz"):
+    for fq in run_directory.glob(f"{assay_type}*.fastq.gz"):
         shutil.copy(fq, seqnado_run_dir)
 
+    fastq_files = sorted(
+        str(f) for f in multi_assay_run_directory.glob(f"{assay}*.fastq.gz")
+    )
+    if not fastq_files:
+        raise FileNotFoundError(
+            f"No FASTQ files found for assay '{assay}' in {multi_assay_run_directory}"
+        )
     metadata_file = f"metadata_{assay_type}.csv"
     cmd = [
         "seqnado",
@@ -508,6 +518,8 @@ def design(
         "--no-interactive",
         "--accept-all-defaults",
     ]
+    # Add FASTQ files as arguments (only actual files, no globs)
+    cmd.extend(fastq_files)
     completed = subprocess.run(cmd, cwd=seqnado_run_dir, capture_output=True, text=True)
     assert completed.returncode == 0, f"seqnado design failed: {completed.stderr}"
 
@@ -702,22 +714,22 @@ DATABASE\tTest\t{index}
 
             # Create metadata/design
             metadata_file = f"metadata_{assay}.csv"
-
-            # Get list of FASTQs for this assay that were just copied
-            assay_fastqs = list(multi_assay_run_directory.glob("*.fastq.gz"))
-
-
+            # Find all FASTQ files for this assay in the run directory
+            fastq_files = sorted(
+                str(f) for f in multi_assay_run_directory.glob(f"{assay}*.fastq.gz")
+            )
+            if not fastq_files:
+                raise FileNotFoundError(
+                    f"No FASTQ files found for assay '{assay}' in {multi_assay_run_directory}"
+                )
             design_cmd = [
                 "seqnado",
                 "design",
                 assay,
                 "-o",
                 metadata_file,
-                "--no-interactive",
                 "--accept-all-defaults",
-            ]
-            # Add FASTQ files as arguments (only actual files, no globs)
-            design_cmd.extend([str(fq) for fq in assay_fastqs])
+            ] + fastq_files
 
             design_result = subprocess.run(
                 design_cmd,

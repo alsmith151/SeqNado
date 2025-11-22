@@ -116,7 +116,13 @@ match ASSAY:
     case Assay.MCC:
         include: "rules/fastq/manipulate.smk"
         include: "rules/fastq/trim.smk"
-    
+    case Assay.CRISPR:
+        include: "rules/crispr/crispr.smk"
+    case Assay.METH:
+        include: "rules/meth/calling.smk"
+    case Assay.SNP:
+        include: "rules/variant/call.smk"
+        include: "rules/variant/annotate.smk"
     case _:
         raise ValueError(f"Assay {ASSAY} not supported yet.")
 

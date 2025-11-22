@@ -397,6 +397,7 @@ class SNPCallingConfig(BaseModel, PathValidatorMixin):
 
     method: SNPCallingMethod
     snp_database: str | None = None
+    create_heatmaps: bool = False  # Added to prevent AttributeError in output builder
 
     @field_validator("snp_database")
     def validate_snp_database(cls, v: str | None, info) -> str | None:
@@ -432,7 +433,7 @@ class MethylationConfig(BaseModel):
     """Configuration for methylation calling."""
 
     method: MethylationMethod
-
+    spikein_genomes: list[str] = []
 
 
 class MLDatasetConfig(BaseModel, PathValidatorMixin):

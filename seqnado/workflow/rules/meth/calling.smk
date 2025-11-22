@@ -1,3 +1,5 @@
+
+
 checkpoint methylation_split_bams:
     input:
         OUTPUT_DIR + "/aligned/{sample}.bam"
@@ -47,6 +49,8 @@ rule methyldackel_bias:
     shell: """
     MethylDackel mbias -@ {threads} --txt {params.fasta} {input.bam} {params.prefix} > {output.bias} 2> {log}
     """
+
+SPIKEIN_GENOMES = CONFIG.assay_config.spikein_genomes if CONFIG.assay_config.spikein_genomes else []
 
 rule calculate_conversion:
     input:

@@ -391,6 +391,15 @@ def get_methylation_config() -> Optional[MethylationConfig]:
     call_methylation = get_user_input(
         "Call methylation?", default="no", is_boolean=True
     )
+    spikein_genomes = []
+    if call_methylation:
+        spikein_genomes_input = get_user_input(
+            "Spike-in genomes (comma-separated):", default=""
+        )
+        if spikein_genomes_input:
+            spikein_genomes = [genome.strip() for genome in spikein_genomes_input.split(",")]
+
+    
 
     if not call_methylation:
         return None
