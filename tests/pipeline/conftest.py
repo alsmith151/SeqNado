@@ -158,6 +158,7 @@ def star_index(genome_path: Path) -> Path:
             try:
                 nested.rmdir()
             except Exception as e:
+                print(f"Could not remove nested directory {nested}: {e}")
         os.remove(genome_path / suffix)
 
     return dest
