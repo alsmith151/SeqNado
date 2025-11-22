@@ -184,7 +184,7 @@ def bt2_index(genome_path: Path) -> Path:
         print(f"[DEBUG] Extracting {genome_path / suffix} to {dest}")
         with tarfile.open(genome_path / suffix) as tar:
             dest.mkdir(parents=True, exist_ok=True)
-            tar.extractall(path=dest)
+            tar.extractall(path=dest.parent)
         # Flatten any nested directory structure (e.g., bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L/*.bt2*)
         nested = dest / dest.name
         if nested.exists() and nested.is_dir():
