@@ -41,6 +41,6 @@ jobs:
           TMPDIR: /tmp
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
+          python -m pytest tests/multi_assay/test_pipeline_multi.py-vv -s \
             --cores 4 --run-pipeline
             
