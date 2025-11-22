@@ -135,6 +135,7 @@ def index(genome_index_path: Path, genome_path: Path) -> Path:
                 tar.extractall(path=genome_index_path, filter="data")
             else:
                 tar.extractall(path=genome_path, filter="data")
+
         os.remove(tar_index)
 
     return indicies_path
@@ -243,18 +244,16 @@ def blacklist(genome_path: Path) -> Path:
 
 @pytest.fixture(scope="function")
 def genome_files(genome_path: Path, assay: str) -> tuple[Path, Path]:
-    """Only download genome files if needed for meth/snp assays."""
+    """Ensure chr21_meth.fa and its index are always present for all tests."""
     fasta = genome_path / "chr21_meth.fa"
     fasta_fai = genome_path / "chr21_meth.fa.fai"
 
-    # Only download if this assay actually needs it
-    if assay in ["meth", "snp"]:
-        if not fasta.exists():
-            url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
-            _download_with_retry(url, fasta)
-        if not fasta_fai.exists():
-            url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
-            _download_with_retry(url, fasta_fai)
+    if not fasta.exists():
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa"
+        _download_with_retry(url, fasta)
+    if not fasta_fai.exists():
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/chr21_meth.fa.fai"
+        _download_with_retry(url, fasta_fai)
 
     return fasta, fasta_fai
 
