@@ -15,6 +15,7 @@ Snakefile would need modification to accept an output_prefix parameter.
 
 import os
 from pathlib import Path
+import glob
 import yaml
 
 from seqnado.cli import config
@@ -95,7 +96,8 @@ else:
 
 rule all:
     input:
-        expand(OUTPUT_DIR + "{assay}/logs/.complete", assay=ASSAYS)
+        expand(OUTPUT_DIR + "{assay}/logs/.complete", assay=ASSAYS),
+        "multi_assay_summary.txt"
     default_target: True
 
 
@@ -178,20 +180,21 @@ rule summary:
         with open(output[0], 'w') as f:
             f.write("SeqNado Multi-Assay Project Summary\n")
             f.write("=" * 70 + "\n\n")
+            f.write("Run Directory: " + str(Path.cwd()) + "\n")
             f.write(f"Total assays: {len(ASSAYS)}\n")
             f.write(f"Assays: {', '.join(ASSAYS)}\n\n")
             
             for assay in ASSAYS:
                 f.write(f"\n{assay.upper()}\n")
                 f.write("-" * 50 + "\n")
-                f.write(f"  Config:   {ASSAY_CONFIGS[assay]['path']}\n")
+                f.write(f"  Config:   config_{assay}.yaml\n")
                 f.write(f"  Metadata: metadata_{assay}.csv\n")
                 f.write(f"  Output:   seqnado_output/{assay}/\n")
+                f.write(f"  Report:   seqnado_output/{assay}/seqnado_report.html\n")
                 
-                # Check for report
-                report_file = Path(OUTPUT_DIR + "{assay}/seqnado_report.html")
-                if report_file.exists():
-                    f.write(f"  Report:   ✓ seqnado_output/{assay}/seqnado_report.html\n")
+                # Check for completeness
+                complete_file = OUTPUT_DIR + f"{assay}/logs/.complete"
+                if os.path.exists(complete_file):
+                    f.write(f"  STATUS:   COMPLETE\n")
                 else:
-                    f.write(f"  Report:   ✗ Not found\n")
-
+                    f.write(f"  WARNING: SeqNado report not found! Check logs for errors.\n")

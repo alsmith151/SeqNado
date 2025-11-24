@@ -429,6 +429,7 @@ def run_init(
     monkeypatch: pytest.MonkeyPatch,
     genome_files: tuple[Path, Path],
     genome_path: Path,
+    test_data_path: Path,
 ):
     """Run `seqnado init` and materialize genome_config.json with appropriate indices."""
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
