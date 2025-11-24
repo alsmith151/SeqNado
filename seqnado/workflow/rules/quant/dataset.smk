@@ -20,7 +20,7 @@ rule make_dataset_regions:
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest",
     log: OUTPUT_DIR + "/logs/make_dataset_regions.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/make_dataset_regions.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/make_dataset_regions.tsv",
     message: "Making dataset from regions for machine learning"
     shell: """
     quantnado-make-dataset \
@@ -52,7 +52,7 @@ rule make_dataset_binsize:
             runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest",
     log: OUTPUT_DIR + "/logs/make_dataset_binsize.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/make_dataset_binsize.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/make_dataset_binsize.tsv",
     message: "Making dataset from binsize for machine learning"
     shell: """
     quantnado-make-dataset \

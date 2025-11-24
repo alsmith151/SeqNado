@@ -283,7 +283,6 @@ class PlottingConfig(BaseModel):
     """Configuration for plotting features."""
 
     coordinates: str | None = None
-    genes: str | None = None
     file_format: Literal["png", "pdf", "svg"] = "pdf"
 
 

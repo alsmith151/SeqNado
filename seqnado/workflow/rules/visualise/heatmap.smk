@@ -18,7 +18,7 @@ rule heatmap_matrix:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/heatmap/matrix.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/heatmap/matrix.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/heatmap/matrix.tsv",
     message: "Computing heatmap matrix from bigWig files"
     shell: """
     computeMatrix scale-regions -p {threads} {params.options} --smartLabels --missingDataAsZero -S {input.bigwigs} -R {params.gtf} -o {output.matrix} >> {log} 2>&1
@@ -36,7 +36,7 @@ rule heatmap_plot:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/heatmap/heatmap.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/heatmap/heatmap.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/heatmap/heatmap.tsv",
     message: "Generating heatmap from matrix"
     shell: """
     plotHeatmap -m {input.matrix} -out {output.heatmap} {params.options}
@@ -52,7 +52,7 @@ rule heatmap_metaplot:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/heatmap/metaplot.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/heatmap/metaplot.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/heatmap/metaplot.tsv",
     message: "Generating metaplot from heatmap matrix"
     shell: """
     plotProfile -m {input.matrix} -out {output.metaplot} --perGroup

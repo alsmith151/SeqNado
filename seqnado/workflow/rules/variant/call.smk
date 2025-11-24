@@ -14,7 +14,7 @@ rule bcftools_call_snp:
     threads: CONFIG.third_party_tools.bcftools.call.threads
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/variant/{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/variant/{sample}.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/variant/{sample}.tsv",
     message: "Calling variants for sample {wildcards.sample} using bcftools"
     shell: """
     bcftools mpileup --threads {threads} -Ou -f {params.fasta} {input.bam} | bcftools call --threads {threads} -mv -Oz -o {output.vcf} > {log} 2>&1 &&
@@ -37,7 +37,7 @@ rule split_multiallelic:
     threads: 16
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/variant/{sample}_split.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/variant/{sample}_split.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/variant/{sample}_split.tsv",
     message: "Splitting multiallelic variants for sample {wildcards.sample}"
     shell: """
     bcftools norm --threads {threads} -m-any -Oz -o {output.vcf} {input.vcf} > {log} 2>&1 &&

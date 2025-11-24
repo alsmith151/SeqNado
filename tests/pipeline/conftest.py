@@ -443,7 +443,7 @@ def run_init(
     )
 
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
-
+    genes_bed = test_data_path / "hg38_genes.bed"
     fasta, _ = genome_files
     genome_config_dict = {
         "hg38": {
@@ -452,7 +452,7 @@ def run_init(
             "chromosome_sizes": str(chromsizes),
             "gtf": str(gtf),
             "blacklist": str(blacklist),
-            "genes": "",
+            "genes": str(genes_bed),
             "fasta": str(fasta) if any(x in assay.lower() for x in ["meth", "snp"]) else "",
         }
     }
@@ -534,8 +534,7 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
         config = yaml.safe_load(f)
 
     # set plot_with_plotnado to False
-    config["assay_config"]["plot_with_plotnado"] = False
-
+    
 
     # Patch genome.index.prefix for methylation and ensure index files exist
     if "meth" in assay.lower():
@@ -559,12 +558,13 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
             with tarfile.open(bt2_tar) as tar:
                 tar.extractall(path=bt2_index_dir)
             bt2_tar.unlink()
-
+    config["assay_config"]["plot_with_plotnado"] = False
     match assay:
         case "atac":
             config["pileup_method"] = ["deeptools", "homer"]
             config["call_peaks"] = True
             config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
+            config["assay_config"]["plot_with_plotnado"] = True
         case "cat":
             config["pileup_method"] = ["deeptools", "bamnado"]
         case "chip":

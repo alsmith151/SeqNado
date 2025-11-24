@@ -16,7 +16,7 @@ rule feature_counts:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/readcounts/featurecounts/featurecounts.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/readcounts/featurecounts/featurecounts.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/readcounts/featurecounts/featurecounts.tsv",
     message: "Running featureCounts to quantify reads for all samples"
     shell: """
     featureCounts \

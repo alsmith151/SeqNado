@@ -18,7 +18,7 @@ rule deeptools_make_bigwigs_consensus:
         CONFIG.third_party_tools.deeptools.bam_coverage.threads,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/bigwigs/{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/bigwigs/deeptools/merged/{sample}.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/bigwigs/deeptools/merged/{sample}.tsv",
     message: "Making bigWig with deeptools for merged sample {wildcards.sample}"
     shell:
         """

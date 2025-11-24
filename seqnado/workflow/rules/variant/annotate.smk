@@ -15,7 +15,7 @@ rule bcftools_annotate:
     threads: 16
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/variant/{sample}_anno.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/variant/{sample}_anno.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/variant/{sample}_anno.tsv",
     message: "Annotating VCF for sample {wildcards.sample} with dbSNP"
     shell: """
     bcftools annotate --threads {threads} -c ID -a {params.dbsnp} -Oz -o {output.vcf} {input.vcf} 2> {log} &&

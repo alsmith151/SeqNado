@@ -17,7 +17,7 @@ rule salmon_counts_paired:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/readcounts/salmon/salmon_{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/readcounts/salmon/salmon_{sample}.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/readcounts/salmon/salmon_{sample}.tsv",
     message: "Running Salmon to quantify reads for sample {wildcards.sample}"
     shell: """
     salmon quant -i {params.index} {params.options} -1 {input.fq1} -2 {input.fq2} -p {threads} -o {output.out_dir}
@@ -38,7 +38,7 @@ rule salmon_counts_single:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/readcounts/salmon/salmon_{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmarks/readcounts/salmon/salmon_{sample}.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/readcounts/salmon/salmon_{sample}.tsv",
     message: "Running Salmon to quantify reads for sample {wildcards.sample}"
     shell: """
     salmon quant -i {params.index} {params.options} -r {input.fq} -p {threads} -o {output.out_dir}
@@ -52,7 +52,7 @@ rule get_salmon_counts:
         count_table=OUTPUT_DIR + "/readcounts/salmon/salmon_counts.csv"
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/readcounts/salmon/salmon_counts.log"
-    benchmark: OUTPUT_DIR + "/.benchmarks/readcounts/salmon/salmon_counts.tsv",
+    benchmark: OUTPUT_DIR + "/.benchmark/readcounts/salmon/salmon_counts.tsv",
     message: "Aggregating Salmon counts into a single count table"
     script:
         "../../scripts/get_salmon_counts.py"
