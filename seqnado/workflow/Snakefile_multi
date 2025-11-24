@@ -121,12 +121,12 @@ rule run_assay:
         output_dir = OUTPUT_DIR + "{assay}",
         project_root = str(Path.cwd()),
         cores_for_assay = CORES_PER_ASSAY
-    log:
-        OUTPUT_DIR + "{assay}/logs/snakemake.log"
-    threads: 1  # Orchestration uses 1 thread so multiple assays can run in parallel
+    threads: 1
     resources:
-        mem_mb = 16000,  # Allocate some memory for the orchestration step
-        runtime = 259200  # 3 days in seconds
+        mem_mb = 8000,
+        runtime = 259200  # 72 hours
+    log:
+        OUTPUT_DIR + "{assay}/logs/seqnado.log"
     shell:
         """
         # Create output directory
