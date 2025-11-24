@@ -592,7 +592,7 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
         Assay.CAT: qc_tools + generic_dna_tools + [Seacr],
         Assay.RNA: qc_tools + [Star, Deeptools, Samtools, Trimgalore, Salmon, Subread],
         Assay.SNP: qc_tools + [Bowtie2, Trimgalore, Samtools, BcfTools],
-        Assay.METH: qc_tools + [Bowtie2, Methyldackel, Samtools, Picard],
+        Assay.METH: qc_tools + [Bowtie2, Trimgalore, Methyldackel, Samtools, Picard],
         Assay.CRISPR: [Cutadapt, Bowtie2, Subread, Samtools],
         Assay.MCC: qc_tools + [Bowtie2, Samtools, Deeptools, LanceotronMCC],
     }

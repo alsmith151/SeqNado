@@ -392,9 +392,9 @@ class RNAQuantificationConfig(BaseModel, PathValidatorMixin):
         return cls.validate_path_exists(v, "Salmon index path")
 
 
-class SNPCallingConfig(BaseModel, PathValidatorMixin):
+class SNPCallingConfig(BaseModel, PathValidatorMixin, CommonComputedFieldsMixin):
     """Configuration for SNP calling."""
-
+    
     method: SNPCallingMethod
     snp_database: str | None = None
     create_heatmaps: bool = False  # Added to prevent AttributeError in output builder
@@ -408,6 +408,13 @@ class SNPCallingConfig(BaseModel, PathValidatorMixin):
     def annotate_snps(self) -> bool:
         """Whether to annotate SNPs (computed from snp_database presence)."""
         return getattr(self, "snp_database", None) is not None
+
+
+class MethylationConfig(BaseModel, CommonComputedFieldsMixin):
+    """Configuration for methylation calling."""
+
+    method: MethylationMethod
+    spikein_genomes: list[str] = Field(default_factory=lambda: ['Lambda', '2kb-unmod'], description="List of spike-in genomes")
 
 
 class MCCConfig(BaseModel, PathValidatorMixin):
@@ -427,13 +434,6 @@ class MCCConfig(BaseModel, PathValidatorMixin):
         if any(resolution <= 0 for resolution in v):
             raise ValueError("All resolutions must be positive integers.")
         return v
-
-
-class MethylationConfig(BaseModel):
-    """Configuration for methylation calling."""
-
-    method: MethylationMethod
-    spikein_genomes: list[str] = []
 
 
 class MLDatasetConfig(BaseModel, PathValidatorMixin):

@@ -11,7 +11,11 @@
 {{ space }}  - {{ item }}
 {%- endfor -%}
 {%- elif value is none -%}
+{%- if key == 'spikein_genomes' -%}
+{{ space }}{{ key }}: []
+{%- else -%}
 {{ space }}{{ key }}: null
+{%- endif -%}
 {%- elif value is number or value is boolean -%}
 {{ space }}{{ key }}: {{ value }}
 {%- else -%}

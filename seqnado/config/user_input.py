@@ -391,16 +391,14 @@ def get_methylation_config() -> Optional[MethylationConfig]:
     call_methylation = get_user_input(
         "Call methylation?", default="no", is_boolean=True
     )
-    spikein_genomes = []
+    spikein_genomes: list[str] = []
     if call_methylation:
         spikein_genomes_input = get_user_input(
-            "Spike-in genomes (comma-separated):", default=""
+            "Spike-in genomes (comma-separated):", default="Lambda,2kb-unmod"
         )
         if spikein_genomes_input:
-            spikein_genomes = [genome.strip() for genome in spikein_genomes_input.split(",")]
-
-    
-
+            spikein_genomes = [genome.strip() for genome in spikein_genomes_input.split(",") if genome.strip()]
+    # Always ensure spikein_genomes is a list, never None
     if not call_methylation:
         return None
 
@@ -410,7 +408,7 @@ def get_methylation_config() -> Optional[MethylationConfig]:
         default="taps",
     )
 
-    return MethylationConfig(assay=MethylationMethod(methylation_assay))
+    return MethylationConfig(method=MethylationMethod(methylation_assay), spikein_genomes=spikein_genomes or [])
 
 
 def build_assay_config(

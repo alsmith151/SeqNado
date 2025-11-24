@@ -77,6 +77,7 @@ class SNPAssayConfig(BaseAssayConfig, SNPCallingMixin):
     """Configuration specific to SNP calling assays."""
 
     snp_calling: SNPCallingConfig | None = None
+    snp_database: str | None = None
     ucsc_hub: None
     create_heatmaps: bool = False
 

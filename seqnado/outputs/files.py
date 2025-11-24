@@ -326,9 +326,14 @@ class MethylationFiles(BaseModel):
     
     @property
     def methyldackel_files(self) -> List[str]:
-
-        file_pattern = f"{self.output_dir}/methylation/methyldackel/{{sample}}_{{genome}}_|METHOD|CpG.bedGraph"
-        file_pattern = file_pattern.replace("|METHOD|", self.method.value)
+        """
+        For TAPS, return the inverted file ({sample}_{genome}_CpG_inverted.bedGraph).
+        For other methods, return the direct file ({sample}_{genome}_CpG.bedGraph).
+        """
+        if self.method.value == "taps":
+            file_pattern = f"{self.output_dir}/methylation/methyldackel/{{sample}}_{{genome}}_CpG_inverted.bedGraph"
+        else:
+            file_pattern = f"{self.output_dir}/methylation/methyldackel/{{sample}}_{{genome}}_CpG.bedGraph"
         return expand(
             file_pattern,
             sample=self.names,

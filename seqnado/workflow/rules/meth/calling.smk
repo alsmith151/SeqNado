@@ -37,7 +37,7 @@ rule methyldackel_bias:
         bias=OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}.txt",
     params:
         fasta=CONFIG.genome.fasta,
-        prefix=OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}"
+        prefix=OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}_"
     threads: CONFIG.third_party_tools.methyldackel.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -50,7 +50,7 @@ rule methyldackel_bias:
     MethylDackel mbias -@ {threads} --txt {params.fasta} {input.bam} {params.prefix} > {output.bias} 2> {log}
     """
 
-SPIKEIN_GENOMES = CONFIG.assay_config.spikein_genomes if CONFIG.assay_config.spikein_genomes else []
+SPIKEIN_GENOMES = CONFIG.assay_config.methylation.spikein_genomes if CONFIG.assay_config.methylation and CONFIG.assay_config.methylation.spikein_genomes else []
 
 rule calculate_conversion:
     input:
@@ -59,7 +59,7 @@ rule calculate_conversion:
         conversion=OUTPUT_DIR + "/methylation/methylation_conversion.tsv",
         plot=OUTPUT_DIR + "/methylation/methylation_conversion.png"
     params:
-        assay=CONFIG.methylation.method,
+        assay=CONFIG.assay_config.methylation.method if CONFIG.assay_config.methylation else None,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/methylation/conversion.log"
     benchmark: OUTPUT_DIR + "/.benchmark/methylation/calculate_conversion.tsv"
@@ -74,8 +74,8 @@ rule methyldackel_extract:
         bdg=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
     params:
         fasta=CONFIG.genome.fasta,
-        options=CONFIG.third_party_tools.methyldackel.options,
-        prefix=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}"
+        options=CONFIG.third_party_tools.methyldackel.command_line_arguments,
+        prefix=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_"
     threads: CONFIG.third_party_tools.methyldackel.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -89,11 +89,12 @@ rule methyldackel_extract:
     """
 
 
+
 rule taps_inverted:
     input:
         bdg=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
     output:
-        taps=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_CpG_TAPS.bedGraph"
+        taps=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_CpG_inverted.bedGraph"
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

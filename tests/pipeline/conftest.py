@@ -213,28 +213,41 @@ def star_index(genome_path: Path) -> Path:
 
 
 @pytest.fixture(scope="session")
-def bt2_index(genome_path: Path) -> Path:
-    suffix = "bt2_chr21_dm6_chr2L.tar.gz"
-    dest = genome_path / "bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L"
-
-    if not dest.exists():
-        url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
-        _download_with_retry(url, genome_path / suffix)
-        with tarfile.open(genome_path / suffix) as tar:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            tar.extractall(path=dest.parent)
-        # Move all .bt2* files from any nested subdirectory up to dest.parent
-        nested = dest.parent / dest.name
-        if nested.exists() and nested.is_dir():
-            for f in nested.glob("*.bt2*"):
-                f.rename(dest.parent / f.name)
-            try:
-                nested.rmdir()
-            except Exception as e:
-                print(f"[ERROR] Could not remove nested directory {nested}: {e}")
-        os.remove(genome_path / suffix)
-
-    return dest
+def bt2_index(genome_path: Path, request) -> Path:
+    # Try to get the assay name from the requesting test if available
+    assay = getattr(request, 'param', None)
+    if assay and "meth" in str(assay).lower():
+        dest = genome_path / "bt2_chr21_meth"
+        # Download and extract if needed
+        if not dest.exists():
+            suffix = "bt2_chr21_meth.tar.gz"
+            url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
+            _download_with_retry(url, genome_path / suffix)
+            with tarfile.open(genome_path / suffix) as tar:
+                dest.mkdir(parents=True, exist_ok=True)
+                tar.extractall(path=dest)
+            os.remove(genome_path / suffix)
+        return dest
+    else:
+        suffix = "bt2_chr21_dm6_chr2L.tar.gz"
+        dest = genome_path / "bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L"
+        if not dest.exists():
+            url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
+            _download_with_retry(url, genome_path / suffix)
+            with tarfile.open(genome_path / suffix) as tar:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                tar.extractall(path=dest.parent)
+            # Move all .bt2* files from any nested subdirectory up to dest.parent
+            nested = dest.parent / dest.name
+            if nested.exists() and nested.is_dir():
+                for f in nested.glob("*.bt2*"):
+                    f.rename(dest.parent / f.name)
+                try:
+                    nested.rmdir()
+                except Exception as e:
+                    print(f"[ERROR] Could not remove nested directory {nested}: {e}")
+            os.remove(genome_path / suffix)
+        return dest
 
 
 @pytest.fixture(scope="session")
@@ -440,7 +453,7 @@ def run_init(
             "gtf": str(gtf),
             "blacklist": str(blacklist),
             "genes": "",
-            "fasta": str(fasta) if assay in ["meth", "snp"] else "",
+            "fasta": str(fasta) if any(x in assay.lower() for x in ["meth", "snp"]) else "",
         }
     }
     genome_config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -522,6 +535,28 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
 
     # set plot_with_plotnado to False
     config["assay_config"]["plot_with_plotnado"] = False
+
+
+    # Patch genome.index.prefix for methylation and ensure index files exist
+    if "meth" in assay.lower():
+        bt2_index_dir = Path(config_yaml).parent.parent.parent / "data" / "genome" / "bt2_chr21_meth"
+        config["genome"]["index"]["prefix"] = str(bt2_index_dir)
+        # Ensure Bowtie2 index files are present
+        if not bt2_index_dir.exists() or not any(bt2_index_dir.glob("*.bt2*") ):
+            import requests, tarfile
+            bt2_tar = bt2_index_dir.parent / "bt2_chr21_meth.tar.gz"
+            url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/bt2_chr21_meth.tar.gz"
+            bt2_index_dir.mkdir(parents=True, exist_ok=True)
+            # Download
+            with requests.get(url, stream=True) as r:
+                r.raise_for_status()
+                with open(bt2_tar, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+            # Extract
+            with tarfile.open(bt2_tar) as tar:
+                tar.extractall(path=bt2_index_dir)
+            bt2_tar.unlink()
 
     match assay:
         case "atac":

@@ -8,11 +8,28 @@ from pydantic import BaseModel, computed_field, field_validator
 class CommonComputedFieldsMixin:
     """Mixin class providing common computed fields for assay configurations."""
 
+
     @computed_field
     @property
     def create_bigwigs(self) -> bool:
-        """Whether to make bigwigs (computed from bigwigs config presence)."""
+        """Whether to make bigwigs 
+        (respects explicit config, else computed from bigwigs config presence).
+        Returns False for methylation and SNP assays."""
+        # If explicitly set, use that value
+        explicit = getattr(self, "_explicit_create_bigwigs", None)
+        if explicit is not None:
+            return explicit
+        # Prevent bigwigs for meth and snp assays
+        if isinstance(self, (MethylationMixin, SNPCallingMixin)):
+            return False
+        # Otherwise, fallback to old logic
         return getattr(self, "bigwigs", None) is not None
+
+    def __init__(self, *args, **kwargs):
+        # Pop explicit create_bigwigs if present
+        explicit = kwargs.pop("create_bigwigs", None)
+        super().__init__(*args, **kwargs)
+        self._explicit_create_bigwigs = explicit
 
     @computed_field
     @property
@@ -37,7 +54,7 @@ class CommonComputedFieldsMixin:
         """Whether to use spike-in normalization (computed from spikein config presence)."""
         return getattr(self, "spikein", None) is not None
     
-    @field_validator("create_geo_submission_files", mode="before")
+    @field_validator("create_geo_submission_files", mode="before", check_fields=False)
     def validate_geo_submission_files(cls, v):
         """Ensure geo submission files are created only if the config is set."""
         return v if v else False

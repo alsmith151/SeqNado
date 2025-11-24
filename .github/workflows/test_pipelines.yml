@@ -9,8 +9,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        assay: ["atac", "rna", "chip"]
-        # assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
+        assay: 
+          - atac
+          - cat
+          - chip
+          # - chip-rx
+          # - mcc
+          - meth
+          - rna
+          # - rna-rx
+          - snp
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3

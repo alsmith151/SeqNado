@@ -119,8 +119,14 @@ match ASSAY:
     case Assay.CRISPR:
         include: "rules/crispr/crispr.smk"
     case Assay.METH:
+        include: "rules/fastq/trim.smk"
+        include: "rules/alignment/dna_default.smk"
+        include: "rules/bam/all.smk"
         include: "rules/meth/calling.smk"
     case Assay.SNP:
+        include: "rules/fastq/trim.smk"
+        include: "rules/alignment/dna_default.smk"
+        include: "rules/bam/all.smk"
         include: "rules/variant/call.smk"
         include: "rules/variant/annotate.smk"
     case _:
