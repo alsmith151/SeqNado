@@ -36,24 +36,24 @@ OUTPUT_DIR = config.get("output_dir", f"seqnado_output/{ASSAY.clean_name}")
 ################################
 SAMPLE_GROUPINGS = SampleGroupings()
 
-# normalisation_groups = SampleGroups.from_dataframe(
-#     INPUT_FILES.to_dataframe(),
-#     subset_column="scaling_group",
-# )
+normalisation_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="scaling_group",
+)
 
-# scaling_groups = SampleGroups.from_dataframe(
-#     INPUT_FILES.to_dataframe(),
-#     subset_column="scaling_group",
-# )
+scaling_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="scaling_group",
+)
 
-# consensus_groups = SampleGroups.from_dataframe(
-#     INPUT_FILES.to_dataframe(),
-#     subset_column="consensus_group",
-# )
+consensus_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="consensus_group",
+)
 
-# SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
-# SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
-# SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
+SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
+SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
+SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
 
 
 ################################
@@ -104,6 +104,7 @@ match ASSAY:
         include: "rules/visualise/hub.smk"
         include: "rules/visualise/browser.smk"
         include: "rules/quant/merged.smk"
+        include: "rules/normalization/spikein.smk"
     case Assay.RNA:
         include: "rules/fastq/trim.smk"
         include: "rules/alignment/rna_default.smk"
@@ -113,6 +114,7 @@ match ASSAY:
         include: "rules/pileup/rna_default.smk"
         include: "rules/visualise/hub.smk"
         include: "rules/visualise/browser.smk"
+        include: "rules/normalization/spikein.smk"
     case Assay.MCC:
         include: "rules/alignment/dna_default.smk"
         include: "rules/bam/index.smk"
@@ -139,7 +141,7 @@ include: "rules/common/qc.smk"
 ################################
 # Rule Ordering
 ################################
-# if CONFIG.has_spikein:
+# if CONFIG.assay_config.has_spikein:
 #     ruleorder: move_ref_bam > align_paired > align_single
 #     ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
 #     ruleorder: align_paired_spikein > align_paired > align_single_spikein > align_single
