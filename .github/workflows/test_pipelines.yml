@@ -47,6 +47,12 @@ jobs:
         with:
           apptainer-version: 1.3.4
 
+      - name: Ensure files are available
+        run: |
+          mkdir -p /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/
+          cp tests/data/plotting_coordinates.bed /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/
+          cp tests/data/hg38_genes.bed /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/
+
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
