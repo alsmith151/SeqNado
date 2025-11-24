@@ -1,5 +1,3 @@
-!tests/data/hg38_genes.bed
-!tests/data/plotting_coordinates.bed
 .DS_Store
 .ipynb_checkpoints/
 .pytest_cache
