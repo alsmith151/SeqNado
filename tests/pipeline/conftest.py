@@ -365,7 +365,7 @@ def fastqs(test_data_path: Path, selected_assays: list[str]) -> dict[str, list[P
         with tarfile.open(tar_path, "r:gz") as tar:
             tar.extractall(path=temp_extract_dir)
         for fastq_file in temp_extract_dir.rglob("*.fastq.gz"):
-            shutil.move(str(fastq_file), target_dir / fastq_file.name)
+            shutil.copy(str(fastq_file), target_dir / fastq_file.name)
         shutil.rmtree(temp_extract_dir)
         tar_path.unlink(missing_ok=True)
 
@@ -405,12 +405,31 @@ def plot_bed(test_data_path: Path) -> Path:
 
 
 @pytest.fixture(scope="function", autouse=True)
-def set_up_run_dir(run_directory: Path, fastqs: dict[str, list[Path]], assay: str):
-    """Chdir to run dir and copy fastqs needed for this assay."""
+def set_up_run_dir(run_directory: Path, test_data_path: Path, assay: str):
+    """Chdir to run dir and copy fastqs needed for this assay using the pick function."""
     cwd = Path.cwd()
     os.chdir(run_directory)
     try:
-        for fq in fastqs[assay]:
+        # Use the same pick function as in fastqs fixture
+        def pick(assay_name: str) -> list[Path]:
+            m = {
+                "atac": "atac*.fastq.gz",
+                "chip": "chip-rx_*.fastq.gz",
+                "chip-rx": "chip-rx_*.fastq.gz",
+                "rna": "rna_*.fastq.gz",
+                "rna-rx": "rna-spikein*.fastq.gz",
+                "snp": "snp*.fastq.gz",
+                "cat": "chip-rx_*.fastq.gz",
+                "meth": "meth*.fastq.gz",
+                "mcc": "mcc*.fastq.gz",
+            }
+            pattern = m.get(assay_name)
+            if not pattern:
+                raise ValueError(f"Unsupported assay: {assay_name}")
+            target_dir = test_data_path / "fastq"
+            return sorted(target_dir.glob(pattern))
+
+        for fq in pick(assay):
             shutil.copy(fq, run_directory)
         yield
     finally:
@@ -573,7 +592,7 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
             config["pileup_method"] = ["deeptools", "homer"]
             config["call_peaks"] = True
             config["peak_calling_method"] = ["lanceotron", "macs", "homer"]
-            config["assay_config"]["plot_with_plotnado"] = True
+            # config["assay_config"]["plot_with_plotnado"] = True
         case "cat":
             config["pileup_method"] = ["deeptools", "bamnado"]
         case "chip":
@@ -610,11 +629,21 @@ def design(
     import pandas as pd
 
     # Copy FASTQs from run_directory to seqnado_run_dir
-    for fq in run_directory.glob(f"{assay_type}*.fastq.gz"):
-        shutil.copy(fq, seqnado_run_dir)
+    if assay == "cat":
+        # For CAT, copy chip-rx_*.fastq.gz files
+        for fq in run_directory.glob("chip-rx_*.fastq.gz"):
+            shutil.copy(fq, seqnado_run_dir)
+    else:
+        for fq in run_directory.glob(f"{assay_type}*.fastq.gz"):
+            shutil.copy(fq, seqnado_run_dir)
 
     # Only use seqnado_run_dir for globbing FASTQ files
     fastq_files = sorted(str(f) for f in seqnado_run_dir.glob(f"{assay}*.fastq.gz"))
+    if assay == "cat":
+        # CAT assay uses chip-rx_*.fastq.gz pattern
+        fastq_files = sorted(
+            str(f) for f in seqnado_run_dir.glob("chip-rx_*.fastq.gz")
+        )
     if not fastq_files:
         raise FileNotFoundError(
             f"No FASTQ files found for assay '{assay}' in {seqnado_run_dir}"

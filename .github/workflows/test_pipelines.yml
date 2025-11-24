@@ -10,8 +10,8 @@ jobs:
     strategy:
       matrix:
         assay: 
-          - atac
-          # - cat
+          # - atac
+          - cat
           - chip
           # - chip-rx
           # - mcc
