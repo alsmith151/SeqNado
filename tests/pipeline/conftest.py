@@ -540,10 +540,12 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
     # Patch genome.index.prefix for methylation and ensure index files exist
     if "meth" in assay.lower():
         bt2_index_dir = Path(config_yaml).parent.parent.parent / "data" / "genome" / "bt2_chr21_meth"
-        config["genome"]["index"]["prefix"] = str(bt2_index_dir)
+        bt2_index_prefix = bt2_index_dir / "chr21_meth"
+        config["genome"]["index"]["prefix"] = str(bt2_index_prefix)
         # Ensure Bowtie2 index files are present
         if not bt2_index_dir.exists() or not any(bt2_index_dir.glob("*.bt2*") ):
-            import requests, tarfile
+            import requests
+            import tarfile
             bt2_tar = bt2_index_dir.parent / "bt2_chr21_meth.tar.gz"
             url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/bt2_chr21_meth.tar.gz"
             bt2_index_dir.mkdir(parents=True, exist_ok=True)

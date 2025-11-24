@@ -392,7 +392,7 @@ class RNAQuantificationConfig(BaseModel, PathValidatorMixin):
         return cls.validate_path_exists(v, "Salmon index path")
 
 
-class SNPCallingConfig(BaseModel, PathValidatorMixin, CommonComputedFieldsMixin):
+class SNPCallingConfig(BaseModel, PathValidatorMixin):
     """Configuration for SNP calling."""
     
     method: SNPCallingMethod
@@ -410,12 +410,19 @@ class SNPCallingConfig(BaseModel, PathValidatorMixin, CommonComputedFieldsMixin)
         return getattr(self, "snp_database", None) is not None
 
 
-class MethylationConfig(BaseModel, CommonComputedFieldsMixin):
+class MethylationConfig(BaseModel, PathValidatorMixin):
     """Configuration for methylation calling."""
 
     method: MethylationMethod
-    spikein_genomes: list[str] = Field(default_factory=lambda: ['Lambda', '2kb-unmod'], description="List of spike-in genomes")
+    reference_genome: str = Field(default_factory=lambda: "hg38", description="Reference genome for methylation calling")
+    spikein_genomes: list[str] = Field(default_factory=lambda: ['Lambda', '250bp-v1', '2kb-unmod'], description="List of spike-in genomes")
 
+    @field_validator("spikein_genomes")
+    def validate_spikein_genomes(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("spikein_genomes must contain at least one genome.")
+        return v
+    
 
 class MCCConfig(BaseModel, PathValidatorMixin):
     """Configuration for MCC (Capture-C) analysis."""

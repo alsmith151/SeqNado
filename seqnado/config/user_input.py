@@ -394,7 +394,7 @@ def get_methylation_config() -> Optional[MethylationConfig]:
     spikein_genomes: list[str] = []
     if call_methylation:
         spikein_genomes_input = get_user_input(
-            "Spike-in genomes (comma-separated):", default="Lambda,2kb-unmod"
+            "Spike-in genomes (comma-separated):", default="Lambda,250bp-v1,2kb-unmod", required=False
         )
         if spikein_genomes_input:
             spikein_genomes = [genome.strip() for genome in spikein_genomes_input.split(",") if genome.strip()]
@@ -479,19 +479,23 @@ def build_assay_config(
 
             return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
 
-        case Assay.SNP:
-            snp_calling = get_snp_calling_config()
 
-            return SNPAssayConfig(**base_config, snp_calling=snp_calling)
+        case Assay.SNP:
+            base_config_snp = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
+            base_config_snp['ucsc_hub'] = None
+            snp_calling = get_snp_calling_config()
+            return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
 
         case Assay.MCC:
             mcc = get_mcc_config()
             return MCCAssayConfig(**base_config, mcc=mcc)
 
-        case Assay.METH:
-            methylation = get_methylation_config()
 
-            return MethylationAssayConfig(**base_config, methylation=methylation)
+        case Assay.METH:
+            base_config_meth = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
+            base_config_meth['ucsc_hub'] = None
+            methylation = get_methylation_config()
+            return MethylationAssayConfig(**base_config_meth, methylation=methylation)
 
         case Assay.CRISPR:
             return CRISPRAssayConfig(**base_config)
@@ -707,7 +711,8 @@ def render_config(
     template = env.get_template(template.name)
 
     # Convert the Pydantic model to a dictionary for rendering
-    config_dict = workflow_config.model_dump(mode="json", exclude_none=not all_options)
+    # Always include fields with None values to ensure required fields like ucsc_hub are present
+    config_dict = workflow_config.model_dump(mode="json", exclude_none=False)
 
     try:
         rendered_content = template.render(**config_dict)

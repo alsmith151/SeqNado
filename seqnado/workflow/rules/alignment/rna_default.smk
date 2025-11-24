@@ -24,15 +24,15 @@ rule align_paired:
     message: "Aligning reads for sample {wildcards.sample} using STAR",
     shell: """
     STAR \
-        --genomeDir {params.index} \
-        --readFilesIn {input.fq1} {input.fq2} \
-        --readFilesCommand zcat \
-        --outSAMtype BAM SortedByCoordinate \
-        --runThreadN {threads} \
-        --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
-        --outFileNamePrefix {params.prefix} \
-        {params.options} \
-        > {log} 2>&1
+    --genomeDir {params.index} \
+    --readFilesIn {input.fq1} {input.fq2} \
+    --readFilesCommand zcat \
+    --outSAMtype BAM SortedByCoordinate \
+    --runThreadN {threads} \
+    --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
+    --outFileNamePrefix {params.prefix} \
+    {params.options} \
+    > {log} 2>&1
     """
 
 

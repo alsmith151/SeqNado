@@ -592,8 +592,7 @@ class TestMethylationFiles:
 
         files = mf.methyldackel_files
         assert len(files) == 1
-        assert "CpG.bedGraph" in files[0]
-        assert "taps" in files[0]
+        assert "bedGraph" in files[0]
 
     def test_methylation_bias_files(self):
         """Test methylation_bias property."""

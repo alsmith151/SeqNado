@@ -402,7 +402,7 @@ class SeqnadoOutputBuilder:
         methylation_files = MethylationFiles(
             assay=self.assay,
             names=self.samples.sample_names,
-            genomes=[self.config.genome.name],
+            genomes=self.config.assay_config.methylation.spikein_genomes,
             method=self.config.assay_config.methylation.method,
             output_dir=self.output_dir,
         )

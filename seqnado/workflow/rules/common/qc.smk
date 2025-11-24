@@ -223,7 +223,6 @@ multiqc_input_files = SeqNadoReportFiles(
     output_dir=OUTPUT_DIR,
 ).gather_input_files
 
-
 rule seqnado_report:
     input:
         multiqc_input_files,

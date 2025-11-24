@@ -19,18 +19,17 @@ rule align_paired:
     log: OUTPUT_DIR + "/logs/align/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/align/{sample}.tsv",
     message: "Aligning reads for sample {wildcards.sample} using Bowtie2",
-    shell:
-        """
-        bowtie2 \
-            -p {threads} \
-            -x {params.index} \
-            -1 {input.fq1} \
-            -2 {input.fq2} \
-            {params.rg} \
-            {params.options} \
-            2> {log} \
-        | samtools view -bS - > {output.bam}
-        """
+    shell: """
+    bowtie2 \
+        -p {threads} \
+        -x {params.index} \
+        -1 {input.fq1} \
+        -2 {input.fq2} \
+        {params.rg} \
+        {params.options} \
+        2> {log} \
+    | samtools view -bS - > {output.bam}
+    """
 
 rule align_single:
     input:
@@ -50,17 +49,16 @@ rule align_single:
     log: OUTPUT_DIR + "/logs/align/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/align/{sample}.tsv",
     message: "Aligning reads for sample {wildcards.sample} using Bowtie2",
-    shell:
-        """
-        bowtie2 \
-            -p {threads} \
-            -x {params.index} \
-            -U {input.fq1} \
-            {params.rg} \
-            {params.options} \
-            2> {log} \
-        | samtools view -bS - > {output.bam}
-        """
+    shell: """
+    bowtie2 \
+        -p {threads} \
+        -x {params.index} \
+        -U {input.fq1} \
+        {params.rg} \
+        {params.options} \
+        2> {log} \
+    | samtools view -bS - > {output.bam}
+    """
 
 
 ruleorder: align_paired > align_single

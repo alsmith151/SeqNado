@@ -47,6 +47,7 @@ class CommonComputedFieldsMixin:
     @property
     def create_ucsc_hub(self) -> bool:
         """Whether to make UCSC hub (computed from ucsc_hub config presence)."""
+        
         return getattr(self, "ucsc_hub", None) is not None
     
     @computed_field

@@ -1,4 +1,9 @@
 
+REF_GENOME=CONFIG.assay_config.methylation.reference_genome if CONFIG.assay_config.methylation and CONFIG.assay_config.methylation.reference_genome else CONFIG.genome.name
+
+SPIKEIN_GENOMES=CONFIG.assay_config.methylation.spikein_genomes if CONFIG.assay_config.methylation and CONFIG.assay_config.methylation.spikein_genomes else []
+
+GENOMES=[REF_GENOME]+SPIKEIN_GENOMES
 
 checkpoint methylation_split_bams:
     input:
@@ -7,7 +12,7 @@ checkpoint methylation_split_bams:
         bam=temp(OUTPUT_DIR + "/aligned/spikein/{sample}_{genome}.bam"),
         bai=temp(OUTPUT_DIR + "/aligned/spikein/{sample}_{genome}.bam.bai")
     params:
-        ref_genome=config["genome"]["name"]
+        ref_genome=REF_GENOME
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -25,9 +30,8 @@ checkpoint methylation_split_bams:
 
 
 def get_split_bam(wildcards):
-    """Retrieve the resolved BAM file from the checkpoint."""
     checkpoint_output = checkpoints.methylation_split_bams.get(sample=wildcards.sample, genome=wildcards.genome).output
-    return checkpoint_output[0] 
+    return checkpoint_output.bam
 
 
 rule methyldackel_bias:
@@ -37,7 +41,7 @@ rule methyldackel_bias:
         bias=OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}.txt",
     params:
         fasta=CONFIG.genome.fasta,
-        prefix=OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}_"
+        prefix=OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}"
     threads: CONFIG.third_party_tools.methyldackel.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -50,16 +54,16 @@ rule methyldackel_bias:
     MethylDackel mbias -@ {threads} --txt {params.fasta} {input.bam} {params.prefix} > {output.bias} 2> {log}
     """
 
-SPIKEIN_GENOMES = CONFIG.assay_config.methylation.spikein_genomes if CONFIG.assay_config.methylation and CONFIG.assay_config.methylation.spikein_genomes else []
 
 rule calculate_conversion:
     input:
-        bias=expand(OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}.txt", sample=SAMPLE_NAMES, genome=SPIKEIN_GENOMES)
+        expand(OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}.txt", sample=SAMPLE_NAMES, genome=GENOMES)
     output:
         conversion=OUTPUT_DIR + "/methylation/methylation_conversion.tsv",
         plot=OUTPUT_DIR + "/methylation/methylation_conversion.png"
     params:
-        assay=CONFIG.assay_config.methylation.method if CONFIG.assay_config.methylation else None,
+        assay=str(CONFIG.assay_config.methylation.method) if CONFIG.assay_config.methylation and hasattr(CONFIG.assay_config.methylation, 'method') else None,
+        method=str(CONFIG.assay_config.methylation.method) if CONFIG.assay_config.methylation and hasattr(CONFIG.assay_config.methylation, 'method') else None
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/methylation/conversion.log"
     benchmark: OUTPUT_DIR + "/.benchmark/methylation/calculate_conversion.tsv"
@@ -69,13 +73,13 @@ rule calculate_conversion:
 
 rule methyldackel_extract:
     input:
-        bam=get_split_bam
+        bam=rules.methylation_split_bams.output.bam
     output:
         bdg=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
     params:
         fasta=CONFIG.genome.fasta,
         options=CONFIG.third_party_tools.methyldackel.command_line_arguments,
-        prefix=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_"
+        prefix=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}"
     threads: CONFIG.third_party_tools.methyldackel.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
@@ -89,10 +93,9 @@ rule methyldackel_extract:
     """
 
 
-
 rule taps_inverted:
     input:
-        bdg=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_CpG.bedGraph"
+        bdg=rules.methyldackel_extract.output.bdg
     output:
         taps=OUTPUT_DIR + "/methylation/methyldackel/{sample}_{genome}_CpG_inverted.bedGraph"
     resources:
@@ -106,6 +109,7 @@ rule taps_inverted:
     awk -v OFS="\t" '{{print $1, $2, $3, (100-$4), $5, $6}}' {input.bdg} > {output.taps} 2> {log}
     rm {input.bdg}
     """
+
 
 localrules:
     calculate_conversion
