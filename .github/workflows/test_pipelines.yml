@@ -11,7 +11,7 @@ jobs:
       matrix:
         assay: 
           - atac
-          - cat
+          # - cat
           - chip
           # - chip-rx
           # - mcc

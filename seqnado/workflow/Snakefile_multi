@@ -141,11 +141,11 @@ rule run_assay:
         
         # Run the main SeqNado Snakefile for this assay
         # Create assay-specific .snakemake directory to prevent locking conflicts
-        mkdir -p .snakemake/{params.assay}
+        mkdir -p .snakemake/assay_{params.assay}
         
         # Use --directory to isolate .snakemake metadata in assay-specific subdirectory
-        # The .snakemake dir will be created at .snakemake/{assay}/.snakemake
-        cd .snakemake/{params.assay} && \
+        # The .snakemake dir will be created at .snakemake/assay_{assay}/.snakemake
+        cd .snakemake/assay_{params.assay} && \
         snakemake \
             --snakefile {params.main_snakefile} \
             --configfile {params.config_file} \
@@ -154,7 +154,7 @@ rule run_assay:
             {WORKFLOW_ARGS} \
             2>&1 | tee -a ../../{log}
         
-        # Mark completion (from .snakemake/{assay}/ so need ../../ prefix)
+        # Mark completion (from .snakemake/assay_{assay}/ so need ../../ prefix)
         touch ../../{output.complete}
         
         echo "================================================================" | tee -a ../../{log}
