@@ -6,7 +6,7 @@ rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
     output:
         peaks=OUTPUT_DIR + "/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
     params:
-        options=str(CONFIG.third_party_tools.lanceotron_mcc.call_peaks.command_line_arguments),
+        options=str(CONFIG.third_party_tools.lanceotron_mcc.command_line_arguments),
     container: None
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),

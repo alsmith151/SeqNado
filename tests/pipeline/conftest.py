@@ -435,6 +435,13 @@ def run_init(
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
+
+    # Set MCC viewpoints path for CLI if running MCC assay
+    import os
+    if assay.lower() == "mcc":
+        viewpoints_path = test_data_path / "genome" / "mcc_viewpoints.bed"
+        monkeypatch.setenv("SEQNADO_MCC_VIEWPOINTS", str(viewpoints_path))
+
     process = subprocess.run(
         ["seqnado", "init"],
         input="y\n",
@@ -560,6 +567,7 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
                 tar.extractall(path=bt2_index_dir)
             bt2_tar.unlink()
     config["assay_config"]["plot_with_plotnado"] = False
+
     match assay:
         case "atac":
             config["pileup_method"] = ["deeptools", "homer"]
@@ -576,6 +584,8 @@ def config_yaml_for_testing(config_yaml: Path, assay: str) -> Path:
         case "mcc":
             config["call_peaks"] = False
             config["peak_calling_method"] = ["lanceotron-mcc"]
+            config_dir = Path(config_yaml).resolve().parents[2] / "data" / "genome"
+            config["assay_config"]["viewpoints"] = str(config_dir / "mcc_viewpoints.bed")
         case "rna":
             config["pileup_method"] = ["deeptools", "bamnado"]
         case "rna-rx":

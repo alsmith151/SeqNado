@@ -114,8 +114,10 @@ match ASSAY:
         include: "rules/visualise/hub.smk"
         include: "rules/visualise/browser.smk"
     case Assay.MCC:
+        include: "rules/alignment/dna_default.smk"
+        include: "rules/bam/index.smk"
+        include: "rules/mcc/all.smk"
         include: "rules/fastq/manipulate.smk"
-        include: "rules/fastq/trim.smk"
     case Assay.CRISPR:
         include: "rules/crispr/crispr.smk"
     case Assay.METH:

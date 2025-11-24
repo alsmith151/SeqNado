@@ -1,3 +1,17 @@
+import pandas as pd
+
+from seqnado.helpers import viewpoint_to_grouped_viewpoint, extract_viewpoints
+from seqnado.inputs.validation import ViewpointsFile
+
+
+VIEWPOINTS_FILE = ViewpointsFile.validate(
+    pd.read_csv(CONFIG.assay_config.mcc.viewpoints, 
+    sep="\t", 
+    names=["Chromosome", "Start", "End", "Name"]).assign(Score=0)
+)
+VIEWPOINT_OLIGOS = extract_viewpoints(CONFIG.assay_config.mcc.viewpoints)
+VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
+GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))
 
 rule identify_ligation_junctions:
     input:
@@ -57,7 +71,7 @@ rule make_cooler:
     output:
         cooler=temp(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.cool"),
     params:
-        resolution=CONFIG.assay_config.mcc.resolution,
+        resolution=CONFIG.assay_config.mcc.resolutions[0],
         genome=CONFIG.genome.name,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:

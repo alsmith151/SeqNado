@@ -117,7 +117,7 @@ rule fragment_bedgraph:
         fragments=temp(OUTPUT_DIR + "/bedgraphs/{sample}.fragments.bed"),
         bdg=temp(OUTPUT_DIR + "/bedgraphs/{sample}.bedGraph"),
     params:
-        genome=config['genome']['chromosome_sizes'],
+        chromosome_sizes=CONFIG.genome.chromosome_sizes,
     threads: 16
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
@@ -132,7 +132,7 @@ rule fragment_bedgraph:
     bedtools bamtobed -bedpe -i {output.sort} > {output.bed} 2>> {output.bed_log}
     awk '$1==$4 && $6-$2 < 1000' {output.bed} > {output.fragments}.temp 2>> {log}
     awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' {output.fragments}.temp | sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>> {log}
-    bedtools genomecov -bg -i {output.fragments} -g {params.genome} > {output.bdg} 2>> {log}
+    bedtools genomecov -bg -i {output.fragments} -g {params.chromosome_sizes} > {output.bdg} 2>> {log}
     rm seqnado_output/bedgraphs/{wildcards.sample}.fragments.bed.temp
     """
 

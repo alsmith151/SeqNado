@@ -587,8 +587,11 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
             )
             return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
         case Assay.MCC:
+            # Allow override for test environment
+            import os
+            viewpoints_path = os.environ.get("SEQNADO_MCC_VIEWPOINTS", "path/to/viewpoints.bed")
             mcc = MCCConfig(
-                viewpoints=Path("path/to/viewpoints.bed"),
+                viewpoints=Path(viewpoints_path),
                 resolutions=[100, 1000],
             )
             return MCCAssayConfig(**base_config, mcc=mcc)
