@@ -5,7 +5,6 @@ import time
 from pathlib import Path
 
 import requests
-import yaml
 
 
 def download_with_retry(url: str, dest: Path, max_retries: int = 3, timeout: int = 30):
@@ -45,14 +44,14 @@ def get_fastq_pattern(assay: str) -> str:
     """Get the FASTQ file pattern for a given assay."""
     patterns = {
         "atac": "atac_*.fastq.gz",
-        "chip": "chip-rx_*.fastq.gz",
-        "chip-rx": "chip-rx_*.fastq.gz",
-        "rna": "rna_*.fastq.gz",
-        "rna-rx": "rna-spikein-*.fastq.gz",
-        "snp": "snp_*.fastq.gz",
         "cat": "chip-rx_*.fastq.gz",
-        "meth": "meth-*.fastq.gz",
+        "chip-rx": "chip-rx_*.fastq.gz",
+        "chip": "chip-rx_*.fastq.gz",
         "mcc": "mcc_*.fastq.gz",
+        "meth": "meth-*.fastq.gz",
+        "rna-rx": "rna-spikein-*.fastq.gz",
+        "rna": "rna_*.fastq.gz",
+        "snp": "snp_*.fastq.gz",
     }
     pattern = patterns.get(assay)
     if not pattern:

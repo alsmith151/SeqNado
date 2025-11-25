@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from .data import ensure_fastqs_present
-from .project import copy_fastqs, create_config_yaml, patch_config_yaml
+from .project import create_config_yaml
 
 
 @pytest.fixture(scope="function")
@@ -41,14 +41,11 @@ def multi_assay_configs(tmp_path_factory, test_context, monkeypatch, request):
     run_dir = tmp_path_factory.mktemp("multi_assay_run")
     configs = {}
     for assay in multi_assays:
-        # Copy FASTQs for this assay
-        copy_fastqs(test_context.test_paths.fastq, run_dir, assay)
         # Get metadata and config paths
         metadata_path = get_metadata_path(test_context.test_paths.test_data, assay)
 
         # Create config YAML using helpers/project.py
         config_yaml = create_config_yaml(run_dir, assay, monkeypatch)
-        config_yaml = patch_config_yaml(config_yaml, assay)
 
         configs[assay] = {"config": config_yaml, "metadata": metadata_path}
     return configs

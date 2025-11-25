@@ -1,0 +1,9 @@
+assay: ATAC
+project:
+  description: "Test project for ATAC-seq"
+assay_config:
+  plot_with_plotnado: true
+  bigwigs:
+    pileup_method: ["deeptools", "homer"]
+  peak_calling:
+    method: ["lanceotron", "macs", "homer"]

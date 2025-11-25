@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -8,14 +9,12 @@ import pytest
 from helpers.config_utils import TestContext, make_test_paths
 from helpers.data import ensure_fastqs_present
 from helpers.genome import ensure_genome_resources
-from helpers.multi_assay import multi_assay_configs, multi_assay_run_directory
 from helpers.project import (
-    copy_fastqs,
     create_config_yaml,
     create_design_file,
     init_seqnado_project,
-    patch_config_yaml,
 )
+from helpers.utils import get_fastq_pattern
 
 
 # Fixture for all genome resources
@@ -25,8 +24,10 @@ def genome_resources(test_context: TestContext) -> dict:
     Provides a function to get genome resources for an assay.
     Returns a function that takes an assay and returns a dict of resource paths.
     """
+
     def _get_resources(assay: str) -> dict:
         return ensure_genome_resources(test_context.test_paths.genome, assay)
+
     return _get_resources
 
 
@@ -57,9 +58,8 @@ def test_context(pytestconfig, tmp_path_factory) -> TestContext:
         selected_assays = [a.strip() for a in selected_assays.split(",") if a.strip()]
     elif not selected_assays:
         selected_assays = []
-    test_path = make_test_paths(Path(__file__).resolve())
-    # Ensure FASTQ files are present for selected assays
-    ensure_fastqs_present(test_path.test_data, selected_assays)
+    make_test_paths(Path(__file__).resolve())
+
     return TestContext(pytestconfig, tmp_path_factory)
 
 
@@ -95,7 +95,7 @@ def config_yaml_for_testing(
     """Create and patch config YAML for testing."""
     run_directory = test_context.run_directory(assay)
     config_path = create_config_yaml(run_directory, assay, monkeypatch)
-    return patch_config_yaml(config_path, assay)
+    return config_path
 
 
 @pytest.fixture(scope="function")
@@ -103,12 +103,24 @@ def design(test_context: TestContext, assay: str, seqnado_run_dir: Path) -> Path
     """Generate design file for the assay in the seqnado run directory."""
     assay_type = test_context.assay_type(assay)
 
-    # Copy FASTQ files to run directory
-    copy_fastqs(
-        fastq_source_dir=test_context.test_paths.fastq,
-        run_directory=seqnado_run_dir,
-        assay=assay_type,
-    )
+    # Download FASTQ files
+    ensure_fastqs_present(test_context.test_paths.fastq, [assay])
+    fastq_source_dir = test_context.test_paths.fastq
+
+    # Use the correct pattern from get_fastq_pattern
+    pattern = get_fastq_pattern(assay_type)
+    fastqs_to_copy = list(fastq_source_dir.glob(pattern))
+
+    if not fastqs_to_copy:
+        raise FileNotFoundError(
+            f"No FASTQ files found for assay '{assay_type}' in {fastq_source_dir}"
+        )
+
+    # Move FASTQs to the run directory
+    fastq_dest_dir = seqnado_run_dir / "fastqs"
+    fastq_dest_dir.mkdir(parents=True, exist_ok=True)
+    for fq in fastqs_to_copy:
+        shutil.copy2(fq, fastq_dest_dir / fq.name)
 
     # Generate design file
     design_file = create_design_file(

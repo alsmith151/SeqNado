@@ -70,8 +70,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         action="store",
         default="chip",
         help=(
-            "Comma-separated list of assays to test (choices: atac, chip, chip-rx, "
-            "rna, rna-rx, snp, cat, meth, mcc). Default: chip"
+            "Comma-separated list of assays to test "
+            "(choices: atac, chip, chip-rx, rna, rna-rx, snp, cat, meth, mcc). "
+            "Default: chip"
         ),
     )
     group.addoption(

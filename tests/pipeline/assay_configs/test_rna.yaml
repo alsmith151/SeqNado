@@ -1,0 +1,5 @@
+assay: RNA
+project:
+  description: "Test project for RNA-seq"
+assay_config:
+  plot_with_plotnado: false

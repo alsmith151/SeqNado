@@ -1,4 +1,6 @@
 """Project initialization and configuration helpers for pipeline tests."""
+
+import glob
 import shutil
 import subprocess
 from pathlib import Path
@@ -6,7 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from .utils import get_fastq_pattern, setup_genome_config
+from .utils import setup_genome_config
 
 
 def init_seqnado_project(
@@ -28,6 +30,7 @@ def init_seqnado_project(
 
     Sets up environment, copies necessary files, runs seqnado init, and writes genome config.
     """
+
     # Set environment variables
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
@@ -66,7 +69,9 @@ def init_seqnado_project(
         gtf=resources["gtf"],
         blacklist=resources["blacklist"],
         genes_bed=genes_bed,
-        fasta=resources.get("fasta") if any(x in assay.lower() for x in ["meth", "snp"]) else None,
+        fasta=resources.get("fasta")
+        if any(x in assay.lower() for x in ["meth", "snp"])
+        else None,
     )
 
     assert genome_config_file.exists(), "genome_config.json not created"
@@ -88,100 +93,66 @@ def create_config_yaml(
     Returns:
         Path to the generated config file
     """
-    from datetime import datetime
 
     # Set environment for config generation
     monkeypatch.setenv("SEQNADO_CONFIG", str(run_directory))
     monkeypatch.setenv("HOME", str(run_directory))
 
-    # Create project directory with datestamp (matching original behavior)
-    date = datetime.now().strftime("%Y-%m-%d")
-    project_dir = run_directory / f"{date}_{assay}_test"
-    project_dir.mkdir(parents=True, exist_ok=True)
+    # amend -rx assays to base assay names
+    if assay.endswith("-rx"):
+        assay = assay.replace("-rx", "")
 
     # Generate config with proper flags
-    config_path = project_dir / f"config_{assay}.yaml"
     result = subprocess.run(
         [
             "seqnado",
             "config",
             assay,
             "--no-interactive",
-            "--no-make-dirs",
             "--render-options",
-            "-o",
-            str(config_path),
         ],
         cwd=run_directory,
         capture_output=True,
         text=True,
     )
+
     assert result.returncode == 0, (
         f"seqnado config failed:\nSTDERR: {result.stderr}\nSTDOUT: {result.stdout}"
     )
-    assert config_path.exists(), f"Config file not created at {config_path}"
 
-    return config_path
+    # Find the generated config file (search recursively)
+    config_files = glob.glob(
+        str(run_directory / "**" / f"config_{assay}.yaml"), recursive=True
+    )
+    config_path = Path(config_files[0]) if config_files else None
+    assert config_path.exists(), f"Config file not found for assay {assay}"
 
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"Config file not found for assay {assay} at {config_path}"
+        )
 
-def patch_config_yaml(config_path: Path, assay: str) -> Path:
-    """
-    Patch the config YAML with test-specific settings.
-
-    Args:
-        config_path: Path to the config file
-        assay: Assay type
-
-    Returns:
-        Path to the patched config file
-    """
     with open(config_path) as f:
         config = yaml.safe_load(f)
 
-    # Disable plotting for faster tests (matching original behavior)
-    if "assay_config" in config:
-        config["assay_config"]["plot_with_plotnado"] = False
+    if config is None:
+        raise ValueError(
+            f"Loaded config for assay {assay} is None. Check the generated YAML file at {config_path}."
+        )
+
+    test_config_file = (
+        Path(__file__).parent.parent / "assay_configs" / f"test_{assay}.yaml"
+    )
+
+    with open(test_config_file) as f:
+        assay_config = yaml.safe_load(f)
+
+    config.update(assay_config)
 
     with open(config_path, "w") as f:
         yaml.dump(config, f, sort_keys=False)
 
     return config_path
-
-
-def copy_fastqs(
-    fastq_source_dir: Path,
-    run_directory: Path,
-    assay: str,
-) -> list[Path]:
-    """
-    Copy FASTQ files for the assay directly to the run directory.
-
-    Args:
-        fastq_source_dir: Directory containing FASTQ files
-        run_directory: Destination directory
-        assay: Assay type
-
-    Returns:
-        List of copied FASTQ file paths
-    """
-    pattern = get_fastq_pattern(assay)
-    fastqs_to_copy = list(fastq_source_dir.glob(pattern))
-
-    if not fastqs_to_copy:
-        raise FileNotFoundError(
-            f"No FASTQ files matching pattern '{pattern}' for assay '{assay}' in {fastq_source_dir}"
-        )
-
-    # Copy FASTQs directly to run directory (not to a subdirectory)
-    copied_fastqs = []
-    for fq in fastqs_to_copy:
-        dest = run_directory / fq.name
-        if not dest.exists():
-            shutil.copy2(fq, dest)
-        copied_fastqs.append(dest)
-
-    assert copied_fastqs, f"No FASTQ files copied for assay {assay} to {run_directory}"
-    return sorted(copied_fastqs)
 
 
 def create_design_file(
@@ -198,6 +169,11 @@ def create_design_file(
     Returns:
         Path to the generated design file
     """
+
+    # amend -rx assays to base assay names
+    if assay.endswith("-rx"):
+        assay = assay.replace("-rx", "")
+
     design_file = run_directory / f"design_{assay}.csv"
 
     result = subprocess.run(
