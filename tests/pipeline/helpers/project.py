@@ -9,6 +9,7 @@ import pytest
 import yaml
 
 from .utils import setup_genome_config
+from .genome import fill_fastq_screen_config
 
 
 def init_seqnado_project(
@@ -81,6 +82,7 @@ def create_config_yaml(
     run_directory: Path,
     assay: str,
     monkeypatch: pytest.MonkeyPatch,
+    resources: dict,  # Added resources parameter
 ) -> Path:
     """
     Generate config YAML for the assay.
@@ -89,6 +91,7 @@ def create_config_yaml(
         run_directory: Directory for the test run
         assay: Assay type
         monkeypatch: Pytest monkeypatch fixture
+        resources: Dictionary containing genome resources
 
     Returns:
         Path to the generated config file
@@ -100,7 +103,7 @@ def create_config_yaml(
 
     # amend -rx assays to base assay names
     if assay.endswith("-rx"):
-        assay = assay.replace("-rx", "")
+        assay = assay.replace("-rx", "")    
 
     # Generate config with proper flags
     result = subprocess.run(
@@ -109,7 +112,6 @@ def create_config_yaml(
             "config",
             assay,
             "--no-interactive",
-            "--render-options",
         ],
         cwd=run_directory,
         capture_output=True,
@@ -140,6 +142,14 @@ def create_config_yaml(
             f"Loaded config for assay {assay} is None. Check the generated YAML file at {config_path}."
         )
 
+
+    # Generate fastq_screen.conf for testing
+    fastq_screen_config_path = run_directory / ".config" / "seqnado" / "fastq_screen.conf"
+    fill_fastq_screen_config(fastq_screen_config_path, resources["bt2_index"])
+    
+    # Update config with test assay settings
+    config["qc"]["run_fastq_screen"] = True
+    config["genome"]["fastq_screen_config"] = str(fastq_screen_config_path)
     test_config_file = (
         Path(__file__).parent.parent / "assay_configs" / f"test_{assay}.yaml"
     )
@@ -174,18 +184,19 @@ def create_design_file(
     if assay.endswith("-rx"):
         assay = assay.replace("-rx", "")
 
-    design_file = run_directory / f"design_{assay}.csv"
+
 
     result = subprocess.run(
-        ["seqnado", "design", assay, "--output", str(design_file)],
+        ["seqnado", "design", assay, "--no-interactive", "--accept-all-defaults"],
         cwd=run_directory,
         capture_output=True,
         text=True,
-        input="y\nn\n",  # Accept first prompt, skip optional prompts
     )
     assert result.returncode == 0, (
         f"seqnado design failed:\nSTDERR: {result.stderr}\nSTDOUT: {result.stdout}"
     )
+
+    design_file = run_directory / f"metadata_{assay}.csv"
     assert design_file.exists(), f"Design file not created at {design_file}"
 
     return design_file

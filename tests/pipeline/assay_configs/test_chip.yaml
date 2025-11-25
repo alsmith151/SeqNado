@@ -1,5 +1,6 @@
 assay: ChIP
 project:
+  name: default_project
   description: "Test project for ChIP-seq"
 assay_config:
   plot_with_plotnado: false

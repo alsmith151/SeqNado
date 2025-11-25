@@ -1,5 +1,6 @@
 assay: RNA
 project:
+  name: default_project
   description: "Test project for RNA-seq with spike in"
 assay_config:
   plot_with_plotnado: false

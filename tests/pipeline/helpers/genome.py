@@ -200,3 +200,16 @@ def _ensure_mcc_viewpoints(genome_path: Path) -> Path:
     url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/test_viewpoints.bed"
     download_with_retry(url, dest)
     return dest
+
+
+def fill_fastq_screen_config(config_path, genome_bt2_index):
+    """
+    Fill the fastq_screen.conf file with the provided genome Bowtie2 index.
+
+    Args:
+        config_path (str): Path to the fastq_screen.conf file.
+        genome_bt2_index (str): Path to the Bowtie2 index for the genome.
+    """
+    with open(config_path, "a") as f:
+        f.write("# Genome configuration\n")
+        f.write(f"DATABASE\thg38\t{genome_bt2_index}\n")

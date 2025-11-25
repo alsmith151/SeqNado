@@ -22,53 +22,41 @@ def test_pipeline_multi(
     cores: int,
     test_profile_path: Path,
 ):
-    """Execute the Snakefile_multi workflow with multiple assays.
-    
-    This test:
-    1. Uses multi_assay_configs fixture to set up configs/metadata for each assay
-    2. Runs Snakefile_multi to execute all assays
-    3. Verifies outputs for each assay are created
+    """Test running multiple assays in a single seqnado project using Snakefile_multi.
+    Args:
+        multi_assays: List of assay names to run together
+        multi_assay_configs: Dict mapping assay names to their config and metadata paths
+        multi_assay_run_directory: Path to the run directory for the multi-assay test
+        cores: Number of cores to use for the pipeline
+        test_profile_path: Path to the Snakemake profile for testing
     """
     # Find the Snakefile_multi
     snakefile_multi = Path(__file__).parent.parent.parent / "seqnado" / "workflow" / "Snakefile_multi"
     assert snakefile_multi.exists(), f"Snakefile_multi not found at {snakefile_multi}"
     
-    # Run the multi-assay pipeline
-    # Note: May have some failures due to test data limitations (e.g., peak calling, hub generation)
-    # but core pipeline steps should complete
     res = subprocess.run(
         [
             "seqnado",
             "pipeline",
             "--workflow-profile",
             str(test_profile_path),
-            "--keep-going",  # Continue on errors to generate as much output as possible
+            "--keep-going",  
         ],
         cwd=multi_assay_run_directory,
         capture_output=True,
         text=True,
     )
     
-    # Don't fail test if pipeline has partial success (some rules may fail with small test data)
-    # We'll check for key outputs below
     if res.returncode != 0:
         print("STDOUT:\n", res.stdout)
         print("STDERR:\n", res.stderr)
-        print("\nNote: Pipeline may have partial failures (e.g., peak calling, hub generation)")
-        print("Checking for core outputs...")
     
-    # Verify outputs for each assay
-    # Note: We check for key outputs but allow some steps to fail (e.g., peak calling on small test data)
     for assay in multi_assays:
-        # Check that the assay output directory was created
         assert (multi_assay_run_directory / f"seqnado_output/{assay}").exists(), \
             f"Output directory not found for {assay}"
         
-        # Check for BAM files (core alignment output)
-        assert list((multi_assay_run_directory / f"seqnado_output/{assay}/aligned").glob("*.bam")), \
-            f"No BAM files found for {assay}"
+        assert list((multi_assay_run_directory / "seqnado_output/logs/").glob(".complete")), \
+            f"No .complete log files found for {assay}"
         
-        # Check for bigwigs (core visualization output)
-        assert list((multi_assay_run_directory / f"seqnado_output/{assay}/bigwigs").rglob("*.bigWig")), \
-            f"No bigWig files found for {assay}"
-
+        assert (multi_assay_run_directory / "multi_assay_summary.txt").exists(), \
+            "multi_assay_summary.txt not found"

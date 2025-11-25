@@ -69,7 +69,7 @@ def ensure_seqnado_init(
     genome_resources,
     assay: str,
     monkeypatch: pytest.MonkeyPatch,
-):
+) -> dict:  # Return resources for reuse
     """
     Initialize seqnado project with required genome resources.
     """
@@ -84,17 +84,20 @@ def ensure_seqnado_init(
         monkeypatch=monkeypatch,
     )
 
+    return resources  # Return resources for reuse
+
 
 @pytest.fixture(scope="function")
 def config_yaml_for_testing(
     test_context: TestContext,
     assay: str,
     monkeypatch: pytest.MonkeyPatch,
-    ensure_seqnado_init,
+    ensure_seqnado_init,  # Ensure seqnado is initialized, including resources
 ) -> Path:
     """Create and patch config YAML for testing."""
     run_directory = test_context.run_directory(assay)
-    config_path = create_config_yaml(run_directory, assay, monkeypatch)
+    resources = ensure_seqnado_init  # Use resources from ensure_seqnado_init
+    config_path = create_config_yaml(run_directory, assay, monkeypatch, resources)
     return config_path
 
 

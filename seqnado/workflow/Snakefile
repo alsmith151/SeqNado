@@ -93,7 +93,19 @@ include: "rules/common/utilities.smk"
 include: "rules/fastq/screen.smk"
 
 match ASSAY:
-    case Assay.ATAC | Assay.CAT | Assay.CHIP:
+    case Assay.ATAC:
+        include: "rules/fastq/trim.smk"
+        include: "rules/bam/all.smk"
+        include: "rules/alignment/dna.smk"
+        include: "rules/pileup/default.smk"
+        include: "rules/peaks/default.smk"
+        include: "rules/peaks/merge.smk"
+        include: "rules/pileup/merge.smk"
+        include: "rules/pileup/normalized.smk"
+        include: "rules/visualise/hub.smk"
+        include: "rules/visualise/browser.smk"
+        include: "rules/quant/merged.smk"
+    case Assay.CAT | Assay.CHIP:
         include: "rules/fastq/trim.smk"
         include: "rules/bam/all.smk"
         include: "rules/alignment/dna.smk"

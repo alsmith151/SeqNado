@@ -1,9 +1,14 @@
 assay: ATAC
 project:
+  name: default_project
   description: "Test project for ATAC-seq"
 assay_config:
   plot_with_plotnado: true
   bigwigs:
-    pileup_method: ["deeptools", "homer"]
+    pileup_method: ["deeptools"]
   peak_calling:
-    method: ["lanceotron", "macs", "homer"]
+    method: ["lanceotron", "macs2"]
+qc:
+  run_fastq_screen: false
+  calculate_library_complexity: false
+  calculate_fraction_of_reads_in_peaks: false

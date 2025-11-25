@@ -115,7 +115,7 @@ ruleorder: macs2_with_input > macs2_no_input
 rule homer_with_input:
     input:
         treatment=OUTPUT_DIR + "/tag_dirs/{sample_id}",
-        control=lambda wc: get_control_file(wc, file_type=FileType.TAG),
+        control=lambda wc: get_control_file(wc, file_type=FileType.TAG_DIRECTORY),
     output:
         peaks=OUTPUT_DIR + "/peaks/homer/{sample_id}.bed",
     params:
