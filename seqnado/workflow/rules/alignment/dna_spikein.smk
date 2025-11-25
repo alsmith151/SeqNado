@@ -16,7 +16,7 @@ use rule align_paired as align_paired_spikein with:
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/aligned_spikein/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/aligned_spikein/{sample}.tsv",
-    message: "Aligning spike-in reads for sample {wildcards.sample} using Bowtie
+    message: "Aligning spike-in reads for sample {wildcards.sample} using Bowtie2"
 
 
 use rule align_single as align_single_spikein with:

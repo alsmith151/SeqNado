@@ -1,26 +1,8 @@
-"""Shared pytest configuration and fixtures for SeqNado tests.
-
-This file defines global pytest options, markers and lightweight fixtures used
-across unit, CLI and pipeline tests. Heavyweight pipeline fixtures live in
-``tests/pipeline/conftest.py`` to keep scope clear.
-"""
-
 import shutil
 from pathlib import Path
 
 import pytest
 
-
-@pytest.fixture(scope="session")
-def test_data_dir():
-    """Provide path to test data directory."""
-    return Path(__file__).parent / "data"
-
-
-@pytest.fixture(scope="session")
-def test_fastq_dir(test_data_dir):
-    """Provide path to test FASTQ directory."""
-    return test_data_dir / "fastq"
 
 
 @pytest.fixture

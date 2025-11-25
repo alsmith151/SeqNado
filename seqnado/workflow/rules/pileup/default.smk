@@ -127,12 +127,14 @@ rule fragment_bedgraph:
     benchmark: OUTPUT_DIR + "/.benchmark/bedgraphs/fragment_bedgraph_{sample}.tsv",
     message: "Generating fragment bedGraph for sample {wildcards.sample}"
     shell: """
-    samtools view -@ {threads} -q 30 -f 2 -h {input.bam} | grep -v chrM > {output.filtered} 2> {log}
-    samtools sort -@ {threads} -m 900M -o {output.sort} -T {output.sort}.tmp {output.filtered} 2>> {log}
-    bedtools bamtobed -bedpe -i {output.sort} > {output.bed} 2>> {output.bed_log}
-    awk '$1==$4 && $6-$2 < 1000' {output.bed} > {output.fragments}.temp 2>> {log}
-    awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' {output.fragments}.temp | sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>> {log}
-    bedtools genomecov -bg -i {output.fragments} -g {params.chromosome_sizes} > {output.bdg} 2>> {log}
-    rm seqnado_output/bedgraphs/{wildcards.sample}.fragments.bed.temp
+    echo "Generating fragment bedGraph for sample {wildcards.sample}" 2>&1 | tee {log}
+
+    samtools view -@ {threads} -q 30 -f 2 -h {input.bam} | grep -v chrM > {output.filtered} 2>&1 | tee -a {log}
+    samtools sort -@ {threads} -m 900M -o {output.sort} -T {output.sort}.tmp {output.filtered} 2>&1 | tee -a {log}
+    bedtools bamtobed -bedpe -i {output.sort} > {output.bed} 2>&1 | tee -a {output.bed_log}
+    awk '$1==$4 && $6-$2 < 1000' {output.bed} > {output.fragments}.temp 2>&1 | tee -a {log}
+    awk 'BEGIN {{OFS="\t"}} {{print $1, $2, $6}}' {output.fragments}.temp | sort -k1,1 -k2,2n -k3,3n > {output.fragments} 2>&1 | tee -a {log}
+    bedtools genomecov -bg -i {output.fragments} -g {params.chromosome_sizes} > {output.bdg} 2>&1 | tee -a {log}
+    rm -f {output.fragments}.temp
     """
 
