@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import shutil
 
 from seqnado.cli import (
     _assay_names,
@@ -22,11 +23,16 @@ from seqnado.cli import (
 def test_read_json(tmp_path):
     """Test reading JSON from file."""
     test_file = tmp_path / "test.json"
-    test_data = {"key": "value", "number": 42}
-    test_file.write_text(json.dumps(test_data))
-    
-    result = _read_json(test_file)
-    assert result == test_data
+    test_data = {"key": "value", "nested": {"data": [1, 2, 3]}}
+
+    # Write the test data to the file
+    test_file.write_text(json.dumps(test_data), encoding="utf-8")
+
+    # Read the data back using _read_json
+    loaded = _read_json(test_file)
+
+    # Verify the data matches
+    assert loaded == test_data
 
 
 def test_write_json(tmp_path):
@@ -370,4 +376,11 @@ def test_profile_autocomplete_returns_strings():
     """Test profile autocomplete returns valid strings."""
     result = _profile_autocomplete()
     assert all(isinstance(p, str) and len(p) > 0 for p in result)
+
+
+def setup_module(module):
+    """Ensure test_output directory is cleaned up before tests."""
+    test_output = Path("/ceph/project/milne_group/cchahrou/software/SeqNado/test_output")
+    if test_output.exists():
+        shutil.rmtree(test_output)
 

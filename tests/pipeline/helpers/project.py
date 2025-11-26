@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from .utils import setup_genome_config
 from .genome import fill_fastq_screen_config
+from .utils import setup_genome_config
 
 
 def init_seqnado_project(
@@ -200,3 +200,19 @@ def create_design_file(
     assert design_file.exists(), f"Design file not created at {design_file}"
 
     return design_file
+
+
+@pytest.fixture(scope="function")
+def multi_assay_run_directory(tmp_path_factory):
+    """
+    Fixture to provide a run directory for multi-assay tests.
+    Returns a Path object to a unique temp directory.
+    """
+    return tmp_path_factory.mktemp("multi_assay_run")
+
+
+def get_metadata_path(test_data_dir: Path, assay: str) -> Path:
+    """Return the metadata CSV path for a given assay."""
+    # Example: test_data_dir/metadata_atac.csv
+    return test_data_dir / f"metadata_{assay}.csv"
+

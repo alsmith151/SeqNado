@@ -1,7 +1,7 @@
 
 # Define input and output files so that seqnado isnt required in the rule
 plot_files=OUTPUT.genome_browser_plots
-input_files = [OUTPUT.bigwig_files + OUTPUT.peak_files]
+input_files=[OUTPUT.bigwig_files + OUTPUT.peak_files]
 
 
 rule generate_plotnado_visualisation:
