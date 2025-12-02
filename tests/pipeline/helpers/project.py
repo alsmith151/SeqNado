@@ -103,7 +103,10 @@ def create_config_yaml(
 
     # amend -rx assays to base assay names
     if assay.endswith("-rx"):
-        seq_assay = assay.replace("-rx", "")    
+        seq_assay = assay.replace("-rx", "")
+    else:
+        seq_assay = assay
+        
 
     # Generate config with proper flags
     result = subprocess.run(
