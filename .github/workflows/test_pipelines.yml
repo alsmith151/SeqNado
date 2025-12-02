@@ -10,14 +10,14 @@ jobs:
     strategy:
       matrix:
         assay: 
-          # - atac
+          - atac
           - cat
           - chip
-          # - chip-rx
+          - chip-rx
           # - mcc
           - meth
           - rna
-          # - rna-rx
+          - rna-rx
           - snp
     steps:
       - name: Checkout repository
