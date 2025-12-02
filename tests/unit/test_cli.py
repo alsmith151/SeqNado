@@ -380,7 +380,7 @@ def test_profile_autocomplete_returns_strings():
 
 def setup_module(module):
     """Ensure test_output directory is cleaned up before tests."""
-    test_output = Path("/ceph/project/milne_group/cchahrou/software/SeqNado/test_output")
+    test_output = Path("test_output")
     if test_output.exists():
         shutil.rmtree(test_output)
 

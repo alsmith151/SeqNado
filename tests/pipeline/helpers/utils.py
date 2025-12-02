@@ -85,3 +85,5 @@ def setup_genome_config(
     genome_config_file.parent.mkdir(parents=True, exist_ok=True)
     with open(genome_config_file, "w") as f:
         json.dump(config_data, f, indent=2)
+
+

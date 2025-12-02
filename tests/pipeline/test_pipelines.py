@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-
 @pytest.mark.pipeline
 @pytest.mark.snakemake
 @pytest.mark.requires_apptainer
@@ -14,6 +13,7 @@ def test_pipeline(
     test_context,
     config_yaml_for_testing: Path,
     design: Path,
+    test_profile_path: Path,
 ):
     assay_type = test_context.assay_type(assay)
     cores = test_context.cores
