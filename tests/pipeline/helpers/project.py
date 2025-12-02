@@ -103,14 +103,14 @@ def create_config_yaml(
 
     # amend -rx assays to base assay names
     if assay.endswith("-rx"):
-        assay = assay.replace("-rx", "")    
+        seq_assay = assay.replace("-rx", "")    
 
     # Generate config with proper flags
     result = subprocess.run(
         [
             "seqnado",
             "config",
-            assay,
+            seq_assay,
             "--no-interactive",
         ],
         cwd=run_directory,
@@ -124,24 +124,13 @@ def create_config_yaml(
 
     # Find the generated config file (search recursively)
     config_files = glob.glob(
-        str(run_directory / "**" / f"config_{assay}.yaml"), recursive=True
+        str(run_directory / "**" / f"config_{seq_assay}.yaml"), recursive=True
     )
     config_path = Path(config_files[0]) if config_files else None
-    assert config_path.exists(), f"Config file not found for assay {assay}"
-
-    if not config_path.exists():
-        raise FileNotFoundError(
-            f"Config file not found for assay {assay} at {config_path}"
-        )
+    assert config_path.exists(), f"Config file not found for assay {seq_assay}"
 
     with open(config_path) as f:
         config = yaml.safe_load(f)
-
-    if config is None:
-        raise ValueError(
-            f"Loaded config for assay {assay} is None. Check the generated YAML file at {config_path}."
-        )
-
 
     # Generate fastq_screen.conf for testing
     fastq_screen_config_path = run_directory / ".config" / "seqnado" / "fastq_screen.conf"

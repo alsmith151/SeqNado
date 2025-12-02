@@ -3,9 +3,9 @@ project:
   name: default_project
   description: "Test project for RNA-seq with spike in"
 assay_config:
-  plot_with_plotnado: false
-  has_spikein: True
   spikein:
     method: "orlando"
     exogenous_genome: "dm6"
     endogenous_genome: "hg38"
+  plot_with_plotnado: False
+  has_spikein: True
