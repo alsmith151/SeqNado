@@ -1,0 +1,17 @@
+name: test
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - pip
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - python>=3.11,<3.13
+  - pexpect
+  - pip:
+      - snakemake
+      - snakemake-executor-plugin-slurm
+      - tracknado
+      - wget
