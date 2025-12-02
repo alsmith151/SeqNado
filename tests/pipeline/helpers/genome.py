@@ -23,9 +23,10 @@ def ensure_genome_resources(genome_path: Path, assay: str) -> dict[str, Path]:
         - chromsizes: Chromosome sizes file
         - gtf: GTF annotation file
         - blacklist: Blacklist BED file
-        - fasta: FASTA file (if methylation assay)
-        - fasta_fai: FASTA index (if methylation assay)
+        - fasta: FASTA file (if methylation assay or snp)
+        - fasta_fai: FASTA index (if methylation assay or snp)
         - viewpoints: MCC viewpoints file (if MCC assay)
+        -
     """
     genome_path.mkdir(parents=True, exist_ok=True)
     resources = {}
@@ -46,8 +47,8 @@ def ensure_genome_resources(genome_path: Path, assay: str) -> dict[str, Path]:
     # Blacklist
     resources["blacklist"] = _ensure_blacklist(genome_path)
 
-    # Genome FASTA files (for methylation)
-    if "meth" in assay.lower():
+    # Genome FASTA files (for methylation or SNP assays)
+    if "meth" in assay.lower() or "snp" in assay.lower():
         fasta, fasta_fai = _ensure_genome_fasta(genome_path)
         resources["fasta"] = fasta
         resources["fasta_fai"] = fasta_fai

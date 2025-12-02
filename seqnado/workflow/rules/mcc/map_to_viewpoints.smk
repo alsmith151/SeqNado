@@ -1,8 +1,8 @@
 
 rule viewpoints_to_fasta:
     input:
-        bed=CONFIG.mcc_viewpoints,
-        genome=CONFIG.genome.fasta,
+        bed=str(CONFIG.assay_config.mcc.viewpoints),
+        genome=str(CONFIG.genome.fasta),
     output:
         fasta=OUTPUT_DIR + "/resources/viewpoints.fa",
     log: OUTPUT_DIR + "/logs/bed_to_fasta/viewpoints.log",
@@ -29,7 +29,7 @@ rule fasta_index:
 
 rule exclusion_regions:
     input:
-        bed=CONFIG.mcc_viewpoints,
+        bed=str(CONFIG.assay_config.mcc.viewpoints),
     output:
         bed=OUTPUT_DIR + "/resources/exclusion_regions.bed"
     params:

@@ -93,10 +93,14 @@ def config_yaml_for_testing(
     test_context: TestContext,
     assay: str,
     monkeypatch: pytest.MonkeyPatch,
+    genome_resources,
 ) -> Path:
     """Create and patch config YAML for testing."""
+    # Initialize seqnado project first
+    resources = ensure_seqnado_init(test_context, genome_resources, assay, monkeypatch)
+
+    # Now create config YAML
     run_directory = test_context.run_directory(assay)
-    resources = genome_resources(assay)  # Use resources from genome_resources fixture
     config_path = create_config_yaml(run_directory, assay, monkeypatch, resources)
     return config_path
 
