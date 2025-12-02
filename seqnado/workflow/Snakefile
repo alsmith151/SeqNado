@@ -93,7 +93,7 @@ include: "rules/common/utilities.smk"
 include: "rules/fastq/screen.smk"
 
 match ASSAY:
-    case Assay.ATAC:
+    case Assay.ATAC | Assay.CAT | Assay.CHIP:
         include: "rules/fastq/trim.smk"
         include: "rules/bam/all.smk"
         include: "rules/alignment/dna.smk"
@@ -105,30 +105,15 @@ match ASSAY:
         include: "rules/visualise/hub.smk"
         include: "rules/visualise/browser.smk"
         include: "rules/quant/merged.smk"
-    case Assay.CAT | Assay.CHIP:
-        include: "rules/fastq/trim.smk"
-        include: "rules/bam/all.smk"
-        include: "rules/alignment/dna.smk"
-        include: "rules/pileup/default.smk"
-        include: "rules/peaks/default.smk"
-        include: "rules/peaks/merge.smk"
-        include: "rules/pileup/merge.smk"
-        include: "rules/pileup/normalized.smk"
-        include: "rules/visualise/hub.smk"
-        include: "rules/visualise/browser.smk"
-        include: "rules/quant/merged.smk"
-        include: "rules/normalization/spikein.smk"
     case Assay.RNA:
         include: "rules/fastq/trim.smk"
         include: "rules/alignment/rna_default.smk"
-        include: "rules/alignment/rna_spikein.smk"
         include: "rules/bam/all.smk"
         include: "rules/quant/featurecounts.smk"
         include: "rules/quant/salmon.smk"
         include: "rules/pileup/rna_default.smk"
         include: "rules/visualise/hub.smk"
         include: "rules/visualise/browser.smk"
-        include: "rules/normalization/spikein.smk"
     case Assay.MCC:
         include: "rules/fastq/trim.smk"
         include: "rules/alignment/dna_default.smk"
@@ -158,6 +143,10 @@ include: "rules/common/qc.smk"
 # Rule Ordering
 ################################
 if CONFIG.assay_config.has_spikein:
+    include: "rules/alignment/dna_spikein.smk"
+    include: "rules/alignment/rna_spikein.smk"
+    include: "rules/bam/spikein.smk"
+    include: "rules/normalization/spikein.smk"
     ruleorder: move_ref_bam > align_paired > align_single
     ruleorder: deeptools_make_bigwigs_spikein > deeptools_make_bigwigs
     ruleorder: align_paired_spikein > align_paired > align_single_spikein > align_single
