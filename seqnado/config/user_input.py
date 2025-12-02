@@ -19,7 +19,7 @@ from seqnado import (
     PeakCallingMethod,
     QuantificationMethod,
     SNPCallingMethod,
-    MethylationMethod
+    MethylationMethod,
 )
 from seqnado.config import (
     SeqnadoConfig,
@@ -120,22 +120,19 @@ def load_genome_configs(assay: Assay) -> Dict[str, GenomeConfig]:
 
     with open(config_path, "r") as f:
         all_genome_configs = json.load(f)
-    
+
     genome_configs: dict[str, GenomeConfig] = dict()
     for genome_name, config_data in all_genome_configs.items():
-
         # Ensure required fields are present
-        config_data['name'] = genome_name
+        config_data["name"] = genome_name
 
         # Select appropriate index based on assay requirements
         if assay in [Assay.RNA]:
             index = STARIndex(prefix=config_data.get("star_index"))
         else:
             index = BowtieIndex(prefix=config_data.get("bt2_index"))
-        
-        
-        
-        config_data['index'] = index
+
+        config_data["index"] = index
         genome_configs[genome_name] = GenomeConfig(**config_data)
 
     return genome_configs
@@ -154,9 +151,7 @@ def get_project_config() -> ProjectConfig:
         "Project directory?", default=os.getcwd(), is_path=False
     )
 
-    return ProjectConfig(
-        name=project_name, date=today, directory=Path(project_dir)
-    )
+    return ProjectConfig(name=project_name, date=today, directory=Path(project_dir))
 
 
 def select_genome_config(genome_configs: Dict[str, GenomeConfig]) -> GenomeConfig:
@@ -250,8 +245,6 @@ def get_peak_calling_config(assay: Assay) -> Optional[PeakCallingConfig]:
 
 def get_spikein_config(assay: Assay) -> Optional[SpikeInConfig]:
     """Get spike-in configuration for assays that support it."""
-    if assay not in [Assay.CHIP, Assay.CAT]:
-        return None
 
     spikein = get_user_input("Do you have spikein?", default="no", is_boolean=True)
 
@@ -394,10 +387,16 @@ def get_methylation_config() -> Optional[MethylationConfig]:
     spikein_genomes: list[str] = []
     if call_methylation:
         spikein_genomes_input = get_user_input(
-            "Spike-in genomes (comma-separated):", default="Lambda,250bp-v1,2kb-unmod", required=False
+            "Spike-in genomes (comma-separated):",
+            default="Lambda,250bp-v1,2kb-unmod",
+            required=False,
         )
         if spikein_genomes_input:
-            spikein_genomes = [genome.strip() for genome in spikein_genomes_input.split(",") if genome.strip()]
+            spikein_genomes = [
+                genome.strip()
+                for genome in spikein_genomes_input.split(",")
+                if genome.strip()
+            ]
     # Always ensure spikein_genomes is a list, never None
     if not call_methylation:
         return None
@@ -408,7 +407,10 @@ def get_methylation_config() -> Optional[MethylationConfig]:
         default="taps",
     )
 
-    return MethylationConfig(method=MethylationMethod(methylation_assay), spikein_genomes=spikein_genomes or [])
+    return MethylationConfig(
+        method=MethylationMethod(methylation_assay),
+        spikein_genomes=spikein_genomes or [],
+    )
 
 
 def build_assay_config(
@@ -434,10 +436,11 @@ def build_assay_config(
         "create_geo_submission_files": geo_files,
     }
 
-    
     match assay:
         case Assay.ATAC:
-            tn5_shift = get_user_input("Shift ATAC reads?", default="yes", is_boolean=True)
+            tn5_shift = get_user_input(
+                "Shift ATAC reads?", default="yes", is_boolean=True
+            )
             peak_calling = get_peak_calling_config(assay)
             dataset_for_ml = get_ml_dataset_config(assay)
 
@@ -461,7 +464,9 @@ def build_assay_config(
             )
 
         case Assay.CAT:
-            tn5_shift = get_user_input("Shift CAT reads?", default="no", is_boolean=True)
+            tn5_shift = get_user_input(
+                "Shift CAT reads?", default="no", is_boolean=True
+            )
             spikein = get_spikein_config(assay)
             peak_calling = get_peak_calling_config(assay)
             dataset_for_ml = get_ml_dataset_config(assay)
@@ -475,14 +480,18 @@ def build_assay_config(
             )
 
         case Assay.RNA:
+            spikein = get_spikein_config(assay)
             rna_quantification = get_rna_quantification_config()
 
-            return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
-
+            return RNAAssayConfig(
+                **base_config, 
+                spikein=spikein, 
+                rna_quantification=rna_quantification,
+            )
 
         case Assay.SNP:
-            base_config_snp = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
-            base_config_snp['ucsc_hub'] = None
+            base_config_snp = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
+            base_config_snp["ucsc_hub"] = None
             snp_calling = get_snp_calling_config()
             return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
 
@@ -490,10 +499,9 @@ def build_assay_config(
             mcc = get_mcc_config()
             return MCCAssayConfig(**base_config, mcc=mcc)
 
-
         case Assay.METH:
-            base_config_meth = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
-            base_config_meth['ucsc_hub'] = None
+            base_config_meth = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
+            base_config_meth["ucsc_hub"] = None
             methylation = get_methylation_config()
             return MethylationAssayConfig(**base_config_meth, methylation=methylation)
 
@@ -504,17 +512,24 @@ def build_assay_config(
             raise ValueError(f"Unsupported assay type: {assay}")
 
 
-def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Optional[AssaySpecificConfig]:
+def build_default_assay_config(
+    assay: Assay, genome_config: GenomeConfig
+) -> Optional[AssaySpecificConfig]:
     """Build a default assay-specific configuration for non-interactive mode."""
     # Set common defaults
     bigwigs = BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS], binsize=10)
-    
+
     # Set default plotting coordinates - use test data coordinates if available
     default_coordinates = None
-    test_coordinates = Path(__file__).parent.parent.parent / "tests" / "data" / "plotting_coordinates.bed"
+    test_coordinates = (
+        Path(__file__).parent.parent.parent
+        / "tests"
+        / "data"
+        / "plotting_coordinates.bed"
+    )
     if test_coordinates.exists():
         default_coordinates = str(test_coordinates)
-    
+
     plotting = PlottingConfig(coordinates=default_coordinates)
     ucsc_hub = UCSCHubConfig(
         directory="seqnado_output/hub/",
@@ -536,7 +551,9 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
     match assay:
         case Assay.ATAC:
             tn5_shift = True
-            peak_calling = PeakCallingConfig(method=[PeakCallingMethod.LANCEOTRON], consensus_counts=False)
+            peak_calling = PeakCallingConfig(
+                method=[PeakCallingMethod.LANCEOTRON], consensus_counts=False
+            )
             dataset_for_ml = MLDatasetConfig(binsize=1000)
 
             return ATACAssayConfig(
@@ -548,7 +565,9 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
 
         case Assay.CHIP:
             spikein = None
-            peak_calling = PeakCallingConfig(method=[PeakCallingMethod.LANCEOTRON], consensus_counts=False)
+            peak_calling = PeakCallingConfig(
+                method=[PeakCallingMethod.LANCEOTRON], consensus_counts=False
+            )
             dataset_for_ml = MLDatasetConfig(binsize=1000)
 
             return ChIPAssayConfig(
@@ -560,8 +579,10 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
         case Assay.CAT:
             tn5_shift = False
             spikein = None
-            peak_calling = PeakCallingConfig(method=[PeakCallingMethod.SEACR], consensus_counts=False)
-            dataset_for_ml = MLDatasetConfig(binsize=1000)   
+            peak_calling = PeakCallingConfig(
+                method=[PeakCallingMethod.SEACR], consensus_counts=False
+            )
+            dataset_for_ml = MLDatasetConfig(binsize=1000)
             return CATAssayConfig(
                 **base_config,
                 tn5_shift=tn5_shift,
@@ -578,8 +599,8 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
             return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
         case Assay.SNP:
             # SNP assays don't use UCSC hub
-            base_config_snp = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
-            base_config_snp['ucsc_hub'] = None
+            base_config_snp = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
+            base_config_snp["ucsc_hub"] = None
             snp_calling = SNPCallingConfig(
                 method=SNPCallingMethod.BCFTOOLS,
                 annotate_snps=False,
@@ -589,7 +610,10 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
         case Assay.MCC:
             # Allow override for test environment
             import os
-            viewpoints_path = os.environ.get("SEQNADO_MCC_VIEWPOINTS", "path/to/viewpoints.bed")
+
+            viewpoints_path = os.environ.get(
+                "SEQNADO_MCC_VIEWPOINTS", "path/to/viewpoints.bed"
+            )
             mcc = MCCConfig(
                 viewpoints=Path(viewpoints_path),
                 resolutions=[100, 1000],
@@ -597,17 +621,20 @@ def build_default_assay_config(assay: Assay, genome_config: GenomeConfig) -> Opt
             return MCCAssayConfig(**base_config, mcc=mcc)
         case Assay.METH:
             # Methylation assays don't use UCSC hub
-            base_config_meth = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
-            base_config_meth['ucsc_hub'] = None
+            base_config_meth = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
+            base_config_meth["ucsc_hub"] = None
             methylation = MethylationConfig(method=MethylationMethod.TAPS)
             return MethylationAssayConfig(**base_config_meth, methylation=methylation)
         case Assay.CRISPR:
             # CRISPR assays don't use UCSC hub
-            base_config_crispr = {k: v for k, v in base_config.items() if k != 'ucsc_hub'}
-            base_config_crispr['ucsc_hub'] = None
+            base_config_crispr = {
+                k: v for k, v in base_config.items() if k != "ucsc_hub"
+            }
+            base_config_crispr["ucsc_hub"] = None
             return CRISPRAssayConfig(**base_config_crispr)
         case _:
             raise ValueError(f"Unsupported assay type: {assay}")
+
 
 def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
     """Build complete workflow configuration from user input.
@@ -640,7 +667,9 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
 
     # Get metadata path
     metadata_path = get_user_input(
-        "Path to metadata file:", default=f"metadata_{assay.clean_name}.csv", is_path=False
+        "Path to metadata file:",
+        default=f"metadata_{assay.clean_name}.csv",
+        is_path=False,
     )
 
     # Build assay-specific configuration
@@ -698,8 +727,6 @@ def build_default_workflow_config(assay: Assay) -> SeqnadoConfig:
     except ValidationError as e:
         logger.error(f"Configuration validation error: {e}")
         sys.exit(1)
-
-
 
 
 def render_config(

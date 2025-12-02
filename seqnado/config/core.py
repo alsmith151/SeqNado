@@ -69,6 +69,7 @@ class CATAssayConfig(BaseAssayConfig, PeakCallingMixin):
 class RNAAssayConfig(BaseAssayConfig):
     """Configuration specific to RNA-seq assays."""
 
+    spikein: Annotated[SpikeInConfig | None, BeforeValidator(none_str_to_none)] = None
     rna_quantification: RNAQuantificationConfig | None = None
     create_heatmaps: bool = False
 

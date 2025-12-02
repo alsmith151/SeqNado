@@ -34,7 +34,6 @@ rule align_paired:
 rule align_single:
     input:
         fq1=OUTPUT_DIR + "/trimmed/{sample}.fastq.gz",
-
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     params:
