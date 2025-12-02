@@ -52,7 +52,6 @@ jobs:
           mkdir -p /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/
           cp tests/data/plotting_coordinates.bed /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/
           cp tests/data/hg38_genes.bed /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/
-          cp -r tests/data/config /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/config/
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
