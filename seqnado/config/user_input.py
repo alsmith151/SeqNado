@@ -123,17 +123,22 @@ def load_genome_configs(assay: Assay) -> Dict[str, GenomeConfig]:
 
     genome_configs: dict[str, GenomeConfig] = dict()
     for genome_name, config_data in all_genome_configs.items():
-        # Ensure required fields are present
-        config_data["name"] = genome_name
+        try:
+            # Ensure required fields are present
+            config_data["name"] = genome_name
 
-        # Select appropriate index based on assay requirements
-        if assay in [Assay.RNA]:
-            index = STARIndex(prefix=config_data.get("star_index"))
-        else:
-            index = BowtieIndex(prefix=config_data.get("bt2_index"))
+            # Select appropriate index based on assay requirements
+            if assay in [Assay.RNA]:
+                index = STARIndex(prefix=config_data.get("star_index"))
+            else:
+                index = BowtieIndex(prefix=config_data.get("bt2_index"))
 
-        config_data["index"] = index
-        genome_configs[genome_name] = GenomeConfig(**config_data)
+            config_data["index"] = index
+            genome_configs[genome_name] = GenomeConfig(**config_data)
+        except Exception as e:
+            # Skip invalid genome configs (e.g., from user's personal config with placeholder paths)
+            logger.debug(f"Skipping invalid genome config '{genome_name}': {e}")
+            continue
 
     return genome_configs
 
@@ -154,13 +159,24 @@ def get_project_config() -> ProjectConfig:
     return ProjectConfig(name=project_name, date=today, directory=Path(project_dir))
 
 
-def select_genome_config(genome_configs: Dict[str, GenomeConfig]) -> GenomeConfig:
-    """Allow user to select a genome configuration."""
+def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay = None) -> GenomeConfig:
+    """Allow user to select a genome configuration.
+
+    If assay is provided and an assay-specific genome config exists (e.g., 'meth'),
+    it will be used as the default choice.
+    """
     available_genomes = list(genome_configs.keys())
+
+    # If assay is provided, check if there's an assay-specific config
+    default_genome = available_genomes[0] if available_genomes else ""
+    if assay:
+        assay_name = assay.value.lower()
+        if assay_name in genome_configs:
+            default_genome = assay_name
 
     genome_name = get_user_input(
         f"Genome? (Available: {', '.join(available_genomes)})",
-        default=available_genomes[0] if available_genomes else "",
+        default=default_genome,
     )
 
     while genome_name not in genome_configs:
@@ -168,7 +184,7 @@ def select_genome_config(genome_configs: Dict[str, GenomeConfig]) -> GenomeConfi
             f"Genome '{genome_name}' is not configured. Please choose from: {', '.join(available_genomes)}"
         )
         genome_name = get_user_input(
-            "Genome?", default=available_genomes[0] if available_genomes else ""
+            "Genome?", default=default_genome
         )
 
     return genome_configs[genome_name]
@@ -663,7 +679,7 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
     project = get_project_config()
 
     # Select genome configuration
-    genome = select_genome_config(genome_configs)
+    genome = select_genome_config(genome_configs, assay=assay)
 
     # Get metadata path
     metadata_path = get_user_input(

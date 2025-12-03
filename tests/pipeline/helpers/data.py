@@ -30,21 +30,14 @@ def ensure_fastqs_present(
         tar_path = fastq_dir.parent / "fastq.tar.gz"
         download_with_retry(url, tar_path)
 
-        # Extract tar and handle the directory structure
+        # Extract tar directly to fastq_dir
         with tarfile.open(tar_path) as tar:
-            tar.extractall(path=fastq_dir.parent)
+            tar.extractall(path=fastq_dir)
 
-        fastq_files_in_parent = list(fastq_dir.parent.glob("*.fastq.gz"))
-
-        if fastq_files_in_parent:
-            for fq_file in fastq_files_in_parent:
-                dest = fastq_dir / fq_file.name
-                if not dest.exists():
-                    fq_file.rename(dest)
-                else:
-                    print(f"[DEBUG] Skipped {fq_file.name} (already exists)")
-        else:
-            print("[DEBUG] No FASTQ files found in parent to move")
+        # Verify extraction worked
+        extracted_fastqs = list(fastq_dir.glob("*.fastq.gz"))
+        if not extracted_fastqs:
+            raise RuntimeError(f"FASTQ extraction failed - no files found in {fastq_dir} after extraction")
 
         os.remove(tar_path)
 

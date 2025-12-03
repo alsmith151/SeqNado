@@ -12,7 +12,6 @@ from helpers.genome import ensure_genome_resources
 from helpers.project import (
     create_config_yaml,
     create_design_file,
-    get_metadata_path,
     init_seqnado_project,
 )
 from helpers.utils import get_fastq_pattern
@@ -146,16 +145,15 @@ def multi_assay_configs(
     For a list of assays, set up config and metadata files for each assay.
     Returns: {assay: {"config": config_path, "metadata": metadata_path}}
     """
-    # Get the list of assays from the test parameterization or request
-    multi_assays = getattr(request, "param", None)
-    if multi_assays is None and hasattr(request, "node"):
-        # Try to get from test function arguments
-        multi_assays = request.node.funcargs.get("multi_assays", None)
-    if multi_assays is None:
-        # Fallback: use a default
-        multi_assays = ["atac", "rna"]
-    # Ensure FASTQ files are present for all requested assays
-    ensure_fastqs_present(test_context.test_paths.fastq, multi_assays)
+    # Get the list of assays from the test function's parameters
+    # When a test is parametrized with multi_assays, we need to extract it from the test node
+    if hasattr(request, "node") and hasattr(request.node, "callspec"):
+        multi_assays = request.node.callspec.params.get(
+            "multi_assays", ["atac", "chip", "meth", "rna", "snp"]
+        )
+    else:
+        # Default to all assays if not parametrized
+        multi_assays = ["atac", "chip", "meth", "rna", "snp"]
     # Set up a run directory for the multi-assay test
     run_dir = tmp_path_factory.mktemp("multi_assay_run")
     configs = {}
@@ -166,22 +164,108 @@ def multi_assay_configs(
     for assay in multi_assays:
         all_resources[assay] = genome_resources(assay)
 
-    # Initialize with resources from the first assay (they should share common genome files)
-    first_assay = multi_assays[0]
+    # Merge all resources to ensure genome_config.json has everything needed
+    # (e.g., STAR index for RNA, Bowtie2 index for ATAC, etc.)
+    # Priority: RNA-specific resources (star_index, RNA GTF) take precedence
+    merged_resources = {}
+    rna_assay = None
+    for assay in multi_assays:
+        if "rna" in assay.lower():
+            rna_assay = assay
+            break
+
+    # If RNA is present, use its resources as the base (to get RNA-specific GTF and STAR index)
+    if rna_assay:
+        merged_resources.update(all_resources[rna_assay])
+
+    # Then merge in resources from other assays (won't overwrite RNA-specific ones)
+    for assay in multi_assays:
+        for key, value in all_resources[assay].items():
+            if key not in merged_resources or merged_resources[key] is None:
+                merged_resources[key] = value
+
+    # Initialize with merged resources from all assays
+    # Check if MCC is in the list of assays and use it for init if present
+    # (init_seqnado_project needs to know about MCC to set up viewpoints)
+    init_assay = next((a for a in multi_assays if "mcc" in a.lower()), multi_assays[0])
     init_seqnado_project(
         run_directory=run_dir,
-        assay=first_assay,
-        resources=all_resources[first_assay],
+        assay=init_assay,
+        resources=merged_resources,
         test_data_path=test_context.test_paths.test_data,
         monkeypatch=monkeypatch,
     )
 
-    for assay in multi_assays:
-        # Get metadata and config paths
-        metadata_path = get_metadata_path(test_context.test_paths.test_data, assay)
+    # Ensure FASTQ files are present for all requested assays
+    # Do this AFTER init_seqnado_project to avoid the directory being cleaned up
+    fastq_path = test_context.test_paths.fastq
+    ensure_fastqs_present(fastq_path, multi_assays)
 
-        # Create config YAML using helpers/project.py
+    # Add assay-specific genome configs for each assay (except the one used for init)
+    # Each assay gets its own genome config entry with assay-specific resources
+    from helpers.utils import setup_genome_config
+    genome_config_file = run_dir / ".config" / "seqnado" / "genome_config.json"
+    genes_bed = test_context.test_paths.test_data / "hg38_genes.bed"
+
+    for assay in multi_assays:
+        if assay != init_assay:
+            # Add this assay's specific configuration
+            setup_genome_config(
+                genome_config_file,
+                star_index=all_resources[assay].get("star_index"),
+                bt2_index=all_resources[assay]["bt2_index"],
+                chromsizes=all_resources[assay]["chromsizes"],
+                gtf=all_resources[assay]["gtf"],
+                blacklist=all_resources[assay]["blacklist"],
+                genes_bed=genes_bed,
+                fasta=all_resources[assay].get("fasta"),
+                assay=assay,
+            )
+
+    for assay in multi_assays:
+        assay_type = test_context.assay_type(assay)
+
+        # Create config YAML in the run directory
+        # The genome config was already set up by init_seqnado_project with merged resources
         config_yaml = create_config_yaml(run_dir, assay, monkeypatch, all_resources[assay])
 
-        configs[assay] = {"config": config_yaml, "metadata": metadata_path}
+        # Now copy FASTQs to the directory where the config was created
+        fastq_dest_dir = config_yaml.parent / "fastqs"
+        fastq_dest_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy FASTQ files for this assay
+        fastq_source_dir = test_context.test_paths.fastq
+        pattern = get_fastq_pattern(assay_type)
+        fastqs_to_copy = list(fastq_source_dir.glob(pattern))
+
+        if not fastqs_to_copy:
+            raise FileNotFoundError(
+                f"No FASTQ files found for assay '{assay_type}' in {fastq_source_dir}"
+            )
+
+        for fq in fastqs_to_copy:
+            shutil.copy2(fq, fastq_dest_dir / fq.name)
+
+        # Generate design file in the same directory as the config file
+        design_file = create_design_file(
+            run_directory=config_yaml.parent,
+            assay=assay_type,
+        )
+
+        configs[assay] = {"config": config_yaml, "metadata": design_file}
     return configs
+
+
+@pytest.fixture(scope="function")
+def multi_assay_run_directory(multi_assay_configs: dict[str, dict[str, Path]]) -> Path:
+    """
+    Return the run directory for multi-assay tests.
+    This extracts the run directory from the config paths created by multi_assay_configs.
+    """
+    # Get any config path and extract the run directory from it
+    # All configs share the same run directory
+    first_config = next(iter(multi_assay_configs.values()))
+    config_path = first_config["config"]
+    # The run directory is the parent of the config file
+    # config is at: run_dir/<project_name>/config_<assay>.yaml
+    return config_path.parent

@@ -1,6 +1,7 @@
 """Project initialization and configuration helpers for pipeline tests."""
 
 import glob
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -8,8 +9,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from .genome import fill_fastq_screen_config
-from .utils import setup_genome_config
+from .utils import get_fastq_pattern, setup_genome_config
 
 
 def init_seqnado_project(
@@ -70,9 +70,8 @@ def init_seqnado_project(
         gtf=resources["gtf"],
         blacklist=resources["blacklist"],
         genes_bed=genes_bed,
-        fasta=resources.get("fasta")
-        if any(x in assay.lower() for x in ["meth", "snp"])
-        else None,
+        fasta=resources.get("fasta"),
+        assay=assay,
     )
 
     assert genome_config_file.exists(), "genome_config.json not created"
@@ -106,7 +105,6 @@ def create_config_yaml(
         seq_assay = assay.replace("-rx", "")
     else:
         seq_assay = assay
-        
 
     # Generate config with proper flags
     result = subprocess.run(
@@ -135,13 +133,55 @@ def create_config_yaml(
     with open(config_path) as f:
         config = yaml.safe_load(f)
 
+    # Load existing genome_config.json and get the genome entry for this assay
+    genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
+    with open(genome_config_file) as f:
+        genome_config_data = json.load(f)
+
+    # Determine which genome config to use
+    if assay in genome_config_data:
+        genome_key = assay
+        genome_config = genome_config_data[assay]
+    else:
+        genome_key = "hg38"
+        genome_config = genome_config_data.get("hg38", {})
+
+    # Update genome entries in config with paths from genome_config.json
+    config["genome"]["name"] = genome_key
+
+    # Update the index prefix based on assay type
+    if "rna" in assay.lower() and genome_config.get("star_index"):
+        config["genome"]["index"]["prefix"] = genome_config.get("star_index")
+        config["genome"]["index"]["type"] = "STAR"
+    elif genome_config.get("bt2_index"):
+        config["genome"]["index"]["prefix"] = genome_config.get("bt2_index")
+        config["genome"]["index"]["type"] = "Bowtie2"
+    else:
+        config["genome"]["index"]["prefix"] = None
+        config["genome"]["index"]["type"] = None
+        
+
+    # Update other genome fields (chromosome_sizes from JSON maps to both field names)
+    config["genome"]["chromosome_sizes"] = genome_config.get("chromosome_sizes")
+    config["genome"]["gtf"] = genome_config.get("gtf")
+    config["genome"]["blacklist"] = genome_config.get("blacklist")
+    config["genome"]["organism"] = "Homo sapiens"
+    if "fasta" in genome_config:
+        config["genome"]["fasta"] = genome_config.get("fasta")
+
     # Generate fastq_screen.conf for testing
-    fastq_screen_config_path = run_directory / ".config" / "seqnado" / "fastq_screen.conf"
-    fill_fastq_screen_config(fastq_screen_config_path, resources["bt2_index"])
-    
+    genome_path = Path(resources["bt2_index"]).parent.parent
+    fastq_screen_config_path = genome_path / "fastq_screen.conf"
+
     # Update config with test assay settings
     config["qc"]["run_fastq_screen"] = True
     config["genome"]["fastq_screen_config"] = str(fastq_screen_config_path)
+
+    # Also update the third_party_tools config which is what the Snakemake rule uses
+    if "third_party_tools" in config and "fastq_screen" in config["third_party_tools"]:
+        config["third_party_tools"]["fastq_screen"]["config"] = str(
+            fastq_screen_config_path
+        )
     test_config_file = (
         Path(__file__).parent.parent / "assay_configs" / f"test_{assay}.yaml"
     )
@@ -184,14 +224,34 @@ def create_design_file(
     if assay.endswith("-rx"):
         assay = assay.replace("-rx", "")
 
+    # Expand the glob pattern to get actual FASTQ file paths
+    pattern = get_fastq_pattern(assay)
+    fastq_dir = run_directory / "fastqs"
+    fastq_files = sorted(fastq_dir.glob(pattern))
 
+    if not fastq_files:
+        raise FileNotFoundError(
+            f"No FASTQ files found matching pattern '{pattern}' in {fastq_dir}"
+        )
+
+    # Build command with expanded file paths
+    cmd = [
+        "seqnado",
+        "design",
+        assay,
+        "--no-interactive",
+        "--accept-all-defaults",
+    ]
+    # Add relative paths to FASTQ files
+    cmd.extend([f"fastqs/{f.name}" for f in fastq_files])
 
     result = subprocess.run(
-        ["seqnado", "design", assay, "--no-interactive", "--accept-all-defaults"],
+        cmd,
         cwd=run_directory,
         capture_output=True,
         text=True,
     )
+
     assert result.returncode == 0, (
         f"seqnado design failed:\nSTDERR: {result.stderr}\nSTDOUT: {result.stdout}"
     )
@@ -215,4 +275,3 @@ def get_metadata_path(test_data_dir: Path, assay: str) -> Path:
     """Return the metadata CSV path for a given assay."""
     # Example: test_data_dir/metadata_atac.csv
     return test_data_dir / f"metadata_{assay}.csv"
-

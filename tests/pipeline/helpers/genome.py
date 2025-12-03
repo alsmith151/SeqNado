@@ -93,7 +93,9 @@ def _ensure_bt2_index(genome_path: Path, assay: str) -> Path:
         dest = genome_path / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L"
         suffix = "bt2_chr21_dm6_chr2L.tar.gz"
 
-    if dest.exists():
+    # Check if index files already exist (not just the directory)
+    index_files = list(dest.parent.glob(f"{dest.name}.*.bt2*"))
+    if index_files:
         return dest
 
     url = f"https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_reference/{suffix}"
@@ -101,19 +103,60 @@ def _ensure_bt2_index(genome_path: Path, assay: str) -> Path:
 
     download_with_retry(url, tar_path)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    extract_tar(tar_path, dest.parent)
+    # Extract without flattening, we'll handle the directory structure manually
+    extract_tar(tar_path, dest.parent, flatten=False)
 
-    # Handle nested directory structure
+    # Handle nested directory structure - tar might contain bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L/*.bt2
+    # or bt2_chr21_dm6_chr2L/*.bt2, so we need to check both levels
     nested = dest.parent / dest.name
     if nested.exists() and nested.is_dir():
-        for f in nested.glob("*.bt2*"):
-            f.rename(dest.parent / f.name)
-        try:
-            nested.rmdir()
-        except OSError:
-            pass
+        # Check if files are in a doubly-nested directory
+        doubly_nested = nested / dest.name
+        if doubly_nested.exists() and doubly_nested.is_dir():
+            # Move files from bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L/ to bt2_chr21_dm6_chr2L/
+            for f in doubly_nested.glob("*.bt2*"):
+                f.rename(nested / f.name)
+            try:
+                doubly_nested.rmdir()
+            except OSError:
+                pass
 
     os.remove(tar_path)
+
+    # Verify that index files exist
+    index_files = list(dest.parent.glob(f"{dest.name}.*.bt2*"))
+    if not index_files:
+        raise RuntimeError(
+            f"Bowtie2 index extraction failed - no .bt2* files found in {dest.parent}. "
+            f"Expected files like {dest.name}.1.bt2, etc."
+        )
+
+    # Append genome entry to fastq_screen.conf
+    genome_bt2_index = str(dest)
+    config_path = genome_path / "fastq_screen.conf"
+
+    # Determine database name based on the index being used
+    # Use the index name to create a unique database identifier
+    if "meth" in assay.lower():
+        db_name = "hg38_meth"
+    else:
+        db_name = "hg38"
+
+    # Check if this database entry already exists to avoid duplicates
+    existing_entries = set()
+    if config_path.exists():
+        with open(config_path, "r") as f:
+            for line in f:
+                if line.startswith("DATABASE"):
+                    parts = line.strip().split("\t")
+                    if len(parts) >= 2:
+                        existing_entries.add(parts[1])
+
+    # Only append if this database name doesn't already exist
+    if db_name not in existing_entries:
+        with open(config_path, "a") as f:
+            f.write(f"DATABASE\t{db_name}\t{genome_bt2_index}\n")
+
     return dest
 
 
@@ -201,16 +244,3 @@ def _ensure_mcc_viewpoints(genome_path: Path) -> Path:
     url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/test_viewpoints.bed"
     download_with_retry(url, dest)
     return dest
-
-
-def fill_fastq_screen_config(config_path, genome_bt2_index):
-    """
-    Fill the fastq_screen.conf file with the provided genome Bowtie2 index.
-
-    Args:
-        config_path (str): Path to the fastq_screen.conf file.
-        genome_bt2_index (str): Path to the Bowtie2 index for the genome.
-    """
-    with open(config_path, "a") as f:
-        f.write("# Genome configuration\n")
-        f.write(f"DATABASE\thg38\t{genome_bt2_index}\n")

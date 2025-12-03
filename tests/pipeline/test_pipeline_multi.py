@@ -14,7 +14,18 @@ import pytest
 @pytest.mark.snakemake
 @pytest.mark.requires_apptainer
 @pytest.mark.slow
-@pytest.mark.parametrize("multi_assays", [["atac", "rna"]])
+@pytest.mark.parametrize(
+    "multi_assays",
+    [
+        [
+            "atac",
+            "chip",
+            "meth",
+            "rna",
+            "snp",
+        ]
+    ],
+)
 def test_pipeline_multi(
     multi_assays: list[str],
     multi_assay_configs: dict[str, dict[str, Path]],
@@ -31,32 +42,33 @@ def test_pipeline_multi(
         test_profile_path: Path to the Snakemake profile for testing
     """
     # Find the Snakefile_multi
-    snakefile_multi = Path(__file__).parent.parent.parent / "seqnado" / "workflow" / "Snakefile_multi"
+    snakefile_multi = (
+        Path(__file__).parent.parent.parent / "seqnado" / "workflow" / "Snakefile_multi"
+    )
     assert snakefile_multi.exists(), f"Snakefile_multi not found at {snakefile_multi}"
-    
+
     res = subprocess.run(
         [
             "seqnado",
             "pipeline",
             "--workflow-profile",
             str(test_profile_path),
-            "--keep-going",  
+            "--keep-going",
         ],
         cwd=multi_assay_run_directory,
-        capture_output=True,
+        capture_output=False,
         text=True,
     )
-    
-    if res.returncode != 0:
-        print("STDOUT:\n", res.stdout)
-        print("STDERR:\n", res.stderr)
-    
+
     for assay in multi_assays:
-        assert (multi_assay_run_directory / f"seqnado_output/{assay}").exists(), \
+        assert (multi_assay_run_directory / f"seqnado_output/{assay}").exists(), (
             f"Output directory not found for {assay}"
-        
-        assert list((multi_assay_run_directory / "seqnado_output/logs/").glob(".complete")), \
-            f"No .complete log files found for {assay}"
-        
-        assert (multi_assay_run_directory / "multi_assay_summary.txt").exists(), \
-            "multi_assay_summary.txt not found"
+        )
+
+        assert (
+            multi_assay_run_directory / f"seqnado_output/{assay}/logs/.complete"
+        ).exists(), f"No .complete log file found for {assay}"
+
+    assert (multi_assay_run_directory / "multi_assay_summary.txt").exists(), (
+        "multi_assay_summary.txt not found"
+    )

@@ -129,6 +129,8 @@ rule run_assay:
         runtime = 259200  # 72 hours
     log:
         OUTPUT_DIR + "{assay}/logs/seqnado.log"
+    message:
+        "Running {params.assay} assay pipeline with config {params.config_file}"
     shell:
         """
         # Create output directory
@@ -176,6 +178,8 @@ rule summary:
         expand(OUTPUT_DIR + "{assay}/logs/.complete", assay=ASSAYS)
     output:
         "multi_assay_summary.txt"
+    message:
+        "Generating multi-assay summary report"
     run:
         with open(output[0], 'w') as f:
             f.write("SeqNado Multi-Assay Project Summary\n")

@@ -68,22 +68,43 @@ def setup_genome_config(
     blacklist: Path,
     genes_bed: Path,
     fasta: Path,
+    assay: str = None,
 ):
-    """Write genome_config.json for seqnado tests."""
-    config_data = {
-        "hg38": {
-            "star_index": str(star_index) if star_index else None,
-            "bt2_index": str(bt2_index) if bt2_index else None,
-            "chromosome_sizes": str(chromsizes) if chromsizes else None,
-            "gtf": str(gtf) if gtf else None,
-            "blacklist": str(blacklist) if blacklist else None,
-            "genes": str(genes_bed) if genes_bed else None,
-            "fasta": str(fasta) if fasta else None,
-        }
+    """Write genome_config.json for seqnado tests.
+
+    If assay is provided, creates an assay-specific genome entry (e.g., "meth").
+    Otherwise, creates the default "hg38" entry.
+
+    For multi-assay tests, this function can be called multiple times to add
+    assay-specific configurations to the same file.
+    """
+    genome_config_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Load existing config if it exists, but filter to only keep test-specific entries
+    # Valid test genome keys are: assay names (atac, chip, meth, rna, snp, etc.) or "hg38"
+    valid_test_genomes = ["hg38", "atac", "chip", "cat", "chip-rx", "meth", "rna", "rna-rx", "snp", "mcc"]
+
+    if genome_config_file.exists():
+        with open(genome_config_file, "r") as f:
+            all_config_data = json.load(f)
+        # Filter to keep only test-specific genome configs
+        config_data = {k: v for k, v in all_config_data.items() if k in valid_test_genomes}
+    else:
+        config_data = {}
+
+    # Determine the genome key - use assay name if provided, otherwise "hg38"
+    genome_key = assay if assay else "hg38"
+
+    # Add or update the genome configuration for this assay
+    config_data[genome_key] = {
+        "star_index": str(star_index) if star_index else None,
+        "bt2_index": str(bt2_index) if bt2_index else None,
+        "chromosome_sizes": str(chromsizes) if chromsizes else None,
+        "gtf": str(gtf) if gtf else None,
+        "blacklist": str(blacklist) if blacklist else None,
+        "genes": str(genes_bed) if genes_bed else None,
+        "fasta": str(fasta) if fasta else None,
     }
 
-    genome_config_file.parent.mkdir(parents=True, exist_ok=True)
     with open(genome_config_file, "w") as f:
         json.dump(config_data, f, indent=2)
-
-
