@@ -190,7 +190,7 @@ def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay =
     return genome_configs[genome_name]
 
 
-def get_bigwig_config() -> Optional[BigwigConfig]:
+def get_bigwig_config(assay: Assay) -> Optional[BigwigConfig]:
     """Get bigwig configuration if user wants to create bigwigs."""
     make_bigwigs = get_user_input("Make Bigwigs?", default="no", is_boolean=True)
 
@@ -198,7 +198,7 @@ def get_bigwig_config() -> Optional[BigwigConfig]:
         return None
 
     pileup_method = get_user_input(
-        "Bigwig method:", choices=[m.value for m in PileupMethod], default="deeptools"
+        "Bigwig method:", choices=[m.value for m in PileupMethod], default="deeptools" if not assay == Assay.MCC else PileupMethod.BAMNADO.value
     )
 
     binsize = get_user_input("Binsize for bigwigs:", default="10", required=False)
@@ -435,7 +435,7 @@ def build_assay_config(
     """Build assay-specific configuration based on the assay type."""
 
     # Get common configurations
-    bigwigs = get_bigwig_config()
+    bigwigs = get_bigwig_config(assay=assay)
     plotting = get_plotting_config()
     ucsc_hub = get_ucsc_hub_config()
     create_heatmaps = get_user_input("Make heatmaps?", default="no", is_boolean=True)
