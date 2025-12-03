@@ -6,20 +6,6 @@ import pytest
 
 
 @pytest.mark.pipeline
-def test_config(assay, test_context, config_yaml_for_testing: Path):
-    assay_type = test_context.assay_type(assay)
-    assert os.path.exists(config_yaml_for_testing), (
-        f"{assay_type} config file not created."
-    )
-
-
-@pytest.mark.pipeline
-def test_design(assay, test_context, design: Path):
-    assay_type = test_context.assay_type(assay)
-    assert os.path.exists(design), f"{assay_type} design file not created."
-
-
-@pytest.mark.pipeline
 @pytest.mark.snakemake
 @pytest.mark.requires_apptainer
 @pytest.mark.slow

@@ -51,9 +51,10 @@ def test_pipeline_multi(
         [
             "seqnado",
             "pipeline",
-            "--workflow-profile",
-            str(test_profile_path),
-            "--keep-going",
+            "-c",
+            str(cores),
+            "--preset",
+            "t",
         ],
         cwd=multi_assay_run_directory,
         capture_output=True,
@@ -67,7 +68,9 @@ def test_pipeline_multi(
         print("\n=== STDERR ===")
         print(res.stderr)
 
-    assert res.returncode == 0, f"Pipeline failed with return code {res.returncode}. See output above."
+    assert res.returncode == 0, (
+        f"Pipeline failed with return code {res.returncode}. See output above."
+    )
 
     for assay in multi_assays:
         assert (multi_assay_run_directory / f"seqnado_output/{assay}").exists(), (
