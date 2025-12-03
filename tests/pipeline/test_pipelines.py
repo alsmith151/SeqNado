@@ -31,16 +31,9 @@ def test_pipeline(
             "t",
         ],
         cwd=config_yaml_for_testing.parent,
-        capture_output=True,
+        capture_output=False,
         text=True,
     )
-
-    # Print output for debugging if the test fails
-    if res.returncode != 0:
-        print("\n=== STDOUT ===")
-        print(res.stdout)
-        print("\n=== STDERR ===")
-        print(res.stderr)
 
     assert res.returncode == 0, f"Pipeline failed with return code {res.returncode}. See output above."
     test_dir = config_yaml_for_testing.parent

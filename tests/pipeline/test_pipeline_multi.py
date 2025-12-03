@@ -57,16 +57,9 @@ def test_pipeline_multi(
             "t",
         ],
         cwd=multi_assay_run_directory,
-        capture_output=True,
+        capture_output=False,
         text=True,
     )
-
-    # Print output for debugging if the test fails
-    if res.returncode != 0:
-        print("\n=== STDOUT ===")
-        print(res.stdout)
-        print("\n=== STDERR ===")
-        print(res.stderr)
 
     assert res.returncode == 0, (
         f"Pipeline failed with return code {res.returncode}. See output above."
