@@ -2,3 +2,16 @@ assay: MCC
 project:
   name: default_project
   description: "Test project for MCC"
+
+assay_config:
+  mcc:
+    viewpoints: /ceph/project/milne_group/asmith/software/SeqNado/test_output/data/genome/mcc_viewpoints.bed
+    resolutions:
+    - 100
+    - 1000
+    exclusion_zone: 500
+
+    bigwigs:
+    pileup_method:
+    - bamnado
+    binsize: 10
