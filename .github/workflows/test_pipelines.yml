@@ -56,10 +56,19 @@ jobs:
           cp tests/data/plotting_coordinates.bed /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/
           cp tests/data/hg38_genes.bed /home/runner/miniconda3/envs/test/lib/python3.12/site-packages/tests/data/
 
+      - name: Setup Apptainer cache
+        shell: bash -el {0}
+        env:
+          APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
+        run: |
+          mkdir -p "$APPTAINER_CACHEDIR"
+          echo "Apptainer cache directory: $APPTAINER_CACHEDIR"
+
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
           TMPDIR: /tmp
+          APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
           python -m pytest tests/pipeline/test_pipelines.py::test_pipeline -vvvv \
