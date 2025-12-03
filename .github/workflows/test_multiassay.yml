@@ -61,12 +61,20 @@ jobs:
         run: |
           echo "Pre-pulling all containers to avoid disk space issues with parallel pulls..."
           df -h /
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io  
+          apptainer remote use SylabsCloud  
 
           echo "Pulling main pipeline container..."
           apptainer pull seqnado_pipeline_latest.sif oras://ghcr.io/alsmith151/seqnado_pipeline:latest
 
           echo "Pulling ML container..."
           apptainer pull seqnado_ml_cpu_latest.sif oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
+
+          echo "Pulling MACS2 container..."
+          apptainer pull macs2.sif docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1
+
+          echo "Pulling Plotnado container..."
+          apptainer pull plotnado_latest.sif library://asmith151/plotnado/plotnado:latest
 
           echo "All containers pulled successfully:"
           ls -lh *.sif
