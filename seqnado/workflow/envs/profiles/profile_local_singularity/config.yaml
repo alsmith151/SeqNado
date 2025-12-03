@@ -7,3 +7,7 @@ use-apptainer: "True"
 
 show-failed-logs: "True"
 printshellcmds: "True"
+
+default-resources:
+    runtime: "1h"
+    mem: "3G"

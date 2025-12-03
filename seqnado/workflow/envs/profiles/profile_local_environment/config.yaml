@@ -11,6 +11,5 @@ printshellcmds: "True"
 
 
 default-resources: 
-    slurm_partition: "short"
     runtime: "1h"
     mem: "3G"

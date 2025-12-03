@@ -42,7 +42,7 @@ def test_pipeline(
             "--configfile",
             str(config_yaml_for_testing),
             "--preset",
-            "ls",
+            "t",
         ],
         cwd=config_yaml_for_testing.parent,
         capture_output=False,
