@@ -65,6 +65,31 @@ jobs:
           echo "Apptainer cache: ${{ github.workspace }}/.apptainer/cache"
           echo "Apptainer temp: ${{ github.workspace }}/.apptainer/tmp"
 
+      - name: Pre-pull containers to avoid download issues
+        shell: bash -el {0}
+        env:
+          APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
+          APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
+        run: |
+          echo "Pre-pulling containers for ${{ matrix.assay }} pipeline..."
+          df -h /
+
+          echo "Pulling main pipeline container..."
+          apptainer pull seqnado_pipeline_latest.sif oras://ghcr.io/alsmith151/seqnado_pipeline:latest
+
+          echo "Pulling ML container..."
+          apptainer pull seqnado_ml_cpu_latest.sif oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
+
+          echo "Pulling MACS2 container..."
+          apptainer pull macs2.sif docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1
+
+          echo "Pulling Plotnado container..."
+          apptainer pull plotnado_latest.sif library://asmith151/plotnado/plotnado:latest
+
+          echo "All containers pulled successfully:"
+          ls -lh *.sif
+          df -h /
+
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
