@@ -52,8 +52,19 @@ jobs:
 
           echo "Apptainer cache: ${{ github.workspace }}/.apptainer/cache"
           echo "Apptainer temp: ${{ github.workspace }}/.apptainer/tmp"
-          df -h "${{ github.workspace }}"
-          df -h /tmp
+
+      - name: Pre-pull container to avoid parallel download conflicts
+        shell: bash -el {0}
+        env:
+          APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
+          APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
+        run: |
+          echo "Pre-pulling container to avoid disk space issues with parallel pulls..."
+          df -h /
+          apptainer pull seqnado_pipeline_latest.sif oras://ghcr.io/alsmith151/seqnado_pipeline:latest
+          ls -lh seqnado_pipeline_latest.sif
+          echo "Container pulled successfully"
+          df -h /
 
       - name: Run SeqNado pipeline test for Multi-Assay
         shell: bash -el {0}
@@ -63,5 +74,5 @@ jobs:
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
           python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
-            --cores 4 --run-pipeline
+            --cores 2 --run-pipeline
             
