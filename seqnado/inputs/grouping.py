@@ -44,9 +44,11 @@ class SampleGroups(BaseModel):
 
         return cls(groups=groups)
 
+    @property
     def sample_to_group(self) -> dict[str, str]:
         return {sample: g.name for g in self.groups for sample in g.samples}
 
+    @property
     def group_to_samples(self) -> dict[str, list[str]]:
         return {g.name: g.samples for g in self.groups}
 
