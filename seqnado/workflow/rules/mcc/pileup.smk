@@ -66,9 +66,9 @@ rule make_bigwigs_mcc_replicates:
 def get_mcc_bam_files_for_merge(wildcards):
     """Get BAM files for merging based on sample names."""
     groups = SAMPLE_GROUPINGS.groupings.get(wildcards.group)
-    sample_names = groups.get_samples() if groups else []
+    sample_names = set(groups.sample_to_group.keys())
     bam_files = [
-        OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
+        OUTPUT_DIR + f"/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
     ]
     return bam_files
 
