@@ -193,11 +193,39 @@ def create_config_yaml(
 
     # Add genome directory bind mount for Singularity/Apptainer
     # This allows the container to access genome files (e.g., bt2 indexes for fastq_screen)
+    # We need to update the Snakemake profile config, not the workflow config
     genome_dir = Path(resources["bt2_index"]).parent.parent.resolve()
-    if "apptainer-args" not in config:
-        config["apptainer-args"] = f"--bind {genome_dir}:{genome_dir}"
+
+    # Find and update the test profile configuration
+    import site
+    import sys
+
+    # Try to find the seqnado package location
+    seqnado_paths = [p for p in sys.path if 'seqnado' in p and 'site-packages' in p]
+    if not seqnado_paths:
+        # Fall back to searching site-packages
+        for site_pkg in site.getsitepackages():
+            test_profile_config = Path(site_pkg) / "seqnado" / "workflow" / "envs" / "profiles" / "profile_test" / "config.v8+.yaml"
+            if test_profile_config.exists():
+                break
     else:
-        config["apptainer-args"] += f" --bind {genome_dir}:{genome_dir}"
+        test_profile_config = Path(seqnado_paths[0]) / "seqnado" / "workflow" / "envs" / "profiles" / "profile_test" / "config.v8+.yaml"
+
+    # Update the profile config with apptainer-args
+    if test_profile_config.exists():
+        with open(test_profile_config) as f:
+            profile_config = yaml.safe_load(f)
+
+        bind_arg = f"--bind {genome_dir}:{genome_dir}"
+        if "apptainer-args" in profile_config:
+            # Check if this bind mount is already present
+            if str(genome_dir) not in profile_config["apptainer-args"]:
+                profile_config["apptainer-args"] += f" {bind_arg}"
+        else:
+            profile_config["apptainer-args"] = bind_arg
+
+        with open(test_profile_config, "w") as f:
+            yaml.dump(profile_config, f, sort_keys=False)
 
     with open(config_path, "w") as f:
         yaml.dump(config, f, sort_keys=False)
