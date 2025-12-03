@@ -4,6 +4,21 @@ from pathlib import Path
 
 import pytest
 
+
+@pytest.mark.pipeline
+def test_config(assay, test_context, config_yaml_for_testing: Path):
+    assay_type = test_context.assay_type(assay)
+    assert os.path.exists(config_yaml_for_testing), (
+        f"{assay_type} config file not created."
+    )
+
+
+@pytest.mark.pipeline
+def test_design(assay, test_context, design: Path):
+    assay_type = test_context.assay_type(assay)
+    assert os.path.exists(design), f"{assay_type} design file not created."
+
+
 @pytest.mark.pipeline
 @pytest.mark.snakemake
 @pytest.mark.requires_apptainer
@@ -30,28 +45,11 @@ def test_pipeline(
             "ls",
         ],
         cwd=config_yaml_for_testing.parent,
-        capture_output=True,
+        capture_output=False,
         text=True,
     )
-    if res.returncode != 0:
-        print("STDOUT:\n", res.stdout)
-        print("STDERR:\n", res.stderr)
     assert res.returncode == 0
     test_dir = config_yaml_for_testing.parent
     assert not (test_dir / "seqnado_error.log").exists()
     assert (test_dir / "seqnado_output").exists()
     assert (test_dir / f"seqnado_output/{assay_type}/seqnado_report.html").exists()
-
-
-@pytest.mark.pipeline
-def test_config(assay, test_context, config_yaml_for_testing: Path):
-    assay_type = test_context.assay_type(assay)
-    assert os.path.exists(config_yaml_for_testing), (
-        f"{assay_type} config file not created."
-    )
-
-
-@pytest.mark.pipeline
-def test_design(assay, test_context, design: Path):
-    assay_type = test_context.assay_type(assay)
-    assert os.path.exists(design), f"{assay_type} design file not created."

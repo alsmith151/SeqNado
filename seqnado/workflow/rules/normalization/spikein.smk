@@ -1,3 +1,4 @@
+from seqnado import SpikeInMethod
 
 if CONFIG.assay_config.spikein and CONFIG.assay_config.spikein.method == SpikeInMethod.ORLANDO:
 

@@ -71,7 +71,7 @@ rule align_single:
 
 rule rename_aligned:
     input:
-        bam=temp(OUTPUT_DIR + "/aligned/star/{sample}_Aligned.sortedByCoord.out.bam"),
+        bam=OUTPUT_DIR + "/aligned/star/{sample}_Aligned.sortedByCoord.out.bam",
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"

@@ -67,6 +67,7 @@ def test_context(pytestconfig, tmp_path_factory) -> TestContext:
 def ensure_seqnado_init(test_context, genome_resources, assay, monkeypatch):
     """
     Initialize seqnado project with required genome resources.
+    Returns: (run_directory, resources) tuple
     """
     run_directory = test_context.run_directory(assay)
     resources = genome_resources(assay)  # Use genome_resources as a parameter
@@ -85,7 +86,7 @@ def ensure_seqnado_init(test_context, genome_resources, assay, monkeypatch):
     if not genome_config_file.exists():
         raise FileNotFoundError(f"Genome configuration file not found at {genome_config_file}")
 
-    return resources
+    return run_directory, resources
 
 
 @pytest.fixture(scope="function")
@@ -96,11 +97,10 @@ def config_yaml_for_testing(
     genome_resources,
 ) -> Path:
     """Create and patch config YAML for testing."""
-    # Initialize seqnado project first
-    resources = ensure_seqnado_init(test_context, genome_resources, assay, monkeypatch)
+    # Initialize seqnado project first and get the run directory
+    run_directory, resources = ensure_seqnado_init(test_context, genome_resources, assay, monkeypatch)
 
-    # Now create config YAML
-    run_directory = test_context.run_directory(assay)
+    # Now create config YAML using the same run directory
     config_path = create_config_yaml(run_directory, assay, monkeypatch, resources)
     return config_path
 

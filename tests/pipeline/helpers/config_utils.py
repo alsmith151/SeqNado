@@ -185,9 +185,12 @@ class TestContext:
         return re.sub(r"(.*)\-.*", r"\1", assay)
 
     def run_directory(self, assay: str) -> Path:
-        base_temp = self.tmp_path_factory.getbasetemp()
+        try:
+            base_temp = self.tmp_path_factory.getbasetemp()
+        except FileExistsError:
+            base_temp = self.tmp_path_factory._basetemp
         run_dir = base_temp / assay
-        run_dir.mkdir(exist_ok=True)
+        run_dir.mkdir(exist_ok=True, parents=True)
         return run_dir
 
     def plot_bed(self, test_data_path: Path):
