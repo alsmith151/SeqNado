@@ -43,4 +43,3 @@ test_output/
 testing
 .coverage
 snakefiles_old
-pytest.log
