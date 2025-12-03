@@ -31,7 +31,7 @@ ngs_pipeline/tests/pipeline/
 output.yml
 paths.txt
 pytestdebug.log
-seqnado.sif
+*.sif
 seqnado/_version.py
 sps*
 test_rna_size_factors.ipynb
