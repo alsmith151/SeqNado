@@ -36,24 +36,24 @@ OUTPUT_DIR = config.get("output_dir", f"seqnado_output/{ASSAY.clean_name}")
 ################################
 SAMPLE_GROUPINGS = SampleGroupings()
 
-# normalisation_groups = SampleGroups.from_dataframe(
-#     INPUT_FILES.to_dataframe(),
-#     subset_column="scaling_group",
-# )
+normalisation_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="scaling_group",
+)
 
-# scaling_groups = SampleGroups.from_dataframe(
-#     INPUT_FILES.to_dataframe(),
-#     subset_column="scaling_group",
-# )
+scaling_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="scaling_group",
+)
 
-# consensus_groups = SampleGroups.from_dataframe(
-#     INPUT_FILES.to_dataframe(),
-#     subset_column="consensus_group",
-# )
+consensus_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="consensus_group",
+)
 
-# SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
-# SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
-# SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
+SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
+SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
+SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
 
 
 ################################
@@ -161,6 +161,8 @@ else:
     match ASSAY:
         case Assay.RNA:
             ruleorder: rename_aligned > align_paired > align_single
+        case Assay.MCC:
+            ruleorder: align_mcc_reads_to_genome > align_paired
         case _:
             ruleorder: align_paired > align_single
 
