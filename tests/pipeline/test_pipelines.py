@@ -45,10 +45,18 @@ def test_pipeline(
             "t",
         ],
         cwd=config_yaml_for_testing.parent,
-        capture_output=False,
+        capture_output=True,
         text=True,
     )
-    assert res.returncode == 0
+
+    # Print output for debugging if the test fails
+    if res.returncode != 0:
+        print("\n=== STDOUT ===")
+        print(res.stdout)
+        print("\n=== STDERR ===")
+        print(res.stderr)
+
+    assert res.returncode == 0, f"Pipeline failed with return code {res.returncode}. See output above."
     test_dir = config_yaml_for_testing.parent
     assert not (test_dir / "seqnado_error.log").exists()
     assert (test_dir / "seqnado_output").exists()
