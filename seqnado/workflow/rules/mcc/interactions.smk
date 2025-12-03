@@ -3,7 +3,6 @@ import pandas as pd
 from seqnado.helpers import viewpoint_to_grouped_viewpoint, extract_viewpoints
 from seqnado.inputs.validation import ViewpointsFile
 
-
 VIEWPOINTS_FILE = ViewpointsFile.validate(
     pd.read_csv(CONFIG.assay_config.mcc.viewpoints, 
     sep="\t", 
@@ -114,7 +113,7 @@ rule aggregate_coolers:
                     group=SAMPLE_GROUPINGS.groupings.keys(), 
                     viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     output:
-        mcool=OUTPUT_DIR + "/mcc/{group}/{group}.mcool",
+        mcool=OUTPUT_DIR + "/mcc/contacts/{group}/{group}.mcool",
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
