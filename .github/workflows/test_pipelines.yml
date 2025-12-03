@@ -36,7 +36,10 @@ jobs:
         shell: bash -el {0}
         run: |
           pip install .
-          
+
+          # Remove SLURM plugin for testing (not available in GitHub Actions)
+          pip uninstall -y snakemake-executor-plugin-slurm
+
           # Verify installation
           python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
           which seqnado
