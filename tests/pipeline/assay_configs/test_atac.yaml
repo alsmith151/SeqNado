@@ -10,5 +10,3 @@ assay_config:
     method: ["lanceotron", "macs2"]
 qc:
   run_fastq_screen: false
-  calculate_library_complexity: false
-  calculate_fraction_of_reads_in_peaks: false

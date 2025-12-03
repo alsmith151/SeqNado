@@ -151,6 +151,14 @@ def create_config_yaml(
 
     config.update(assay_config)
 
+    # Add genome directory bind mount for Singularity/Apptainer
+    # This allows the container to access genome files (e.g., bt2 indexes for fastq_screen)
+    genome_dir = Path(resources["bt2_index"]).parent.parent.resolve()
+    if "apptainer-args" not in config:
+        config["apptainer-args"] = f"--bind {genome_dir}:{genome_dir}"
+    else:
+        config["apptainer-args"] += f" --bind {genome_dir}:{genome_dir}"
+
     with open(config_path, "w") as f:
         yaml.dump(config, f, sort_keys=False)
 
