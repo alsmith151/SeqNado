@@ -106,17 +106,22 @@ class BigWigFiles(BaseModel):
         return {
             PileupMethod.HOMER: [DataScalingTechnique.CSAW, DataScalingTechnique.SPIKEIN],
             PileupMethod.BAMNADO: [DataScalingTechnique.CSAW, DataScalingTechnique.SPIKEIN],
+            PileupMethod.DEEPTOOLS: [Assay.MCC]
         }
 
-    def _is_compatible(self, method: PileupMethod, scale: DataScalingTechnique) -> bool:
-        return scale not in self.incompatible_methods.get(method, [])
+    def _is_compatible(self, method: PileupMethod, scale: DataScalingTechnique, assay: Assay) -> bool:
+        if scale in self.incompatible_methods.get(method, []):
+            return False
+        if assay in self.incompatible_methods.get(method, []):
+            return False
+        return True
 
     def generate_bigwig_paths(self) -> list[str]:
         paths = []
 
         for method in self.pileup_methods:
             for scale in self.scale_methods:
-                if not self._is_compatible(method, scale):
+                if not self._is_compatible(method, scale, self.assay):
                     continue
 
                 if self.is_rna:
