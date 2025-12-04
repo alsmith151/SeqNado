@@ -54,6 +54,7 @@ jobs:
         run: |
           pip install .
 
+          # Verify installation
           python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
           which seqnado
           python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
@@ -85,11 +86,9 @@ jobs:
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
         run: |
           echo "Pre-pulling all containers to avoid disk space issues with parallel pulls..."
-          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
-          apptainer remote use SylabsCloud
 
-          # Pull containers directly to the cache directory that Snakemake will use
-          cd "${{ github.workspace }}/.apptainer/cache"
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io  
+          apptainer remote use SylabsCloud  
 
           echo "Pulling main pipeline container..."
           apptainer pull oras://ghcr.io/alsmith151/seqnado_pipeline:latest
@@ -105,6 +104,11 @@ jobs:
 
           echo "All containers pulled successfully:"
           ls -lh *.sif
+
+      - name: clean up disk space
+        run: |
+          echo "Cleaning up disk space..."
+          sudo rm -rf /var/lib/apt/lists/*
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
