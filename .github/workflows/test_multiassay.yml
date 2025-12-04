@@ -74,7 +74,7 @@ jobs:
           apptainer pull docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1
 
           echo "Pulling PlotNado container..."
-          apptainer pull library://asmith151/plotnado/plotnado:latest
+          apptainer pull library://asmith151/plotnado/plotnado
 
           echo "All containers pulled successfully:"
           ls -lh *.sif
