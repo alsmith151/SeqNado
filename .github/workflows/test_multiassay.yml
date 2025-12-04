@@ -25,9 +25,6 @@ jobs:
         run: |
           pip install .
 
-          # Remove SLURM plugin for testing (not available in GitHub Actions)
-          pip uninstall -y snakemake-executor-plugin-slurm
-
           # Verify installation
           python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
           which seqnado
@@ -83,6 +80,9 @@ jobs:
         run: |
           echo "Cleaning up disk space..."
           sudo rm -rf /var/lib/apt/lists/*
+          df -h /
+          echo "Cleaning conda cache..."
+          conda clean --all -y
           df -h /
       - name: Run SeqNado pipeline test for Multi-Assay
         shell: bash -el {0}
