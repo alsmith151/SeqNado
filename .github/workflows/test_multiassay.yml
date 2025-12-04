@@ -13,8 +13,6 @@ jobs:
         with:
           submodules: true
 
-      - name: Check initial disk space
-
       - name: Free up disk space before installations
         run: |
           echo "Freeing up disk space..."

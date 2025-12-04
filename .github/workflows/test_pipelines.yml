@@ -69,7 +69,7 @@ jobs:
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
         run: |
           echo "Pre-pulling all containers to avoid disk space issues with parallel pulls..."
-          df -h /
+
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io  
           apptainer remote use SylabsCloud  
 
@@ -87,12 +87,12 @@ jobs:
 
           echo "All containers pulled successfully:"
           ls -lh *.sif
-          df -h /
+
       - name: clean up disk space
         run: |
           echo "Cleaning up disk space..."
           sudo rm -rf /var/lib/apt/lists/*
-          df -h /
+
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
