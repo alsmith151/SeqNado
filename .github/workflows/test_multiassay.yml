@@ -14,7 +14,6 @@ jobs:
           submodules: true
 
       - name: Check initial disk space
-        run: df -h /
 
       - name: Free up disk space before installations
         run: |
@@ -25,7 +24,6 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           sudo apt-get clean
           sudo rm -rf /var/lib/apt/lists/*
-          df -h /
 
       - name: Setup Conda environment and install SeqNado
         uses: conda-incubator/setup-miniconda@v3
@@ -38,16 +36,13 @@ jobs:
         shell: bash -el {0}
         run: |
           echo "Cleaning conda cache to free space for containers..."
-          df -h /
           mamba clean --all -y
-          df -h /
 
       - name: Install SeqNado package
         shell: bash -el {0}
         run: |
           pip install .
 
-          # Verify installation
           python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
           which seqnado
           python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
@@ -79,7 +74,6 @@ jobs:
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
         run: |
           echo "Pre-pulling all containers to avoid disk space issues with parallel pulls..."
-          df -h /
           apptainer remote add --no-login SylabsCloud cloud.sylabs.io
           apptainer remote use SylabsCloud
 
@@ -101,9 +95,6 @@ jobs:
           echo "All containers pulled successfully:"
           ls -lh *.sif
 
-          ls -lh "${{ github.workspace }}/.apptainer/cache/"
-          df -h /
-
       - name: Run SeqNado pipeline test for Multi-Assay
         shell: bash -el {0}
         env:
@@ -112,10 +103,6 @@ jobs:
           APPTAINER_DISABLE_CACHE: "false"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          echo "Verifying pre-pulled containers in cache:"
-          ls -lh "${{ github.workspace }}/.apptainer/cache"
-          df -h /
-
           python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
-            --cores 2 --run-pipeline
+            --cores 4 --run-pipeline
             
