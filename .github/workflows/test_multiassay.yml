@@ -73,6 +73,9 @@ jobs:
           echo "Pulling MACS2 container..."
           apptainer pull docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1
 
+          echo "Pulling PlotNado container..."
+          apptainer pull library://asmith151/plotnado/plotnado:latest
+
           echo "All containers pulled successfully:"
           ls -lh *.sif
           df -h /
@@ -85,5 +88,5 @@ jobs:
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
           python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
-            --cores 4 --run-pipeline
+            --cores 2 --run-pipeline
             
