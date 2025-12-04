@@ -86,7 +86,7 @@ jobs:
           apptainer pull docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1
 
           echo "All containers pulled successfully:"
-          ls -lh *
+          ls -lh *.sif
           df -h /
 
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
