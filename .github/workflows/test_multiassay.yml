@@ -13,6 +13,9 @@ jobs:
         with:
           submodules: true
 
+      - name: Check initial disk space
+        run: df -h /
+
       - name: Setup Conda environment and install SeqNado
         uses: conda-incubator/setup-miniconda@v3
         with:
