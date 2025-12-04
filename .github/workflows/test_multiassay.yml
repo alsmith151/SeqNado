@@ -79,7 +79,11 @@ jobs:
           echo "All containers pulled successfully:"
           ls -lh *.sif
           df -h /
-
+      - name: clean up disk space
+        run: |
+          echo "Cleaning up disk space..."
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h /
       - name: Run SeqNado pipeline test for Multi-Assay
         shell: bash -el {0}
         env:

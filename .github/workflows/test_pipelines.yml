@@ -85,10 +85,17 @@ jobs:
           echo "Pulling MACS2 container..."
           apptainer pull docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1
 
+          echo "Pulling PlotNado container..."
+          apptainer pull library://asmith151/plotnado/plotnado
+
           echo "All containers pulled successfully:"
           ls -lh *.sif
           df -h /
-
+      - name: clean up disk space
+        run: |
+          echo "Cleaning up disk space..."
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h /
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
