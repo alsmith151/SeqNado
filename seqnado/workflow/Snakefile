@@ -30,7 +30,6 @@ ASSAY = CONFIG.assay
 INPUT_FILES = get_sample_collection(assay=ASSAY, path=CONFIG.metadata)
 OUTPUT_DIR = config.get("output_dir", f"seqnado_output/{ASSAY.clean_name}")
 
-
 ################################
 # Define Sample Groupings
 ################################
@@ -59,7 +58,6 @@ SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
 ################################
 # Define Outputs
 ################################
-
 OUTPUT: SeqnadoOutputFiles = (
     SeqnadoOutputFactory(
         assay=ASSAY,
@@ -101,11 +99,11 @@ match ASSAY:
         include: "rules/alignment/dna.smk"
         include: "rules/pileup/default.smk"
         include: "rules/peaks/default.smk"
-        include: "rules/peaks/merge.smk"
         include: "rules/pileup/merge.smk"
         include: "rules/pileup/normalized.smk"
         include: "rules/visualise/hub.smk"
         include: "rules/visualise/browser.smk"
+        include: "rules/peaks/merge.smk"
         include: "rules/quant/merged.smk"
     case Assay.RNA:
         include: "rules/fastq/trim.smk"
@@ -160,15 +158,15 @@ else:
     match ASSAY:
         case Assay.RNA:
             ruleorder: rename_aligned > align_paired > align_single
-        case Assay.MCC:
-            pass
-        case _:
+        case ASSAY.ATAC | ASSAY.CAT | ASSAY.CHIP:
             ruleorder: align_paired > align_single
+            ruleorder: lanceotron_no_input_consensus > lanceotron_no_input 
+            ruleorder: macs2_no_input_consensus > macs2_no_input
 
 
 ################################
 # Final Aggregation Rule
-################################
+###############################
 rule all:
     input:
         OUTPUT.all_files
