@@ -5,7 +5,7 @@ project:
 
 assay_config:
   mcc:
-    viewpoints: /ceph/project/milne_group/asmith/software/SeqNado/test_output/data/genome/mcc_viewpoints.bed
+    viewpoints: ../mcc_viewpoints.bed
     resolutions:
       - 100
       - 1000
