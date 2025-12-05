@@ -13,6 +13,16 @@ jobs:
         with:
           submodules: true
 
+      - name: Free up disk space before installations
+        run: |
+          echo "Freeing up disk space..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+
       - name: Setup Conda environment and install SeqNado
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -20,15 +30,17 @@ jobs:
           miniforge-version: latest
           use-mamba: true
 
+      - name: Clean up conda cache before container pulls
+        shell: bash -el {0}
+        run: |
+          echo "Cleaning conda cache to free space for containers..."
+          mamba clean --all -y
+
       - name: Install SeqNado package
         shell: bash -el {0}
         run: |
           pip install .
 
-          # Remove SLURM plugin for testing (not available in GitHub Actions)
-          pip uninstall -y snakemake-executor-plugin-slurm
-
-          # Verify installation
           python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
           which seqnado
           python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
@@ -53,26 +65,42 @@ jobs:
           echo "Apptainer cache: ${{ github.workspace }}/.apptainer/cache"
           echo "Apptainer temp: ${{ github.workspace }}/.apptainer/tmp"
 
-      - name: Pre-pull container to avoid parallel download conflicts
+      - name: Pre-pull containers to avoid parallel download conflicts
         shell: bash -el {0}
         env:
           APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
         run: |
-          echo "Pre-pulling container to avoid disk space issues with parallel pulls..."
-          df -h /
-          apptainer pull seqnado_pipeline_latest.sif oras://ghcr.io/alsmith151/seqnado_pipeline:latest
-          ls -lh seqnado_pipeline_latest.sif
-          echo "Container pulled successfully"
-          df -h /
+          echo "Pre-pulling all containers to avoid disk space issues with parallel pulls..."
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+          apptainer remote use SylabsCloud
+
+          # Pull containers directly to the cache directory that Snakemake will use
+          cd "${{ github.workspace }}/.apptainer/cache"
+
+          echo "Pulling main pipeline container..."
+          apptainer pull oras://ghcr.io/alsmith151/seqnado_pipeline:latest
+
+          echo "Pulling ML container..."
+          apptainer pull oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
+
+          echo "Pulling MACS2 container..."
+          apptainer pull docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1
+
+          echo "Pulling PlotNado container..."
+          apptainer pull library://asmith151/plotnado/plotnado
+
+          echo "All containers pulled successfully:"
+          ls -lh *.sif
 
       - name: Run SeqNado pipeline test for Multi-Assay
         shell: bash -el {0}
         env:
           APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
+          APPTAINER_DISABLE_CACHE: "false"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
           python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
-            --cores 2 --run-pipeline
+            --cores 4 --run-pipeline
             

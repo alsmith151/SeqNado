@@ -28,13 +28,15 @@ dependencies = [
     "pyyaml",
     "rich",
     "seaborn",
-    "snakemake-executor-plugin-slurm",
     "snakemake-wrapper-utils",
     "snakemake>=9.12.0,<10",
     "tracknado",
     "typer",
     "wget",
 ]
+
+[project.optional-dependencies]
+slurm = ["snakemake-executor-plugin-slurm"]
 
 [project.scripts]
 seqnado = "seqnado.cli:app"
