@@ -7,11 +7,13 @@ assay_config:
   mcc:
     viewpoints: /ceph/project/milne_group/asmith/software/SeqNado/test_output/data/genome/mcc_viewpoints.bed
     resolutions:
-    - 100
-    - 1000
+      - 100
+      - 1000
     exclusion_zone: 500
 
-    bigwigs:
+  bigwigs:
     pileup_method:
-    - bamnado
+      - bamnado
     binsize: 10
+  
+  create_bigwigs: true
