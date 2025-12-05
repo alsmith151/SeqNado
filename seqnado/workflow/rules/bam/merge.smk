@@ -2,13 +2,12 @@
 
 def get_bam_files_for_consensus(wildcards):
     """Get BAM files for merging based on sample names."""
-    groups = SAMPLE_GROUPINGS.groupings.get(wildcards.group)
-    sample_names = groups.get_samples()
+    groups = SAMPLE_GROUPINGS.get_grouping('consensus').get_group(wildcards.group)
+    sample_names = groups.samples
     bam_files = [
-        OUTPUT_DIR + "/aligned/{sample}.bam" for sample in sample_names
+        OUTPUT_DIR + f"/aligned/{sample}.bam" for sample in sample_names
     ]
     return bam_files
-
 
 rule merge_bams:
     input:
@@ -16,6 +15,8 @@ rule merge_bams:
     output:
         temp(OUTPUT_DIR + "/aligned/merged/{group}.bam"),
     threads: CONFIG.third_party_tools.samtools.merge.threads
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -33,6 +34,8 @@ use rule index_bam as index_consensus_bam with:
         bam=OUTPUT_DIR + "/aligned/merged/{group}.bam",
     output:
         bai=temp(OUTPUT_DIR + "/aligned/merged/{group}.bam.bai"),
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     threads: 8
     log: OUTPUT_DIR + "/logs/merge_bam/{group}_index.log",
     benchmark: OUTPUT_DIR + "/.benchmark/merge_bam/{group}_index.tsv",

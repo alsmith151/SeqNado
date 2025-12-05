@@ -333,9 +333,10 @@ class TestBigWigFiles:
             assay=Assay.CHIP, names=["sample1"], pileup_methods=[PileupMethod.HOMER]
         )
 
-        assert bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.UNSCALED)
-        assert not bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.CSAW)
-        assert not bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.SPIKEIN)
+        assert bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.UNSCALED, assay=Assay.CHIP)
+        assert not bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.CSAW, assay=Assay.CHIP)
+        assert not bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.SPIKEIN, assay=Assay.CHIP)
+        assert not bw._is_compatible(PileupMethod.DEEPTOOLS, DataScalingTechnique.UNSCALED, assay=Assay.MCC)
 
 
 class TestPeakCallingFiles:

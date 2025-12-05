@@ -15,15 +15,34 @@ rule split_reads_aligned_to_viewpoints:
         "../../scripts/mcc_split_reads_aligned_to_viewpoints.py"
 
 
-use rule align_single as align_mcc_reads_to_genome with:
+
+rule align_mcc_reads_to_genome:
     input:
-        fq1=OUTPUT_DIR + "/mcc/{sample}/{sample}.sliced.fastq.gz", 
+        fq1=OUTPUT_DIR + "/mcc/{sample}/{sample}.sliced.fastq.gz",
     output:
         bam=temp(OUTPUT_DIR + "/aligned/initial_alignment/{sample}.bam"),
+    params:
+        index=CONFIG.genome.index.prefix,
+        options=str(CONFIG.third_party_tools.bowtie2.align.command_line_arguments),
+        rg="--rg-id {sample} --rg SM:{sample}",
+    threads: CONFIG.third_party_tools.bowtie2.align.threads,
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/align_mcc/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/align_mcc/{sample}.tsv",
     message: "Aligning MCC reads to genome for sample {wildcards.sample}",
-
+    shell: """
+    bowtie2 \
+        -p {threads} \
+        -x {params.index} \
+        -U {input.fq1} \
+        {params.rg} \
+        {params.options} \
+        2> {log} \
+    | samtools view -bS - > {output.bam}
+    """
 
 rule align_unmapped_reads_to_genome:
     input:

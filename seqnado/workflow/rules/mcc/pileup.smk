@@ -42,7 +42,7 @@ rule make_bigwigs_mcc_replicates:
         bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam",
         bai=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam.bai",
         excluded_regions=OUTPUT_DIR + "/resources/exclusion_regions.bed",
-        cis_or_trans_stats=OUTPUT_DIR + "/resources/{sample}_ligation_stats.json",
+        cis_or_trans_stats=OUTPUT_DIR + "/resources/replicates/{sample}_ligation_stats.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig"
     params:
@@ -65,12 +65,15 @@ rule make_bigwigs_mcc_replicates:
         
 def get_mcc_bam_files_for_merge(wildcards):
     """Get BAM files for merging based on sample names."""
-    groups = SAMPLE_GROUPINGS.groupings.get(wildcards.group)
-    sample_names = groups.get_samples() if groups else []
-    bam_files = [
-        OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
-    ]
-    return bam_files
+    try:
+        group = SAMPLE_GROUPINGS.get_grouping('consensus').get_group(wildcards.group)
+        sample_names = group.samples
+        bam_files = [
+            OUTPUT_DIR + f"/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
+        ]
+        return bam_files
+    except KeyError:
+        return []
 
 
 rule merge_mcc_bams:
@@ -79,6 +82,8 @@ rule merge_mcc_bams:
     output:
         OUTPUT_DIR + "/mcc/{group}/{group}.bam",
     threads: CONFIG.third_party_tools.samtools.merge.threads
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -95,6 +100,8 @@ use rule index_bam as index_bam_merged with:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
     output:
         bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     log: OUTPUT_DIR + "/logs/index_bam_merged/{group}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/index_bam_merged/{group}.tsv",
     message: "Indexing merged BAM for group {wildcards.group}"
@@ -130,6 +137,15 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     log: OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_unscaled.tsv",
     message: "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
+
+
+
+rule confirm_mcc_bigwigs_generated:
+    input:
+        expand(OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig", sample=SAMPLE_NAMES, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
+        expand(OUTPUT_DIR + "/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig", group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
+        expand(OUTPUT_DIR + "/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig", group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
+    output:
+        touch(OUTPUT_DIR + "/bigwigs/mcc/.mcc_bigwigs_generated.txt"),
+    message: "Confirming all MCC bigWigs have been generated"
     
-
-
