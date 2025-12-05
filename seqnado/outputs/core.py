@@ -283,7 +283,7 @@ class SeqnadoOutputBuilder:
                     assay=self.assay,
                     names=[group.name],
                     pileup_methods=self.config.assay_config.bigwigs.pileup_method,
-                    scale_methods=self.scale_methods,
+                    scale_methods=[DataScalingTechnique.MERGED],
                     output_dir=self.output_dir,
                 )
                 self.file_collections.append(bigwig_files)
@@ -344,6 +344,7 @@ class SeqnadoOutputBuilder:
                 names=[group.name],
                 peak_calling_method=self.config.assay_config.peak_calling.method,
                 output_dir=self.output_dir,
+                is_merged=True,
             )
             self.file_collections.append(peaks)
 
