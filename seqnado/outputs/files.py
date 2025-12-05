@@ -24,6 +24,9 @@ class FileCollection(Protocol):
         """Return a list of file paths."""
         pass
 
+class BasicFileCollection(BaseModel):
+    files: List[str] = Field(default_factory=list)
+
 
 class QCFiles(BaseModel):
     assay: Assay

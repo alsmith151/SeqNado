@@ -20,6 +20,7 @@ from seqnado.outputs.files import (
     BigWigFiles,
     ContactFiles,
     FileCollection,
+    BasicFileCollection,
     GeoSubmissionFiles,
     HeatmapFiles,
     HubFiles,
@@ -286,6 +287,12 @@ class SeqnadoOutputBuilder:
                     output_dir=self.output_dir,
                 )
                 self.file_collections.append(bigwig_files)
+    
+    def add_mcc_sentinel_pileup_files(self) -> None:
+        """Add MCC sentinel files to the output collection."""
+        bigwigs = [Path(self.output_dir) / "bigwigs/mcc/.mcc_bigwigs_generated.txt", ]
+        sentinel_files = BasicFileCollection(files=[str(bw) for bw in bigwigs])
+        self.file_collections.append(sentinel_files)
 
     def add_peak_files(self) -> None:
         """Add peak files to the output collection."""
@@ -507,9 +514,12 @@ class SeqnadoOutputFactory:
         builder.add_report_files()
 
         if self.assay_config.create_bigwigs:
-            builder.add_individual_bigwig_files()
-            if self.sample_groupings:
-                builder.add_grouped_bigwig_files()
+            if not self.assay == Assay.MCC:
+                builder.add_individual_bigwig_files()
+                if self.sample_groupings:
+                    builder.add_grouped_bigwig_files()
+            else:
+                builder.add_mcc_sentinel_pileup_files()
 
         if bool(getattr(self.assay_config, "call_peaks", False)):
             builder.add_peak_files()
