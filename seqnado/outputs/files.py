@@ -152,6 +152,7 @@ class PeakCallingFiles(BaseModel):
     names: list[str]
     peak_calling_method: list[PeakCallingMethod]
     output_dir: str = "seqnado_output"
+    is_merged: bool = False
 
     @property
     def prefix(self) -> str:
@@ -166,7 +167,7 @@ class PeakCallingFiles(BaseModel):
     @property
     def peak_files(self) -> list[str]:
         return expand(
-            self.prefix + "{method}/{sample}.bed",
+            self.prefix + "{method}/{sample}.bed" if not self.is_merged else self.prefix + "{method}/merged/{sample}.bed",
             sample=self.names,
             method=[m.value for m in self.peak_calling_method],
         )
