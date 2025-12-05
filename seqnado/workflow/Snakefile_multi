@@ -1,51 +1,17 @@
-"""
-Master Snakefile for running multiple SeqNado assays in a single project.
-
-This workflow orchestrates running multiple assays (ChIP, ATAC, RNA, etc.) 
-with outputs organized by assay type under seqnado_output/{assay}/.
-
-Usage:
-    snakemake -s workflow/Snakefile_multi --cores 32
-
-Design Note:
-This is a simplified orchestrator that runs each assay's pipeline sequentially
-or in parallel. For true parallel execution within a single DAG, the main 
-Snakefile would need modification to accept an output_prefix parameter.
-"""
-
 import os
 from pathlib import Path
 import glob
 import yaml
 
 from seqnado.cli import config
+from seqnado.config.multiomics import find_assay_configs
 
 ################################
 # Auto-detect assay configs
 ################################
 
-def find_assay_configs(directory="."):
-    """Find all config_{assay}.yaml files in the directory."""
-    config_files = {}
-    for config_file in Path(directory).glob("config_*.yaml"):
-        assay_name = config_file.stem.replace("config_", "")
-        
-        # Load config to verify it's valid
-        try:
-            with open(config_file) as f:
-                cfg = yaml.safe_load(f)
-                config_files[assay_name] = {
-                    'path': str(config_file.absolute()),
-                    'config': cfg
-                }
-        except Exception as e:
-            print(f"Warning: Could not load {config_file}: {e}")
-            
-    return config_files
-
-
 # Discover available assays
-ASSAY_CONFIGS = find_assay_configs()
+ASSAY_CONFIGS, METADATA_FILES = find_assay_configs(Path("."))
 ASSAYS = sorted(list(ASSAY_CONFIGS.keys()))
 
 if not ASSAYS:
@@ -55,16 +21,6 @@ if not ASSAYS:
     )
 
 print(f"[Multi-Assay Mode] Detected {len(ASSAYS)} assay(s): {', '.join(ASSAYS)}")
-
-# Validate metadata files exist
-for assay in ASSAYS:
-    metadata_file = Path(f"metadata_{assay}.csv")
-    if not metadata_file.exists():
-        raise FileNotFoundError(
-            f"Missing metadata file: {metadata_file}\n"
-            f"Please create it using 'seqnado design {assay}'"
-        )
-    print(f"  ✓ {assay}: {ASSAY_CONFIGS[assay]['path']} + {metadata_file}")
 
 
 ################################
@@ -81,124 +37,11 @@ CORES_PER_ASSAY = max(1, CORES // len(ASSAYS)) if ASSAYS else CORES
 # workflow.config_settings.config is the dict containing config values
 WORKFLOW_ARGS = workflow.config_settings.config.get('workflow_args', '--rerun-incomplete --printshellcmds')
 
-# Extract profile from workflow args if present
-import re
-profile_match = re.search(r'--profile\s+(\S+)', WORKFLOW_ARGS)
-if profile_match:
-    PROFILE_DIR = profile_match.group(1)
-else:
-    # Fallback to default profile path
-    PROFILE_DIR = str(Path(workflow.basedir) / "envs" / "profiles" / "profile_slurm_singularity")
 
-################################
-# Master rule - runs all assays
-################################
+include: "rules/multiomics/all.smk"
 
 rule all:
     input:
         expand(OUTPUT_DIR + "{assay}/logs/.complete", assay=ASSAYS),
         "multi_assay_summary.txt"
     default_target: True
-
-
-################################
-# Per-assay execution
-################################
-
-rule run_assay:
-    """
-    Execute a single assay pipeline with outputs in seqnado_output/{assay}/
-    
-    This runs the main Snakefile with modified output paths.
-    Runs as a regular rule (not checkpoint) to enable parallel execution of multiple assays.
-    """
-    output:
-        complete = OUTPUT_DIR + "{assay}/logs/.complete",
-        report = OUTPUT_DIR + "{assay}/seqnado_report.html"
-    params:
-        assay = lambda wildcards: wildcards.assay,
-        config_file = lambda wildcards: str(Path(ASSAY_CONFIGS[wildcards.assay]['path']).resolve()),
-        metadata = lambda wildcards: str(Path(f"metadata_{wildcards.assay}.csv").resolve()),
-        main_snakefile = str(Path(workflow.basedir) / "Snakefile"),
-        output_dir = OUTPUT_DIR + "{assay}",
-        project_root = str(Path.cwd()),
-        cores_for_assay = CORES_PER_ASSAY
-    threads: 1
-    resources:
-        mem_mb = 8000,
-        runtime = 259200  # 72 hours
-    log:
-        OUTPUT_DIR + "{assay}/logs/seqnado.log"
-    message:
-        "Running {params.assay} assay pipeline with config {params.config_file}"
-    shell:
-        """
-        # Create output directory
-        mkdir -p {params.output_dir}/logs
-        
-        echo "================================================================" | tee {log}
-        echo "Starting {params.assay} pipeline at $(date)" | tee -a {log}
-        echo "Config: {params.config_file}" | tee -a {log}
-        echo "Metadata: {params.metadata}" | tee -a {log}
-        echo "Output: {params.output_dir}" | tee -a {log}
-        echo "================================================================" | tee -a {log}
-        
-        # Run the main SeqNado Snakefile for this assay
-        # Create assay-specific .snakemake directory to prevent locking conflicts
-        mkdir -p .snakemake/assay_{params.assay}
-        
-        # Use --directory to isolate .snakemake metadata in assay-specific subdirectory
-        # The .snakemake dir will be created at .snakemake/assay_{assay}/.snakemake
-        cd .snakemake/assay_{params.assay} && \
-        snakemake \
-            --snakefile {params.main_snakefile} \
-            --configfile {params.config_file} \
-            --config output_dir=../../{params.output_dir} metadata={params.metadata} \
-            --cores {params.cores_for_assay} \
-            {WORKFLOW_ARGS} \
-            2>&1 | tee -a ../../{log}
-        
-        # Mark completion (from .snakemake/assay_{assay}/ so need ../../ prefix)
-        touch ../../{output.complete}
-        
-        echo "================================================================" | tee -a ../../{log}
-        echo "Completed {params.assay} pipeline at $(date)" | tee -a ../../{log}
-        echo "Report: ../../{output.report}" | tee -a ../../{log}
-        echo "================================================================" | tee -a ../../{log}
-        """
-
-
-################################
-# Summary and reporting
-################################
-
-rule summary:
-    """Generate a summary report of all assays."""
-    input:
-        expand(OUTPUT_DIR + "{assay}/logs/.complete", assay=ASSAYS)
-    output:
-        "multi_assay_summary.txt"
-    message:
-        "Generating multi-assay summary report"
-    run:
-        with open(output[0], 'w') as f:
-            f.write("SeqNado Multi-Assay Project Summary\n")
-            f.write("=" * 70 + "\n\n")
-            f.write("Run Directory: " + str(Path.cwd()) + "\n")
-            f.write(f"Total assays: {len(ASSAYS)}\n")
-            f.write(f"Assays: {', '.join(ASSAYS)}\n\n")
-            
-            for assay in ASSAYS:
-                f.write(f"\n{assay.upper()}\n")
-                f.write("-" * 50 + "\n")
-                f.write(f"  Config:   config_{assay}.yaml\n")
-                f.write(f"  Metadata: metadata_{assay}.csv\n")
-                f.write(f"  Output:   seqnado_output/{assay}/\n")
-                f.write(f"  Report:   seqnado_output/{assay}/seqnado_report.html\n")
-                
-                # Check for completeness
-                complete_file = OUTPUT_DIR + f"{assay}/logs/.complete"
-                if os.path.exists(complete_file):
-                    f.write(f"  STATUS:   COMPLETE\n")
-                else:
-                    f.write(f"  WARNING: SeqNado report not found! Check logs for errors.\n")
