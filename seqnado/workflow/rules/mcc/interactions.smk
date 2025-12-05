@@ -24,6 +24,8 @@ rule identify_ligation_junctions:
     resources:
         mem="1GB",
     container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     log: OUTPUT_DIR + "/logs/ligation_junctions/{group}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/ligation_junctions/{group}.tsv",
     message: "Identifying ligation junctions for group {wildcards.group}",
@@ -44,6 +46,8 @@ rule sort_ligation_junctions:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
     log: OUTPUT_DIR + "/logs/sort_ligation_junctions/{group}_{viewpoint}.log",
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     benchmark: OUTPUT_DIR + "/.benchmark/sort_ligation_junctions/{group}_{viewpoint}.tsv",
     message: "Sorting ligation junctions for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
     shell: """
@@ -58,6 +62,8 @@ rule bgzip_pairs:
     log: OUTPUT_DIR + "/logs/bgzip_pairs/{group}_{viewpoint}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bgzip_pairs/{group}_{viewpoint}.tsv",
     message: "Bgzipping pairs file for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     resources:
     shell: """
     bgzip -c {input.pairs} > {output.pairs}
@@ -73,6 +79,8 @@ rule make_cooler:
         resolution=CONFIG.assay_config.mcc.resolutions[0],
         genome=CONFIG.genome.name,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
@@ -94,23 +102,25 @@ rule zoomify_cooler:
     output:
         cooler=temp(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.mcool"),
     params:
-        resolutions=CONFIG.assay_config.mcc.resolutions,
+        resolutions=[f'-r {res}' for res in CONFIG.assay_config.mcc.resolutions],
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/zoomify_cooler/{group}_{viewpoint}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/zoomify_cooler/{group}_{viewpoint}.tsv",
     message: "Zoomifying cooler file for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
     shell: """
-    cooler zoomify {input.cooler} -r {params.resolutions} -o {output.cooler} > {log} 2>&1
+    cooler zoomify {input.cooler} {params.resolutions} -o {output.cooler} > {log} 2>&1
     """
 
 
 rule aggregate_coolers:
     input:
         mcools=expand(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.mcool", 
-                    group=SAMPLE_GROUPINGS.groupings.keys(), 
+                    group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names, 
                     viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     output:
         mcool=OUTPUT_DIR + "/mcc/contacts/{group}/{group}.mcool",

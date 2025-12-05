@@ -59,6 +59,7 @@ SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
 ################################
 # Define Outputs
 ################################
+
 OUTPUT: SeqnadoOutputFiles = (
     SeqnadoOutputFactory(
         assay=ASSAY,
@@ -118,7 +119,6 @@ match ASSAY:
         include: "rules/visualise/browser.smk"
     case Assay.MCC:
         include: "rules/fastq/trim.smk"
-        include: "rules/alignment/dna.smk"
         include: "rules/bam/all.smk"
         include: "rules/mcc/all.smk"
         include: "rules/fastq/manipulate.smk"
@@ -138,7 +138,6 @@ match ASSAY:
         include: "rules/variant/annotate.smk"
     case _:
         raise ValueError(f"Assay {ASSAY} not supported yet.")
-
 
 
 ################################
@@ -162,7 +161,7 @@ else:
         case Assay.RNA:
             ruleorder: rename_aligned > align_paired > align_single
         case Assay.MCC:
-            ruleorder: align_mcc_reads_to_genome > align_paired
+            pass
         case _:
             ruleorder: align_paired > align_single
 

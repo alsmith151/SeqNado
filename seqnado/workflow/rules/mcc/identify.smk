@@ -71,8 +71,6 @@ use rule index_bam as index_bam_viewpoints with:
     benchmark: OUTPUT_DIR + "/.benchmark/index_bam_viewpoints/{sample}.tsv",
     message: "Indexing BAM file for viewpoints for sample {wildcards.sample}",
 
-# ruleorder:
-#     combine_genome_mapped_reads > align_paired
 
 
 

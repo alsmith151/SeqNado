@@ -2,7 +2,7 @@ rule extract_ligation_stats:
     input:
         bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.bam",
     output:
-        stats=OUTPUT_DIR + "/resources/{sample}_ligation_stats.json"
+        stats=OUTPUT_DIR + "/resources/replicates/{sample}_ligation_stats.json"
     container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest'
     log: OUTPUT_DIR + "/logs/extract_ligation_stats/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/extract_ligation_stats/{sample}.tsv",
@@ -16,6 +16,8 @@ use rule extract_ligation_stats as extract_ligation_stats_merged with:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
     output:
         stats=OUTPUT_DIR + "/resources/{group}_ligation_stats.json",
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     log: OUTPUT_DIR + "/logs/extract_ligation_stats_merged/{group}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/extract_ligation_stats_merged/{group}.tsv",
     message: "Extracting ligation stats for merged MCC BAM of group {wildcards.group}",
