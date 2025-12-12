@@ -78,6 +78,31 @@ jobs:
           echo "Apptainer cache: ${{ github.workspace }}/.apptainer/cache"
           echo "Apptainer temp: ${{ github.workspace }}/.apptainer/tmp"
 
+      - name: Pre-pull containers to avoid parallel download conflicts
+        shell: bash -el {0}
+        env:
+          APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
+          APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
+        run: |
+          echo "Pre-pulling all containers to avoid disk space issues with parallel pulls..."
+          apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+          apptainer remote use SylabsCloud
+
+          # Pull containers directly to the cache directory that Snakemake will use
+          cd "${{ github.workspace }}/.apptainer/cache"
+
+          echo "Pulling main pipeline container..."
+          apptainer pull oras://ghcr.io/alsmith151/seqnado_pipeline:latest
+
+          echo "Pulling ML container..."
+          apptainer pull oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
+
+          echo "Pulling PlotNado container..."
+          apptainer pull library://asmith151/plotnado/plotnado
+
+          echo "All containers pulled successfully:"
+          ls -lh *.sif
+          
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
