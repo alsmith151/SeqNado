@@ -42,6 +42,5 @@ include: "rules/multiomics/all.smk"
 
 rule all:
     input:
-        expand(OUTPUT_DIR + "{assay}/logs/.complete", assay=ASSAYS),
         "multi_assay_summary.txt"
     default_target: True

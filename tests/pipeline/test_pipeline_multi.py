@@ -71,8 +71,8 @@ def test_pipeline_multi(
         )
 
         assert (
-            multi_assay_run_directory / f"seqnado_output/{assay}/logs/.complete"
-        ).exists(), f"No .complete log file found for {assay}"
+            multi_assay_run_directory / f"seqnado_output/{assay}/seqnado_report.html"
+        ).exists(), f"No seqnado_report.html file found for {assay}"
 
     assert (multi_assay_run_directory / "multi_assay_summary.txt").exists(), (
         "multi_assay_summary.txt not found"
