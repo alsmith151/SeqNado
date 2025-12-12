@@ -47,7 +47,7 @@ class Metadata(BaseModel):
         description="DESeq2 metadata for sample, can be None if not applicable"
     )
 
-    @field_validator("deseq2", "consensus_group")
+    @field_validator("deseq2")
     @classmethod
     def prevent_none(cls, v):
         import numpy as np

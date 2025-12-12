@@ -114,5 +114,5 @@ jobs:
           APPTAINER_DISABLE_CACHE: "false"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          python -m pytest tests/pipeline/test_pipelines.py::test_pipeline -vvvv \
+          python -m pytest tests/pipeline/test_pipelines.py::test_pipeline -vv \
           -s --cores 4 --run-pipeline --assays ${{ matrix.assay }}
