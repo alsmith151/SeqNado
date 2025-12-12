@@ -24,6 +24,9 @@ class FileCollection(Protocol):
         """Return a list of file paths."""
         pass
 
+class BasicFileCollection(BaseModel):
+    files: List[str] = Field(default_factory=list)
+
 
 class QCFiles(BaseModel):
     assay: Assay
@@ -106,17 +109,22 @@ class BigWigFiles(BaseModel):
         return {
             PileupMethod.HOMER: [DataScalingTechnique.CSAW, DataScalingTechnique.SPIKEIN],
             PileupMethod.BAMNADO: [DataScalingTechnique.CSAW, DataScalingTechnique.SPIKEIN],
+            PileupMethod.DEEPTOOLS: [Assay.MCC]
         }
 
-    def _is_compatible(self, method: PileupMethod, scale: DataScalingTechnique) -> bool:
-        return scale not in self.incompatible_methods.get(method, [])
+    def _is_compatible(self, method: PileupMethod, scale: DataScalingTechnique, assay: Assay) -> bool:
+        if scale in self.incompatible_methods.get(method, []):
+            return False
+        if assay in self.incompatible_methods.get(method, []):
+            return False
+        return True
 
     def generate_bigwig_paths(self) -> list[str]:
         paths = []
 
         for method in self.pileup_methods:
             for scale in self.scale_methods:
-                if not self._is_compatible(method, scale):
+                if not self._is_compatible(method, scale, self.assay):
                     continue
 
                 if self.is_rna:
@@ -144,6 +152,7 @@ class PeakCallingFiles(BaseModel):
     names: list[str]
     peak_calling_method: list[PeakCallingMethod]
     output_dir: str = "seqnado_output"
+    is_merged: bool = False
 
     @property
     def prefix(self) -> str:
@@ -158,7 +167,7 @@ class PeakCallingFiles(BaseModel):
     @property
     def peak_files(self) -> list[str]:
         return expand(
-            self.prefix + "{method}/{sample}.bed",
+            self.prefix + "{method}/{sample}.bed" if not self.is_merged else self.prefix + "{method}/merged/{sample}.bed",
             sample=self.names,
             method=[m.value for m in self.peak_calling_method],
         )

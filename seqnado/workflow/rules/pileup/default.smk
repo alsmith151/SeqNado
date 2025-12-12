@@ -1,6 +1,7 @@
 import re
-from seqnado.helpers import  define_time_requested, define_memory_requested
+from seqnado.helpers import define_time_requested, define_memory_requested
 from seqnado.config.third_party_tools import CommandLineArguments
+
 
 def format_deeptools_options(wildcards, options: CommandLineArguments) -> str:
     """
@@ -8,10 +9,28 @@ def format_deeptools_options(wildcards, options: CommandLineArguments) -> str:
 
     Mainly this removes the extend reads option if single ended
     """
-    search_term = f'{wildcards.sample}'
-    is_paired = INPUT_FILES.is_paired_end(search_term)
-    if not is_paired:
-        options = CommandLineArguments(value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"})
+
+    try:
+        if hasattr(wildcards, "group"):
+            sample = (
+                SAMPLE_GROUPINGS.get_grouping("consensus")
+                .get_group(wildcards.group)
+                .samples
+            )
+            if not all(INPUT_FILES.is_paired_end(sample_name) for sample_name in sample):
+                options = CommandLineArguments(
+                    value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"}
+                )
+        else:
+            search_term = f"{wildcards.sample}"
+            is_paired = INPUT_FILES.is_paired_end(search_term)
+            if not is_paired:
+                options = CommandLineArguments(
+                    value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"}
+                )
+    except KeyError as e:
+        pass
+
 
     return str(options)
 
@@ -22,15 +41,26 @@ rule homer_make_tag_directory:
     output:
         homer_tag_directory=directory(OUTPUT_DIR + "/tag_dirs/{sample}"),
     params:
-            options=str(CONFIG.third_party_tools.homer.make_tag_directory.command_line_arguments),
+        options=str(
+            CONFIG.third_party_tools.homer.make_tag_directory.command_line_arguments
+        ),
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/homer/maketagdirectory_{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/homer/maketagdirectory_{sample}.tsv",
-    message: "Making tag directory with HOMER for sample {wildcards.sample}"
-    shell: """
+        mem=lambda wildcards, attempt: define_memory_requested(
+            initial_value=4, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+        runtime=lambda wildcards, attempt: define_time_requested(
+            initial_value=2, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log:
+        OUTPUT_DIR + "/logs/homer/maketagdirectory_{sample}.log",
+    benchmark:
+        OUTPUT_DIR + "/.benchmark/homer/maketagdirectory_{sample}.tsv"
+    message:
+        "Making tag directory with HOMER for sample {wildcards.sample}"
+    shell:
+        """
     makeTagDirectory {output.homer_tag_directory} {input.bam} {params.options} > {log} 2>&1
     """
 
@@ -48,14 +78,23 @@ rule homer_make_bigwigs:
         temp_bw=lambda wc, output: output.homer_bigwig.replace(
             ".bigWig", ".ucsc.bigWig"
         ),
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
-    log: OUTPUT_DIR + "/logs/homer/makebigwigs_{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/homer/makebigwigs_{sample}.tsv",
-    message: "Making bigWig with HOMER for sample {wildcards.sample}"
-    shell: """
+        mem=lambda wildcards, attempt: define_memory_requested(
+            initial_value=4, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+        runtime=lambda wildcards, attempt: define_time_requested(
+            initial_value=2, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+    log:
+        OUTPUT_DIR + "/logs/homer/makebigwigs_{sample}.log",
+    benchmark:
+        OUTPUT_DIR + "/.benchmark/homer/makebigwigs_{sample}.tsv"
+    message:
+        "Making bigWig with HOMER for sample {wildcards.sample}"
+    shell:
+        """
     makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir {params.outdir} {params.options} > {log} 2>&1 &&
     mv {params.outdir}/{wildcards.sample}.ucsc.bigWig {output.homer_bigwig}
     """
@@ -68,17 +107,30 @@ rule deeptools_make_bigwigs:
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/unscaled/{sample}.bigWig",
     params:
-        options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments)),
+        options=lambda wildcards: format_deeptools_options(
+            wildcards,
+            str(
+                CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments
+            ),
+        ),
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
-    threads:
-        CONFIG.third_party_tools.deeptools.bam_coverage.threads,
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/pileups/deeptools/unscaled/{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/deeptools/makebigwigs_{sample}.tsv",
-    message: "Making bigWig with deeptools for sample {wildcards.sample}"
-    shell: """
+        mem=lambda wildcards, attempt: define_memory_requested(
+            initial_value=4, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+        runtime=lambda wildcards, attempt: define_time_requested(
+            initial_value=6, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+    threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log:
+        OUTPUT_DIR + "/logs/pileups/deeptools/unscaled/{sample}.log",
+    benchmark:
+        OUTPUT_DIR + "/.benchmark/deeptools/makebigwigs_{sample}.tsv"
+    message:
+        "Making bigWig with deeptools for sample {wildcards.sample}"
+    shell:
+        """
     bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} > {log} 2>&1
     """
 
@@ -90,16 +142,27 @@ rule bamnado_bam_coverage:
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/bamnado/unscaled/{sample}.bigWig",
     params:
-        options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
+        options=str(
+            CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments
+        ),
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=6, attempts=attempt, scale=SCALE_RESOURCES),
-    threads: CONFIG.third_party_tools.bamnado.bam_coverage.threads,
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/pileups/bamnado/{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/bamnado/makebigwigs_{sample}.tsv",
-    message: "Making bigWig with bamnado for sample {wildcards.sample}"
-    shell: """
+        mem=lambda wildcards, attempt: define_memory_requested(
+            initial_value=4, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+        runtime=lambda wildcards, attempt: define_time_requested(
+            initial_value=6, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+    threads: CONFIG.third_party_tools.bamnado.bam_coverage.threads
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log:
+        OUTPUT_DIR + "/logs/pileups/bamnado/{sample}.log",
+    benchmark:
+        OUTPUT_DIR + "/.benchmark/bamnado/makebigwigs_{sample}.tsv"
+    message:
+        "Making bigWig with bamnado for sample {wildcards.sample}"
+    shell:
+        """
     export RAYON_NUM_THREADS={threads}
     bamnado bam-coverage {params.options} -b {input.bam} -o {output.bigwig} > {log} 2>&1
     """
@@ -120,13 +183,22 @@ rule fragment_bedgraph:
         chromosome_sizes=CONFIG.genome.chromosome_sizes,
     threads: 16
     resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=12, attempts=attempt, scale=SCALE_RESOURCES),
-        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),    
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/bedgraphs/{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/bedgraphs/fragment_bedgraph_{sample}.tsv",
-    message: "Generating fragment bedGraph for sample {wildcards.sample}"
-    shell: """
+        mem=lambda wildcards, attempt: define_memory_requested(
+            initial_value=12, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+        runtime=lambda wildcards, attempt: define_time_requested(
+            initial_value=4, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log:
+        OUTPUT_DIR + "/logs/bedgraphs/{sample}.log",
+    benchmark:
+        OUTPUT_DIR + "/.benchmark/bedgraphs/fragment_bedgraph_{sample}.tsv"
+    message:
+        "Generating fragment bedGraph for sample {wildcards.sample}"
+    shell:
+        """
     echo "Generating fragment bedGraph for sample {wildcards.sample}" 2>&1 | tee {log}
 
     samtools view -@ {threads} -q 30 -f 2 -h {input.bam} | grep -v chrM > {output.filtered} 2>&1 | tee -a {log}
@@ -137,4 +209,3 @@ rule fragment_bedgraph:
     bedtools genomecov -bg -i {output.fragments} -g {params.chromosome_sizes} > {output.bdg} 2>&1 | tee -a {log}
     rm -f {output.fragments}.temp
     """
-

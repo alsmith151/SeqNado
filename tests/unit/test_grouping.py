@@ -112,7 +112,7 @@ class TestSampleGroups:
         g2 = SampleGroup(name="batch2", samples=["s3", "s4"])
         groups = SampleGroups(groups=[g1, g2])
         
-        mapping = groups.sample_to_group()
+        mapping = groups.sample_to_group
         
         assert mapping["s1"] == "batch1"
         assert mapping["s2"] == "batch1"
@@ -125,7 +125,7 @@ class TestSampleGroups:
         g2 = SampleGroup(name="batch2", samples=["s3", "s4"])
         groups = SampleGroups(groups=[g1, g2])
         
-        mapping = groups.group_to_samples()
+        mapping = groups.group_to_samples
         
         assert mapping["batch1"] == ["s1", "s2"]
         assert mapping["batch2"] == ["s3", "s4"]

@@ -48,7 +48,7 @@ def ensure_genome_resources(genome_path: Path, assay: str) -> dict[str, Path]:
     resources["blacklist"] = _ensure_blacklist(genome_path)
 
     # Genome FASTA files (for methylation or SNP assays)
-    if "meth" in assay.lower() or "snp" in assay.lower():
+    if any(x in assay.lower() for x in ["meth", "snp",'mcc']):
         fasta, fasta_fai = _ensure_genome_fasta(genome_path)
         resources["fasta"] = fasta
         resources["fasta_fai"] = fasta_fai
