@@ -75,7 +75,7 @@ class MultiomicsOutput(BaseModel):
     @property
     def dataset(self) -> str:
         """Get the output directory."""
-        return str(Path(self.output_dir) / "multiomics" / "dataset" / "dataset_regions.h5ad")
+        return str(Path(self.output_dir) / "multiomics" / "dataset" / "dataset_bins.h5ad")
 
     @property
     def all_outputs(self) -> list[str]:
