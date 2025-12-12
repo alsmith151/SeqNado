@@ -1,5 +1,3 @@
-"""Project initialization and configuration helpers for pipeline tests."""
-
 import glob
 import json
 import shutil

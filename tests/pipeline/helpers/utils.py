@@ -1,4 +1,3 @@
-"""Common utility functions for pipeline tests."""
 import json
 import tarfile
 import time
