@@ -2,10 +2,15 @@ from seqnado.helpers import define_memory_requested, define_time_requested
 
 from seqnado.config.multiomics import get_assay_bigwigs
 
+bigwigs = get_assay_bigwigs(
+    wildcards=None,
+    ASSAYS=ASSAYS,
+    rules=rules
+)
 
 rule multiomics_heatmap_matrix:
     input:
-        bigwigs=get_assay_bigwigs,
+        bigwigs=bigwigs,
     output:
         matrix=OUTPUT_DIR + "multiomics/heatmap/heatmap_matrix.mat.gz",
     params:

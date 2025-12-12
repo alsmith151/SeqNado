@@ -101,6 +101,22 @@ def config_yaml_for_testing(
         test_context, genome_resources, assay, monkeypatch
     )
 
+    # Copy hg38_genes.bed from tests/data to test_output/data if it doesn't exist
+    genes_bed_source = (
+        test_context.test_paths.repo / "tests" / "data" / "hg38_genes.bed"
+    )
+    genes_bed = test_context.test_paths.test_data / "hg38_genes.bed"
+    if not genes_bed.exists() and genes_bed_source.exists():
+        shutil.copy2(genes_bed_source, genes_bed)
+
+    # Copy plotting_coordinates.bed from tests/data to test_output/data if it doesn't exist
+    plot_coords_source = (
+        test_context.test_paths.repo / "tests" / "data" / "plotting_coordinates.bed"
+    )
+    plot_coords = test_context.test_paths.test_data / "plotting_coordinates.bed"
+    if not plot_coords.exists() and plot_coords_source.exists():
+        shutil.copy2(plot_coords_source, plot_coords)
+
     # Now create config YAML using the same run directory
     config_path = create_config_yaml(run_directory, assay, monkeypatch, resources)
     return config_path
