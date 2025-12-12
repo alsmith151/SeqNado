@@ -1,20 +1,28 @@
 from seqnado.helpers import define_memory_requested, define_time_requested
 
 
-def get_assay_bigwigs():
+def get_assay_bigwigs(wildcards):
     """Get all bigwigs from assay-specific 'all' rules."""
     bigwigs = []
     for assay in ASSAYS:
         rule_name = f"{assay}_all"
-        file = getattr(rules, rule_name).input
-        if file.endswith(".bigWig"):
-            bigwigs.append(file)
+        inputs = getattr(rules, rule_name).input
+
+        # Handle both single files and collections of files
+        if isinstance(inputs, str):
+            if inputs.endswith(".bigWig"):
+                bigwigs.append(inputs)
+        else:
+            # InputFiles is iterable
+            for file in inputs:
+                if isinstance(file, str) and file.endswith(".bigWig"):
+                    bigwigs.append(file)
     return bigwigs
 
 
 rule multiomics_heatmap_matrix:
     input:
-        bigwigs=get_all_assay_bigwigs,
+        bigwigs=get_assay_bigwigs,
     output:
         matrix=OUTPUT_DIR + "multiomics/heatmap/heatmap_matrix.mat.gz",
     params:

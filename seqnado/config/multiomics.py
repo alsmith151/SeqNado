@@ -59,6 +59,6 @@ class MultiomicsOutput(BaseModel):
         """Get all multiomics output files."""
         return [
             self.summary_report,
-            # self.heatmap,
-            # self.metaplot,
+            self.heatmap,
+            self.metaplot,
         ]

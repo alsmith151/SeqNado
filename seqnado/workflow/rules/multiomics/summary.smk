@@ -38,9 +38,4 @@ rule multiomics_summary:
                     f.write(f"  STATUS:   COMPLETE\n")
                 else:
                     f.write(f"  WARNING: SeqNado report not found! Check logs for errors.\n")
-            
-            f.write("\n" + "=" * 70 + "\n")
-            f.write("Inputs from all assays:\n")
-            for file in input:
-                f.write(f"  {file}\n")
         
