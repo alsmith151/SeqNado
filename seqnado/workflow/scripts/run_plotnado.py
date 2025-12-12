@@ -15,8 +15,6 @@ def snakemake_setup():
         raise RuntimeError("This script must be run via Snakemake.")
     log_file = snakemake.log[0]
     logger.remove()
-    logger.add(log_file, format="{time} {level} {message}", level="DEBUG")
-    logger.add(sys.stderr, format="{time} {level} {message}", level="DEBUG")
     assay = snakemake.params.assay
     input_data = snakemake.input.data
     output_plots = snakemake.output.plots

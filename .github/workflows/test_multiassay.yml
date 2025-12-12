@@ -84,9 +84,6 @@ jobs:
           echo "Pulling ML container..."
           apptainer pull oras://ghcr.io/alsmith151/seqnado_ml_cpu:latest
 
-          echo "Pulling MACS2 container..."
-          apptainer pull docker://quay.io/biocontainers/macs2:2.1.1.20160309--py27r3.3.1_1
-
           echo "Pulling PlotNado container..."
           apptainer pull library://asmith151/plotnado/plotnado
 
