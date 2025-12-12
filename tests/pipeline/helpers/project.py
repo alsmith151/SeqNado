@@ -236,6 +236,15 @@ def create_config_yaml(
         with open(test_profile_config, "w") as f:
             yaml.dump(profile_config, f, sort_keys=False)
 
+    # Fix plotting coordinates path to use test_output/data instead of package directory
+    if "assay_config" in config and "plotting" in config["assay_config"]:
+        if "coordinates" in config["assay_config"]["plotting"]:
+            # Get the test data directory from the genome config path
+            test_data_dir = Path(genome_config.get("chromosome_sizes")).parent
+            plot_coords = test_data_dir / "plotting_coordinates.bed"
+            if plot_coords.exists():
+                config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
+
     with open(config_path, "w") as f:
         yaml.dump(config, f, sort_keys=False)
 
