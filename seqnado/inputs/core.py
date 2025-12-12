@@ -34,9 +34,9 @@ class Metadata(BaseModel):
         default=None,
         description="Assay type, should be one of the Assay enum values"
     )
-    consensus_group: str = Field(
-        default="default",
-        description="Grouping variable for merging samples into consensus, defaults to 'default' if not specified"
+    consensus_group: str | None = Field(
+        default=None,
+        description="Grouping variable for merging samples into consensus, defaults to None if not specified"
     )
     scaling_group: str = Field(
         default="default",
@@ -75,6 +75,13 @@ class Metadata(BaseModel):
         if v is pd.NA:
             raise ValueError("None is not allowed when setting metadata")
         return v
+
+    @model_validator(mode='after')
+    def set_mcc_defaults(self) -> Self:
+        """Set default consensus_group for MCC assay."""
+        if self.assay == Assay.MCC and self.consensus_group is None:
+            self.consensus_group = 'default'
+        return self
 
 
 
