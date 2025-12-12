@@ -25,6 +25,3 @@ rule generate_plotnado_visualisation:
     message: "Generating genome browser visualisations with Plotnado"
     script:
         "../../scripts/run_plotnado.py"
-
-
-        
