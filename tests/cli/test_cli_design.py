@@ -42,7 +42,7 @@ def test_cli_design_generates_csv(tmp_path: Path, monkeypatch):
 
 
 def test_cli_design_includes_default_columns(tmp_path: Path):
-    """Test that design command with --accept-all-defaults includes consensus_group and scaling_group columns."""
+    """Test that design command with --accept-all-defaults includes scaling_group column."""
     # Create dummy fastq files
     r1 = _write_fastq(tmp_path, "test_sample_R1.fastq.gz")
     r2 = _write_fastq(tmp_path, "test_sample_R2.fastq.gz")
@@ -73,10 +73,6 @@ def test_cli_design_includes_default_columns(tmp_path: Path):
 
     df = pd.read_csv(metadata_file)
 
-    # Check that required columns with defaults are present
-    assert "consensus_group" in df.columns, "consensus_group column should be present"
+    # Check that scaling_group column is present with default value
     assert "scaling_group" in df.columns, "scaling_group column should be present"
-
-    # Check that default values are set correctly
-    assert all(df["consensus_group"] == "default"), "consensus_group should have default value 'default'"
     assert all(df["scaling_group"] == "default"), "scaling_group should have default value 'default'"
