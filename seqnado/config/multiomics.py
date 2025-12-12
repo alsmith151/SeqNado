@@ -41,17 +41,17 @@ class MultiomicsOutput(BaseModel):
 
     @property
     def summary_report(self) -> str:
-        """Path to the multi-assay summary report."""
-        return str(Path(self.output_dir) / "multi_assay_summary.txt")
+        """Path to the multiomics summary report."""
+        return str(Path(self.output_dir) / "multiomics_summary.txt")
 
     @property
     def heatmap(self) -> str:
-        """Path to the multi-assay heatmap PDF."""
+        """Path to the multiomics heatmap PDF."""
         return str(Path(self.output_dir) / "multiomics" / "heatmap" / "heatmap.pdf")
 
     @property
     def metaplot(self) -> str:
-        """Path to the multi-assay metaplot PDF."""
+        """Path to the multiomics metaplot PDF."""
         return str(Path(self.output_dir) / "multiomics" / "heatmap" / "metaplot.pdf")
 
     @property
@@ -59,6 +59,6 @@ class MultiomicsOutput(BaseModel):
         """Get all multiomics output files."""
         return [
             self.summary_report,
-            self.heatmap,
-            self.metaplot,
+            # self.heatmap,
+            # self.metaplot,
         ]

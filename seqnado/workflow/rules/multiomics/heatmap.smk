@@ -1,35 +1,20 @@
 from seqnado.helpers import define_memory_requested, define_time_requested
 
 
-def get_all_assay_bigwigs(wildcards):
-    """Collect bigwig file paths from all individual assays using their OUTPUT objects."""
-    from seqnado import PileupMethod
-    from seqnado.helpers import DataScalingTechnique as ScaleMethod
-
+def get_assay_bigwigs():
+    """Get all bigwigs from assay-specific 'all' rules."""
     bigwigs = []
-
     for assay in ASSAYS:
-        try:
-            assay_module = __import__(f"seqnado.workflow.run_{assay}", fromlist=["OUTPUT", "INPUT_FILES"])
-            OUTPUT = assay_module.OUTPUT
-            INPUT_FILES = assay_module.INPUT_FILES
-
-            bigwigs.extend(
-                OUTPUT.get_assay_bigwig_files(
-                    scaling_technique=ScaleMethod.NORMALIZED,
-                    pileup_method=PileupMethod.SINGLE_END_TAG_DIR
-                )
-            )
-        except (ImportError, AttributeError) as e:
-            continue
-            
+        rule_name = f"{assay}_all"
+        file = getattr(rules, rule_name).input
+        if file.endswith(".bigWig"):
+            bigwigs.append(file)
     return bigwigs
 
 
-rule multiassay_heatmap_matrix:
+rule multiomics_heatmap_matrix:
     input:
         bigwigs=get_all_assay_bigwigs,
-        summary=OUTPUT_DIR + "multi_assay_summary.txt"
     output:
         matrix=OUTPUT_DIR + "multiomics/heatmap/heatmap_matrix.mat.gz",
     params:
@@ -55,7 +40,7 @@ rule multiassay_heatmap_matrix:
     """
 
 
-rule multiassay_heatmap_plot:
+rule multiomics_heatmap_plot:
     input:
         matrix=OUTPUT_DIR + "multiomics/heatmap/heatmap_matrix.mat.gz",
     output:
@@ -73,7 +58,7 @@ rule multiassay_heatmap_plot:
     """
 
 
-rule multiassay_heatmap_metaplot:
+rule multiomics_heatmap_metaplot:
     input:
         matrix=OUTPUT_DIR + "multiomics/heatmap/heatmap_matrix.mat.gz",
     output:

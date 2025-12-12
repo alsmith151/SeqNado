@@ -1,25 +1,24 @@
-# Helper function to get assay-specific 'all' rule outputs
+
 def get_assay_all_inputs():
     """Get all inputs from assay-specific 'all' rules."""
     inputs = []
     for assay in ASSAYS:
-        # Reference the assay-specific 'all' rule (e.g., atac_all, chip_all)
         rule_name = f"{assay}_all"
         inputs.append(getattr(rules, rule_name).input)
     return inputs
 
 
-rule summary:
+rule multiomics_summary:
     """Generate a summary report of all assays."""
     input:
         get_assay_all_inputs()
     output:
-        OUTPUT_DIR + "multi_assay_summary.txt"
+        OUTPUT_DIR + "multiomics_summary.txt"
     message:
-        "Generating multi-assay summary report"
+        "Generating multiomics summary report"
     run:
         with open(output[0], 'w') as f:
-            f.write("SeqNado Multi-Assay Project Summary\n")
+            f.write("SeqNado Multiomics Project Summary\n")
             f.write("=" * 70 + "\n\n")
             f.write("Run Directory: " + str(Path.cwd()) + "\n")
             f.write(f"Total assays: {len(ASSAYS)}\n")
@@ -39,3 +38,9 @@ rule summary:
                     f.write(f"  STATUS:   COMPLETE\n")
                 else:
                     f.write(f"  WARNING: SeqNado report not found! Check logs for errors.\n")
+            
+            f.write("\n" + "=" * 70 + "\n")
+            f.write("Inputs from all assays:\n")
+            for file in input:
+                f.write(f"  {file}\n")
+        
