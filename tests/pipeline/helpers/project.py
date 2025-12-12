@@ -270,7 +270,8 @@ def create_design_file(
         "seqnado",
         "design",
         assay,
-        "--no-interactive"
+        "--no-interactive",
+        "--accept-all-defaults",
     ]
     # Add relative paths to FASTQ files
     cmd.extend([f"fastqs/{f.name}" for f in fastq_files])

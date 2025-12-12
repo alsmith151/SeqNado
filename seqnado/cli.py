@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import date, datetime
+from datetime import date
 from importlib import resources
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, List, Optional
