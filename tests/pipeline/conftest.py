@@ -205,7 +205,12 @@ def multi_assay_configs(
     # Each assay gets its own genome config entry with assay-specific resources
     from helpers.utils import setup_genome_config
     genome_config_file = run_dir / ".config" / "seqnado" / "genome_config.json"
+
+    # Copy hg38_genes.bed from tests/data to test_output/data if it doesn't exist
+    genes_bed_source = test_context.test_paths.repo / "tests" / "data" / "hg38_genes.bed"
     genes_bed = test_context.test_paths.test_data / "hg38_genes.bed"
+    if not genes_bed.exists() and genes_bed_source.exists():
+        shutil.copy2(genes_bed_source, genes_bed)
 
     for assay in multi_assays:
         if assay != init_assay:

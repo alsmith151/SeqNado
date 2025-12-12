@@ -14,7 +14,7 @@ rule summary:
     input:
         get_assay_all_inputs()
     output:
-        "multi_assay_summary.txt"
+        OUTPUT_DIR + "multi_assay_summary.txt"
     message:
         "Generating multi-assay summary report"
     run:

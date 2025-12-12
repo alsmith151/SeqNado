@@ -60,7 +60,12 @@ def init_seqnado_project(
 
     # Write genome config
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
+
+    # Copy hg38_genes.bed from tests/data to test_output/data if it doesn't exist
+    genes_bed_source = test_data_path.parent.parent / "tests" / "data" / "hg38_genes.bed"
     genes_bed = test_data_path / "hg38_genes.bed"
+    if not genes_bed.exists() and genes_bed_source.exists():
+        shutil.copy2(genes_bed_source, genes_bed)
 
     setup_genome_config(
         genome_config_file,
@@ -267,8 +272,7 @@ def create_design_file(
         "seqnado",
         "design",
         assay,
-        "--no-interactive",
-        "--accept-all-defaults",
+        "--no-interactive"
     ]
     # Add relative paths to FASTQ files
     cmd.extend([f"fastqs/{f.name}" for f in fastq_files])

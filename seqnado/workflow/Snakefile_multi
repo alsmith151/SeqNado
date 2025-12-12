@@ -4,7 +4,7 @@ import glob
 import yaml
 
 from seqnado.cli import config
-from seqnado.config.multiomics import find_assay_configs
+from seqnado.config.multiomics import find_assay_configs, MultiomicsOutput
 
 ################################
 # Auto-detect assay configs
@@ -40,7 +40,9 @@ WORKFLOW_ARGS = workflow.config_settings.config.get('workflow_args', '--rerun-in
 
 include: "rules/multiomics/all.smk"
 
+MULTIOMICS_OUTPUT = MultiomicsOutput(output_dir=OUTPUT_DIR)
+
 rule all:
     input:
-        "multi_assay_summary.txt"
+        MULTIOMICS_OUTPUT.all_outputs
     default_target: True
