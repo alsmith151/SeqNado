@@ -2,27 +2,27 @@ from seqnado.helpers import define_memory_requested, define_time_requested
 
 
 def get_all_assay_bigwigs(wildcards):
-    """Collect bigwig files from all individual assays."""
-    import glob
+    """Collect bigwig file paths from all individual assays using their OUTPUT objects."""
+    from seqnado import PileupMethod
+    from seqnado.helpers import DataScalingTechnique as ScaleMethod
+
     bigwigs = []
+
     for assay in ASSAYS:
-        # Construct the path to bigwigs from each assay's output directory
-        assay_output_dir = f"{OUTPUT_DIR}{assay}"
-        # Pattern matches deeptools unscaled bigwigs (same as single-assay heatmap)
-        pattern = f"{assay_output_dir}/bigwigs/deeptools/unscaled/*.bigWig"
-        assay_bws = sorted(glob.glob(pattern))
-        if assay_bws:
-            print(f"[DEBUG] Found {len(assay_bws)} bigwigs for {assay}: {assay_bws}")
-        else:
-            print(f"[DEBUG] No bigwigs found for {assay} at pattern: {pattern}")
-        bigwigs.extend(assay_bws)
+        try:
+            assay_module = __import__(f"seqnado.workflow.run_{assay}", fromlist=["OUTPUT", "INPUT_FILES"])
+            OUTPUT = assay_module.OUTPUT
+            INPUT_FILES = assay_module.INPUT_FILES
 
-    if not bigwigs:
-        raise ValueError(
-            f"No bigwig files found for any assay. Checked patterns:\n" +
-            "\n".join([f"  - {OUTPUT_DIR}{assay}/bigwigs/deeptools/unscaled/*.bigWig" for assay in ASSAYS])
-        )
-
+            bigwigs.extend(
+                OUTPUT.get_assay_bigwig_files(
+                    scaling_technique=ScaleMethod.NORMALIZED,
+                    pileup_method=PileupMethod.SINGLE_END_TAG_DIR
+                )
+            )
+        except (ImportError, AttributeError) as e:
+            continue
+            
     return bigwigs
 
 
@@ -45,7 +45,13 @@ rule multiassay_heatmap_matrix:
     benchmark: OUTPUT_DIR + "multiomics/.benchmark/heatmap/matrix.tsv",
     message: "Computing multi-assay heatmap matrix from bigWig files across all assays"
     shell: """
-    computeMatrix scale-regions -p {threads} {params.options} --smartLabels --missingDataAsZero -S {input.bigwigs} -R {params.gtf} -o {output.matrix} >> {log} 2>&1
+    computeMatrix scale-regions \
+    -p {threads} {params.options} \
+    --smartLabels \
+    --missingDataAsZero \
+    -S {input.bigwigs} \
+    -R {params.gtf} \
+    -o {output.matrix} >> {log} 2>&1
     """
 
 
