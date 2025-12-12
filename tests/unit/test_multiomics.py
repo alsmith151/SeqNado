@@ -203,7 +203,7 @@ class TestMultiomicsOutput:
 
         all_outputs = output.all_outputs
 
-        assert len(all_outputs) == 3
+        assert len(all_outputs) == 4
         assert output.summary_report in all_outputs
         assert output.heatmap in all_outputs
         assert output.metaplot in all_outputs
