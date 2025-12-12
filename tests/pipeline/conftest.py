@@ -217,6 +217,14 @@ def multi_assay_configs(
     if not genes_bed.exists() and genes_bed_source.exists():
         shutil.copy2(genes_bed_source, genes_bed)
 
+    # Copy plotting_coordinates.bed from tests/data to test_output/data if it doesn't exist
+    plot_coords_source = (
+        test_context.test_paths.repo / "tests" / "data" / "plotting_coordinates.bed"
+    )
+    plot_coords = test_context.test_paths.test_data / "plotting_coordinates.bed"
+    if not plot_coords.exists() and plot_coords_source.exists():
+        shutil.copy2(plot_coords_source, plot_coords)
+
     for assay in multi_assays:
         if assay != init_assay:
             # Add this assay's specific configuration
