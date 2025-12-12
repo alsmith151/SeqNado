@@ -34,9 +34,9 @@ class Metadata(BaseModel):
         default=None,
         description="Assay type, should be one of the Assay enum values"
     )
-    consensus_group: str | None = Field(
-        default=None,
-        description="Grouping variable for merging samples into consensus, can be None if not applicable"
+    consensus_group: str = Field(
+        default="default",
+        description="Grouping variable for merging samples into consensus, defaults to 'default' if not specified"
     )
     scaling_group: str = Field(
         default="default",
