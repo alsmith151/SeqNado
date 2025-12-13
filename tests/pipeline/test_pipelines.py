@@ -1,4 +1,3 @@
-import os
 import subprocess
 from pathlib import Path
 
@@ -35,7 +34,9 @@ def test_pipeline(
         text=True,
     )
 
-    assert res.returncode == 0, f"Pipeline failed with return code {res.returncode}. See output above."
+    assert res.returncode == 0, (
+        f"Pipeline failed with return code {res.returncode}. See output above."
+    )
     test_dir = config_yaml_for_testing.parent
     assert not (test_dir / "seqnado_error.log").exists()
     assert (test_dir / "seqnado_output").exists()

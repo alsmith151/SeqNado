@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import date, datetime
+from datetime import date
 from importlib import resources
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, List, Optional
@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING, Any, List, Optional
 import click
 import typer
 from loguru import logger
+
+from seqnado.config.multiomics import find_assay_configs
 
 # Optional: prettier tracebacks/console with rich if available
 try:
@@ -1099,7 +1101,7 @@ def pipeline(
     extra_args = list(ctx.args)
 
     # Check for multi-assay mode before requiring assay argument
-    config_files = list(Path(".").glob("config_*.yaml"))
+    config_files, _ = find_assay_configs(Path("."))
     use_multi_assay = len(config_files) > 1 and not config_file and not assay
 
     # Debug: check if assay looks like a flag (starts with -)
@@ -1137,7 +1139,7 @@ def pipeline(
             f"Multi-assay mode detected: found {len(config_files)} config files"
         )
         logger.info(
-            f"Assays: {', '.join([f.stem.replace('config_', '') for f in config_files])}"
+            f"Assays: {', '.join(config_files.keys())}"
         )
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile_multi")
         config_file = None  # Multi-assay mode doesn't use --configfile
@@ -1197,7 +1199,6 @@ def pipeline(
                 # Add other common flags
                 workflow_args.extend(
                     [
-                        "--use-singularity",
                         "--printshellcmds",
                         "--rerun-incomplete",
                         "--show-failed-logs",
@@ -1222,7 +1223,7 @@ def pipeline(
             if not use_multi_assay:
                 cmd += cleaned_opts
 
-            if preset and not use_multi_assay and profile_path:
+            if preset and profile_path:
                 cmd += ["--profile", str(profile_path)]
                 logger.info(
                     f"Using Snakemake profile preset '{preset}' -> {profile_path}"

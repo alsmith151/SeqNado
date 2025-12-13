@@ -1,4 +1,3 @@
-"""Genome resource download helpers for pipeline tests."""
 import os
 import time
 from pathlib import Path

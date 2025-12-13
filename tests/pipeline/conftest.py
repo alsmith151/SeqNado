@@ -4,8 +4,6 @@ import shutil
 from pathlib import Path
 
 import pytest
-
-# All helpers are now in the helpers package
 from helpers.config_utils import TestContext, make_test_paths
 from helpers.data import ensure_fastqs_present
 from helpers.genome import ensure_genome_resources
@@ -83,7 +81,9 @@ def ensure_seqnado_init(test_context, genome_resources, assay, monkeypatch):
     # Verify genome configuration file exists
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
     if not genome_config_file.exists():
-        raise FileNotFoundError(f"Genome configuration file not found at {genome_config_file}")
+        raise FileNotFoundError(
+            f"Genome configuration file not found at {genome_config_file}"
+        )
 
     return run_directory, resources
 
@@ -97,7 +97,25 @@ def config_yaml_for_testing(
 ) -> Path:
     """Create and patch config YAML for testing."""
     # Initialize seqnado project first and get the run directory
-    run_directory, resources = ensure_seqnado_init(test_context, genome_resources, assay, monkeypatch)
+    run_directory, resources = ensure_seqnado_init(
+        test_context, genome_resources, assay, monkeypatch
+    )
+
+    # Copy hg38_genes.bed from tests/data to test_output/data if it doesn't exist
+    genes_bed_source = (
+        test_context.test_paths.repo / "tests" / "data" / "hg38_genes.bed"
+    )
+    genes_bed = test_context.test_paths.test_data / "hg38_genes.bed"
+    if not genes_bed.exists() and genes_bed_source.exists():
+        shutil.copy2(genes_bed_source, genes_bed)
+
+    # Copy plotting_coordinates.bed from tests/data to test_output/data if it doesn't exist
+    plot_coords_source = (
+        test_context.test_paths.repo / "tests" / "data" / "plotting_coordinates.bed"
+    )
+    plot_coords = test_context.test_paths.test_data / "plotting_coordinates.bed"
+    if not plot_coords.exists() and plot_coords_source.exists():
+        shutil.copy2(plot_coords_source, plot_coords)
 
     # Now create config YAML using the same run directory
     config_path = create_config_yaml(run_directory, assay, monkeypatch, resources)
@@ -204,8 +222,24 @@ def multi_assay_configs(
     # Add assay-specific genome configs for each assay (except the one used for init)
     # Each assay gets its own genome config entry with assay-specific resources
     from helpers.utils import setup_genome_config
+
     genome_config_file = run_dir / ".config" / "seqnado" / "genome_config.json"
+
+    # Copy hg38_genes.bed from tests/data to test_output/data if it doesn't exist
+    genes_bed_source = (
+        test_context.test_paths.repo / "tests" / "data" / "hg38_genes.bed"
+    )
     genes_bed = test_context.test_paths.test_data / "hg38_genes.bed"
+    if not genes_bed.exists() and genes_bed_source.exists():
+        shutil.copy2(genes_bed_source, genes_bed)
+
+    # Copy plotting_coordinates.bed from tests/data to test_output/data if it doesn't exist
+    plot_coords_source = (
+        test_context.test_paths.repo / "tests" / "data" / "plotting_coordinates.bed"
+    )
+    plot_coords = test_context.test_paths.test_data / "plotting_coordinates.bed"
+    if not plot_coords.exists() and plot_coords_source.exists():
+        shutil.copy2(plot_coords_source, plot_coords)
 
     for assay in multi_assays:
         if assay != init_assay:
@@ -227,7 +261,9 @@ def multi_assay_configs(
 
         # Create config YAML in the run directory
         # The genome config was already set up by init_seqnado_project with merged resources
-        config_yaml = create_config_yaml(run_dir, assay, monkeypatch, all_resources[assay])
+        config_yaml = create_config_yaml(
+            run_dir, assay, monkeypatch, all_resources[assay]
+        )
 
         # Now copy FASTQs to the directory where the config was created
         fastq_dest_dir = config_yaml.parent / "fastqs"

@@ -36,7 +36,7 @@ class Metadata(BaseModel):
     )
     consensus_group: str | None = Field(
         default=None,
-        description="Grouping variable for merging samples into consensus, can be None if not applicable"
+        description="Grouping variable for merging samples into consensus, defaults to None if not specified"
     )
     scaling_group: str = Field(
         default="default",
@@ -47,7 +47,7 @@ class Metadata(BaseModel):
         description="DESeq2 metadata for sample, can be None if not applicable"
     )
 
-    @field_validator("deseq2", "consensus_group")
+    @field_validator("deseq2")
     @classmethod
     def prevent_none(cls, v):
         import numpy as np
@@ -75,6 +75,13 @@ class Metadata(BaseModel):
         if v is pd.NA:
             raise ValueError("None is not allowed when setting metadata")
         return v
+
+    @model_validator(mode='after')
+    def set_mcc_defaults(self) -> Self:
+        """Set default consensus_group for MCC assay."""
+        if self.assay == Assay.MCC and self.consensus_group is None:
+            self.consensus_group = 'default'
+        return self
 
 
 

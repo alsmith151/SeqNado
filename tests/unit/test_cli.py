@@ -383,4 +383,4 @@ def setup_module(module):
     test_output = Path("./test_output")
     if test_output.exists():
         shutil.rmtree(test_output)
-
+    test_output.mkdir(parents=True, exist_ok=True)

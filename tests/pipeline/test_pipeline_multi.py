@@ -1,9 +1,3 @@
-"""Tests for multi-assay Snakefile_multi workflow.
-
-These tests verify that multiple assays can be run together in a single
-project using the Snakefile_multi orchestrator.
-"""
-
 import subprocess
 from pathlib import Path
 
@@ -71,9 +65,9 @@ def test_pipeline_multi(
         )
 
         assert (
-            multi_assay_run_directory / f"seqnado_output/{assay}/logs/.complete"
-        ).exists(), f"No .complete log file found for {assay}"
+            multi_assay_run_directory / f"seqnado_output/{assay}/seqnado_report.html"
+        ).exists(), f"No seqnado_report.html file found for {assay}"
 
-    assert (multi_assay_run_directory / "multi_assay_summary.txt").exists(), (
-        "multi_assay_summary.txt not found"
-    )
+    assert (
+        multi_assay_run_directory / "seqnado_output/multiomics_summary.txt"
+    ).exists(), "multiomics_summary.txt not found"

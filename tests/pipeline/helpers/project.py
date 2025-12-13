@@ -1,5 +1,3 @@
-"""Project initialization and configuration helpers for pipeline tests."""
-
 import glob
 import json
 import shutil
@@ -60,7 +58,18 @@ def init_seqnado_project(
 
     # Write genome config
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
+
+    # Copy hg38_genes.bed from tests/data to test_output/data if it doesn't exist
+    genes_bed_source = test_data_path.parent.parent / "tests" / "data" / "hg38_genes.bed"
     genes_bed = test_data_path / "hg38_genes.bed"
+    if not genes_bed.exists() and genes_bed_source.exists():
+        shutil.copy2(genes_bed_source, genes_bed)
+
+    # Copy plotting_coordinates.bed from tests/data to test_output/data if it doesn't exist
+    plot_coords_source = test_data_path.parent.parent / "tests" / "data" / "plotting_coordinates.bed"
+    plot_coords = test_data_path / "plotting_coordinates.bed"
+    if not plot_coords.exists() and plot_coords_source.exists():
+        shutil.copy2(plot_coords_source, plot_coords)
 
     setup_genome_config(
         genome_config_file,
@@ -196,6 +205,9 @@ def create_config_yaml(
     # We need to update the Snakemake profile config, not the workflow config
     genome_dir = Path(resources["bt2_index"]).parent.parent.resolve()
 
+    # Also mount the parent test_data directory so plotting_coordinates.bed is accessible
+    test_data_dir = genome_dir.parent.resolve()
+
     # Find and update the test profile configuration
     import site
     import sys
@@ -216,16 +228,27 @@ def create_config_yaml(
         with open(test_profile_config) as f:
             profile_config = yaml.safe_load(f)
 
-        bind_arg = f"--bind {genome_dir}:{genome_dir}"
+        # Bind mount test_data_dir instead of just genome_dir to ensure plotting_coordinates.bed is accessible
+        bind_arg = f"--bind {test_data_dir}:{test_data_dir}"
         if "apptainer-args" in profile_config:
             # Check if this bind mount is already present
-            if str(genome_dir) not in profile_config["apptainer-args"]:
+            if str(test_data_dir) not in profile_config["apptainer-args"]:
                 profile_config["apptainer-args"] += f" {bind_arg}"
         else:
             profile_config["apptainer-args"] = bind_arg
 
         with open(test_profile_config, "w") as f:
             yaml.dump(profile_config, f, sort_keys=False)
+
+    # Fix plotting coordinates path to use test_output/data instead of package directory
+    if "assay_config" in config and "plotting" in config["assay_config"]:
+        # Get the test data directory from the genome config path
+        # chromosome_sizes is in test_output/data/genome/, so go up one level to get test_output/data/
+        test_data_dir = Path(genome_config.get("chromosome_sizes")).parent.parent
+        plot_coords = test_data_dir / "plotting_coordinates.bed"
+        # Always update the path to point to test_output/data, regardless of whether it exists yet
+        # The conftest fixture will ensure the file is copied before the test runs
+        config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
 
     with open(config_path, "w") as f:
         yaml.dump(config, f, sort_keys=False)

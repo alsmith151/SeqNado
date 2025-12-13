@@ -1,5 +1,3 @@
-"""Data download and preparation helpers for pipeline tests."""
-
 import os
 from pathlib import Path
 

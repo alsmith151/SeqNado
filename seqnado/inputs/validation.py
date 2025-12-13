@@ -32,9 +32,9 @@ class DesignDataFrame(pa.DataFrameModel):
         nullable=False,
     )
     consensus_group: Series[str] | None = pa.Field(
-        default="default",
+        default=None,
         description="Grouping variable for merging samples together and generating consensus tracks/peak calls/counts between samples. Leave blank to treat all samples as separate.",
-        nullable=False,   
+        nullable=True,
     )
     deseq2: Series[str] | None = pa.Field(
         default=None,
