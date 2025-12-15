@@ -277,7 +277,14 @@ def create_design_file(
 
     # Expand the glob pattern to get actual FASTQ file paths
     pattern = get_fastq_pattern(assay)
-    fastq_dir = run_directory / "fastqs"
+
+    # For multiomics, FASTQs are in fastqs/{assay}/ subdirectory
+    fastq_dir = run_directory / "fastqs" / assay
+
+    # Fall back to fastqs/ if assay-specific directory doesn't exist
+    if not fastq_dir.exists():
+        fastq_dir = run_directory / "fastqs"
+
     fastq_files = sorted(fastq_dir.glob(pattern))
 
     if not fastq_files:
@@ -293,8 +300,14 @@ def create_design_file(
         "--no-interactive",
         "--accept-all-defaults",
     ]
+
     # Add relative paths to FASTQ files
-    cmd.extend([f"fastqs/{f.name}" for f in fastq_files])
+    # For multiomics structure: fastqs/{assay}/{file}.fastq.gz
+    if (run_directory / "fastqs" / assay).exists():
+        cmd.extend([f"fastqs/{assay}/{f.name}" for f in fastq_files])
+    else:
+        # Fall back to old structure: fastqs/{file}.fastq.gz
+        cmd.extend([f"fastqs/{f.name}" for f in fastq_files])
 
     result = subprocess.run(
         cmd,
@@ -314,12 +327,12 @@ def create_design_file(
 
 
 @pytest.fixture(scope="function")
-def multi_assay_run_directory(tmp_path_factory):
+def multiomics_run_directory(tmp_path_factory):
     """
-    Fixture to provide a run directory for multi-assay tests.
+    Fixture to provide a run directory for Multiomic tests.
     Returns a Path object to a unique temp directory.
     """
-    return tmp_path_factory.mktemp("multi_assay_run")
+    return tmp_path_factory.mktemp("multiomics_run")
 
 
 def get_metadata_path(test_data_dir: Path, assay: str) -> Path:

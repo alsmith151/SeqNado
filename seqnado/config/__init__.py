@@ -8,8 +8,7 @@ from .core import (
     MCCAssayConfig,
     MethylationAssayConfig,
     CRISPRAssayConfig,
-    AssaySpecificConfig
-
+    AssaySpecificConfig,
 )
 from .configs import (
     BowtieIndex,
@@ -28,9 +27,6 @@ from .configs import (
     MCCConfig,
     MethylationConfig,
     MLDatasetConfig,
-    
-    
-    
 )
 
 from .user_input import (
@@ -38,6 +34,12 @@ from .user_input import (
     build_workflow_config,
     build_default_workflow_config,
     render_config,
+    build_multiomics_config,
+    render_multiomics_configs,
+)
+
+from .multiomics import (
+    MultiomicsConfig,
 )
 
 __all__ = [
@@ -65,10 +67,13 @@ __all__ = [
     "CATAssayConfig",
     "RNAAssayConfig",
     "SNPAssayConfig",
-    "MCCAssayConfig",   
+    "MCCAssayConfig",
     "MethylationAssayConfig",
     "CRISPRAssayConfig",
     "MLDatasetConfig",
     "AssaySpecificConfig",
     "load_genome_configs",
+    "MultiomicsConfig",
+    "build_multiomics_config",
+    "render_multiomics_configs",
 ]

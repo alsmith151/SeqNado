@@ -74,7 +74,7 @@ def setup_genome_config(
     If assay is provided, creates an assay-specific genome entry (e.g., "meth").
     Otherwise, creates the default "hg38" entry.
 
-    For multi-assay tests, this function can be called multiple times to add
+    For Multiomic tests, this function can be called multiple times to add
     assay-specific configurations to the same file.
     """
     genome_config_file.parent.mkdir(parents=True, exist_ok=True)

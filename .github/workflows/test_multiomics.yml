@@ -1,10 +1,10 @@
-name: Multi-Assay Test
+name: Multiomic Test
 
 on: 
   push
 jobs:
-  test-multiassay:
-    name: Test Multi-Assay Pipeline
+  test-multiomics:
+    name: Test Multiomic Pipeline
     runs-on: ubuntu-latest
 
     steps:
@@ -56,13 +56,13 @@ jobs:
           mkdir -p "${{ github.workspace }}/.apptainer/cache"
           mkdir -p "${{ github.workspace }}/.apptainer/tmp"
 
-      - name: Run SeqNado pipeline test for Multi-Assay
+      - name: Run SeqNado pipeline test for Multiomic
         shell: bash -el {0}
         env:
           APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
+          python -m pytest tests/pipeline/test_multiomics.py -vv -s \
             --cores 4 --run-pipeline
             

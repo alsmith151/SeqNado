@@ -18,7 +18,7 @@ import click
 import typer
 from loguru import logger
 
-from seqnado.config.multiomics import find_assay_configs
+from seqnado.outputs.multiomics import find_assay_configs
 
 # Optional: prettier tracebacks/console with rich if available
 try:
@@ -767,14 +767,16 @@ def genomes(
 # -------------------------------- config ------------------------------------ #
 
 
-@app.command(help="Build a workflow configuration YAML for the selected ASSAY.")
+@app.command(
+    help="Build a workflow configuration YAML for the selected ASSAY. If no assay is provided, multiomics mode is used."
+)
 def config(
-    assay: str = typer.Argument(
-        ...,
-        metavar="ASSAY",
+    assay: Optional[str] = typer.Argument(
+        None,
+        metavar="[ASSAY]",
         autocompletion=assay_autocomplete,
         show_choices=True,
-        help=", ".join(_assay_names()),
+        help=", ".join(_assay_names()) + ". If omitted, multiomics mode is used.",
     ),
     make_dirs: bool = typer.Option(
         True,
@@ -805,15 +807,77 @@ def config(
         build_default_workflow_config,
         build_workflow_config,
         render_config,
+        build_multiomics_config,
+        render_multiomics_configs,
     )
     from seqnado.inputs import Assay
 
+    seqnado_version = _pkg_version("seqnado")
+
+    # If no assay provided, use multiomics mode
+    if assay is None or assay.lower() == "multiomics":
+        logger.info("Building multiomics configuration with multiple assays")
+
+        try:
+            multiomics_config, assay_configs = build_multiomics_config(
+                seqnado_version, interactive=interactive
+            )
+        except Exception as e:
+            logger.error(f"Failed to build multiomics configuration: {e}")
+            raise typer.Exit(code=1)
+
+        # Determine output directory
+        if make_dirs:
+            # Use first assay's project name for directory
+            first_config = next(iter(assay_configs.values()))
+            dirname = f"{date.today().isoformat()}_{first_config.project.name}"
+            outdir = Path(dirname)
+
+            # Create assay-specific fastq subdirectories
+            for assay_name in assay_configs.keys():
+                fastq_dir = outdir / "fastqs" / assay_name
+                fastq_dir.mkdir(parents=True, exist_ok=True)
+                logger.info(f"Created fastq directory: {fastq_dir}")
+        else:
+            outdir = Path(".")
+
+        # Render all config files
+        tpl_trav = _pkg_traversable("seqnado.data").joinpath("config_template.jinja")
+        try:
+            with resources.as_file(tpl_trav) as tpl_path:
+                if not Path(tpl_path).exists():
+                    logger.error(
+                        "Packaged config template missing—installation may be corrupted."
+                    )
+                    raise typer.Exit(code=1)
+
+                generated_files = render_multiomics_configs(
+                    multiomics_config=multiomics_config,
+                    assay_configs=assay_configs,
+                    template=Path(tpl_path),
+                    output_dir=outdir,
+                )
+
+                logger.success(
+                    f"Generated {len(generated_files)} config files in {outdir}:"
+                )
+                for f in generated_files:
+                    logger.info(f"  - {f.name}")
+
+        except typer.Exit:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to render multiomics configs: {e}")
+            raise typer.Exit(code=1)
+
+        return
+
+    # Regular single-assay config
     if assay not in Assay.all_assay_clean_names():
         allowed = ", ".join(Assay.all_assay_clean_names())
-        logger.error(f"Unknown assay '{assay}'. Allowed: {allowed}")
+        logger.error(f"Unknown assay '{assay}'. Allowed: {allowed} or 'multiomics'")
         raise typer.Exit(code=2)
 
-    seqnado_version = _pkg_version("seqnado")
     assay_obj = Assay.from_clean_name(assay)
 
     if not interactive:
@@ -907,14 +971,18 @@ def config(
 # -------------------------------- design ------------------------------------ #
 
 
-@app.command(help="Generate a SeqNado design CSV from FASTQ files for ASSAY.")
+@app.command(
+    help="Generate a SeqNado design CSV from FASTQ files for ASSAY. If no assay is provided, multiomics mode is used."
+)
 def design(
-    assay: str = typer.Argument(
-        ...,
-        metavar="ASSAY",
+    assay: Optional[str] = typer.Argument(
+        None,
+        metavar="[ASSAY]",
         autocompletion=assay_autocomplete,
         show_choices=True,
-        help="Assay type. Options: " + ", ".join(Assay.all_assay_clean_names()),
+        help="Assay type. Options: "
+        + ", ".join(Assay.all_assay_clean_names())
+        + ". If omitted, multiomics mode is used.",
     ),
     files: List[Path] = typer.Argument(
         None, metavar="[FASTQ ...]", autocompletion=fastq_autocomplete
@@ -956,9 +1024,86 @@ def design(
     from seqnado.inputs import FastqCollection, FastqCollectionForIP
     from seqnado.inputs.validation import DesignDataFrame
 
+    # Handle multiomics mode
+    if assay is None or assay.lower() == "multiomics":
+        logger.info(
+            "Multiomics mode: searching for assay-specific fastq subdirectories"
+        )
+
+        # Look for fastqs/<assay>/ directories
+        fastqs_base = Path("fastqs")
+        if not fastqs_base.exists():
+            logger.error(
+                "No 'fastqs/' directory found. Run 'seqnado config' first to create the directory structure."
+            )
+            raise typer.Exit(code=1)
+
+        # Find all subdirectories in fastqs/ that match known assay names
+        available_assays = AssayEnum.all_assay_clean_names()
+        found_assay_dirs = {}
+
+        for assay_dir in fastqs_base.iterdir():
+            if assay_dir.is_dir() and assay_dir.name in available_assays:
+                # Check if there are any fastq files in this directory
+                fastq_files = list(assay_dir.glob("*.fastq.gz"))
+                if fastq_files:
+                    found_assay_dirs[assay_dir.name] = fastq_files
+                    logger.info(f"Found {len(fastq_files)} FASTQ files in {assay_dir}")
+
+        if not found_assay_dirs:
+            logger.error(
+                "No FASTQ files found in any assay subdirectories under fastqs/"
+            )
+            logger.info("Expected structure: fastqs/{assay}/{files}.fastq.gz")
+            logger.info(f"Valid assay names: {', '.join(available_assays)}")
+            raise typer.Exit(code=1)
+
+        # Generate metadata for each assay
+        generated_files = []
+        for assay_name, fastq_files in found_assay_dirs.items():
+            logger.info(f"\n=== Generating metadata for {assay_name} ===")
+
+            _assay = AssayEnum.from_clean_name(assay_name)
+
+            # Create design object
+            if _assay in {AssayEnum.CHIP, AssayEnum.CAT}:
+                design_obj = FastqCollectionForIP.from_fastq_files(
+                    assay=_assay, files=fastq_files
+                )
+            else:
+                design_obj = FastqCollection.from_fastq_files(
+                    assay=_assay, files=fastq_files
+                )
+
+            df = design_obj.to_dataframe().sort_values("sample_id")
+
+            schema_candidates = _extract_candidate_defaults_from_schema(
+                DesignDataFrame, _assay
+            )
+            df = _apply_interactive_defaults(
+                df,
+                schema_candidates,
+                interactive=interactive,
+                accept_all_defaults=accept_all_defaults,
+            )
+
+            # Save metadata file
+            metadata_file = Path(f"metadata_{assay_name}.csv")
+            metadata_file.parent.mkdir(parents=True, exist_ok=True)
+            df.to_csv(metadata_file, index=False)
+            generated_files.append(metadata_file)
+            logger.success(f"Design file saved → {metadata_file}")
+
+        logger.success(f"\nGenerated {len(generated_files)} metadata files:")
+        for f in generated_files:
+            logger.info(f"  - {f}")
+
+        return
+
+    # Regular single-assay mode
     if assay not in AssayEnum.all_assay_clean_names():
         allowed = ", ".join(AssayEnum.all_assay_clean_names())
-        logger.error(f"Unknown assay '{assay}'. Allowed: {allowed}")
+        logger.error(f"Unknown assay '{assay}'. Allowed: {allowed} or 'multiomics'")
         raise typer.Exit(code=2)
 
     fastq_paths: List[Path] = []
@@ -1048,7 +1193,7 @@ def pipeline(
         None,
         metavar="[ASSAY]",
         autocompletion=assay_autocomplete,
-        help="Assay type (required for single-assay, optional for multi-assay mode)",
+        help="Assay type (required for single-assay, optional for Multiomic mode)",
     ),
     config_file: Optional[Path] = typer.Option(
         None,
@@ -1100,23 +1245,23 @@ def pipeline(
 
     extra_args = list(ctx.args)
 
-    # Check for multi-assay mode before requiring assay argument
+    # Check for Multiomic mode before requiring assay argument
     config_files, _ = find_assay_configs(Path("."))
-    use_multi_assay = len(config_files) > 1 and not config_file and not assay
+    use_multiomics = len(config_files) > 1 and not config_file and not assay
 
     # Debug: check if assay looks like a flag (starts with -)
     if assay and assay.startswith("-"):
-        # This is actually a flag, not an assay - treat as multi-assay mode
+        # This is actually a flag, not an assay - treat as Multiomic mode
         logger.debug(
-            f"Detected flag '{assay}' in assay position, checking for multi-assay mode"
+            f"Detected flag '{assay}' in assay position, checking for Multiomic mode"
         )
         extra_args.insert(0, assay)  # Put it back in extra args
         assay = None
-        use_multi_assay = len(config_files) > 1 and not config_file
+        use_multiomics = len(config_files) > 1 and not config_file
 
-    if not assay and not use_multi_assay:
+    if not assay and not use_multiomics:
         logger.error(
-            "No assay provided. Use `seqnado pipeline ASSAY` or run from a directory with multiple config_*.yaml files for multi-assay mode."
+            "No assay provided. Use `seqnado pipeline ASSAY` or run from a directory with multiple config_*.yaml files for Multiomic mode."
         )
         raise typer.Exit(code=2)
 
@@ -1133,16 +1278,14 @@ def pipeline(
 
     pkg_root_trav = _pkg_traversable("seqnado")
 
-    if use_multi_assay:
-        # Multi-assay mode: use Snakefile_multi
+    if use_multiomics:
+        # Multiomic mode: use Snakefile_multi
         logger.info(
-            f"Multi-assay mode detected: found {len(config_files)} config files"
+            f"Multiomic mode detected: found {len(config_files)} config files"
         )
-        logger.info(
-            f"Assays: {', '.join(config_files.keys())}"
-        )
+        logger.info(f"Assays: {', '.join(config_files.keys())}")
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile_multi")
-        config_file = None  # Multi-assay mode doesn't use --configfile
+        config_file = None  # Multiomic mode doesn't use --configfile
     else:
         # Single-assay mode: use standard Snakefile
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile")
@@ -1161,12 +1304,22 @@ def pipeline(
         profiles = _preset_profiles()
         profile_dir_name = profiles.get(preset.lower())
         if profile_dir_name:
-            profile_trav = pkg_root_trav.joinpath("workflow").joinpath("envs").joinpath("profiles").joinpath(profile_dir_name)
+            profile_trav = (
+                pkg_root_trav.joinpath("workflow")
+                .joinpath("envs")
+                .joinpath("profiles")
+                .joinpath(profile_dir_name)
+            )
 
     # Use resources.as_file to ensure the packaged Snakefile and profile are available as paths
-    profile_ctx = resources.as_file(profile_trav) if profile_trav else contextlib.nullcontext()
+    profile_ctx = (
+        resources.as_file(profile_trav) if profile_trav else contextlib.nullcontext()
+    )
     try:
-        with resources.as_file(snake_trav) as snakefile_path, profile_ctx as profile_path:
+        with (
+            resources.as_file(snake_trav) as snakefile_path,
+            profile_ctx as profile_path,
+        ):
             if not Path(snakefile_path).exists():
                 logger.error(
                     f"Snakefile for assay '{assay}' not found: {snakefile_path}"
@@ -1181,16 +1334,16 @@ def pipeline(
             ]
 
             # Set cores: use user-specified cores, or default based on mode
-            if use_multi_assay:
-                # For multi-assay, default to number of assays if cores not specified
+            if use_multiomics:
+                # For Multiomic, default to number of assays if cores not specified
                 if cores == 1:  # Default from extract_cores_from_options
                     cores = cores + len(config_files)
 
             cmd += ["-c", str(cores)]
 
-            # Build workflow arguments to pass to nested snakemake calls (multi-assay mode)
+            # Build workflow arguments to pass to nested snakemake calls (Multiomic mode)
             workflow_args = []
-            if use_multi_assay:
+            if use_multiomics:
                 # Collect arguments that should be passed to nested snakemake calls
                 if preset and profile_path:
                     workflow_args.append(f"--profile {profile_path}")
@@ -1207,20 +1360,20 @@ def pipeline(
                 # Add any extra cleaned opts
                 workflow_args.extend(cleaned_opts)
 
-                # Pass workflow_args via config with proper quoting
+                # Pass workflow_args via config without nested quotes to avoid SLURM --wrap issues
                 workflow_args_str = " ".join(workflow_args)
-                cmd += ["--config", f'workflow_args="{workflow_args_str}"']
+                cmd += ["--config", f"workflow_args={workflow_args_str}"]
 
             # Add config file only for single-assay mode
             if config_file:
                 cmd += ["--configfile", str(config_file)]
 
-            # For multi-assay mode, use project directory as working directory to avoid lock conflicts
+            # For Multiomic mode, use project directory as working directory to avoid lock conflicts
             # Single-assay mode runs in current directory as before
-            if use_multi_assay:
+            if use_multiomics:
                 cmd += ["--directory", "."]
 
-            if not use_multi_assay:
+            if not use_multiomics:
                 cmd += cleaned_opts
 
             if preset and profile_path:
@@ -1229,7 +1382,7 @@ def pipeline(
                     f"Using Snakemake profile preset '{preset}' -> {profile_path}"
                 )
 
-            if queue and preset.startswith("s") and not use_multi_assay:
+            if queue and preset.startswith("s") and not use_multiomics:
                 cmd += ["--default-resources", f"slurm_partition={queue}"]
 
             logo_trav = pkg_root_trav.joinpath("data").joinpath("logo.txt")

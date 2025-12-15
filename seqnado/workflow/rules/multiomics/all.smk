@@ -1,4 +1,5 @@
 include: "assays.smk"
 include: "summary.smk"
+include: "downstream.smk"
 include: "heatmap.smk"
 include: "dataset.smk"

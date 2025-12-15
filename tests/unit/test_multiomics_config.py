@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from seqnado.config.multiomics import (
+from seqnado.outputs.multiomics import (
     MultiomicsOutput,
     find_assay_configs,
     none_str_to_none,
@@ -146,6 +146,23 @@ class TestFindAssayConfigs:
             find_assay_configs(tmp_path)
 
         assert "metadata_rna.csv" in str(exc_info.value)
+
+    def test_skips_multiomics_config(self, tmp_path: Path):
+        """Test that config_multiomics.yaml is skipped and doesn't require metadata."""
+        # Create regular assay configs
+        (tmp_path / "config_atac.yaml").write_text("test: config")
+        (tmp_path / "metadata_atac.csv").write_text("sample,condition\n")
+
+        # Create multiomics config WITHOUT metadata (should not raise error)
+        (tmp_path / "config_multiomics.yaml").write_text("test: multiomics config")
+
+        config_files, metadata_files = find_assay_configs(tmp_path)
+
+        # Should only find atac, not multiomics
+        assert len(config_files) == 1
+        assert "atac" in config_files
+        assert "multiomics" not in config_files
+        assert "multiomics" not in metadata_files
 
 
 class TestMultiomicsOutput:

@@ -4,7 +4,8 @@ import glob
 import yaml
 
 from seqnado.cli import config
-from seqnado.config.multiomics import find_assay_configs, MultiomicsOutput
+from seqnado.outputs.multiomics import find_assay_configs, MultiomicsOutput
+from seqnado.config.multiomics import MultiomicsConfig
 
 ################################
 # Auto-detect assay configs
@@ -20,14 +21,26 @@ if not ASSAYS:
         "Please create config files using 'seqnado config <assay>'"
     )
 
-print(f"[Multi-Assay Mode] Detected {len(ASSAYS)} assay(s): {', '.join(ASSAYS)}")
+print(f"[Multiomic Mode] Detected {len(ASSAYS)} assay(s): {', '.join(ASSAYS)}")
 
 
 ################################
 # Configuration
 ################################
 
-OUTPUT_DIR = "seqnado_output/"
+# Load multiomics config if it exists
+MULTIOMICS_CONFIG_PATH = Path("config_multiomics.yaml")
+if MULTIOMICS_CONFIG_PATH.exists():
+    with open(MULTIOMICS_CONFIG_PATH, 'r') as f:
+        multiomics_config_dict = yaml.safe_load(f)
+    MULTIOMICS_CONFIG = MultiomicsConfig(**multiomics_config_dict)
+    print(f"[Multiomic Mode] Loaded multiomics config: {MULTIOMICS_CONFIG_PATH}")
+else:
+    # Use defaults if no multiomics config
+    MULTIOMICS_CONFIG = MultiomicsConfig(assays=ASSAYS)
+    print("[Multiomic Mode] No multiomics config found, using defaults")
+
+OUTPUT_DIR = MULTIOMICS_CONFIG.output_dir
 
 # Snakemake provides the 'workflow' object - access cores from command line -c flag
 CORES = workflow.cores if hasattr(workflow, 'cores') else 1
