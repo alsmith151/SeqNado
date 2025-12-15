@@ -192,7 +192,7 @@ def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay =
 
 def get_bigwig_config(assay: Assay) -> Optional[BigwigConfig]:
     """Get bigwig configuration if user wants to create bigwigs."""
-    make_bigwigs = get_user_input("Make Bigwigs?", default="no", is_boolean=True)
+    make_bigwigs = get_user_input("Make Bigwigs?", default="yes", is_boolean=True)
 
     if not make_bigwigs:
         return None

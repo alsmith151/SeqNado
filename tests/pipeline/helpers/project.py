@@ -184,9 +184,8 @@ def create_config_yaml(
 
     # Update config with test assay settings
     config["qc"]["run_fastq_screen"] = True
-    config["genome"]["fastq_screen_config"] = str(fastq_screen_config_path)
 
-    # Also update the third_party_tools config which is what the Snakemake rule uses
+    # Update the third_party_tools config which is what the Snakemake rule uses
     if "third_party_tools" in config and "fastq_screen" in config["third_party_tools"]:
         config["third_party_tools"]["fastq_screen"]["config"] = str(
             fastq_screen_config_path

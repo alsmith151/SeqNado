@@ -383,8 +383,6 @@ def multiomics_configs(
         # Enable fastq_screen and set the config path
         if "qc" in config:
             config["qc"]["run_fastq_screen"] = True
-        if "genome" in config:
-            config["genome"]["fastq_screen_config"] = str(fastq_screen_dest)
         if (
             "third_party_tools" in config
             and "fastq_screen" in config["third_party_tools"]
