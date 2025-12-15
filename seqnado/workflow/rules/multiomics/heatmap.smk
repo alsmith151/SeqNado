@@ -5,8 +5,7 @@ from seqnado.outputs.multiomics import get_assay_bigwigs
 
 rule multiomics_heatmap_matrix:
     input:
-        OUTPUT_DIR + "multiomics_summary.txt",
-        assay_outputs=[getattr(rules, f"{assay}_all").input for assay in ASSAYS],
+        rules.gather_bigwigs.output.bw_dir,
     output:
         matrix=OUTPUT_DIR + "multiomics/heatmap/heatmap_matrix.mat.gz",
     params:

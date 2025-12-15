@@ -858,7 +858,7 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
     else:
         # Non-interactive mode: use default assays
         logger.info("Non-interactive mode: using default assays")
-        selected_assays = ["atac", "chip", "meth", "rna", "snp"]
+        selected_assays = ["atac", "chip", "rna"]
         output_dir = "seqnado_output/"
         create_heatmaps = True
         create_dataset = True

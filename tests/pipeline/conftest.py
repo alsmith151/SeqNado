@@ -165,14 +165,14 @@ def multiomics_configs(
     Returns: {assay: {"config": config_path, "metadata": metadata_path}}
     """
     # Get the list of assays from the test function's parameters
-    # When a test is parametrized with multiomicss, we need to extract it from the test node
+    # When a test is parametrized with multiomics, we need to extract it from the test node
     if hasattr(request, "node") and hasattr(request.node, "callspec"):
-        multiomicss = request.node.callspec.params.get(
-            "multiomicss", ["atac", "chip", "meth", "rna", "snp"]
+        multiomics = request.node.callspec.params.get(
+            "multiomics", ["atac", "chip", "meth", "rna", "snp"]
         )
     else:
         # Default to all assays if not parametrized
-        multiomicss = ["atac", "chip", "meth", "rna", "snp"]
+        multiomics = ["atac", "chip", "meth", "rna", "snp"]
     # Set up a run directory for the multi-assay test
     run_dir = tmp_path_factory.mktemp("multiomics_run")
     configs = {}
@@ -180,7 +180,7 @@ def multiomics_configs(
     # Initialize seqnado once in the shared run_dir for all assays
     # We need to collect all resources needed for all assays first
     all_resources = {}
-    for assay in multiomicss:
+    for assay in multiomics:
         all_resources[assay] = genome_resources(assay)
 
     # Merge all resources to ensure genome_config.json has everything needed
@@ -188,7 +188,7 @@ def multiomics_configs(
     # Priority: RNA-specific resources (star_index, RNA GTF) take precedence
     merged_resources = {}
     rna_assay = None
-    for assay in multiomicss:
+    for assay in multiomics:
         if "rna" in assay.lower():
             rna_assay = assay
             break
@@ -198,7 +198,7 @@ def multiomics_configs(
         merged_resources.update(all_resources[rna_assay])
 
     # Then merge in resources from other assays (won't overwrite RNA-specific ones)
-    for assay in multiomicss:
+    for assay in multiomics:
         for key, value in all_resources[assay].items():
             if key not in merged_resources or merged_resources[key] is None:
                 merged_resources[key] = value
@@ -206,7 +206,7 @@ def multiomics_configs(
     # Initialize with merged resources from all assays
     # Check if MCC is in the list of assays and use it for init if present
     # (init_seqnado_project needs to know about MCC to set up viewpoints)
-    init_assay = next((a for a in multiomicss if "mcc" in a.lower()), multiomicss[0])
+    init_assay = next((a for a in multiomics if "mcc" in a.lower()), multiomics[0])
     init_seqnado_project(
         run_directory=run_dir,
         assay=init_assay,
@@ -218,7 +218,7 @@ def multiomics_configs(
     # Ensure FASTQ files are present for all requested assays
     # Do this AFTER init_seqnado_project to avoid the directory being cleaned up
     fastq_path = test_context.test_paths.fastq
-    ensure_fastqs_present(fastq_path, multiomicss)
+    ensure_fastqs_present(fastq_path, multiomics)
 
     # Add assay-specific genome configs for each assay (except the one used for init)
     # Each assay gets its own genome config entry with assay-specific resources
@@ -242,7 +242,7 @@ def multiomics_configs(
     if not plot_coords.exists() and plot_coords_source.exists():
         shutil.copy2(plot_coords_source, plot_coords)
 
-    for assay in multiomicss:
+    for assay in multiomics:
         if assay != init_assay:
             # Add this assay's specific configuration
             setup_genome_config(
@@ -259,7 +259,7 @@ def multiomics_configs(
 
     # Create assay-specific fastq subdirectories and copy FASTQ files
     # This creates the fastqs/{assay}/ structure expected by multiomics mode
-    for assay in multiomicss:
+    for assay in multiomics:
         assay_type = test_context.assay_type(assay)
 
         # Create assay-specific fastq subdirectory for multiomics structure
@@ -282,7 +282,7 @@ def multiomics_configs(
 
     # Set up fastq_screen.conf before running seqnado config
     # Get the genome path from one of the assays
-    first_assay = multiomicss[0]
+    first_assay = multiomics[0]
     genome_path = Path(all_resources[first_assay]["bt2_index"]).parent.parent
     fastq_screen_source = genome_path / "fastq_screen.conf"
 
@@ -307,7 +307,7 @@ def multiomics_configs(
 
     # Update generated configs to enable fastq_screen with correct paths
     import yaml
-    for assay in multiomicss:
+    for assay in multiomics:
         config_file = run_dir / f"config_{assay}.yaml"
         with open(config_file) as f:
             config = yaml.safe_load(f)
@@ -338,7 +338,7 @@ def multiomics_configs(
     )
 
     # Collect the generated config and metadata files
-    for assay in multiomicss:
+    for assay in multiomics:
         config_yaml = run_dir / f"config_{assay}.yaml"
         design_file = run_dir / f"metadata_{assay}.csv"
 

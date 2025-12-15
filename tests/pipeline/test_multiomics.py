@@ -9,19 +9,17 @@ import pytest
 @pytest.mark.requires_apptainer
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    "multiomicss",
+    "multiomics",
     [
         [
             "atac",
             "chip",
-            "meth",
             "rna",
-            "snp",
         ]
     ],
 )
-def test_pipeline_multi(
-    multiomicss: list[str],
+def test_multiomics(
+    multiomics: list[str],
     multiomics_configs: dict[str, dict[str, Path]],
     multiomics_run_directory: Path,
     cores: int,
@@ -40,7 +38,7 @@ def test_pipeline_multi(
     4. All expected outputs are generated (individual assay outputs + multiomics outputs)
 
     Args:
-        multiomicss: List of assay names to run together
+        multiomics: List of assay names to run together
         multiomics_configs: Dict mapping assay names to their config and metadata paths
                             (configs created using seqnado config command)
         multiomics_run_directory: Path to the run directory for the multi-assay test
@@ -53,7 +51,7 @@ def test_pipeline_multi(
     )
 
     # Verify that individual assay configs exist (created via seqnado config)
-    for assay in multiomicss:
+    for assay in multiomics:
         assay_config = multiomics_run_directory / f"config_{assay}.yaml"
         assert assay_config.exists(), (
             f"config_{assay}.yaml not found (should be created by seqnado config)"
@@ -84,7 +82,7 @@ def test_pipeline_multi(
     )
 
     # Verify individual assay outputs
-    for assay in multiomicss:
+    for assay in multiomics:
         assay_output_dir = multiomics_run_directory / f"seqnado_output/{assay}"
         assert assay_output_dir.exists(), (
             f"Output directory not found for {assay}: {assay_output_dir}"

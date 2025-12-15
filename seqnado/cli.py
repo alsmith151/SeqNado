@@ -767,7 +767,9 @@ def genomes(
 # -------------------------------- config ------------------------------------ #
 
 
-@app.command(help="Build a workflow configuration YAML for the selected ASSAY. If no assay is provided, multiomics mode is used.")
+@app.command(
+    help="Build a workflow configuration YAML for the selected ASSAY. If no assay is provided, multiomics mode is used."
+)
 def config(
     assay: Optional[str] = typer.Argument(
         None,
@@ -969,14 +971,18 @@ def config(
 # -------------------------------- design ------------------------------------ #
 
 
-@app.command(help="Generate a SeqNado design CSV from FASTQ files for ASSAY. If no assay is provided, multiomics mode is used.")
+@app.command(
+    help="Generate a SeqNado design CSV from FASTQ files for ASSAY. If no assay is provided, multiomics mode is used."
+)
 def design(
     assay: Optional[str] = typer.Argument(
         None,
         metavar="[ASSAY]",
         autocompletion=assay_autocomplete,
         show_choices=True,
-        help="Assay type. Options: " + ", ".join(Assay.all_assay_clean_names()) + ". If omitted, multiomics mode is used.",
+        help="Assay type. Options: "
+        + ", ".join(Assay.all_assay_clean_names())
+        + ". If omitted, multiomics mode is used.",
     ),
     files: List[Path] = typer.Argument(
         None, metavar="[FASTQ ...]", autocompletion=fastq_autocomplete
@@ -1020,12 +1026,16 @@ def design(
 
     # Handle multiomics mode
     if assay is None or assay.lower() == "multiomics":
-        logger.info("Multiomics mode: searching for assay-specific fastq subdirectories")
+        logger.info(
+            "Multiomics mode: searching for assay-specific fastq subdirectories"
+        )
 
         # Look for fastqs/<assay>/ directories
         fastqs_base = Path("fastqs")
         if not fastqs_base.exists():
-            logger.error("No 'fastqs/' directory found. Run 'seqnado config' first to create the directory structure.")
+            logger.error(
+                "No 'fastqs/' directory found. Run 'seqnado config' first to create the directory structure."
+            )
             raise typer.Exit(code=1)
 
         # Find all subdirectories in fastqs/ that match known assay names
@@ -1041,7 +1051,9 @@ def design(
                     logger.info(f"Found {len(fastq_files)} FASTQ files in {assay_dir}")
 
         if not found_assay_dirs:
-            logger.error("No FASTQ files found in any assay subdirectories under fastqs/")
+            logger.error(
+                "No FASTQ files found in any assay subdirectories under fastqs/"
+            )
             logger.info("Expected structure: fastqs/{assay}/{files}.fastq.gz")
             logger.info(f"Valid assay names: {', '.join(available_assays)}")
             raise typer.Exit(code=1)
@@ -1059,11 +1071,15 @@ def design(
                     assay=_assay, files=fastq_files
                 )
             else:
-                design_obj = FastqCollection.from_fastq_files(assay=_assay, files=fastq_files)
+                design_obj = FastqCollection.from_fastq_files(
+                    assay=_assay, files=fastq_files
+                )
 
             df = design_obj.to_dataframe().sort_values("sample_id")
 
-            schema_candidates = _extract_candidate_defaults_from_schema(DesignDataFrame, _assay)
+            schema_candidates = _extract_candidate_defaults_from_schema(
+                DesignDataFrame, _assay
+            )
             df = _apply_interactive_defaults(
                 df,
                 schema_candidates,
@@ -1267,9 +1283,7 @@ def pipeline(
         logger.info(
             f"Multi-assay mode detected: found {len(config_files)} config files"
         )
-        logger.info(
-            f"Assays: {', '.join(config_files.keys())}"
-        )
+        logger.info(f"Assays: {', '.join(config_files.keys())}")
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile_multi")
         config_file = None  # Multi-assay mode doesn't use --configfile
     else:
@@ -1290,12 +1304,22 @@ def pipeline(
         profiles = _preset_profiles()
         profile_dir_name = profiles.get(preset.lower())
         if profile_dir_name:
-            profile_trav = pkg_root_trav.joinpath("workflow").joinpath("envs").joinpath("profiles").joinpath(profile_dir_name)
+            profile_trav = (
+                pkg_root_trav.joinpath("workflow")
+                .joinpath("envs")
+                .joinpath("profiles")
+                .joinpath(profile_dir_name)
+            )
 
     # Use resources.as_file to ensure the packaged Snakefile and profile are available as paths
-    profile_ctx = resources.as_file(profile_trav) if profile_trav else contextlib.nullcontext()
+    profile_ctx = (
+        resources.as_file(profile_trav) if profile_trav else contextlib.nullcontext()
+    )
     try:
-        with resources.as_file(snake_trav) as snakefile_path, profile_ctx as profile_path:
+        with (
+            resources.as_file(snake_trav) as snakefile_path,
+            profile_ctx as profile_path,
+        ):
             if not Path(snakefile_path).exists():
                 logger.error(
                     f"Snakefile for assay '{assay}' not found: {snakefile_path}"

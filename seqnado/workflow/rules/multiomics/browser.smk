@@ -1,42 +1,11 @@
 
 # Define input and output files so that seqnado isnt required in the rule
 
-def get_assay_bigwigs(wildcards):
-    """Get all bigwigs from assay-specific 'all' rules."""
-    bigwigs = []
-    peak_files = []
-    for assay in ASSAYS:
-        rule_name = f"{assay}_all"
-        inputs = getattr(rules, rule_name).input
-
-        # Handle both single files and collections of files
-        if isinstance(inputs, str):
-            if inputs.endswith(".bigWig"):
-                bigwigs.append(inputs)
-        else:
-            # InputFiles is iterable
-            for file in inputs:
-                if isinstance(file, str) and file.endswith(".bigWig"):
-                    bigwigs.append(file)
-
-        if isinstance(inputs, str):
-            if inputs.endswith(".bed") 
-                peak_files.append(inputs)
-        else:
-            # InputFiles is iterable
-            for file in inputs:
-                if isinstance(file, str) and file.endswith(".bed"):
-                    peak_files.append(file)
-
-        input_files= bigwigs + peak_files
-    return input_files
-
 plot_files=OUTPUT.genome_browser_plots
 
 rule generate_plotnado_visualisation:
     input:
-        OUTPUT_DIR + "multiomics_summary.txt",
-        data=get_assay_bigwigs,
+        rules.gather_bigwigs.output.bw_dir,
     output:
         plots=plot_files,
         template=OUTPUT_DIR + "multiomics/genome_browser_plots/template.toml",

@@ -1,21 +1,11 @@
 from seqnado.helpers import define_time_requested, define_memory_requested
-from seqnado.outputs.multiomics import get_assay_bigwigs
-
 
 SCALE_RESOURCES = 1
-
-
-def get_bigwigs_for_dataset(wildcards):
-    """Get bigWig files at runtime after assay rules complete."""
-    return get_assay_bigwigs(wildcards, ASSAYS=ASSAYS, rules=rules)
-
 
 rule make_dataset_regions:
     """Create a dataset from bigWig files using either a BED file."""
     input:
-        OUTPUT_DIR + "multiomics_summary.txt",
-        bigwigs=get_bigwigs_for_dataset,
-        assay_outputs=[getattr(rules, f"{assay}_all").input for assay in ASSAYS],
+        rules.gather_bigwigs.output.bw_dir,
     output:
         dataset=OUTPUT_DIR + "multiomics/dataset/dataset_regions.h5ad",
     params:
@@ -32,12 +22,6 @@ rule make_dataset_regions:
     benchmark: OUTPUT_DIR + "multiomics/.benchmark/make_dataset_regions.tsv",
     message: "Making dataset from regions for machine learning"
     shell: """
-    # symlink bigwig files to expected directory
-    mkdir -p {params.bigwig_dir}
-    for bw in {input.bigwigs}; do
-        ln -s $(realpath $bw) {params.bigwig_dir}/$(basename $bw)
-    done
-
     quantnado-make-dataset \
     --bigwig-dir {params.bigwig_dir} \
     --output-file {output.dataset} \
