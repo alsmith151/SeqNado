@@ -280,9 +280,47 @@ def multiomics_configs(
         for fq in fastqs_to_copy:
             shutil.copy2(fq, fastq_dest_dir / fq.name)
 
-    # Set up fastq_screen.conf before running seqnado config
+    # Set up apptainer bind mounts for genome data
+    # This is needed so the container can access genome files (bt2 indexes, etc.)
+    import site
+    import sys
+    import yaml
+
+    # Get the genome directory that needs to be mounted
     first_assay = multiomics[0]
-    genome_path = Path(all_resources[first_assay]["bt2_index"]).parent.parent
+    genome_dir = Path(all_resources[first_assay]["bt2_index"]).parent.parent.resolve()
+    test_data_dir = genome_dir.parent.resolve()
+
+    # Find and update the test profile configuration
+    seqnado_paths = [p for p in sys.path if 'seqnado' in p and 'site-packages' in p]
+    if not seqnado_paths:
+        # Fall back to searching site-packages
+        for site_pkg in site.getsitepackages():
+            test_profile_config = Path(site_pkg) / "seqnado" / "workflow" / "envs" / "profiles" / "profile_test" / "config.v8+.yaml"
+            if test_profile_config.exists():
+                break
+    else:
+        test_profile_config = Path(seqnado_paths[0]) / "seqnado" / "workflow" / "envs" / "profiles" / "profile_test" / "config.v8+.yaml"
+
+    # Update the profile config with apptainer-args
+    if test_profile_config.exists():
+        with open(test_profile_config) as f:
+            profile_config = yaml.safe_load(f)
+
+        # Bind mount test_data_dir so genome files are accessible in the container
+        bind_arg = f"--bind {test_data_dir}:{test_data_dir}"
+        if "apptainer-args" in profile_config:
+            # Check if this bind mount is already present
+            if str(test_data_dir) not in profile_config["apptainer-args"]:
+                profile_config["apptainer-args"] += f" {bind_arg}"
+        else:
+            profile_config["apptainer-args"] = bind_arg
+
+        with open(test_profile_config, "w") as f:
+            yaml.dump(profile_config, f, sort_keys=False)
+
+    # Set up fastq_screen.conf before running seqnado config
+    genome_path = genome_dir
     fastq_screen_source = genome_path / "fastq_screen.conf"
 
     # Copy to .config/seqnado/ where seqnado expects it
