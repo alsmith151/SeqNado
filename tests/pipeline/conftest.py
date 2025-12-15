@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import shutil
+import site
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from helpers.config_utils import TestContext, make_test_paths
 from helpers.data import ensure_fastqs_present
 from helpers.genome import ensure_genome_resources
@@ -282,9 +285,6 @@ def multiomics_configs(
 
     # Set up apptainer bind mounts for genome data
     # This is needed so the container can access genome files (bt2 indexes, etc.)
-    import site
-    import sys
-    import yaml
 
     # Get the genome directory that needs to be mounted
     first_assay = multiomics[0]
@@ -292,15 +292,31 @@ def multiomics_configs(
     test_data_dir = genome_dir.parent.resolve()
 
     # Find and update the test profile configuration
-    seqnado_paths = [p for p in sys.path if 'seqnado' in p and 'site-packages' in p]
+    seqnado_paths = [p for p in sys.path if "seqnado" in p and "site-packages" in p]
     if not seqnado_paths:
         # Fall back to searching site-packages
         for site_pkg in site.getsitepackages():
-            test_profile_config = Path(site_pkg) / "seqnado" / "workflow" / "envs" / "profiles" / "profile_test" / "config.v8+.yaml"
+            test_profile_config = (
+                Path(site_pkg)
+                / "seqnado"
+                / "workflow"
+                / "envs"
+                / "profiles"
+                / "profile_test"
+                / "config.v8+.yaml"
+            )
             if test_profile_config.exists():
                 break
     else:
-        test_profile_config = Path(seqnado_paths[0]) / "seqnado" / "workflow" / "envs" / "profiles" / "profile_test" / "config.v8+.yaml"
+        test_profile_config = (
+            Path(seqnado_paths[0])
+            / "seqnado"
+            / "workflow"
+            / "envs"
+            / "profiles"
+            / "profile_test"
+            / "config.v8+.yaml"
+        )
 
     # Update the profile config with apptainer-args
     if test_profile_config.exists():
@@ -425,10 +441,6 @@ def multiomics_run_directory(multiomics_configs: dict[str, dict[str, Path]]) -> 
     Return the run directory for Multiomic tests.
     This extracts the run directory from the config paths created by multiomics_configs.
     """
-    # Get any config path and extract the run directory from it
-    # All configs share the same run directory
     first_config = next(iter(multiomics_configs.values()))
     config_path = first_config["config"]
-    # The run directory is the parent of the config file
-    # config is at: run_dir/<project_name>/config_<assay>.yaml
     return config_path.parent
