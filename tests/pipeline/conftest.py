@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import shutil
+import site
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from helpers.config_utils import TestContext, make_test_paths
 from helpers.data import ensure_fastqs_present
 from helpers.genome import ensure_genome_resources
@@ -13,7 +16,7 @@ from helpers.project import (
     create_design_file,
     init_seqnado_project,
 )
-from helpers.utils import get_fastq_pattern
+from helpers.utils import get_fastq_pattern, setup_genome_config
 
 
 # Fixture for all genome resources
@@ -222,7 +225,7 @@ def multiomics_configs(
 
     # Add assay-specific genome configs for each assay (except the one used for init)
     # Each assay gets its own genome config entry with assay-specific resources
-    from helpers.utils import setup_genome_config
+
 
     genome_config_file = run_dir / ".config" / "seqnado" / "genome_config.json"
 
@@ -280,17 +283,100 @@ def multiomics_configs(
         for fq in fastqs_to_copy:
             shutil.copy2(fq, fastq_dest_dir / fq.name)
 
-    # Set up fastq_screen.conf before running seqnado config
-    # Get the genome path from one of the assays
+    # Set up apptainer bind mounts for genome data
+    # This is needed so the container can access genome files (bt2 indexes, etc.)
+
+    # Get the genome directory that needs to be mounted
     first_assay = multiomics[0]
-    genome_path = Path(all_resources[first_assay]["bt2_index"]).parent.parent
+    genome_dir = Path(all_resources[first_assay]["bt2_index"]).parent.parent.resolve()
+    test_data_dir = genome_dir.parent.resolve()
+
+    # Also need to bind mount the run directory itself (tmp_path for pytest)
+    # This is especially important in CI environments where tmp paths may be restricted
+    run_dir_resolved = run_dir.resolve()
+
+    # Find and update the test profile configuration
+    seqnado_paths = [p for p in sys.path if "seqnado" in p and "site-packages" in p]
+    if not seqnado_paths:
+        # Fall back to searching site-packages
+        for site_pkg in site.getsitepackages():
+            test_profile_config = (
+                Path(site_pkg)
+                / "seqnado"
+                / "workflow"
+                / "envs"
+                / "profiles"
+                / "profile_test"
+                / "config.v8+.yaml"
+            )
+            if test_profile_config.exists():
+                break
+    else:
+        test_profile_config = (
+            Path(seqnado_paths[0])
+            / "seqnado"
+            / "workflow"
+            / "envs"
+            / "profiles"
+            / "profile_test"
+            / "config.v8+.yaml"
+        )
+
+    # Update the profile config with apptainer-args
+    if test_profile_config.exists():
+        with open(test_profile_config) as f:
+            profile_config = yaml.safe_load(f)
+
+        # Bind mount both test_data_dir and run_dir
+        bind_args = []
+
+        # Always bind test_data_dir (for genome files)
+        bind_args.append(f"--bind {test_data_dir}:{test_data_dir}")
+
+        # Also bind run_dir if it's different from test_data_dir
+        # This ensures the temporary test directory is accessible in the container
+        if run_dir_resolved != test_data_dir and not str(run_dir_resolved).startswith(str(test_data_dir)):
+            bind_args.append(f"--bind {run_dir_resolved}:{run_dir_resolved}")
+
+        bind_arg = " ".join(bind_args)
+
+        if "apptainer-args" in profile_config:
+            # Check if these bind mounts are already present
+            existing_args = profile_config["apptainer-args"]
+            for arg in bind_args:
+                if arg not in existing_args:
+                    profile_config["apptainer-args"] += f" {arg}"
+        else:
+            profile_config["apptainer-args"] = bind_arg
+
+        with open(test_profile_config, "w") as f:
+            yaml.dump(profile_config, f, sort_keys=False)
+
+    # Set up fastq_screen.conf before running seqnado config
+    genome_path = genome_dir
     fastq_screen_source = genome_path / "fastq_screen.conf"
 
     # Copy to .config/seqnado/ where seqnado expects it
     seqnado_config_dir = run_dir / ".config" / "seqnado"
     fastq_screen_dest = seqnado_config_dir / "fastq_screen.conf"
+
+    # Ensure the fastq_screen.conf exists at the source location
     if fastq_screen_source.exists():
         shutil.copy2(fastq_screen_source, fastq_screen_dest)
+    else:
+        # If it doesn't exist at genome level, create a minimal config
+        fastq_screen_dest.parent.mkdir(parents=True, exist_ok=True)
+        with open(fastq_screen_dest, "w") as f:
+            # Add entries for all assays' bt2 indexes
+            seen_indexes = set()
+            for assay in multiomics:
+                bt2_index = all_resources[assay]["bt2_index"]
+                # Avoid duplicate entries for the same index
+                if bt2_index not in seen_indexes:
+                    seen_indexes.add(bt2_index)
+                    # Use hg38 as the database name (or assay name for special cases)
+                    db_name = "hg38"
+                    f.write(f"DATABASE\t{db_name}\t{bt2_index}\n")
 
     # Now use seqnado config in multiomics mode (--no-interactive)
     # This will create config_*.yaml for each assay and config_multiomics.yaml
@@ -306,7 +392,6 @@ def multiomics_configs(
     )
 
     # Update generated configs to enable fastq_screen with correct paths
-    import yaml
     for assay in multiomics:
         config_file = run_dir / f"config_{assay}.yaml"
         with open(config_file) as f:
@@ -315,10 +400,18 @@ def multiomics_configs(
         # Enable fastq_screen and set the config path
         if "qc" in config:
             config["qc"]["run_fastq_screen"] = True
-        if "genome" in config:
-            config["genome"]["fastq_screen_config"] = str(fastq_screen_dest)
-        if "third_party_tools" in config and "fastq_screen" in config["third_party_tools"]:
-            config["third_party_tools"]["fastq_screen"]["config"] = str(fastq_screen_dest)
+        if (
+            "third_party_tools" in config
+            and "fastq_screen" in config["third_party_tools"]
+        ):
+            config["third_party_tools"]["fastq_screen"]["config"] = str(
+                fastq_screen_dest
+            )
+
+        # Fix plotting coordinates path to use test_output/data instead of package directory
+        if "assay_config" in config and config["assay_config"] is not None:
+            if "plotting" in config["assay_config"] and config["assay_config"]["plotting"] is not None:
+                config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
 
         # Write updated config
         with open(config_file, "w") as f:
@@ -342,14 +435,20 @@ def multiomics_configs(
         config_yaml = run_dir / f"config_{assay}.yaml"
         design_file = run_dir / f"metadata_{assay}.csv"
 
-        assert config_yaml.exists(), f"config_{assay}.yaml not created by seqnado config"
-        assert design_file.exists(), f"metadata_{assay}.csv not created by seqnado design"
+        assert config_yaml.exists(), (
+            f"config_{assay}.yaml not created by seqnado config"
+        )
+        assert design_file.exists(), (
+            f"metadata_{assay}.csv not created by seqnado design"
+        )
 
         configs[assay] = {"config": config_yaml, "metadata": design_file}
 
     # Verify multiomics config was created
     multiomics_config = run_dir / "config_multiomics.yaml"
-    assert multiomics_config.exists(), "config_multiomics.yaml not created by seqnado config"
+    assert multiomics_config.exists(), (
+        "config_multiomics.yaml not created by seqnado config"
+    )
 
     return configs
 
@@ -360,10 +459,6 @@ def multiomics_run_directory(multiomics_configs: dict[str, dict[str, Path]]) -> 
     Return the run directory for Multiomic tests.
     This extracts the run directory from the config paths created by multiomics_configs.
     """
-    # Get any config path and extract the run directory from it
-    # All configs share the same run directory
     first_config = next(iter(multiomics_configs.values()))
     config_path = first_config["config"]
-    # The run directory is the parent of the config file
-    # config is at: run_dir/<project_name>/config_<assay>.yaml
     return config_path.parent

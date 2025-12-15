@@ -588,8 +588,8 @@ def genomes(
     ),
     output: Optional[Path] = typer.Option(
         None,
-        "-o",
-        "--output",
+        "-s",
+        "--screen",
         help="Output path for fastqscreen config (fastqscreen subcommand)",
     ),
     threads: int = typer.Option(

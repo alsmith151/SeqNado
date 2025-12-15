@@ -43,3 +43,4 @@ test_output/
 testing
 .coverage
 snakefiles_old
+old_docs/

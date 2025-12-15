@@ -192,7 +192,7 @@ def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay =
 
 def get_bigwig_config(assay: Assay) -> Optional[BigwigConfig]:
     """Get bigwig configuration if user wants to create bigwigs."""
-    make_bigwigs = get_user_input("Make Bigwigs?", default="no", is_boolean=True)
+    make_bigwigs = get_user_input("Make Bigwigs?", default="yes", is_boolean=True)
 
     if not make_bigwigs:
         return None
@@ -535,16 +535,9 @@ def build_default_assay_config(
     # Set common defaults
     bigwigs = BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS], binsize=10)
 
-    # Set default plotting coordinates - use test data coordinates if available
+    # Set default plotting coordinates to None
+    # Tests will set this explicitly to avoid referencing package test data
     default_coordinates = None
-    test_coordinates = (
-        Path(__file__).parent.parent.parent
-        / "tests"
-        / "data"
-        / "plotting_coordinates.bed"
-    )
-    if test_coordinates.exists():
-        default_coordinates = str(test_coordinates)
 
     plotting = PlottingConfig(coordinates=default_coordinates)
     ucsc_hub = UCSCHubConfig(

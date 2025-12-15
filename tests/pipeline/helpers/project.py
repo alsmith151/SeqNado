@@ -184,9 +184,8 @@ def create_config_yaml(
 
     # Update config with test assay settings
     config["qc"]["run_fastq_screen"] = True
-    config["genome"]["fastq_screen_config"] = str(fastq_screen_config_path)
 
-    # Also update the third_party_tools config which is what the Snakemake rule uses
+    # Update the third_party_tools config which is what the Snakemake rule uses
     if "third_party_tools" in config and "fastq_screen" in config["third_party_tools"]:
         config["third_party_tools"]["fastq_screen"]["config"] = str(
             fastq_screen_config_path
@@ -208,6 +207,10 @@ def create_config_yaml(
     # Also mount the parent test_data directory so plotting_coordinates.bed is accessible
     test_data_dir = genome_dir.parent.resolve()
 
+    # Also need to bind mount the run directory itself (tmp_path for pytest)
+    # This is especially important in CI environments where tmp paths may be restricted
+    run_dir_resolved = run_directory.resolve()
+
     # Find and update the test profile configuration
     import site
     import sys
@@ -228,27 +231,39 @@ def create_config_yaml(
         with open(test_profile_config) as f:
             profile_config = yaml.safe_load(f)
 
-        # Bind mount test_data_dir instead of just genome_dir to ensure plotting_coordinates.bed is accessible
-        bind_arg = f"--bind {test_data_dir}:{test_data_dir}"
+        # Bind mount both test_data_dir and run_dir
+        bind_args = []
+
+        # Always bind test_data_dir (for genome files)
+        bind_args.append(f"--bind {test_data_dir}:{test_data_dir}")
+
+        # Also bind run_dir if it's different from test_data_dir
+        # This ensures the temporary test directory is accessible in the container
+        if run_dir_resolved != test_data_dir and not str(run_dir_resolved).startswith(str(test_data_dir)):
+            bind_args.append(f"--bind {run_dir_resolved}:{run_dir_resolved}")
+
         if "apptainer-args" in profile_config:
-            # Check if this bind mount is already present
-            if str(test_data_dir) not in profile_config["apptainer-args"]:
-                profile_config["apptainer-args"] += f" {bind_arg}"
+            # Check if these bind mounts are already present
+            existing_args = profile_config["apptainer-args"]
+            for arg in bind_args:
+                if arg not in existing_args:
+                    profile_config["apptainer-args"] += f" {arg}"
         else:
-            profile_config["apptainer-args"] = bind_arg
+            profile_config["apptainer-args"] = " ".join(bind_args)
 
         with open(test_profile_config, "w") as f:
             yaml.dump(profile_config, f, sort_keys=False)
 
     # Fix plotting coordinates path to use test_output/data instead of package directory
-    if "assay_config" in config and "plotting" in config["assay_config"]:
-        # Get the test data directory from the genome config path
-        # chromosome_sizes is in test_output/data/genome/, so go up one level to get test_output/data/
-        test_data_dir = Path(genome_config.get("chromosome_sizes")).parent.parent
-        plot_coords = test_data_dir / "plotting_coordinates.bed"
-        # Always update the path to point to test_output/data, regardless of whether it exists yet
-        # The conftest fixture will ensure the file is copied before the test runs
-        config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
+    if "assay_config" in config and config["assay_config"] is not None:
+        if "plotting" in config["assay_config"] and config["assay_config"]["plotting"] is not None:
+            # Get the test data directory from the genome config path
+            # chromosome_sizes is in test_output/data/genome/, so go up one level to get test_output/data/
+            test_data_dir = Path(genome_config.get("chromosome_sizes")).parent.parent
+            plot_coords = test_data_dir / "plotting_coordinates.bed"
+            # Always update the path to point to test_output/data, regardless of whether it exists yet
+            # The conftest fixture will ensure the file is copied before the test runs
+            config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
 
     with open(config_path, "w") as f:
         yaml.dump(config, f, sort_keys=False)

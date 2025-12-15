@@ -21,9 +21,6 @@ if not ASSAYS:
         "Please create config files using 'seqnado config <assay>'"
     )
 
-print(f"[Multiomic Mode] Detected {len(ASSAYS)} assay(s): {', '.join(ASSAYS)}")
-
-
 ################################
 # Configuration
 ################################

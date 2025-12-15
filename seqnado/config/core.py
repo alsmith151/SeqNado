@@ -159,42 +159,7 @@ class SeqnadoConfig(BaseModel):
     def set_default_third_party_tools(cls, values):
         if "third_party_tools" not in values or values["third_party_tools"] is None:
             values["third_party_tools"] = ThirdPartyToolsConfig.for_assay(values.get("assay"))
-        
-        # If genome has fastq_screen_config, update third_party_tools.fastq_screen.config
-        # Otherwise, set default path if fastq_screen is enabled
-        genome = values.get("genome")
-        third_party = values.get("third_party_tools")
-        
-        if third_party:
-            # Handle both dict and ThirdPartyToolsConfig instances
-            if isinstance(third_party, dict):
-                if "fastq_screen" not in third_party or third_party["fastq_screen"] is None:
-                    third_party["fastq_screen"] = {}
-                if isinstance(third_party["fastq_screen"], dict):
-                    # Check if genome has fastq_screen_config
-                    if genome and isinstance(genome, dict) and genome.get("fastq_screen_config"):
-                        third_party["fastq_screen"].setdefault("config", genome["fastq_screen_config"])
-                    else:
-                        # Set default config path
-                        default_config = str(Path.home() / ".config/seqnado/fastq_screen.conf")
-                        third_party["fastq_screen"].setdefault("config", default_config)
-            else:
-                # It's a ThirdPartyToolsConfig instance
-                if third_party.fastq_screen is None:
-                    from seqnado.config.third_party_tools import FastqScreen
-                    # Use genome config if available, otherwise use default path
-                    config_path = (
-                        genome.get("fastq_screen_config") if genome and isinstance(genome, dict) 
-                        else str(Path.home() / ".config/seqnado/fastq_screen.conf")
-                    )
-                    third_party.fastq_screen = FastqScreen(config=config_path)
-                elif not third_party.fastq_screen.config:
-                    # Use genome config if available, otherwise use default path
-                    if genome and isinstance(genome, dict) and genome.get("fastq_screen_config"):
-                        third_party.fastq_screen.config = genome["fastq_screen_config"]
-                    else:
-                        third_party.fastq_screen.config = str(Path.home() / ".config/seqnado/fastq_screen.conf")
-        
+
         return values
 
     @classmethod
