@@ -1,7 +1,9 @@
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import BaseModel, BeforeValidator
+from pydantic import BaseModel, BeforeValidator, Field
+
+from seqnado import Assay
 
 
 def none_str_to_none(v):
@@ -11,78 +13,33 @@ def none_str_to_none(v):
     return v
 
 
-def get_assay_bigwigs(wildcards, rules, ASSAYS) -> list[str]:
-    """Get all bigwigs from assay-specific 'all' rules."""
-    bigwigs = []
-    for assay in ASSAYS:
-        rule_name = f"{assay}_all"
-        inputs = getattr(rules, rule_name).input
+class MultiomicsConfig(BaseModel):
+    """Configuration for multiomics analysis combining multiple assays."""
 
-        # Handle both single files and collections of files
-        if isinstance(inputs, str):
-            if inputs.endswith(".bigWig"):
-                bigwigs.append(inputs)
-        else:
-            # InputFiles is iterable
-            for file in inputs:
-                if isinstance(file, str) and file.endswith(".bigWig"):
-                    bigwigs.append(file)
-    return bigwigs
-
-
-def find_assay_configs(directory: Path) -> tuple[dict, dict]:
-    """Validate the existence of the config and metadata files for each assay."""
-
-    config_files = {}
-    metadata_files = {}
-
-    for config_file in Path(directory).glob("config_*.yaml"):
-        assay_name = config_file.stem.replace("config_", "")
-        metadata_file = Path(directory) / f"metadata_{assay_name}.csv"
-
-        if not metadata_file.exists():
-            raise FileNotFoundError(
-                f"Missing metadata file: {metadata_file}\n"
-                f"Please create it using 'seqnado design {assay_name}'"
-            )
-
-        config_files[assay_name] = {"path": str(config_file)}
-        metadata_files[assay_name] = str(metadata_file)
-
-    return config_files, metadata_files
-
-
-class MultiomicsOutput(BaseModel):
-    output_dir: Annotated[str | None, BeforeValidator(none_str_to_none)] = (
-        "seqnado_output/"
+    assays: list[Assay] = Field(
+        default_factory=list,
+        description="List of assays to include in multiomics analysis",
+    )
+    output_dir: str = Field(
+        default="seqnado_output/", description="Output directory for multiomics results"
     )
 
-    @property
-    def summary_report(self) -> str:
-        """Path to the multiomics summary report."""
-        return str(Path(self.output_dir) / "multiomics_summary.txt")
+    # Multiomics-specific analysis options
+    create_heatmaps: bool = Field(
+        default=True, description="Generate heatmaps for multiomics data"
+    )
+    create_dataset: bool = Field(
+        default=True, description="Generate ML-ready dataset combining all assays"
+    )
+    create_summary: bool = Field(
+        default=True, description="Generate summary report of multiomics analysis"
+    )
 
-    @property
-    def heatmap(self) -> str:
-        """Path to the multiomics heatmap PDF."""
-        return str(Path(self.output_dir) / "multiomics" / "heatmap" / "heatmap.pdf")
-
-    @property
-    def metaplot(self) -> str:
-        """Path to the multiomics metaplot PDF."""
-        return str(Path(self.output_dir) / "multiomics" / "heatmap" / "metaplot.pdf")
-    
-    @property
-    def dataset(self) -> str:
-        """Get the output directory."""
-        return str(Path(self.output_dir) / "multiomics" / "dataset" / "dataset_bins.h5ad")
-
-    @property
-    def all_outputs(self) -> list[str]:
-        """Get all multiomics output files."""
-        return [
-            self.summary_report,
-            self.heatmap,
-            self.metaplot,
-            self.dataset,
-        ]
+    # Optional settings for multiomics analysis
+    regions_bed: Annotated[Path | None, BeforeValidator(none_str_to_none)] = Field(
+        default=None,
+        description="BED file with regions of interest for multiomics analysis",
+    )
+    binsize: int | None = Field(
+        default=None, description="Bin size for genome-wide multiomics analysis"
+    )

@@ -4,7 +4,7 @@ import glob
 import yaml
 
 from seqnado.cli import config
-from seqnado.config.multiomics import find_assay_configs, MultiomicsOutput
+from seqnado.outputs.multiomics import find_assay_configs, MultiomicsOutput
 
 ################################
 # Auto-detect assay configs

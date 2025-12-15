@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from seqnado.config.multiomics import (
+from seqnado.outputs.multiomics import (
     MultiomicsOutput,
     find_assay_configs,
     none_str_to_none,

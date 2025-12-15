@@ -40,6 +40,11 @@ from .user_input import (
     render_config,
 )
 
+from .multiomics import (
+    MultiomicsConfig,
+    MultiomicsOutput,
+)
+
 __all__ = [
     "BowtieIndex",
     "BigwigConfig",
@@ -65,10 +70,12 @@ __all__ = [
     "CATAssayConfig",
     "RNAAssayConfig",
     "SNPAssayConfig",
-    "MCCAssayConfig",   
+    "MCCAssayConfig",
     "MethylationAssayConfig",
     "CRISPRAssayConfig",
     "MLDatasetConfig",
     "AssaySpecificConfig",
     "load_genome_configs",
+    "MultiomicsConfig",
+    "MultiomicsOutput",
 ]

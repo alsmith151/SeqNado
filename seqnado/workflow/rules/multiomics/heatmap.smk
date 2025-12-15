@@ -1,6 +1,6 @@
 from seqnado.helpers import define_memory_requested, define_time_requested
 
-from seqnado.config.multiomics import get_assay_bigwigs
+from seqnado.outputs.multiomics import get_assay_bigwigs
 
 bigwigs = get_assay_bigwigs(
     wildcards=None,

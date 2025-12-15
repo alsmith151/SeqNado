@@ -18,7 +18,7 @@ import click
 import typer
 from loguru import logger
 
-from seqnado.config.multiomics import find_assay_configs
+from seqnado.outputs.multiomics import find_assay_configs
 
 # Optional: prettier tracebacks/console with rich if available
 try:
