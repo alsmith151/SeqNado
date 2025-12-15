@@ -281,7 +281,6 @@ def multiomics_configs(
             shutil.copy2(fq, fastq_dest_dir / fq.name)
 
     # Set up fastq_screen.conf before running seqnado config
-    # Get the genome path from one of the assays
     first_assay = multiomics[0]
     genome_path = Path(all_resources[first_assay]["bt2_index"]).parent.parent
     fastq_screen_source = genome_path / "fastq_screen.conf"
@@ -289,8 +288,24 @@ def multiomics_configs(
     # Copy to .config/seqnado/ where seqnado expects it
     seqnado_config_dir = run_dir / ".config" / "seqnado"
     fastq_screen_dest = seqnado_config_dir / "fastq_screen.conf"
+
+    # Ensure the fastq_screen.conf exists at the source location
     if fastq_screen_source.exists():
         shutil.copy2(fastq_screen_source, fastq_screen_dest)
+    else:
+        # If it doesn't exist at genome level, create a minimal config
+        fastq_screen_dest.parent.mkdir(parents=True, exist_ok=True)
+        with open(fastq_screen_dest, "w") as f:
+            # Add entries for all assays' bt2 indexes
+            seen_indexes = set()
+            for assay in multiomics:
+                bt2_index = all_resources[assay]["bt2_index"]
+                # Avoid duplicate entries for the same index
+                if bt2_index not in seen_indexes:
+                    seen_indexes.add(bt2_index)
+                    # Use hg38 as the database name (or assay name for special cases)
+                    db_name = "hg38"
+                    f.write(f"DATABASE\t{db_name}\t{bt2_index}\n")
 
     # Now use seqnado config in multiomics mode (--no-interactive)
     # This will create config_*.yaml for each assay and config_multiomics.yaml
@@ -307,6 +322,7 @@ def multiomics_configs(
 
     # Update generated configs to enable fastq_screen with correct paths
     import yaml
+
     for assay in multiomics:
         config_file = run_dir / f"config_{assay}.yaml"
         with open(config_file) as f:
@@ -317,8 +333,13 @@ def multiomics_configs(
             config["qc"]["run_fastq_screen"] = True
         if "genome" in config:
             config["genome"]["fastq_screen_config"] = str(fastq_screen_dest)
-        if "third_party_tools" in config and "fastq_screen" in config["third_party_tools"]:
-            config["third_party_tools"]["fastq_screen"]["config"] = str(fastq_screen_dest)
+        if (
+            "third_party_tools" in config
+            and "fastq_screen" in config["third_party_tools"]
+        ):
+            config["third_party_tools"]["fastq_screen"]["config"] = str(
+                fastq_screen_dest
+            )
 
         # Write updated config
         with open(config_file, "w") as f:
@@ -342,14 +363,20 @@ def multiomics_configs(
         config_yaml = run_dir / f"config_{assay}.yaml"
         design_file = run_dir / f"metadata_{assay}.csv"
 
-        assert config_yaml.exists(), f"config_{assay}.yaml not created by seqnado config"
-        assert design_file.exists(), f"metadata_{assay}.csv not created by seqnado design"
+        assert config_yaml.exists(), (
+            f"config_{assay}.yaml not created by seqnado config"
+        )
+        assert design_file.exists(), (
+            f"metadata_{assay}.csv not created by seqnado design"
+        )
 
         configs[assay] = {"config": config_yaml, "metadata": design_file}
 
     # Verify multiomics config was created
     multiomics_config = run_dir / "config_multiomics.yaml"
-    assert multiomics_config.exists(), "config_multiomics.yaml not created by seqnado config"
+    assert multiomics_config.exists(), (
+        "config_multiomics.yaml not created by seqnado config"
+    )
 
     return configs
 
