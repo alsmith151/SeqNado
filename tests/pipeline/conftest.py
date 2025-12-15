@@ -16,7 +16,7 @@ from helpers.project import (
     create_design_file,
     init_seqnado_project,
 )
-from helpers.utils import get_fastq_pattern
+from helpers.utils import get_fastq_pattern, setup_genome_config
 
 
 # Fixture for all genome resources
@@ -225,7 +225,7 @@ def multiomics_configs(
 
     # Add assay-specific genome configs for each assay (except the one used for init)
     # Each assay gets its own genome config entry with assay-specific resources
-    from helpers.utils import setup_genome_config
+
 
     genome_config_file = run_dir / ".config" / "seqnado" / "genome_config.json"
 
