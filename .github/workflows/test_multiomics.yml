@@ -16,12 +16,24 @@ jobs:
       - name: Free up disk space before installations
         run: |
           echo "Freeing up disk space..."
+          echo "=== Initial disk space ==="
+          df -h
+
+          # Remove large unnecessary packages
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/swift
           sudo apt-get clean
           sudo rm -rf /var/lib/apt/lists/*
+
+          # Clean docker to free up more space
+          sudo docker system prune -af || true
+
+          echo "=== Disk space after cleanup ==="
+          df -h
 
       - name: Setup Conda environment and install SeqNado
         uses: conda-incubator/setup-miniconda@v3
@@ -57,12 +69,31 @@ jobs:
           mkdir -p "${{ github.workspace }}/.apptainer/tmp"
 
       - name: Run SeqNado pipeline test for Multiomic
+        timeout-minutes: 45
         shell: bash -el {0}
         env:
           APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
+          echo "=== Disk space before test ==="
+          df -h
+
+          # Run test with detailed output
           python -m pytest tests/pipeline/test_multiomics.py -vv -s \
-            --cores 4 --run-pipeline
-            
+            --cores 4 --run-pipeline --tb=short 2>&1 | tee test_output.log
+
+          # Capture exit code
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          echo "=== Disk space after test ==="
+          df -h
+
+          # Show tail of output if test failed
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "=== Test failed with exit code $EXIT_CODE ==="
+            echo "=== Last 100 lines of output ==="
+            tail -100 test_output.log
+          fi
+
+          exit $EXIT_CODE
