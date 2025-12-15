@@ -408,6 +408,11 @@ def multiomics_configs(
                 fastq_screen_dest
             )
 
+        # Fix plotting coordinates path to use test_output/data instead of package directory
+        if "assay_config" in config and config["assay_config"] is not None:
+            if "plotting" in config["assay_config"] and config["assay_config"]["plotting"] is not None:
+                config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
+
         # Write updated config
         with open(config_file, "w") as f:
             yaml.dump(config, f, sort_keys=False)

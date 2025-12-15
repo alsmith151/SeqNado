@@ -255,14 +255,15 @@ def create_config_yaml(
             yaml.dump(profile_config, f, sort_keys=False)
 
     # Fix plotting coordinates path to use test_output/data instead of package directory
-    if "assay_config" in config and "plotting" in config["assay_config"]:
-        # Get the test data directory from the genome config path
-        # chromosome_sizes is in test_output/data/genome/, so go up one level to get test_output/data/
-        test_data_dir = Path(genome_config.get("chromosome_sizes")).parent.parent
-        plot_coords = test_data_dir / "plotting_coordinates.bed"
-        # Always update the path to point to test_output/data, regardless of whether it exists yet
-        # The conftest fixture will ensure the file is copied before the test runs
-        config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
+    if "assay_config" in config and config["assay_config"] is not None:
+        if "plotting" in config["assay_config"] and config["assay_config"]["plotting"] is not None:
+            # Get the test data directory from the genome config path
+            # chromosome_sizes is in test_output/data/genome/, so go up one level to get test_output/data/
+            test_data_dir = Path(genome_config.get("chromosome_sizes")).parent.parent
+            plot_coords = test_data_dir / "plotting_coordinates.bed"
+            # Always update the path to point to test_output/data, regardless of whether it exists yet
+            # The conftest fixture will ensure the file is copied before the test runs
+            config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
 
     with open(config_path, "w") as f:
         yaml.dump(config, f, sort_keys=False)

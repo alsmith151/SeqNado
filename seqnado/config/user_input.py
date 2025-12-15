@@ -535,16 +535,9 @@ def build_default_assay_config(
     # Set common defaults
     bigwigs = BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS], binsize=10)
 
-    # Set default plotting coordinates - use test data coordinates if available
+    # Set default plotting coordinates to None
+    # Tests will set this explicitly to avoid referencing package test data
     default_coordinates = None
-    test_coordinates = (
-        Path(__file__).parent.parent.parent
-        / "tests"
-        / "data"
-        / "plotting_coordinates.bed"
-    )
-    if test_coordinates.exists():
-        default_coordinates = str(test_coordinates)
 
     plotting = PlottingConfig(coordinates=default_coordinates)
     ucsc_hub = UCSCHubConfig(
