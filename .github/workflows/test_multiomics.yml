@@ -3,7 +3,7 @@ name: Multi-Assay Test
 on: 
   push
 jobs:
-  test-multiassay:
+  test-multiomics:
     name: Test Multi-Assay Pipeline
     runs-on: ubuntu-latest
 
@@ -63,6 +63,6 @@ jobs:
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          python -m pytest tests/pipeline/test_pipeline_multi.py -vv -s \
+          python -m pytest tests/pipeline/test_multiomics.py -vv -s \
             --cores 4 --run-pipeline
             

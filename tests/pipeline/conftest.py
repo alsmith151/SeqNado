@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -156,7 +157,7 @@ def design(test_context: TestContext, assay: str, seqnado_run_dir: Path) -> Path
 
 
 @pytest.fixture(scope="function")
-def multi_assay_configs(
+def multiomics_configs(
     tmp_path_factory, test_context, monkeypatch, request, genome_resources
 ):
     """
@@ -164,22 +165,22 @@ def multi_assay_configs(
     Returns: {assay: {"config": config_path, "metadata": metadata_path}}
     """
     # Get the list of assays from the test function's parameters
-    # When a test is parametrized with multi_assays, we need to extract it from the test node
+    # When a test is parametrized with multiomicss, we need to extract it from the test node
     if hasattr(request, "node") and hasattr(request.node, "callspec"):
-        multi_assays = request.node.callspec.params.get(
-            "multi_assays", ["atac", "chip", "meth", "rna", "snp"]
+        multiomicss = request.node.callspec.params.get(
+            "multiomicss", ["atac", "chip", "meth", "rna", "snp"]
         )
     else:
         # Default to all assays if not parametrized
-        multi_assays = ["atac", "chip", "meth", "rna", "snp"]
+        multiomicss = ["atac", "chip", "meth", "rna", "snp"]
     # Set up a run directory for the multi-assay test
-    run_dir = tmp_path_factory.mktemp("multi_assay_run")
+    run_dir = tmp_path_factory.mktemp("multiomics_run")
     configs = {}
 
     # Initialize seqnado once in the shared run_dir for all assays
     # We need to collect all resources needed for all assays first
     all_resources = {}
-    for assay in multi_assays:
+    for assay in multiomicss:
         all_resources[assay] = genome_resources(assay)
 
     # Merge all resources to ensure genome_config.json has everything needed
@@ -187,7 +188,7 @@ def multi_assay_configs(
     # Priority: RNA-specific resources (star_index, RNA GTF) take precedence
     merged_resources = {}
     rna_assay = None
-    for assay in multi_assays:
+    for assay in multiomicss:
         if "rna" in assay.lower():
             rna_assay = assay
             break
@@ -197,7 +198,7 @@ def multi_assay_configs(
         merged_resources.update(all_resources[rna_assay])
 
     # Then merge in resources from other assays (won't overwrite RNA-specific ones)
-    for assay in multi_assays:
+    for assay in multiomicss:
         for key, value in all_resources[assay].items():
             if key not in merged_resources or merged_resources[key] is None:
                 merged_resources[key] = value
@@ -205,7 +206,7 @@ def multi_assay_configs(
     # Initialize with merged resources from all assays
     # Check if MCC is in the list of assays and use it for init if present
     # (init_seqnado_project needs to know about MCC to set up viewpoints)
-    init_assay = next((a for a in multi_assays if "mcc" in a.lower()), multi_assays[0])
+    init_assay = next((a for a in multiomicss if "mcc" in a.lower()), multiomicss[0])
     init_seqnado_project(
         run_directory=run_dir,
         assay=init_assay,
@@ -217,7 +218,7 @@ def multi_assay_configs(
     # Ensure FASTQ files are present for all requested assays
     # Do this AFTER init_seqnado_project to avoid the directory being cleaned up
     fastq_path = test_context.test_paths.fastq
-    ensure_fastqs_present(fastq_path, multi_assays)
+    ensure_fastqs_present(fastq_path, multiomicss)
 
     # Add assay-specific genome configs for each assay (except the one used for init)
     # Each assay gets its own genome config entry with assay-specific resources
@@ -241,7 +242,7 @@ def multi_assay_configs(
     if not plot_coords.exists() and plot_coords_source.exists():
         shutil.copy2(plot_coords_source, plot_coords)
 
-    for assay in multi_assays:
+    for assay in multiomicss:
         if assay != init_assay:
             # Add this assay's specific configuration
             setup_genome_config(
@@ -256,20 +257,17 @@ def multi_assay_configs(
                 assay=assay,
             )
 
-    for assay in multi_assays:
+    # Create assay-specific fastq subdirectories and copy FASTQ files
+    # This creates the fastqs/{assay}/ structure expected by multiomics mode
+    for assay in multiomicss:
         assay_type = test_context.assay_type(assay)
 
-        # Create config YAML in the run directory
-        # The genome config was already set up by init_seqnado_project with merged resources
-        config_yaml = create_config_yaml(
-            run_dir, assay, monkeypatch, all_resources[assay]
-        )
-
-        # Now copy FASTQs to the directory where the config was created
-        fastq_dest_dir = config_yaml.parent / "fastqs"
+        # Create assay-specific fastq subdirectory for multiomics structure
+        # fastqs/{assay}/
+        fastq_dest_dir = run_dir / "fastqs" / assay
         fastq_dest_dir.mkdir(parents=True, exist_ok=True)
 
-        # Copy FASTQ files for this assay
+        # Copy FASTQ files for this assay into the assay-specific directory
         fastq_source_dir = test_context.test_paths.fastq
         pattern = get_fastq_pattern(assay_type)
         fastqs_to_copy = list(fastq_source_dir.glob(pattern))
@@ -282,25 +280,89 @@ def multi_assay_configs(
         for fq in fastqs_to_copy:
             shutil.copy2(fq, fastq_dest_dir / fq.name)
 
-        # Generate design file in the same directory as the config file
-        design_file = create_design_file(
-            run_directory=config_yaml.parent,
-            assay=assay_type,
-        )
+    # Set up fastq_screen.conf before running seqnado config
+    # Get the genome path from one of the assays
+    first_assay = multiomicss[0]
+    genome_path = Path(all_resources[first_assay]["bt2_index"]).parent.parent
+    fastq_screen_source = genome_path / "fastq_screen.conf"
+
+    # Copy to .config/seqnado/ where seqnado expects it
+    seqnado_config_dir = run_dir / ".config" / "seqnado"
+    fastq_screen_dest = seqnado_config_dir / "fastq_screen.conf"
+    if fastq_screen_source.exists():
+        shutil.copy2(fastq_screen_source, fastq_screen_dest)
+
+    # Now use seqnado config in multiomics mode (--no-interactive)
+    # This will create config_*.yaml for each assay and config_multiomics.yaml
+    result = subprocess.run(
+        ["seqnado", "config", "--no-interactive", "--no-make-dirs"],
+        cwd=run_dir,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, (
+        f"seqnado config (multiomics) failed:\nSTDERR: {result.stderr}\nSTDOUT: {result.stdout}"
+    )
+
+    # Update generated configs to enable fastq_screen with correct paths
+    import yaml
+    for assay in multiomicss:
+        config_file = run_dir / f"config_{assay}.yaml"
+        with open(config_file) as f:
+            config = yaml.safe_load(f)
+
+        # Enable fastq_screen and set the config path
+        if "qc" in config:
+            config["qc"]["run_fastq_screen"] = True
+        if "genome" in config:
+            config["genome"]["fastq_screen_config"] = str(fastq_screen_dest)
+        if "third_party_tools" in config and "fastq_screen" in config["third_party_tools"]:
+            config["third_party_tools"]["fastq_screen"]["config"] = str(fastq_screen_dest)
+
+        # Write updated config
+        with open(config_file, "w") as f:
+            yaml.dump(config, f, sort_keys=False)
+
+    # Use seqnado design in multiomics mode (--no-interactive)
+    # This will create metadata_*.csv for each assay
+    result = subprocess.run(
+        ["seqnado", "design", "--no-interactive", "--accept-all-defaults"],
+        cwd=run_dir,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, (
+        f"seqnado design (multiomics) failed:\nSTDERR: {result.stderr}\nSTDOUT: {result.stdout}"
+    )
+
+    # Collect the generated config and metadata files
+    for assay in multiomicss:
+        config_yaml = run_dir / f"config_{assay}.yaml"
+        design_file = run_dir / f"metadata_{assay}.csv"
+
+        assert config_yaml.exists(), f"config_{assay}.yaml not created by seqnado config"
+        assert design_file.exists(), f"metadata_{assay}.csv not created by seqnado design"
 
         configs[assay] = {"config": config_yaml, "metadata": design_file}
+
+    # Verify multiomics config was created
+    multiomics_config = run_dir / "config_multiomics.yaml"
+    assert multiomics_config.exists(), "config_multiomics.yaml not created by seqnado config"
+
     return configs
 
 
 @pytest.fixture(scope="function")
-def multi_assay_run_directory(multi_assay_configs: dict[str, dict[str, Path]]) -> Path:
+def multiomics_run_directory(multiomics_configs: dict[str, dict[str, Path]]) -> Path:
     """
     Return the run directory for multi-assay tests.
-    This extracts the run directory from the config paths created by multi_assay_configs.
+    This extracts the run directory from the config paths created by multiomics_configs.
     """
     # Get any config path and extract the run directory from it
     # All configs share the same run directory
-    first_config = next(iter(multi_assay_configs.values()))
+    first_config = next(iter(multiomics_configs.values()))
     config_path = first_config["config"]
     # The run directory is the parent of the config file
     # config is at: run_dir/<project_name>/config_<assay>.yaml

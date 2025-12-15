@@ -816,10 +816,6 @@ def config(
     if assay is None or assay.lower() == "multiomics":
         logger.info("Building multiomics configuration with multiple assays")
 
-        if not interactive:
-            logger.error("Multiomics config requires interactive mode")
-            raise typer.Exit(code=1)
-
         try:
             multiomics_config, assay_configs = build_multiomics_config(
                 seqnado_version, interactive=interactive
@@ -1235,7 +1231,7 @@ def pipeline(
 
     # Check for multi-assay mode before requiring assay argument
     config_files, _ = find_assay_configs(Path("."))
-    use_multi_assay = len(config_files) > 1 and not config_file and not assay
+    use_multiomics = len(config_files) > 1 and not config_file and not assay
 
     # Debug: check if assay looks like a flag (starts with -)
     if assay and assay.startswith("-"):
@@ -1245,9 +1241,9 @@ def pipeline(
         )
         extra_args.insert(0, assay)  # Put it back in extra args
         assay = None
-        use_multi_assay = len(config_files) > 1 and not config_file
+        use_multiomics = len(config_files) > 1 and not config_file
 
-    if not assay and not use_multi_assay:
+    if not assay and not use_multiomics:
         logger.error(
             "No assay provided. Use `seqnado pipeline ASSAY` or run from a directory with multiple config_*.yaml files for multi-assay mode."
         )
@@ -1266,7 +1262,7 @@ def pipeline(
 
     pkg_root_trav = _pkg_traversable("seqnado")
 
-    if use_multi_assay:
+    if use_multiomics:
         # Multi-assay mode: use Snakefile_multi
         logger.info(
             f"Multi-assay mode detected: found {len(config_files)} config files"
@@ -1314,7 +1310,7 @@ def pipeline(
             ]
 
             # Set cores: use user-specified cores, or default based on mode
-            if use_multi_assay:
+            if use_multiomics:
                 # For multi-assay, default to number of assays if cores not specified
                 if cores == 1:  # Default from extract_cores_from_options
                     cores = cores + len(config_files)
@@ -1323,7 +1319,7 @@ def pipeline(
 
             # Build workflow arguments to pass to nested snakemake calls (multi-assay mode)
             workflow_args = []
-            if use_multi_assay:
+            if use_multiomics:
                 # Collect arguments that should be passed to nested snakemake calls
                 if preset and profile_path:
                     workflow_args.append(f"--profile {profile_path}")
@@ -1350,10 +1346,10 @@ def pipeline(
 
             # For multi-assay mode, use project directory as working directory to avoid lock conflicts
             # Single-assay mode runs in current directory as before
-            if use_multi_assay:
+            if use_multiomics:
                 cmd += ["--directory", "."]
 
-            if not use_multi_assay:
+            if not use_multiomics:
                 cmd += cleaned_opts
 
             if preset and profile_path:
@@ -1362,7 +1358,7 @@ def pipeline(
                     f"Using Snakemake profile preset '{preset}' -> {profile_path}"
                 )
 
-            if queue and preset.startswith("s") and not use_multi_assay:
+            if queue and preset.startswith("s") and not use_multiomics:
                 cmd += ["--default-resources", f"slurm_partition={queue}"]
 
             logo_trav = pkg_root_trav.joinpath("data").joinpath("logo.txt")

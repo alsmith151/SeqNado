@@ -856,9 +856,16 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
         binsize = int(binsize) if binsize and binsize.isdigit() else None
 
     else:
-        # Non-interactive mode: use defaults
-        logger.error("Non-interactive multiomics config not yet supported. Please use interactive mode.")
-        sys.exit(1)
+        # Non-interactive mode: use default assays
+        logger.info("Non-interactive mode: using default assays")
+        selected_assays = ["atac", "chip", "meth", "rna", "snp"]
+        output_dir = "seqnado_output/"
+        create_heatmaps = True
+        create_dataset = True
+        create_summary = True
+        regions_bed = None
+        binsize = None
+        logger.info(f"Selected assays: {', '.join(selected_assays)}")
 
     # Build individual assay configs
     assay_configs = {}
