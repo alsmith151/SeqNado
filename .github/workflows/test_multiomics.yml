@@ -35,7 +35,7 @@ jobs:
           echo "=== Disk space after cleanup ==="
           df -h
 
-      - name: Setup Conda environment and install SeqNado
+      - name: Setup Conda environment
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: testing.yml

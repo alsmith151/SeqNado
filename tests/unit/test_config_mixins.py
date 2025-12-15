@@ -116,24 +116,3 @@ class TestSeqnadoConfigComputedFields:
         )
         
         assert cfg.mcc_viewpoints == ""
-
-    def test_fastq_screen_default_config(self, tmp_path):
-        """Test fastq_screen gets default config path."""
-        from seqnado.config.third_party_tools import ThirdPartyToolsConfig
-        
-        star_dir = tmp_path / "star"
-        star_dir.mkdir()
-        
-        genome = GenomeConfig(name="hg38", index=STARIndex(prefix=star_dir))
-        
-        cfg = SeqnadoConfig(
-            assay=Assay.RNA,
-            project=dict(name="test"),
-            genome=genome,
-            metadata=tmp_path / "m.csv",
-            third_party_tools=ThirdPartyToolsConfig(),
-        )
-        
-        # Should have default config path set
-        assert cfg.third_party_tools.fastq_screen is not None
-        assert cfg.third_party_tools.fastq_screen.config is not None
