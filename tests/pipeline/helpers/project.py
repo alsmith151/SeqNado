@@ -329,7 +329,7 @@ def create_design_file(
 @pytest.fixture(scope="function")
 def multiomics_run_directory(tmp_path_factory):
     """
-    Fixture to provide a run directory for multi-assay tests.
+    Fixture to provide a run directory for Multiomic tests.
     Returns a Path object to a unique temp directory.
     """
     return tmp_path_factory.mktemp("multiomics_run")

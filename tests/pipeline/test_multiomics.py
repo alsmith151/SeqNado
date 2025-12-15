@@ -41,7 +41,7 @@ def test_multiomics(
         multiomics: List of assay names to run together
         multiomics_configs: Dict mapping assay names to their config and metadata paths
                             (configs created using seqnado config command)
-        multiomics_run_directory: Path to the run directory for the multi-assay test
+        multiomics_run_directory: Path to the run directory for the Multiomic test
         cores: Number of cores to use for the pipeline
     """
     # Verify that config_multiomics.yaml was created by the fixture

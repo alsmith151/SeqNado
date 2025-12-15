@@ -1193,7 +1193,7 @@ def pipeline(
         None,
         metavar="[ASSAY]",
         autocompletion=assay_autocomplete,
-        help="Assay type (required for single-assay, optional for multi-assay mode)",
+        help="Assay type (required for single-assay, optional for Multiomic mode)",
     ),
     config_file: Optional[Path] = typer.Option(
         None,
@@ -1245,15 +1245,15 @@ def pipeline(
 
     extra_args = list(ctx.args)
 
-    # Check for multi-assay mode before requiring assay argument
+    # Check for Multiomic mode before requiring assay argument
     config_files, _ = find_assay_configs(Path("."))
     use_multiomics = len(config_files) > 1 and not config_file and not assay
 
     # Debug: check if assay looks like a flag (starts with -)
     if assay and assay.startswith("-"):
-        # This is actually a flag, not an assay - treat as multi-assay mode
+        # This is actually a flag, not an assay - treat as Multiomic mode
         logger.debug(
-            f"Detected flag '{assay}' in assay position, checking for multi-assay mode"
+            f"Detected flag '{assay}' in assay position, checking for Multiomic mode"
         )
         extra_args.insert(0, assay)  # Put it back in extra args
         assay = None
@@ -1261,7 +1261,7 @@ def pipeline(
 
     if not assay and not use_multiomics:
         logger.error(
-            "No assay provided. Use `seqnado pipeline ASSAY` or run from a directory with multiple config_*.yaml files for multi-assay mode."
+            "No assay provided. Use `seqnado pipeline ASSAY` or run from a directory with multiple config_*.yaml files for Multiomic mode."
         )
         raise typer.Exit(code=2)
 
@@ -1279,13 +1279,13 @@ def pipeline(
     pkg_root_trav = _pkg_traversable("seqnado")
 
     if use_multiomics:
-        # Multi-assay mode: use Snakefile_multi
+        # Multiomic mode: use Snakefile_multi
         logger.info(
-            f"Multi-assay mode detected: found {len(config_files)} config files"
+            f"Multiomic mode detected: found {len(config_files)} config files"
         )
         logger.info(f"Assays: {', '.join(config_files.keys())}")
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile_multi")
-        config_file = None  # Multi-assay mode doesn't use --configfile
+        config_file = None  # Multiomic mode doesn't use --configfile
     else:
         # Single-assay mode: use standard Snakefile
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile")
@@ -1335,13 +1335,13 @@ def pipeline(
 
             # Set cores: use user-specified cores, or default based on mode
             if use_multiomics:
-                # For multi-assay, default to number of assays if cores not specified
+                # For Multiomic, default to number of assays if cores not specified
                 if cores == 1:  # Default from extract_cores_from_options
                     cores = cores + len(config_files)
 
             cmd += ["-c", str(cores)]
 
-            # Build workflow arguments to pass to nested snakemake calls (multi-assay mode)
+            # Build workflow arguments to pass to nested snakemake calls (Multiomic mode)
             workflow_args = []
             if use_multiomics:
                 # Collect arguments that should be passed to nested snakemake calls
@@ -1368,7 +1368,7 @@ def pipeline(
             if config_file:
                 cmd += ["--configfile", str(config_file)]
 
-            # For multi-assay mode, use project directory as working directory to avoid lock conflicts
+            # For Multiomic mode, use project directory as working directory to avoid lock conflicts
             # Single-assay mode runs in current directory as before
             if use_multiomics:
                 cmd += ["--directory", "."]

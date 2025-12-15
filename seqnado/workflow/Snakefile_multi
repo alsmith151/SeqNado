@@ -21,7 +21,7 @@ if not ASSAYS:
         "Please create config files using 'seqnado config <assay>'"
     )
 
-print(f"[Multi-Assay Mode] Detected {len(ASSAYS)} assay(s): {', '.join(ASSAYS)}")
+print(f"[Multiomic Mode] Detected {len(ASSAYS)} assay(s): {', '.join(ASSAYS)}")
 
 
 ################################
@@ -34,11 +34,11 @@ if MULTIOMICS_CONFIG_PATH.exists():
     with open(MULTIOMICS_CONFIG_PATH, 'r') as f:
         multiomics_config_dict = yaml.safe_load(f)
     MULTIOMICS_CONFIG = MultiomicsConfig(**multiomics_config_dict)
-    print(f"[Multi-Assay Mode] Loaded multiomics config: {MULTIOMICS_CONFIG_PATH}")
+    print(f"[Multiomic Mode] Loaded multiomics config: {MULTIOMICS_CONFIG_PATH}")
 else:
     # Use defaults if no multiomics config
     MULTIOMICS_CONFIG = MultiomicsConfig(assays=ASSAYS)
-    print("[Multi-Assay Mode] No multiomics config found, using defaults")
+    print("[Multiomic Mode] No multiomics config found, using defaults")
 
 OUTPUT_DIR = MULTIOMICS_CONFIG.output_dir
 

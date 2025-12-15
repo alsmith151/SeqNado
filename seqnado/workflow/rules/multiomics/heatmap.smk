@@ -21,7 +21,7 @@ rule multiomics_heatmap_matrix:
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "multiomics/logs/heatmap/matrix.log",
     benchmark: OUTPUT_DIR + "multiomics/.benchmark/heatmap/matrix.tsv",
-    message: "Computing multi-assay heatmap matrix from bigWig files across all assays"
+    message: "Computing Multiomic heatmap matrix from bigWig files across all assays"
     shell: """
     computeMatrix scale-regions \
     -p {threads} {params.options} \
@@ -45,7 +45,7 @@ rule multiomics_heatmap_plot:
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "multiomics/logs/heatmap/heatmap.log",
     benchmark: OUTPUT_DIR + "multiomics/.benchmark/heatmap/heatmap.tsv",
-    message: "Generating multi-assay heatmap from matrix"
+    message: "Generating Multiomic heatmap from matrix"
     shell: """
     plotHeatmap -m {input.matrix} -out {output.heatmap} {params.options}
     """
@@ -61,7 +61,7 @@ rule multiomics_heatmap_metaplot:
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "multiomics/logs/heatmap/metaplot.log",
     benchmark: OUTPUT_DIR + "multiomics/.benchmark/heatmap/metaplot.tsv",
-    message: "Generating multi-assay metaplot from heatmap matrix"
+    message: "Generating Multiomic metaplot from heatmap matrix"
     shell: """
     plotProfile -m {input.matrix} -out {output.metaplot} --perGroup
     """

@@ -12,12 +12,12 @@ rule gather_bigwigs:
         bigwigs=get_bigwigs_for_dataset,
         assay_outputs=[getattr(rules, f"{assay}_all").input for assay in ASSAYS],
     output:
-        bw_dir = OUTPUT_DIR + "multiomics/bigwigs/",    
+        bw_dir = directory(OUTPUT_DIR + "multiomics/bigwigs/"),    
     threads: 1
     message: "Gathering bigWigs for multiomics downstream analyses"
     shell: """
     mkdir -p {output.bw_dir}
     for bw in {input.bigwigs}; do
-        ln -s $(realpath $bw) {output.bw_dir}/$(basename $bw)
+        ln -sf $(realpath $bw) {output.bw_dir}/$(basename $bw)
     done
     """

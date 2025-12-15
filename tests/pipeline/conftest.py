@@ -173,7 +173,7 @@ def multiomics_configs(
     else:
         # Default to all assays if not parametrized
         multiomics = ["atac", "chip", "meth", "rna", "snp"]
-    # Set up a run directory for the multi-assay test
+    # Set up a run directory for the Multiomic test
     run_dir = tmp_path_factory.mktemp("multiomics_run")
     configs = {}
 
@@ -357,7 +357,7 @@ def multiomics_configs(
 @pytest.fixture(scope="function")
 def multiomics_run_directory(multiomics_configs: dict[str, dict[str, Path]]) -> Path:
     """
-    Return the run directory for multi-assay tests.
+    Return the run directory for Multiomic tests.
     This extracts the run directory from the config paths created by multiomics_configs.
     """
     # Get any config path and extract the run directory from it
