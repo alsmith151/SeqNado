@@ -2,21 +2,19 @@ from seqnado.helpers import define_memory_requested, define_time_requested
 
 from seqnado.outputs.multiomics import get_assay_bigwigs
 
-bigwigs = get_assay_bigwigs(
-    wildcards=None,
-    ASSAYS=ASSAYS,
-    rules=rules
-)
 
 rule multiomics_heatmap_matrix:
     input:
-        bigwigs=bigwigs,
+        OUTPUT_DIR + "multiomics_summary.txt",
+        assay_outputs=[getattr(rules, f"{assay}_all").input for assay in ASSAYS],
     output:
         matrix=OUTPUT_DIR + "multiomics/heatmap/heatmap_matrix.mat.gz",
     params:
         # Use GTF from the first assay config (assuming shared genome)
         gtf=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["genome"]["gtf"],
         options=lambda wildcards: str(LOADED_CONFIGS[ASSAYS[0]].get("third_party_tools", {}).get("deeptools", {}).get("compute_matrix", {}).get("command_line_arguments", "")),
+        # Collect bigWig files at runtime after assay rules complete
+        bigwigs=lambda wildcards: get_assay_bigwigs(wildcards, ASSAYS=ASSAYS, rules=rules),
     threads: lambda wildcards: LOADED_CONFIGS[ASSAYS[0]].get("third_party_tools", {}).get("deeptools", {}).get("compute_matrix", {}).get("threads", 8)
     resources:
         runtime=lambda wildcards, attempt: f"{1 * 2**attempt}h",
@@ -30,7 +28,7 @@ rule multiomics_heatmap_matrix:
     -p {threads} {params.options} \
     --smartLabels \
     --missingDataAsZero \
-    -S {input.bigwigs} \
+    -S {params.bigwigs} \
     -R {params.gtf} \
     -o {output.matrix} >> {log} 2>&1
     """

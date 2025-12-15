@@ -32,13 +32,21 @@ def get_assay_bigwigs(wildcards, rules, ASSAYS) -> list[str]:
 
 
 def find_assay_configs(directory: Path) -> tuple[dict, dict]:
-    """Validate the existence of the config and metadata files for each assay."""
+    """Validate the existence of the config and metadata files for each assay.
+
+    Note: Skips config_multiomics.yaml as it's not an assay-specific config.
+    """
 
     config_files = {}
     metadata_files = {}
 
     for config_file in Path(directory).glob("config_*.yaml"):
         assay_name = config_file.stem.replace("config_", "")
+
+        # Skip multiomics config - it's not an assay config
+        if assay_name == "multiomics":
+            continue
+
         metadata_file = Path(directory) / f"metadata_{assay_name}.csv"
 
         if not metadata_file.exists():

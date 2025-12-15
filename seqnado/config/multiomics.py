@@ -3,8 +3,6 @@ from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, Field
 
-from seqnado import Assay
-
 
 def none_str_to_none(v):
     """Convert string 'none' to None."""
@@ -14,12 +12,26 @@ def none_str_to_none(v):
 
 
 class MultiomicsConfig(BaseModel):
-    """Configuration for multiomics analysis combining multiple assays."""
+    """Configuration for multiomics analysis combining multiple assays.
 
-    assays: list[Assay] = Field(
+    This config can be used in two modes:
+    1. File-based mode: Only stores multiomics settings, assay configs discovered from files
+    2. Unified mode: Stores all assay configs and multiomics settings in one place
+    """
+
+    # List of assay names to include (used for validation and config generation)
+    assays: list[str] = Field(
         default_factory=list,
-        description="List of assays to include in multiomics analysis",
+        description="List of assay names to include in multiomics analysis (e.g., ['atac', 'chip', 'rna'])",
     )
+
+    # Optional: store full assay configs (for unified config mode)
+    # This allows a single config_multiomics.yaml to contain everything
+    assay_configs: dict[str, dict] = Field(
+        default_factory=dict,
+        description="Dictionary mapping assay names to their SeqnadoConfig dicts (optional)",
+    )
+
     output_dir: str = Field(
         default="seqnado_output/", description="Output directory for multiomics results"
     )

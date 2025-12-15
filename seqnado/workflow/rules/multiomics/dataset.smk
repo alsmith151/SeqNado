@@ -2,25 +2,27 @@ from seqnado.helpers import define_time_requested, define_memory_requested
 from seqnado.outputs.multiomics import get_assay_bigwigs
 
 
-bigwigs = get_assay_bigwigs(
-    wildcards=None,
-    ASSAYS=ASSAYS,
-    rules=rules
-)
-
 SCALE_RESOURCES = 1
+
+
+def get_bigwigs_for_dataset(wildcards):
+    """Get bigWig files at runtime after assay rules complete."""
+    return get_assay_bigwigs(wildcards, ASSAYS=ASSAYS, rules=rules)
+
 
 rule make_dataset_regions:
     """Create a dataset from bigWig files using either a BED file."""
     input:
-        bigwigs=bigwigs,
+        OUTPUT_DIR + "multiomics_summary.txt",
+        bigwigs=get_bigwigs_for_dataset,
+        assay_outputs=[getattr(rules, f"{assay}_all").input for assay in ASSAYS],
     output:
         dataset=OUTPUT_DIR + "multiomics/dataset/dataset_regions.h5ad",
     params:
         bigwig_dir=OUTPUT_DIR + "multiomics/bigwigs/",
         chromosome_sizes=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["genome"]["chromosome_sizes"],
         blacklist=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["genome"]["blacklist"],
-        regions=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["assay_config"]["dataset_for_ml"]["regions_bed"],
+        regions=lambda wildcards: str(MULTIOMICS_CONFIG.regions_bed) if MULTIOMICS_CONFIG.regions_bed else None,
     threads: 1
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
@@ -48,14 +50,15 @@ rule make_dataset_regions:
 rule make_dataset_binsize:
     """Create a dataset from bigWig files using bin size."""
     input:
-        bigwigs=bigwigs,
+        bigwigs=get_bigwigs_for_dataset,
+        assay_outputs=[getattr(rules, f"{assay}_all").input for assay in ASSAYS],
     output:
         dataset=OUTPUT_DIR + "multiomics/dataset/dataset_bins.h5ad",
     params:
         bigwig_dir=OUTPUT_DIR + "multiomics/bigwigs/",
         chromosome_sizes=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["genome"]["chromosome_sizes"],
         blacklist=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["genome"]["blacklist"],
-        binsize=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["assay_config"]["dataset_for_ml"]["binsize"],
+        binsize=lambda wildcards: MULTIOMICS_CONFIG.binsize if MULTIOMICS_CONFIG.binsize else 1000,
     threads: 1
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),
@@ -70,7 +73,7 @@ rule make_dataset_binsize:
     for bw in {input.bigwigs}; do
         ln -s $(realpath $bw) {params.bigwig_dir}/$(basename $bw)
     done
-    
+
     quantnado-make-dataset \
     --bigwig-dir {params.bigwig_dir} \
     --output-file {output.dataset} \

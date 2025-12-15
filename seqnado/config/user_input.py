@@ -768,3 +768,178 @@ def render_config(
 
     with open(outfile, "w") as f:
         f.write(rendered_content)
+
+
+def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> tuple["MultiomicsConfig", dict[str, SeqnadoConfig]]:
+    """Build multiomics configuration with multiple assays.
+
+    Returns:
+        tuple: (MultiomicsConfig, dict of assay_name -> SeqnadoConfig)
+    """
+    # Import here to avoid circular import
+    from seqnado.config.multiomics import MultiomicsConfig
+
+    logger.info("Building multiomics configuration")
+
+    # Get list of assays to include
+    available_assays = Assay.all_assay_clean_names()
+
+    if interactive:
+        print("\nAvailable assays:")
+        for i, assay in enumerate(available_assays, 1):
+            print(f"  {i}. {assay}")
+
+        assay_selection = get_user_input(
+            "Enter assay numbers separated by commas (e.g., 1,3,5) or assay names (e.g., atac,chip,rna)",
+            required=True
+        )
+
+        # Parse selection
+        selected_assays = []
+        for item in assay_selection.split(','):
+            item = item.strip()
+            # Try as number first
+            try:
+                idx = int(item) - 1
+                if 0 <= idx < len(available_assays):
+                    selected_assays.append(available_assays[idx])
+                else:
+                    logger.warning(f"Skipping invalid selection: {item}")
+            except ValueError:
+                # Try as assay name
+                if item in available_assays:
+                    selected_assays.append(item)
+                else:
+                    logger.warning(f"Skipping unknown assay: {item}")
+
+        if not selected_assays:
+            logger.error("No valid assays selected")
+            sys.exit(1)
+
+        logger.info(f"Selected assays: {', '.join(selected_assays)}")
+
+        # Get multiomics-specific settings
+        output_dir = get_user_input(
+            "Base output directory for all assays",
+            default="seqnado_output/"
+        )
+
+        create_heatmaps = get_user_input(
+            "Generate multiomics heatmaps?",
+            default="yes",
+            is_boolean=True
+        )
+
+        create_dataset = get_user_input(
+            "Generate ML-ready dataset?",
+            default="yes",
+            is_boolean=True
+        )
+
+        create_summary = get_user_input(
+            "Generate summary report?",
+            default="yes",
+            is_boolean=True
+        )
+
+        regions_bed = get_user_input(
+            "BED file with regions of interest (optional, press Enter to skip)",
+            required=False,
+            is_path=False
+        )
+
+        binsize = get_user_input(
+            "Binsize for genome-wide analysis (optional, press Enter to skip)",
+            required=False
+        )
+
+        binsize = int(binsize) if binsize and binsize.isdigit() else None
+
+    else:
+        # Non-interactive mode: use defaults
+        logger.error("Non-interactive multiomics config not yet supported. Please use interactive mode.")
+        sys.exit(1)
+
+    # Build individual assay configs
+    assay_configs = {}
+    for assay_name in selected_assays:
+        assay = Assay.from_clean_name(assay_name)
+        logger.info(f"\n=== Configuring {assay.value} assay ===")
+
+        if interactive:
+            # Ask if user wants to configure this assay now or use defaults
+            configure_now = get_user_input(
+                f"Configure {assay_name} now?",
+                default="yes",
+                is_boolean=True
+            )
+
+            if configure_now:
+                config = build_workflow_config(assay, seqnado_version)
+            else:
+                logger.info(f"Using default configuration for {assay_name}")
+                config = build_default_workflow_config(assay)
+        else:
+            config = build_default_workflow_config(assay)
+
+        assay_configs[assay_name] = config
+
+    # Create MultiomicsConfig
+    multiomics_config = MultiomicsConfig(
+        assays=selected_assays,
+        output_dir=output_dir,
+        create_heatmaps=create_heatmaps,
+        create_dataset=create_dataset,
+        create_summary=create_summary,
+        regions_bed=Path(regions_bed) if regions_bed else None,
+        binsize=binsize
+    )
+
+    return multiomics_config, assay_configs
+
+
+def render_multiomics_configs(
+    multiomics_config: "MultiomicsConfig",
+    assay_configs: dict[str, SeqnadoConfig],
+    template: Path,
+    output_dir: Path,
+) -> List[Path]:
+    """Render all config files for multiomics analysis.
+
+    Args:
+        multiomics_config: The multiomics configuration
+        assay_configs: Dictionary of assay name -> SeqnadoConfig
+        template: Path to the config template file
+        output_dir: Directory to write config files to
+
+    Returns:
+        List of paths to generated config files
+    """
+    # Import here to avoid circular import (for type checking at runtime)
+    from seqnado.config.multiomics import MultiomicsConfig
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    generated_files = []
+
+    # Render individual assay configs
+    for assay_name, config in assay_configs.items():
+        config_file = output_dir / f"config_{assay_name}.yaml"
+        render_config(template, config, config_file, all_options=False)
+        generated_files.append(config_file)
+        logger.success(f"Generated {config_file}")
+
+    # Render multiomics config
+    multiomics_file = output_dir / "config_multiomics.yaml"
+
+    # Create a simple YAML representation of multiomics config
+    multiomics_dict = multiomics_config.model_dump(mode="json", exclude_none=True)
+
+    import yaml
+    with open(multiomics_file, "w") as f:
+        yaml.dump(multiomics_dict, f, default_flow_style=False, sort_keys=False)
+
+    generated_files.append(multiomics_file)
+    logger.success(f"Generated {multiomics_file}")
+
+    return generated_files

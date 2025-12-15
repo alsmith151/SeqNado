@@ -35,6 +35,7 @@ plot_files=OUTPUT.genome_browser_plots
 
 rule generate_plotnado_visualisation:
     input:
+        OUTPUT_DIR + "multiomics_summary.txt",
         data=get_assay_bigwigs,
     output:
         plots=plot_files,
