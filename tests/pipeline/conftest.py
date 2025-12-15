@@ -375,8 +375,6 @@ def multiomics_configs(
     )
 
     # Update generated configs to enable fastq_screen with correct paths
-    import yaml
-
     for assay in multiomics:
         config_file = run_dir / f"config_{assay}.yaml"
         with open(config_file) as f:
