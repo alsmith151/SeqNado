@@ -76,24 +76,5 @@ jobs:
           APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          echo "=== Disk space before test ==="
-          df -h
-
-          # Run test with detailed output
           python -m pytest tests/pipeline/test_multiomics.py -vv -s \
             --cores 4 --run-pipeline --tb=short 2>&1 | tee test_output.log
-
-          # Capture exit code
-          EXIT_CODE=${PIPESTATUS[0]}
-
-          echo "=== Disk space after test ==="
-          df -h
-
-          # Show tail of output if test failed
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "=== Test failed with exit code $EXIT_CODE ==="
-            echo "=== Last 100 lines of output ==="
-            tail -100 test_output.log
-          fi
-
-          exit $EXIT_CODE

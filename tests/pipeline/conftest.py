@@ -291,6 +291,10 @@ def multiomics_configs(
     genome_dir = Path(all_resources[first_assay]["bt2_index"]).parent.parent.resolve()
     test_data_dir = genome_dir.parent.resolve()
 
+    # Also need to bind mount the run directory itself (tmp_path for pytest)
+    # This is especially important in CI environments where tmp paths may be restricted
+    run_dir_resolved = run_dir.resolve()
+
     # Find and update the test profile configuration
     seqnado_paths = [p for p in sys.path if "seqnado" in p and "site-packages" in p]
     if not seqnado_paths:
@@ -323,12 +327,25 @@ def multiomics_configs(
         with open(test_profile_config) as f:
             profile_config = yaml.safe_load(f)
 
-        # Bind mount test_data_dir so genome files are accessible in the container
-        bind_arg = f"--bind {test_data_dir}:{test_data_dir}"
+        # Bind mount both test_data_dir and run_dir
+        bind_args = []
+
+        # Always bind test_data_dir (for genome files)
+        bind_args.append(f"--bind {test_data_dir}:{test_data_dir}")
+
+        # Also bind run_dir if it's different from test_data_dir
+        # This ensures the temporary test directory is accessible in the container
+        if run_dir_resolved != test_data_dir and not str(run_dir_resolved).startswith(str(test_data_dir)):
+            bind_args.append(f"--bind {run_dir_resolved}:{run_dir_resolved}")
+
+        bind_arg = " ".join(bind_args)
+
         if "apptainer-args" in profile_config:
-            # Check if this bind mount is already present
-            if str(test_data_dir) not in profile_config["apptainer-args"]:
-                profile_config["apptainer-args"] += f" {bind_arg}"
+            # Check if these bind mounts are already present
+            existing_args = profile_config["apptainer-args"]
+            for arg in bind_args:
+                if arg not in existing_args:
+                    profile_config["apptainer-args"] += f" {arg}"
         else:
             profile_config["apptainer-args"] = bind_arg
 
