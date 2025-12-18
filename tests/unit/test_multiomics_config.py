@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 
 from seqnado.outputs.multiomics import (
-    MultiomicsOutput,
     find_assay_config_paths,
     none_str_to_none,
 )
 
+from seqnado.config import MultiomicsConfig
 
 class TestNoneStrToNone:
     """Tests for the none_str_to_none validator function."""
@@ -170,31 +170,31 @@ class TestMultiomicsOutput:
 
     def test_default_output_dir(self):
         """Test MultiomicsOutput with default output directory."""
-        output = MultiomicsOutput()
+        output = MultiomicsConfig()
 
         assert output.output_dir == "seqnado_output/"
 
     def test_custom_output_dir(self):
-        """Test MultiomicsOutput with custom output directory."""
-        output = MultiomicsOutput(output_dir="custom_output/")
+        """Test MultiomicsConfig with custom output directory."""
+        output = MultiomicsConfig(output_dir="custom_output/")
 
         assert output.output_dir == "custom_output/"
 
     def test_none_string_converts_to_none(self):
         """Test that 'none' string is converted to None for output_dir."""
-        output = MultiomicsOutput(output_dir="none")
+        output = MultiomicsConfig(output_dir="none")
 
         assert output.output_dir is None
 
     def test_uppercase_none_string_converts_to_none(self):
         """Test that 'NONE' string is converted to None for output_dir."""
-        output = MultiomicsOutput(output_dir="NONE")
+        output = MultiomicsConfig(output_dir="NONE")
 
         assert output.output_dir is None
 
     def test_summary_report_property(self):
         """Test summary_report property returns correct path."""
-        output = MultiomicsOutput(output_dir="test_output/")
+        output = MultiomicsConfig(output_dir="test_output/")
 
         assert output.summary_report == str(
             Path("test_output/") / "multiomics_summary.txt"
@@ -202,21 +202,21 @@ class TestMultiomicsOutput:
 
     def test_heatmap_property(self):
         """Test heatmap property returns correct path."""
-        output = MultiomicsOutput(output_dir="test_output/")
+        output = MultiomicsConfig(output_dir="test_output/")
 
         expected = str(Path("test_output/") / "multiomics" / "heatmap" / "heatmap.pdf")
         assert output.heatmap == expected
 
     def test_metaplot_property(self):
         """Test metaplot property returns correct path."""
-        output = MultiomicsOutput(output_dir="test_output/")
+        output = MultiomicsConfig(output_dir="test_output/")
 
         expected = str(Path("test_output/") / "multiomics" / "heatmap" / "metaplot.pdf")
         assert output.metaplot == expected
 
     def test_all_outputs_property(self):
         """Test all_outputs property returns list of all output files."""
-        output = MultiomicsOutput(output_dir="test_output/")
+        output = MultiomicsConfig(output_dir="test_output/")
 
         all_outputs = output.all_outputs
 
@@ -227,7 +227,7 @@ class TestMultiomicsOutput:
 
     def test_all_outputs_order(self):
         """Test that all_outputs returns files in expected order."""
-        output = MultiomicsOutput(output_dir="test_output/")
+        output = MultiomicsConfig(output_dir="test_output/")
 
         all_outputs = output.all_outputs
 
@@ -237,21 +237,21 @@ class TestMultiomicsOutput:
 
     def test_paths_with_trailing_slash(self):
         """Test that paths work correctly with trailing slash."""
-        output = MultiomicsOutput(output_dir="test_output/")
+        output = MultiomicsConfig(output_dir="test_output/")
 
         assert "test_output/" in output.summary_report
         assert "test_output/" in output.heatmap
 
     def test_paths_without_trailing_slash(self):
         """Test that paths work correctly without trailing slash."""
-        output = MultiomicsOutput(output_dir="test_output")
+        output = MultiomicsConfig(output_dir="test_output")
 
         assert "test_output" in output.summary_report
         assert "test_output" in output.heatmap
 
     def test_relative_paths(self):
         """Test that relative paths work correctly."""
-        output = MultiomicsOutput(output_dir="./results/multiomics/")
+        output = MultiomicsConfig(output_dir="./results/multiomics/")
 
         # Path normalizes ./results to results, so check for the path components
         assert "results/multiomics" in output.summary_report
@@ -259,14 +259,14 @@ class TestMultiomicsOutput:
 
     def test_absolute_paths(self):
         """Test that absolute paths work correctly."""
-        output = MultiomicsOutput(output_dir="/absolute/path/output/")
+        output = MultiomicsConfig(output_dir="/absolute/path/output/")
 
         assert output.summary_report.startswith("/absolute/path/output")
         assert output.heatmap.startswith("/absolute/path/output")
 
     def test_model_is_immutable_after_creation(self):
         """Test that model fields can be accessed after creation."""
-        output = MultiomicsOutput(output_dir="test/")
+        output = MultiomicsConfig(output_dir="test/")
 
         # Properties should work multiple times
         assert output.summary_report == output.summary_report
@@ -276,7 +276,7 @@ class TestMultiomicsOutput:
 
     def test_model_serialization(self):
         """Test that model can be serialized to dict."""
-        output = MultiomicsOutput(output_dir="test_output/")
+        output = MultiomicsConfig(output_dir="test_output/")
 
         data = output.model_dump()
 
@@ -286,13 +286,13 @@ class TestMultiomicsOutput:
     def test_model_from_dict(self):
         """Test that model can be created from dict."""
         data = {"output_dir": "custom/"}
-        output = MultiomicsOutput(**data)
+        output = MultiomicsConfig(**data)
 
         assert output.output_dir == "custom/"
 
     def test_none_output_dir_causes_error(self):
         """Test that None output_dir causes TypeError when accessing path properties."""
-        output = MultiomicsOutput(output_dir=None)
+        output = MultiomicsConfig(output_dir=None)
 
         # Path(None) raises TypeError, so accessing properties should fail
         with pytest.raises(TypeError):
