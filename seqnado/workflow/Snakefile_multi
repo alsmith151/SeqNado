@@ -57,7 +57,7 @@ input_files_per_assay = {
 CONFIGS_PER_ASSAY = {assay: SeqnadoConfig(**yaml.safe_load(open(config_paths[assay]))) for assay in ASSAYS}
 EXAMPLE_CONFIG = CONFIGS_PER_ASSAY[ASSAYS[0]]
 
-seqnado_outputs_per_assay = {
+OUTPUTS_PER_ASSAY = {
     assay: SeqnadoOutputFactory(
         assay=assay,
         samples=input_files_per_assay[assay],
@@ -75,8 +75,11 @@ seqnado_outputs_per_assay = {
 ################################
 
 multiomics_builder = MultiomicsOutputBuilder(
-    output_dir=OUTPUT_DIR, assay_outputs=seqnado_outputs_per_assay
+    output_dir=OUTPUT_DIR, assay_outputs=OUTPUTS_PER_ASSAY
 )
+
+# Add desired multiomics outputs
+multiomics_builder.add_assay_outputs()
 if MULTIOMICS_CONFIG.create_heatmaps:
     multiomics_builder.add_heatmap()
 if MULTIOMICS_CONFIG.create_dataset:

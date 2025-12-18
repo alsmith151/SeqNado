@@ -542,6 +542,13 @@ class MultiomicsOutputBuilder:
             Path(self.output_dir) / "multiomics" / "dataset" / "dataset_bins.h5ad"
         )
         self.file_collections.append(BasicFileCollection(files=[path]))
+    
+    def add_assay_outputs(self) -> None:
+        """Add all assay output files to the multiomics output collection."""
+        for assay, output_files in self.assay_outputs.items():
+            self.file_collections.append(
+                BasicFileCollection(files=output_files.all_files)
+            )
 
     def build(self) -> SeqnadoOutputFiles:
         """Builds the output files collection based on the added file collections."""
