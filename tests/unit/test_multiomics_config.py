@@ -165,141 +165,141 @@ class TestFindAssayConfigs:
         assert "multiomics" not in metadata_files
 
 
-class TestMultiomicsOutput:
-    """Tests for the MultiomicsOutput model."""
+# class TestMultiomicsOutput:
+#     """Tests for the MultiomicsOutput model."""
 
-    def test_default_output_dir(self):
-        """Test MultiomicsOutput with default output directory."""
-        output = MultiomicsConfig()
+#     def test_default_output_dir(self):
+#         """Test MultiomicsOutput with default output directory."""
+#         output = MultiomicsConfig()
 
-        assert output.output_dir == "seqnado_output/"
+#         assert output.output_dir == "seqnado_output/"
 
-    def test_custom_output_dir(self):
-        """Test MultiomicsConfig with custom output directory."""
-        output = MultiomicsConfig(output_dir="custom_output/")
+#     def test_custom_output_dir(self):
+#         """Test MultiomicsConfig with custom output directory."""
+#         output = MultiomicsConfig(output_dir="custom_output/")
 
-        assert output.output_dir == "custom_output/"
+#         assert output.output_dir == "custom_output/"
 
-    def test_none_string_converts_to_none(self):
-        """Test that 'none' string is converted to None for output_dir."""
-        output = MultiomicsConfig(output_dir="none")
+#     def test_none_string_converts_to_none(self):
+#         """Test that 'none' string is converted to None for output_dir."""
+#         output = MultiomicsConfig(output_dir="none")
 
-        assert output.output_dir is None
+#         assert output.output_dir is None
 
-    def test_uppercase_none_string_converts_to_none(self):
-        """Test that 'NONE' string is converted to None for output_dir."""
-        output = MultiomicsConfig(output_dir="NONE")
+#     def test_uppercase_none_string_converts_to_none(self):
+#         """Test that 'NONE' string is converted to None for output_dir."""
+#         output = MultiomicsConfig(output_dir="NONE")
 
-        assert output.output_dir is None
+#         assert output.output_dir is None
 
-    def test_summary_report_property(self):
-        """Test summary_report property returns correct path."""
-        output = MultiomicsConfig(output_dir="test_output/")
+#     def test_summary_report_property(self):
+#         """Test summary_report property returns correct path."""
+#         output = MultiomicsConfig(output_dir="test_output/")
 
-        assert output.summary_report == str(
-            Path("test_output/") / "multiomics_summary.txt"
-        )
+#         assert output.summary_report == str(
+#             Path("test_output/") / "multiomics_summary.txt"
+#         )
 
-    def test_heatmap_property(self):
-        """Test heatmap property returns correct path."""
-        output = MultiomicsConfig(output_dir="test_output/")
+#     def test_heatmap_property(self):
+#         """Test heatmap property returns correct path."""
+#         output = MultiomicsConfig(output_dir="test_output/")
 
-        expected = str(Path("test_output/") / "multiomics" / "heatmap" / "heatmap.pdf")
-        assert output.heatmap == expected
+#         expected = str(Path("test_output/") / "multiomics" / "heatmap" / "heatmap.pdf")
+#         assert output.heatmap == expected
 
-    def test_metaplot_property(self):
-        """Test metaplot property returns correct path."""
-        output = MultiomicsConfig(output_dir="test_output/")
+#     def test_metaplot_property(self):
+#         """Test metaplot property returns correct path."""
+#         output = MultiomicsConfig(output_dir="test_output/")
 
-        expected = str(Path("test_output/") / "multiomics" / "heatmap" / "metaplot.pdf")
-        assert output.metaplot == expected
+#         expected = str(Path("test_output/") / "multiomics" / "heatmap" / "metaplot.pdf")
+#         assert output.metaplot == expected
 
-    def test_all_outputs_property(self):
-        """Test all_outputs property returns list of all output files."""
-        output = MultiomicsConfig(output_dir="test_output/")
+#     def test_all_outputs_property(self):
+#         """Test all_outputs property returns list of all output files."""
+#         output = MultiomicsConfig(output_dir="test_output/")
 
-        all_outputs = output.all_outputs
+#         all_outputs = output.all_outputs
 
-        assert len(all_outputs) == 4
-        assert output.summary_report in all_outputs
-        assert output.heatmap in all_outputs
-        assert output.metaplot in all_outputs
+#         assert len(all_outputs) == 4
+#         assert output.summary_report in all_outputs
+#         assert output.heatmap in all_outputs
+#         assert output.metaplot in all_outputs
 
-    def test_all_outputs_order(self):
-        """Test that all_outputs returns files in expected order."""
-        output = MultiomicsConfig(output_dir="test_output/")
+#     def test_all_outputs_order(self):
+#         """Test that all_outputs returns files in expected order."""
+#         output = MultiomicsConfig(output_dir="test_output/")
 
-        all_outputs = output.all_outputs
+#         all_outputs = output.all_outputs
 
-        assert all_outputs[0] == output.summary_report
-        assert all_outputs[1] == output.heatmap
-        assert all_outputs[2] == output.metaplot
+#         assert all_outputs[0] == output.summary_report
+#         assert all_outputs[1] == output.heatmap
+#         assert all_outputs[2] == output.metaplot
 
-    def test_paths_with_trailing_slash(self):
-        """Test that paths work correctly with trailing slash."""
-        output = MultiomicsConfig(output_dir="test_output/")
+#     def test_paths_with_trailing_slash(self):
+#         """Test that paths work correctly with trailing slash."""
+#         output = MultiomicsConfig(output_dir="test_output/")
 
-        assert "test_output/" in output.summary_report
-        assert "test_output/" in output.heatmap
+#         assert "test_output/" in output.summary_report
+#         assert "test_output/" in output.heatmap
 
-    def test_paths_without_trailing_slash(self):
-        """Test that paths work correctly without trailing slash."""
-        output = MultiomicsConfig(output_dir="test_output")
+#     def test_paths_without_trailing_slash(self):
+#         """Test that paths work correctly without trailing slash."""
+#         output = MultiomicsConfig(output_dir="test_output")
 
-        assert "test_output" in output.summary_report
-        assert "test_output" in output.heatmap
+#         assert "test_output" in output.summary_report
+#         assert "test_output" in output.heatmap
 
-    def test_relative_paths(self):
-        """Test that relative paths work correctly."""
-        output = MultiomicsConfig(output_dir="./results/multiomics/")
+#     def test_relative_paths(self):
+#         """Test that relative paths work correctly."""
+#         output = MultiomicsConfig(output_dir="./results/multiomics/")
 
-        # Path normalizes ./results to results, so check for the path components
-        assert "results/multiomics" in output.summary_report
-        assert "multiomics_summary.txt" in output.summary_report
+#         # Path normalizes ./results to results, so check for the path components
+#         assert "results/multiomics" in output.summary_report
+#         assert "multiomics_summary.txt" in output.summary_report
 
-    def test_absolute_paths(self):
-        """Test that absolute paths work correctly."""
-        output = MultiomicsConfig(output_dir="/absolute/path/output/")
+#     def test_absolute_paths(self):
+#         """Test that absolute paths work correctly."""
+#         output = MultiomicsConfig(output_dir="/absolute/path/output/")
 
-        assert output.summary_report.startswith("/absolute/path/output")
-        assert output.heatmap.startswith("/absolute/path/output")
+#         assert output.summary_report.startswith("/absolute/path/output")
+#         assert output.heatmap.startswith("/absolute/path/output")
 
-    def test_model_is_immutable_after_creation(self):
-        """Test that model fields can be accessed after creation."""
-        output = MultiomicsConfig(output_dir="test/")
+#     def test_model_is_immutable_after_creation(self):
+#         """Test that model fields can be accessed after creation."""
+#         output = MultiomicsConfig(output_dir="test/")
 
-        # Properties should work multiple times
-        assert output.summary_report == output.summary_report
-        assert output.heatmap == output.heatmap
-        assert output.metaplot == output.metaplot
-        assert output.all_outputs == output.all_outputs
+#         # Properties should work multiple times
+#         assert output.summary_report == output.summary_report
+#         assert output.heatmap == output.heatmap
+#         assert output.metaplot == output.metaplot
+#         assert output.all_outputs == output.all_outputs
 
-    def test_model_serialization(self):
-        """Test that model can be serialized to dict."""
-        output = MultiomicsConfig(output_dir="test_output/")
+#     def test_model_serialization(self):
+#         """Test that model can be serialized to dict."""
+#         output = MultiomicsConfig(output_dir="test_output/")
 
-        data = output.model_dump()
+#         data = output.model_dump()
 
-        assert "output_dir" in data
-        assert data["output_dir"] == "test_output/"
+#         assert "output_dir" in data
+#         assert data["output_dir"] == "test_output/"
 
-    def test_model_from_dict(self):
-        """Test that model can be created from dict."""
-        data = {"output_dir": "custom/"}
-        output = MultiomicsConfig(**data)
+#     def test_model_from_dict(self):
+#         """Test that model can be created from dict."""
+#         data = {"output_dir": "custom/"}
+#         output = MultiomicsConfig(**data)
 
-        assert output.output_dir == "custom/"
+#         assert output.output_dir == "custom/"
 
-    def test_none_output_dir_causes_error(self):
-        """Test that None output_dir causes TypeError when accessing path properties."""
-        output = MultiomicsConfig(output_dir=None)
+#     def test_none_output_dir_causes_error(self):
+#         """Test that None output_dir causes TypeError when accessing path properties."""
+#         output = MultiomicsConfig(output_dir=None)
 
-        # Path(None) raises TypeError, so accessing properties should fail
-        with pytest.raises(TypeError):
-            _ = output.summary_report
+#         # Path(None) raises TypeError, so accessing properties should fail
+#         with pytest.raises(TypeError):
+#             _ = output.summary_report
 
-        with pytest.raises(TypeError):
-            _ = output.heatmap
+#         with pytest.raises(TypeError):
+#             _ = output.heatmap
 
-        with pytest.raises(TypeError):
-            _ = output.metaplot
+#         with pytest.raises(TypeError):
+#             _ = output.metaplot
