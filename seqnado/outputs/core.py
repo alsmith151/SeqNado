@@ -526,7 +526,7 @@ class MultiomicsOutputBuilder:
         path = str(Path(self.output_dir) / "multiomics_summary.txt")
         self.file_collections.append(BasicFileCollection(files=[path]))
 
-    def heatmap(self) -> str:
+    def add_heatmap(self) -> str:
         """Path to the multiomics heatmap PDF."""
         path = str(Path(self.output_dir) / "multiomics" / "heatmap" / "heatmap.pdf")
         self.file_collections.append(BasicFileCollection(files=[path]))

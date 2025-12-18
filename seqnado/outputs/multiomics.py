@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, Field
 from seqnado import Assay
@@ -31,31 +31,82 @@ def get_assay_bigwigs(wildcards, rules, ASSAYS) -> list[str]:
     return bigwigs
 
 
-def find_assay_configs(directory: Path) -> tuple[dict, dict]:
-    """Validate the existence of the config and metadata files for each assay.
+
+def find_assay_config_paths(directory: Path) -> dict[Assay, Path]:
+    """
+    Find assay config files in the given directory.
 
     Note: Skips config_multiomics.yaml as it's not an assay-specific config.
+
+    Args:
+        directory (Path): Directory to search for config files.
+    Returns:
+        dict[Assay, Path]: Mapping of Assay to its config file path.
+    
     """
 
-    config_files = {}
-    metadata_files = {}
-
+    paths = dict()
     for config_file in Path(directory).glob("config_*.yaml"):
         assay_name = config_file.stem.replace("config_", "")
+        assay = Assay.from_clean_name(assay_name)
 
         # Skip multiomics config - it's not an assay config
-        if assay_name == "multiomics":
+        if assay == Assay.MULTIOMICS:
             continue
 
-        metadata_file = Path(directory) / f"metadata_{assay_name}.csv"
+        paths[assay] = Path(config_file)
+    return paths
 
-        if not metadata_file.exists():
+
+def find_metadata_paths(directory: Path) -> dict[Assay, Path]:
+    """
+    Find assay metadata files in the given directory.
+
+    Note: Skips metadata_multiomics.csv as it's not an assay-specific metadata.
+
+    Args:
+        directory (Path): Directory to search for metadata files.
+    Returns:
+        dict[Assay, Path]: Mapping of Assay to its metadata file path.
+    
+    """
+
+    paths = dict()
+    for metadata_file in Path(directory).glob("metadata_*.csv"):
+        assay_name = metadata_file.stem.replace("metadata_", "")
+        assay = Assay.from_clean_name(assay_name)
+
+        # Skip multiomics metadata - it's not an assay metadata
+        if assay == Assay.MULTIOMICS:
+            continue
+
+        paths[assay] = Path(metadata_file)
+    return paths
+
+
+def validate_config_and_metadata(
+    config_paths: dict[Assay, Path],
+    metadata_paths: dict[Assay, Path],
+) -> None:
+    """
+    Validate the existence of the config and metadata files for each assay.
+
+    Arguments:
+        config_paths (dict[Assay, Path]): Mapping of Assay to config file path.
+        metadata_paths (dict[Assay, Path]): Mapping of Assay to metadata file path.
+    Raises:
+        FileNotFoundError: If any config or metadata file is missing.
+    """
+    
+    assays = set([*list(config_paths.keys()), *list(metadata_paths.keys())])
+    for assay in assays:
+        if assay not in config_paths:
             raise FileNotFoundError(
-                f"Missing metadata file: {metadata_file}\n"
-                f"Please create it using 'seqnado design {assay_name}'"
+                f"Missing config file for assay {assay.name}.\n"
+                f"Please create it using 'seqnado design {assay.name}'"
             )
-
-        config_files[assay_name] = {"path": str(config_file)}
-        metadata_files[assay_name] = str(metadata_file)
-
-    return config_files, metadata_files
+        if assay not in metadata_paths:
+            raise FileNotFoundError(
+                f"Missing metadata file for assay {assay.name}.\n"
+                f"Please create it using 'seqnado config {assay.name}'"
+            )

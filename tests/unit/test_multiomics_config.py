@@ -6,7 +6,7 @@ import pytest
 
 from seqnado.outputs.multiomics import (
     MultiomicsOutput,
-    find_assay_configs,
+    find_assay_config_paths,
     none_str_to_none,
 )
 
@@ -57,7 +57,7 @@ class TestFindAssayConfigs:
         metadata_file = tmp_path / "metadata_chip.csv"
         metadata_file.write_text("sample,condition\n")
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files, metadata_files = find_assay_config_paths(tmp_path)
 
         assert len(config_files) == 1
         assert len(metadata_files) == 1
@@ -77,7 +77,7 @@ class TestFindAssayConfigs:
             metadata_file = tmp_path / f"metadata_{assay}.csv"
             metadata_file.write_text("sample,condition\n")
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files, metadata_files = find_assay_config_paths(tmp_path)
 
         assert len(config_files) == 3
         assert len(metadata_files) == 3
@@ -95,7 +95,7 @@ class TestFindAssayConfigs:
         config_file.write_text("test: config")
 
         with pytest.raises(FileNotFoundError) as exc_info:
-            find_assay_configs(tmp_path)
+            find_assay_config_paths(tmp_path)
 
         assert "Missing metadata file" in str(exc_info.value)
         assert "metadata_chip.csv" in str(exc_info.value)
@@ -103,7 +103,7 @@ class TestFindAssayConfigs:
 
     def test_empty_directory_returns_empty_dicts(self, tmp_path: Path):
         """Test that empty directory returns empty dictionaries."""
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files, metadata_files = find_assay_config_paths(tmp_path)
 
         assert config_files == {}
         assert metadata_files == {}
@@ -115,7 +115,7 @@ class TestFindAssayConfigs:
         (tmp_path / "settings.yaml").write_text("test: data")
         (tmp_path / "config.yaml").write_text("test: data")  # Missing underscore
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files, metadata_files = find_assay_config_paths(tmp_path)
 
         assert config_files == {}
         assert metadata_files == {}
@@ -128,7 +128,7 @@ class TestFindAssayConfigs:
         metadata_file = tmp_path / "metadata_chip-rx.csv"
         metadata_file.write_text("sample,condition\n")
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files, metadata_files = find_assay_config_paths(tmp_path)
 
         assert "chip-rx" in config_files
         assert "chip-rx" in metadata_files
@@ -143,7 +143,7 @@ class TestFindAssayConfigs:
         (tmp_path / "config_rna.yaml").write_text("test: config")
 
         with pytest.raises(FileNotFoundError) as exc_info:
-            find_assay_configs(tmp_path)
+            find_assay_config_paths(tmp_path)
 
         assert "metadata_rna.csv" in str(exc_info.value)
 
@@ -156,7 +156,7 @@ class TestFindAssayConfigs:
         # Create multiomics config WITHOUT metadata (should not raise error)
         (tmp_path / "config_multiomics.yaml").write_text("test: multiomics config")
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files, metadata_files = find_assay_config_paths(tmp_path)
 
         # Should only find atac, not multiomics
         assert len(config_files) == 1

@@ -3,11 +3,14 @@ from pathlib import Path
 import glob
 import yaml
 
-from seqnado.cli import config
-from seqnado.outputs.multiomics import find_assay_configs, MultiomicsOutput
+from seqnado.cli import config as seqnado_cli_config
+from seqnado.outputs import MultiomicsOutputBuilder, SeqnadoOutputFactory
+from seqnado.outputs.multiomics import (find_metadata_paths, find_assay_config_paths, validate_config_and_metadata)
+from seqnado.config import SeqnadoConfig
 from seqnado.config.multiomics import MultiomicsConfig
 from seqnado.inputs import (
     SampleGroupings,
+    get_sample_collection,
 )
 
 ################################
@@ -15,14 +18,15 @@ from seqnado.inputs import (
 ################################
 
 # Discover available assays
-ASSAY_CONFIGS, METADATA_FILES = find_assay_configs(Path("."))
-ASSAYS = sorted(list(ASSAY_CONFIGS.keys()))
+cwd = Path(".").resolve()
+config_paths = find_assay_config_paths(cwd)
+metadata_paths = find_metadata_paths(cwd)
+validate_config_and_metadata(config_paths, metadata_paths)
 
-if not ASSAYS:
-    raise ValueError(
-        "No config_*.yaml files found in the current directory. "
-        "Please create config files using 'seqnado config <assay>'"
-    )
+# Global variables for workflow
+ASSAYS = sorted(list(config_paths.keys()), key=lambda x: x.clean_name)
+ASSAY_CONFIGS = config_paths
+
 
 ################################
 # Configuration
@@ -47,17 +51,19 @@ OUTPUT_DIR = MULTIOMICS_CONFIG.output_dir
 # Based on the individual assays build outputs
 ################################################
 input_files_per_assay = {
-    assay: get_sample_collection(assay=assay, path=ASSAY_CONFIGS[assay].metadata)
+    assay: get_sample_collection(assay=assay, path=metadata_paths[assay])
     for assay in ASSAYS
 }
-configs_per_assay = {assay: ASSAY_CONFIGS[assay] for assay in ASSAYS}
+CONFIGS_PER_ASSAY = {assay: SeqnadoConfig(**yaml.safe_load(open(config_paths[assay]))) for assay in ASSAYS}
+EXAMPLE_CONFIG = CONFIGS_PER_ASSAY[ASSAYS[0]]
+
 seqnado_outputs_per_assay = {
     assay: SeqnadoOutputFactory(
         assay=assay,
         samples=input_files_per_assay[assay],
-        config=configs_per_assay[assay],
+        config=CONFIGS_PER_ASSAY[assay],
         sample_groupings=SampleGroupings(),
-        output_dir=config.get("output_dir", f"seqnado_output/{assay.clean_name}"),
+        output_dir=f"seqnado_output/{assay.clean_name}",
     )
     .create_output_builder()
     .build()
@@ -72,7 +78,7 @@ multiomics_builder = MultiomicsOutputBuilder(
     output_dir=OUTPUT_DIR, assay_outputs=seqnado_outputs_per_assay
 )
 if MULTIOMICS_CONFIG.create_heatmaps:
-    multiomics_builder.add_heatmaps()
+    multiomics_builder.add_heatmap()
 if MULTIOMICS_CONFIG.create_dataset:
     multiomics_builder.add_multiomics_dataset()
 if MULTIOMICS_CONFIG.create_summary:

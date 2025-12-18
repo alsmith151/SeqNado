@@ -3,7 +3,7 @@ def get_assay_all_inputs():
     """Get all inputs from assay-specific 'all' rules."""
     inputs = []
     for assay in ASSAYS:
-        rule_name = f"{assay}_all"
+        rule_name = f"{assay.clean_name}_all"
         inputs.append(getattr(rules, rule_name).input)
     return inputs
 
