@@ -88,6 +88,7 @@ if MULTIOMICS_CONFIG.create_summary:
     multiomics_builder.add_summary_report()
 
 MULTIOMICS_OUTPUT = multiomics_builder.build()
+print(MULTIOMICS_OUTPUT.all_files)
 
 
 ################################

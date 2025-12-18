@@ -22,9 +22,10 @@ rule multiomics_summary:
             f.write("=" * 70 + "\n\n")
             f.write("Run Directory: " + str(Path.cwd()) + "\n")
             f.write(f"Total assays: {len(ASSAYS)}\n")
-            f.write(f"Assays: {', '.join(ASSAYS)}\n\n")
+            f.write(f"Assays: {', '.join([assay.clean_name for assay in ASSAYS])}\n\n")
 
             for assay in ASSAYS:
+                assay = assay.clean_name
                 f.write(f"\n{assay.upper()}\n")
                 f.write("-" * 50 + "\n")
                 f.write(f"  Config:   config_{assay}.yaml\n")
