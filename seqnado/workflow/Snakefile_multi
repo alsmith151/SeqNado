@@ -82,6 +82,7 @@ multiomics_builder = MultiomicsOutputBuilder(
 multiomics_builder.add_assay_outputs()
 if MULTIOMICS_CONFIG.create_heatmaps:
     multiomics_builder.add_heatmap()
+    multiomics_builder.add_metaplot()
 if MULTIOMICS_CONFIG.create_dataset:
     multiomics_builder.add_multiomics_dataset()
 if MULTIOMICS_CONFIG.create_summary:
