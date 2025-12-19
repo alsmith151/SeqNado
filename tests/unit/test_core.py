@@ -46,7 +46,6 @@ class TestAssayEnum:
         """Test all_assays class method returns all assays."""
         assays = Assay.all_assays()
         assert isinstance(assays, list)
-        assert len(assays) == 8
         assert Assay.RNA in assays
         assert Assay.ATAC in assays
 
@@ -60,6 +59,7 @@ class TestAssayEnum:
         assert Assay.METH.clean_name == "meth"
         assert Assay.MCC.clean_name == "mcc"
         assert Assay.CRISPR.clean_name == "crispr"
+        assert Assay.MULTIOMICS.clean_name == "multiomics"
 
     def test_clean_name_unknown_assay_raises_error(self):
         """Test clean_name raises error for unmapped assay."""
@@ -80,6 +80,7 @@ class TestAssayEnum:
         assert Assay.from_clean_name("rna") == Assay.RNA
         assert Assay.from_clean_name("atac") == Assay.ATAC
         assert Assay.from_clean_name("chip") == Assay.CHIP
+        assert Assay.from_clean_name("multiomics") == Assay.MULTIOMICS
 
     def test_from_clean_name_invalid_raises_error(self):
         """Test from_clean_name raises error for invalid name."""
@@ -92,7 +93,7 @@ class TestAssayEnum:
         assert "rna" in clean_names
         assert "atac" in clean_names
         assert "chip" in clean_names
-        assert len(clean_names) == 8
+        assert len(clean_names) == len(Assay)
 
     def test_non_ip_assays(self):
         """Test non_ip_assays returns assays without IP requirement."""

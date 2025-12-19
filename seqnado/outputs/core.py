@@ -93,7 +93,7 @@ class SeqnadoOutputFiles(BaseModel):
                 if f.endswith(".bigWig")
                 and (method.value in f)
                 and (scale.value in f)
-                and (assay.value in f)
+                and (assay.value.lower() in f.lower())
             ]
         else:
             return [
