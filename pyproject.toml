@@ -18,25 +18,26 @@ requires-python = ">=3.10"
 license = {file = "LICENSE"}
 dynamic = ["version"]
 dependencies = [
-    "click",
-    "cookiecutter",
-    "pandas",
-    "pandera",
-    "pexpect",
+    "click<=8.3.1",
+    "cookiecutter<=2.6.0",
+    "numpy<=2.3.5",
+    "pandas<=2.3.3",
+    "pandera<=0.27.0",
+    "pexpect<=4.9.0",
     "pulp<=3.3.0",
-    "pydantic",
-    "pyyaml",
-    "rich",
-    "seaborn",
-    "snakemake-wrapper-utils",
-    "snakemake>=9.12.0,<10",
-    "tracknado",
-    "typer",
-    "wget",
+    "pydantic<=2.12.5",
+    "pyyaml<=6.0.3",
+    "rich<=14.2.0",
+    "seaborn<=0.13.2",
+    "snakemake-wrapper-utils<=0.8.0",
+    "snakemake>=9.12.0,<=9.14.5",
+    "tracknado<=0.2.4",
+    "typer<=0.20.0",
+    "wget<=3.2",
 ]
 
 [project.optional-dependencies]
-slurm = ["snakemake-executor-plugin-slurm"]
+slurm = ["snakemake-executor-plugin-slurm<=2.0.3"]
 
 [project.scripts]
 seqnado = "seqnado.cli:app"
