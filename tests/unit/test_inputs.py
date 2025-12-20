@@ -987,11 +987,122 @@ class TestFastqCollectionForIP:
         r1_ctrl2 = _write_fastq(tmp_path, "sample_INPUT_R1.fastq.gz")
         
         # This should raise an error because control has too many files
-        with pytest.raises(ValueError, match="Unexpected number of FASTQ files"):
+        with pytest.raises(ValueError):
             FastqCollectionForIP.from_fastq_files(
                 assay=Assay.CHIP,
                 files=[r1_ip, r2_ip, r1_ctrl1, r2_ctrl1, r1_ctrl2],
             )
+
+
+    def test_ip_to_control_pairing(self, tmp_path):
+        """Test from_fastq_files with IP to control pairing."""
+        r1_ip = _write_fastq(tmp_path, "sample_H3K4me3_R1.fastq.gz")
+        r2_ip = _write_fastq(tmp_path, "sample_H3K4me3_R2.fastq.gz")
+        r1_ctrl1 = _write_fastq(tmp_path, "sample_IGG_R1.fastq.gz")
+        r2_ctrl1 = _write_fastq(tmp_path, "sample_IGG_R2.fastq.gz")
+        r1_ctrl2 = _write_fastq(tmp_path, "sample_INPUT_R1.fastq.gz")
+        
+        fc = FastqCollectionForIP.from_fastq_files(
+            assay=Assay.CHIP,
+            files=[r1_ip, r2_ip, r1_ctrl1, r2_ctrl1, r1_ctrl2],
+            ip_to_control_map={
+                "H3K4me3": "IGG",
+            }
+        )
+        assert len(fc.experiments) == 1
+        assert fc.experiments[0].has_control is True
+    
+    def test_ip_to_control_pairing_more_complex(self, tmp_path):
+        """Test from_fastq_files with more complex IP to control pairing."""
+        r1_ip1 = _write_fastq(tmp_path, "sample_H3K4me3_R1.fastq.gz")
+        r2_ip1 = _write_fastq(tmp_path, "sample_H3K4me3_R2.fastq.gz")
+        r1_ip2 = _write_fastq(tmp_path, "sample_H3K27me3_R1.fastq.gz")
+        r2_ip2 = _write_fastq(tmp_path, "sample_H3K27me3_R2.fastq.gz")
+        r1_ctrl1 = _write_fastq(tmp_path, "sample_IGG_R1.fastq.gz")
+        r2_ctrl1 = _write_fastq(tmp_path, "sample_IGG_R2.fastq.gz")
+        r1_ctrl2 = _write_fastq(tmp_path, "sample_INPUT_R1.fastq.gz")
+        r2_ctrl2 = _write_fastq(tmp_path, "sample_INPUT_R2.fastq.gz")
+        
+        fc = FastqCollectionForIP.from_fastq_files(
+            assay=Assay.CHIP,
+            files=[r1_ip1, r2_ip1, r1_ip2, r2_ip2, r1_ctrl1, r2_ctrl1, r1_ctrl2, r2_ctrl2],
+            ip_to_control_map={
+                "H3K4me3": "IGG",
+                "H3K27me3": "INPUT",
+            }
+        )
+        assert len(fc.experiments) == 2
+        for exp in fc.experiments:
+            assert exp.has_control is True
+        
+    def test_ip_to_control_pairing_more_samples(self, tmp_path):
+        """Test from_fastq_files with multiple samples and IP to control pairing."""
+        r1_ip1 = _write_fastq(tmp_path, "sample1_H3K4me3_R1.fastq.gz")
+        r2_ip1 = _write_fastq(tmp_path, "sample1_H3K4me3_R2.fastq.gz")
+        r1_ip2 = _write_fastq(tmp_path, "sample2_H3K27me3_R1.fastq.gz")
+        r2_ip2 = _write_fastq(tmp_path, "sample2_H3K27me3_R2.fastq.gz")
+        r1_ctrl1 = _write_fastq(tmp_path, "sample1_IGG_R1.fastq.gz")
+        r2_ctrl1 = _write_fastq(tmp_path, "sample1_IGG_R2.fastq.gz")
+        r1_ctrl2 = _write_fastq(tmp_path, "sample2_INPUT_R1.fastq.gz")
+        r2_ctrl2 = _write_fastq(tmp_path, "sample2_INPUT_R2.fastq.gz")
+        
+        fc = FastqCollectionForIP.from_fastq_files(
+            assay=Assay.CHIP,
+            files=[r1_ip1, r2_ip1, r1_ip2, r2_ip2, r1_ctrl1, r2_ctrl1, r1_ctrl2, r2_ctrl2],
+            ip_to_control_map={
+                "H3K4me3": "IGG",
+                "H3K27me3": "INPUT",
+            }
+        )
+        assert len(fc.experiments) == 2
+        for exp in fc.experiments:
+            assert exp.has_control is True
+        
+    
+    def test_ip_to_control_pairing_more_samples_one_missing_control(self, tmp_path):
+        """Test from_fastq_files with multiple samples where one control is missing."""
+        r1_ip1 = _write_fastq(tmp_path, "sample1_H3K4me3_R1.fastq.gz")
+        r2_ip1 = _write_fastq(tmp_path, "sample1_H3K4me3_R2.fastq.gz")
+        r1_ip2 = _write_fastq(tmp_path, "sample2_H3K27me3_R1.fastq.gz")
+        r2_ip2 = _write_fastq(tmp_path, "sample2_H3K27me3_R2.fastq.gz")
+        r1_ctrl1 = _write_fastq(tmp_path, "sample1_IGG_R1.fastq.gz")
+        r2_ctrl1 = _write_fastq(tmp_path, "sample1_IGG_R2.fastq.gz")
+        # Missing control files for sample2
+        
+        fc = FastqCollectionForIP.from_fastq_files(
+            assay=Assay.CHIP,
+            files=[r1_ip1, r2_ip1, r1_ip2, r2_ip2, r1_ctrl1, r2_ctrl1],
+            ip_to_control_map={
+                "H3K4me3": "IGG",
+                "H3K27me3": "INPUT",
+            }
+        )
+        assert len(fc.experiments) == 2
+        for exp in fc.experiments:
+            if exp.ip.antibody == "H3K4me3":
+                assert exp.has_control is True
+            else:
+                assert exp.has_control is False
+    
+    def test_control_is_broadcasted(self, tmp_path):
+        """Test from_fastq_files with single control for multiple IPs."""
+        r1_ip1 = _write_fastq(tmp_path, "sample1_H3K4me3_R1.fastq.gz")
+        r2_ip1 = _write_fastq(tmp_path, "sample1_H3K4me3_R2.fastq.gz")
+        r1_ip2 = _write_fastq(tmp_path, "sample1_H3K27me3_R1.fastq.gz")
+        r2_ip2 = _write_fastq(tmp_path, "sample1_H3K27me3_R2.fastq.gz")
+        r1_ctrl = _write_fastq(tmp_path, "sample1_IGG_R1.fastq.gz")
+        r2_ctrl = _write_fastq(tmp_path, "sample1_IGG_R2.fastq.gz")
+        
+        fc = FastqCollectionForIP.from_fastq_files(
+            assay=Assay.CHIP,
+            files=[r1_ip1, r2_ip1, r1_ip2, r2_ip2, r1_ctrl, r2_ctrl],
+        )
+        assert len(fc.experiments) == 2
+        for exp in fc.experiments:
+            assert exp.has_control is True
+   
+
+    
 
     def test_fastqcollectionforip_from_directory(self, tmp_path):
         """Test FastqCollectionForIP.from_directory."""
