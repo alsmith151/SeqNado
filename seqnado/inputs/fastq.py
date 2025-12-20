@@ -416,7 +416,7 @@ class FastqCollection(BaseFastqCollection):
             return next(fs for fs in self.fastq_sets if fs.sample_id == sample_name)
         except StopIteration:
             raise ValueError(f"Sample '{sample_name}' not found in SampleCollection")
-    
+
     def is_paired_end(self, uid: str) -> bool:
         """
         Check if the given sample ID is paired-end.
@@ -521,13 +521,13 @@ class FastqCollection(BaseFastqCollection):
             rows.append(row)
 
         df = pd.DataFrame(rows).sort_values("sample_id").set_index("uid")
-        
+
         # Define column order: critical columns first (assay, sample info, files), then other metadata
         core_cols = ["assay", "sample_id", "r1", "r2"]
         metadata_cols = [col for col in df.columns if col not in core_cols]
         ordered_cols = core_cols + sorted(metadata_cols)
         df = df[[col for col in ordered_cols if col in df.columns]]
-        
+
         if validate:
             return DataFrame[DesignDataFrame](df)
         else:
@@ -563,6 +563,56 @@ class FastqCollection(BaseFastqCollection):
             metadata.append(Metadata(**meta_fields))
 
         return cls(assay=assay, fastq_sets=fastq_sets, metadata=metadata)
+
+
+def create_experiments_from_fastqs(
+    ip_list: list[FastqFileIP],
+    ctrl_list: list[FastqFileIP],
+    name: str,
+    **exp_kwargs: Any,
+) -> ExperimentIP:
+    """
+    Create an ExperimentIP from lists of IP and control FastqFileIP objects.
+    Args:
+        ip_list: List of FastqFileIP for the IP sample (1 or 2 files).
+        ctrl_list: List of FastqFileIP for the control sample (0, 1, or 2 files).
+        name: Base sample name for the experiment.
+        exp_kwargs: Additional fields for ExperimentIP.
+    Returns:
+        ExperimentIP object with populated IP and control FastqSetIP.
+    """
+
+    n_ip_fastqs = len(ip_list)
+    n_control_fastqs = len(ctrl_list)
+
+    match (n_ip_fastqs, n_control_fastqs):
+        case 0, _:
+            raise ValueError(f"No IP FASTQ files found for sample '{name}'")
+        case ((1 | 2), 0):
+            ip_set = FastqSetIP(
+                sample_id=name,
+                r1=ip_list[0],
+                r2=ip_list[1] if len(ip_list) > 1 else None,
+            )
+            ctrl_set = None
+        case ((1 | 2), (1 | 2)):
+            ip_set = FastqSetIP(
+                sample_id=name,
+                r1=ip_list[0],
+                r2=ip_list[1] if len(ip_list) > 1 else None,
+            )
+            ctrl_set = FastqSetIP(
+                sample_id=name,
+                r1=ctrl_list[0],
+                r2=ctrl_list[1] if len(ctrl_list) > 1 else None,
+            )
+
+        case _:
+            raise ValueError(
+                f"Unexpected number of FASTQ files for sample '{name}': "
+                f"IP files={n_ip_fastqs}, control files={n_control_fastqs}"
+            )
+    return ExperimentIP(ip=ip_set, control=ctrl_set, **exp_kwargs)
 
 
 class FastqCollectionForIP(BaseFastqCollection):
@@ -704,12 +754,12 @@ class FastqCollectionForIP(BaseFastqCollection):
             # If it's a control sample, return itself
             if exp.has_control and exp.control_fullname == uid:
                 return exp.control_fullname
-        
+
         # Fallback to DataFrame lookup
         df = self.to_dataframe()
         if uid in df.index:
             return df.loc[uid, "control"]
-        
+
         raise KeyError(f"Sample '{uid}' not found in FastqCollectionForIP")
 
     def is_paired_end(self, uid: str) -> bool:
@@ -726,12 +776,12 @@ class FastqCollectionForIP(BaseFastqCollection):
             # Check if it's the control sample
             if exp.has_control and exp.control_fullname == uid:
                 return exp.control.is_paired
-        
+
         # Fallback: try DataFrame lookup (for backwards compatibility)
         df = self.to_dataframe()
         if uid in df.index:
             return df.loc[uid, "r2"] is not None
-        
+
         raise KeyError(f"Sample '{uid}' not found in FastqCollectionForIP")
 
     def query(
@@ -764,6 +814,7 @@ class FastqCollectionForIP(BaseFastqCollection):
         assay: Assay,
         files: Iterable[str | Path],
         metadata: Callable[[str], Metadata] | Metadata | None = None,
+        ip_to_control_map: dict[str, str] | None = None,
         **exp_kwargs: Any,
     ) -> FastqCollectionForIP:
         """
@@ -778,16 +829,17 @@ class FastqCollectionForIP(BaseFastqCollection):
                 - Callable(sample_name) → Metadata to customize per-sample metadata.
                 - Single Metadata instance applied to all.
                 - None → defaults to Metadata().
+            ip_to_control_map: Optional mapping from IP antibody names to control antibody names.
             exp_kwargs: Extra fields forwarded to IPExperiment constructor.
         """
         # Convert and sort
-        ips: list[FastqFileIP] = [FastqFileIP(path=Path(f)) for f in files]
+        fastqs: list[FastqFileIP] = [FastqFileIP(path=Path(f)) for f in files]
 
         # Bucket by sample_base_without_ip
         buckets: dict[str, dict[str, list[FastqFileIP]]] = defaultdict(
             lambda: {"ip": [], "control": []}
         )
-        for f in ips:
+        for f in fastqs:
             key = f.sample_base_without_ip
             side = "control" if f.is_control else "ip"
             buckets[key][side].append(f)
@@ -804,31 +856,57 @@ class FastqCollectionForIP(BaseFastqCollection):
             elif not ip_list and ctrl_list:
                 ip_list = ctrl_list
                 ctrl_list = []
-            elif len(ip_list) > 2 or len(ctrl_list) > 2:
-                raise ValueError(
-                    f"Unexpected number of FASTQ files for '{name}': "
-                    f"IP={len(ip_list)}, Control={len(ctrl_list)}"
-                )
 
-            ip_set = FastqSetIP(
-                sample_id=name,
-                r1=ip_list[0],
-                r2=ip_list[1] if len(ip_list) > 1 else None,
-            )
-            ctrl_set = (
-                FastqSetIP(
-                    sample_id=name,
-                    r1=ctrl_list[0],
-                    r2=ctrl_list[1] if len(ctrl_list) > 1 else None,
-                )
-                if ctrl_list
-                else None
-            )
+            # Build ExperimentIP
+            n_ip_fastqs = len(ip_list)
+            n_ctrl_fastqs = len(ctrl_list)
 
-            experiments.append(ExperimentIP(ip=ip_set, control=ctrl_set, **exp_kwargs))
+            if n_ip_fastqs <= 2 and n_ctrl_fastqs <= 2:
+                # Simple case, only two files exist from the same condition, just pair them up if the controls exist
+                # if not create empty control
+                exp = create_experiments_from_fastqs(ip_list, ctrl_list, name, **exp_kwargs)
+                experiments.append(exp)
+                 # Build Metadata using base class method
+                _metadata.append(cls._build_metadata(name, metadata, assay))
+            else:
+                # Complex case, more than 2 files exist for either IP or control.
+                # Likely same condition by muliple antibodies
+                ip_groups: dict[str, list[FastqFileIP]] = defaultdict(list)
+                ctrl_groups: dict[str, list[FastqFileIP]] = defaultdict(list)
+                for f in ip_list:
+                    ip_groups[f.ip].append(f)
+                
+                # If we have a mapping from IP to control, use it to group controls
+                if ip_to_control_map:
+                    for f in ctrl_list:
+                        for ip_ab, ctrl_ab in ip_to_control_map.items():
+                            if f.ip == ctrl_ab:
+                                ctrl_groups[ip_ab].append(f)
+                
+                # We don't have a mapping, this is fine if we have a single control.
+                # In this case we will assign the same control to all IPs
+                # If multiple controls exist without a mapping, raise an error, we can't disambiguate
+                # Will warn the user to provide a mapping
+                elif len(ctrl_list) > 2:
+                    raise ValueError(
+                        f"Multiple control FASTQ files found for sample '{name}' without a mapping from IP to control."
+                        f" Please provide an IP to control mapping to allow for correct assignment of controls to IPs."
+                        f" Hint: IP antibodies {set([f.ip for f in ip_list])} control antibodies: {set([f.ip for f in ctrl_list])}"
+                        f" If using seqnado CLI, provide the mapping via the --ip-to-control flag 'IP1:CTRL1,IP2:CTRL2"
+                        f" e.g., --ip-to-control {ip_list[0].ip}:{ctrl_list[0].ip}"
+                    )
+                else:
+                    for f in ctrl_list:
+                        for ip_ab in ip_groups.keys():
+                            ctrl_groups[ip_ab].append(f)
+                
+                for ip_ab, ip_files in ip_groups.items():
+                    ctrl_files = ctrl_groups.get(ip_ab, [])
+                    exp = create_experiments_from_fastqs(ip_files, ctrl_files, name, **exp_kwargs)
+                    experiments.append(exp)
+                     # Build Metadata using base class method
+                    _metadata.append(cls._build_metadata(name, metadata, assay))
 
-            # Build Metadata using base class method
-            _metadata.append(cls._build_metadata(name, metadata, assay))
 
         return cls(assay=assay, experiments=experiments, metadata=_metadata)
 
@@ -869,7 +947,7 @@ class FastqCollectionForIP(BaseFastqCollection):
                 "sample_id": base,
                 # IP/control labels
                 "ip": exp.ip_performed,
-                "control": exp.control_fullname if exp.has_control else None,
+                "control": exp.control_performed if exp.has_control else None,
                 "uid": f"{base}_{exp.ip_performed}",
                 # IP reads
                 "r1": exp.ip.r1.path,
@@ -884,13 +962,22 @@ class FastqCollectionForIP(BaseFastqCollection):
             rows.append(row)
 
         df = pd.DataFrame(rows).sort_values("sample_id").set_index("uid")
-        
+
         # Define column order: critical columns first (assay, sample info, IP info, files), then other metadata
-        core_cols = ["assay", "sample_id", "ip", "control", "r1", "r2", "r1_control", "r2_control"]
+        core_cols = [
+            "assay",
+            "sample_id",
+            "ip",
+            "control",
+            "r1",
+            "r2",
+            "r1_control",
+            "r2_control",
+        ]
         metadata_cols = [col for col in df.columns if col not in core_cols]
         ordered_cols = core_cols + sorted(metadata_cols)
         df = df[[col for col in ordered_cols if col in df.columns]]
-        
+
         return DataFrame[DesignDataFrame](df)
 
     @classmethod
@@ -900,7 +987,7 @@ class FastqCollectionForIP(BaseFastqCollection):
         """
         Build a FastqCollectionForIP from a DataFrame.
 
-        Expects columns: sample_id, r1, r2 (optional), r1_control (optional), 
+        Expects columns: sample_id, r1, r2 (optional), r1_control (optional),
         r2_control (optional), ip, control (optional), plus any metadata fields.
         """
         df = DesignDataFrame.validate(df)

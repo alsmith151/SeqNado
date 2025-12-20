@@ -63,6 +63,11 @@ class Assay(Enum):
         """Return a list of all clean names for assays."""
         return [assay.clean_name for assay in cls]
 
+    @classmethod
+    def non_multiomics_assays(cls):
+        """Return assays that are not multiomics."""
+        return [assay for assay in cls if assay != cls.MULTIOMICS]
+
 
     @classmethod
     def non_ip_assays(cls):
