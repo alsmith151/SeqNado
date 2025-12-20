@@ -16,6 +16,7 @@ from seqnado import (
 )
 from seqnado.core import AssaysWithHeatmaps, AssaysWithSpikein, AssaysWithPeakCalling
 from seqnado.inputs import FastqCollection, FastqCollectionForIP, SampleGroups, BamCollection, BigWigCollection
+from seqnado.config.configs import QCConfig
 
 
 class FileCollection(Protocol):
@@ -31,6 +32,7 @@ class BasicFileCollection(BaseModel):
 class QCFiles(BaseModel):
     assay: Assay
     samples: FastqCollection | FastqCollectionForIP | BamCollection | BigWigCollection
+    config: QCConfig = QCConfig()
     output_dir: str = "seqnado_output"
 
     @property
@@ -45,7 +47,7 @@ class QCFiles(BaseModel):
 
     @property
     def fastqscreen_files(self) -> list[str]:
-        if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)):
+        if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)) and self.config.run_fastq_screen:
             return expand(
                 f"{self.output_dir}/qc/fastq_screen/{{sample}}_{{read}}_screen.html",
                 sample=self.samples.sample_names,
