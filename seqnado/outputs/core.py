@@ -16,11 +16,11 @@ from seqnado.inputs import (
     SampleGroupings,
 )
 from seqnado.outputs.files import (
+    BasicFileCollection,
     BigBedFiles,
     BigWigFiles,
     ContactFiles,
     FileCollection,
-    BasicFileCollection,
     GeoSubmissionFiles,
     HeatmapFiles,
     HubFiles,
@@ -257,7 +257,10 @@ class SeqnadoOutputBuilder:
         """Add quality control files to the output collection."""
 
         qc_files = QCFiles(
-            assay=self.assay, samples=self.samples, output_dir=self.output_dir
+            assay=self.assay,
+            samples=self.samples,
+            output_dir=self.output_dir,
+            config=self.config.qc,
         )
         self.file_collections.append(qc_files)
 
@@ -512,7 +515,7 @@ class MultiomicsOutputBuilder:
             bws = output_files.bigwig_files
             bigwigs.extend(bws)
         self.file_collections.append(BasicFileCollection(files=bigwigs))
-    
+
     def add_assay_peaks(self) -> list[str]:
         """Get all peak files from assay-specific 'all' rules."""
         peaks = []
@@ -542,7 +545,7 @@ class MultiomicsOutputBuilder:
             Path(self.output_dir) / "multiomics" / "dataset" / "dataset_bins.h5ad"
         )
         self.file_collections.append(BasicFileCollection(files=[path]))
-    
+
     def add_assay_outputs(self) -> None:
         """Add all assay output files to the multiomics output collection."""
         for assay, output_files in self.assay_outputs.items():
