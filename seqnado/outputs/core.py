@@ -73,21 +73,34 @@ class SeqnadoOutputFiles(BaseModel):
         self,
         method: PileupMethod = PileupMethod.DEEPTOOLS,
         scale: DataScalingTechnique = DataScalingTechnique.UNSCALED,
+        assay: Assay | None = None,
     ):
         """Select bigWig files of a specific subtype.
 
         Args:
             method (PileupMethod): The pileup method to filter by.
             scale (ScaleMethod): The scale method to filter by.
+            assay (Assay, optional): The assay type to filter by. Defaults to None.
 
         Returns:
             List[str]: A list of bigWig files matching the specified subtype.
         """
-        return [
-            f
-            for f in self.files
-            if f.endswith(".bigWig") and (method.value in f) and (scale.value in f)
-        ]
+
+        if assay is not None:
+            return [
+                f
+                for f in self.files
+                if f.endswith(".bigWig")
+                and (method.value in f)
+                and (scale.value in f)
+                and (assay.value.lower() in f.lower())
+            ]
+        else:
+            return [
+                f
+                for f in self.files
+                if f.endswith(".bigWig") and (method.value in f) and (scale.value in f)
+            ]
 
     @property
     def peak_files(self):
@@ -287,10 +300,12 @@ class SeqnadoOutputBuilder:
                     output_dir=self.output_dir,
                 )
                 self.file_collections.append(bigwig_files)
-    
+
     def add_mcc_sentinel_pileup_files(self) -> None:
         """Add MCC sentinel files to the output collection."""
-        bigwigs = [Path(self.output_dir) / "bigwigs/mcc/.mcc_bigwigs_generated.txt", ]
+        bigwigs = [
+            Path(self.output_dir) / "bigwigs/mcc/.mcc_bigwigs_generated.txt",
+        ]
         sentinel_files = BasicFileCollection(files=[str(bw) for bw in bigwigs])
         self.file_collections.append(sentinel_files)
 
@@ -475,6 +490,75 @@ class SeqnadoOutputBuilder:
             files=all_files,
             sample_names=self.samples.sample_names,
             sample_groups=self.sample_groupings,
+        )
+
+
+class MultiomicsOutputBuilder:
+    """Defines the output files for multiomics analysis."""
+
+    def __init__(
+        self,
+        output_dir: Path | None = None,
+        assay_outputs: dict[Assay, SeqnadoOutputFiles] | None = None,
+    ):
+        self.output_dir = output_dir or Path("seqnado_output")
+        self.assay_outputs = assay_outputs or {}
+        self.file_collections: list[FileCollection] = []
+
+    def add_assay_bigwigs(self) -> list[str]:
+        """Get all bigwigs from assay-specific 'all' rules."""
+        bigwigs = []
+        for assay, output_files in self.assay_outputs.items():
+            bws = output_files.bigwig_files
+            bigwigs.extend(bws)
+        self.file_collections.append(BasicFileCollection(files=bigwigs))
+    
+    def add_assay_peaks(self) -> list[str]:
+        """Get all peak files from assay-specific 'all' rules."""
+        peaks = []
+        for assay, output_files in self.assay_outputs.items():
+            pks = output_files.peak_files
+            peaks.extend(pks)
+        self.file_collections.append(BasicFileCollection(files=peaks))
+
+    def add_summary_report(self) -> str:
+        """Path to the multiomics summary report."""
+        path = str(Path(self.output_dir) / "multiomics_summary.txt")
+        self.file_collections.append(BasicFileCollection(files=[path]))
+
+    def add_heatmap(self) -> str:
+        """Path to the multiomics heatmap PDF."""
+        path = str(Path(self.output_dir) / "multiomics" / "heatmap" / "heatmap.pdf")
+        self.file_collections.append(BasicFileCollection(files=[path]))
+
+    def add_metaplot(self) -> str:
+        """Path to the multiomics metaplot PDF."""
+        path = str(Path(self.output_dir) / "multiomics" / "heatmap" / "metaplot.pdf")
+        self.file_collections.append(BasicFileCollection(files=[path]))
+
+    def add_multiomics_dataset(self) -> str:
+        """Get the output directory."""
+        path = str(
+            Path(self.output_dir) / "multiomics" / "dataset" / "dataset_bins.h5ad"
+        )
+        self.file_collections.append(BasicFileCollection(files=[path]))
+    
+    def add_assay_outputs(self) -> None:
+        """Add all assay output files to the multiomics output collection."""
+        for assay, output_files in self.assay_outputs.items():
+            self.file_collections.append(
+                BasicFileCollection(files=output_files.all_files)
+            )
+
+    def build(self) -> SeqnadoOutputFiles:
+        """Builds the output files collection based on the added file collections."""
+        all_files = list(
+            chain.from_iterable(p.files for p in self.file_collections if p.files)
+        )
+        return SeqnadoOutputFiles(
+            files=all_files,
+            sample_names=[],
+            sample_groups=None,
         )
 
 

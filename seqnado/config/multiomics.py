@@ -53,5 +53,5 @@ class MultiomicsConfig(BaseModel):
         description="BED file with regions of interest for multiomics analysis",
     )
     binsize: int | None = Field(
-        default=None, description="Bin size for genome-wide multiomics analysis"
+        default=1000, description="Bin size for genome-wide multiomics analysis"
     )

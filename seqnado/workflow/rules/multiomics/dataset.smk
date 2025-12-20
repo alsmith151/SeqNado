@@ -34,15 +34,14 @@ rule make_dataset_regions:
 rule make_dataset_binsize:
     """Create a dataset from bigWig files using bin size."""
     input:
-        bigwigs=get_bigwigs_for_dataset,
-        assay_outputs=[getattr(rules, f"{assay}_all").input for assay in ASSAYS],
+        bigwigs=MULTIOMICS_OUTPUT.bigwig_files,
     output:
         dataset=OUTPUT_DIR + "multiomics/dataset/dataset_bins.h5ad",
     params:
         bigwig_dir=OUTPUT_DIR + "multiomics/bigwigs/",
-        chromosome_sizes=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["genome"]["chromosome_sizes"],
-        blacklist=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["genome"]["blacklist"],
-        binsize=lambda wildcards: MULTIOMICS_CONFIG.binsize if MULTIOMICS_CONFIG.binsize else 1000,
+        chromosome_sizes=EXAMPLE_CONFIG.genome.chromosome_sizes,
+        blacklist=EXAMPLE_CONFIG.genome.blacklist,
+        binsize=MULTIOMICS_CONFIG.binsize,
     threads: 1
     resources:
             mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),

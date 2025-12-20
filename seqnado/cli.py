@@ -18,7 +18,7 @@ import click
 import typer
 from loguru import logger
 
-from seqnado.outputs.multiomics import find_assay_configs
+from seqnado.outputs.multiomics import find_assay_config_paths
 
 # Optional: prettier tracebacks/console with rich if available
 try:
@@ -1246,7 +1246,7 @@ def pipeline(
     extra_args = list(ctx.args)
 
     # Check for Multiomic mode before requiring assay argument
-    config_files, _ = find_assay_configs(Path("."))
+    config_files = find_assay_config_paths(Path("."))
     use_multiomics = len(config_files) > 1 and not config_file and not assay
 
     # Debug: check if assay looks like a flag (starts with -)
@@ -1283,7 +1283,7 @@ def pipeline(
         logger.info(
             f"Multiomic mode detected: found {len(config_files)} config files"
         )
-        logger.info(f"Assays: {', '.join(config_files.keys())}")
+        logger.info(f"Assays: {', '.join([assay.name for assay in config_files])}")
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile_multi")
         config_file = None  # Multiomic mode doesn't use --configfile
     else:

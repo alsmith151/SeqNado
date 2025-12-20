@@ -23,6 +23,7 @@ class Assay(Enum):
     METH = "METH"
     MCC = "MCC"
     CRISPR = "CRISPR"
+    MULTIOMICS = "MULTIOMICS"
 
     @classmethod
     def all_assays(cls):
@@ -41,6 +42,7 @@ class Assay(Enum):
             self.METH: "meth",
             self.MCC: "mcc",
             self.CRISPR: "crispr",
+            self.MULTIOMICS: "multiomics",
         }
         
         if self in short_names:

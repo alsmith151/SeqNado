@@ -10,11 +10,12 @@ rule multiomics_heatmap_matrix:
         matrix=OUTPUT_DIR + "multiomics/heatmap/heatmap_matrix.mat.gz",
     params:
         # Use GTF from the first assay config (assuming shared genome)
-        gtf=lambda wildcards: LOADED_CONFIGS[ASSAYS[0]]["genome"]["gtf"],
-        options=lambda wildcards: str(LOADED_CONFIGS[ASSAYS[0]].get("third_party_tools", {}).get("deeptools", {}).get("compute_matrix", {}).get("command_line_arguments", "")),
+        gtf=EXAMPLE_CONFIG.genome.gtf,
+        # options=lambda wildcards: str(LOADED_CONFIGS[ASSAYS[0]].get("third_party_tools", {}).get("deeptools", {}).get("compute_matrix", {}).get("command_line_arguments", "")),
+        options=EXAMPLE_CONFIG.third_party_tools.deeptools.compute_matrix.command_line_arguments,
         # Collect bigWig files at runtime after assay rules complete
-        bigwigs=lambda wildcards: get_assay_bigwigs(wildcards, ASSAYS=ASSAYS, rules=rules),
-    threads: lambda wildcards: LOADED_CONFIGS[ASSAYS[0]].get("third_party_tools", {}).get("deeptools", {}).get("compute_matrix", {}).get("threads", 8)
+        bigwigs=MULTIOMICS_OUTPUT.bigwig_files,
+    threads: EXAMPLE_CONFIG.third_party_tools.deeptools.compute_matrix.threads,
     resources:
         runtime=lambda wildcards, attempt: f"{1 * 2**attempt}h",
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=1),
@@ -39,7 +40,7 @@ rule multiomics_heatmap_plot:
     output:
         heatmap=OUTPUT_DIR + "multiomics/heatmap/heatmap.pdf",
     params:
-        options=lambda wildcards: str(LOADED_CONFIGS[ASSAYS[0]].get("third_party_tools", {}).get("deeptools", {}).get("plot_heatmap", {}).get("command_line_arguments", "")),
+        options=EXAMPLE_CONFIG.third_party_tools.deeptools.plot_heatmap.command_line_arguments,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=1),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
