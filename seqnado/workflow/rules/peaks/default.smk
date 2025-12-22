@@ -84,6 +84,7 @@ rule macs2_with_input:
         ),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
+        narrow_peak=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
     threads: 1
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(
@@ -105,7 +106,7 @@ rule macs2_with_input:
     if ! macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1; then
         touch {output.peaks}
     else
-        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
+        awk 'BEGIN{{OFS="\\t"}} !/^#/ && !/^chr[[:space:]]+start[[:space:]]+end/ && !/^$/ {{print $1, $2, $3}}' {params.narrow_peak} > {output.peaks} 2>> {log}
     fi
     """
 
@@ -123,6 +124,7 @@ rule macs2_no_input:
         ),
         raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
         basename=lambda wc, output: output.peaks.replace(".bed", ""),
+        narrow_peak=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
     threads: 1
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(
@@ -144,7 +146,7 @@ rule macs2_no_input:
     if ! macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1; then
         touch {output.peaks}
     else
-        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
+        awk 'BEGIN{{OFS="\\t"}} !/^#/ && !/^chr[[:space:]]+start[[:space:]]+end/ && !/^$/ {{print $1, $2, $3}}' {params.narrow_peak} > {output.peaks} 2>> {log}
     fi
     """
 
