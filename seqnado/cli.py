@@ -18,7 +18,7 @@ import click
 import typer
 from loguru import logger
 
-from seqnado.outputs.multiomics import find_assay_configs
+from seqnado.outputs.multiomics import find_assay_config_paths
 
 # Optional: prettier tracebacks/console with rich if available
 try:
@@ -971,6 +971,26 @@ def config(
 # -------------------------------- design ------------------------------------ #
 
 
+def _parse_ip_to_control_pairings(
+    pairing_str: str,
+) -> dict[str, str]:
+    """
+    Parse ip-to-control pairings from a string of the form:
+    'antibody1:control1,antibody2:control2'
+    """
+    pairings = {}
+    for pair in pairing_str.split(","):
+        try:
+            ip, control = pair.split(":")
+            pairings[ip.strip()] = control.strip()
+        except ValueError:
+            logger.error(
+                f"Invalid ip-to-control pairing format: '{pair}'. Expected 'antibody:control'."
+            )
+            raise typer.Exit(code=2)
+    return pairings
+
+
 @app.command(
     help="Generate a SeqNado design CSV from FASTQ files for ASSAY. If no assay is provided, multiomics mode is used."
 )
@@ -992,6 +1012,13 @@ def design(
         "-o",
         "--output",
         help="Output CSV filename (default: metadata_{assay}.csv).",
+    ),
+    ip_to_control: Optional[str] = typer.Option(
+        None,
+        "--ip-to-control",
+        help="""List of antibody,control pairings for IP assays (e.g. ChIP). Format: 'antibody1:control1,antibody2:control2'
+        If provided will assign a control with a specified name to that ip in the metadata. If not provided, controls will be assigned based on a best-effort matching of sample names.
+        """,
     ),
     group_by: bool = typer.Option(
         False, "--group-by", help="Group samples by a regular expression or a column."
@@ -1024,8 +1051,14 @@ def design(
     from seqnado.inputs import FastqCollection, FastqCollectionForIP
     from seqnado.inputs.validation import DesignDataFrame
 
+    # Parse ip-to-control pairings
+    ip_to_control_map: dict[str, str] = {}
+    if ip_to_control:
+        ip_to_control_map = _parse_ip_to_control_pairings(ip_to_control)
+
+
     # Handle multiomics mode
-    if assay is None or assay.lower() == "multiomics":
+    if assay is None or assay == Assay.MULTIOMICS.clean_name:
         logger.info(
             "Multiomics mode: searching for assay-specific fastq subdirectories"
         )
@@ -1068,7 +1101,9 @@ def design(
             # Create design object
             if _assay in {AssayEnum.CHIP, AssayEnum.CAT}:
                 design_obj = FastqCollectionForIP.from_fastq_files(
-                    assay=_assay, files=fastq_files
+                    assay=_assay,
+                    files=fastq_files,
+                    ip_to_control_map=ip_to_control_map,
                 )
             else:
                 design_obj = FastqCollection.from_fastq_files(
@@ -1101,7 +1136,7 @@ def design(
         return
 
     # Regular single-assay mode
-    if assay not in AssayEnum.all_assay_clean_names():
+    elif assay in Assay.non_multiomics_assays():
         allowed = ", ".join(AssayEnum.all_assay_clean_names())
         logger.error(f"Unknown assay '{assay}'. Allowed: {allowed} or 'multiomics'")
         raise typer.Exit(code=2)
@@ -1133,7 +1168,9 @@ def design(
 
     if _assay in {AssayEnum.CHIP, AssayEnum.CAT}:
         design_obj = FastqCollectionForIP.from_fastq_files(
-            assay=_assay, files=fastq_paths
+            assay=_assay, 
+            files=fastq_paths,
+            ip_to_control_map=ip_to_control_map,
         )
     else:
         design_obj = FastqCollection.from_fastq_files(assay=_assay, files=fastq_paths)
@@ -1246,7 +1283,7 @@ def pipeline(
     extra_args = list(ctx.args)
 
     # Check for Multiomic mode before requiring assay argument
-    config_files, _ = find_assay_configs(Path("."))
+    config_files = find_assay_config_paths(Path("."))
     use_multiomics = len(config_files) > 1 and not config_file and not assay
 
     # Debug: check if assay looks like a flag (starts with -)
@@ -1280,10 +1317,8 @@ def pipeline(
 
     if use_multiomics:
         # Multiomic mode: use Snakefile_multi
-        logger.info(
-            f"Multiomic mode detected: found {len(config_files)} config files"
-        )
-        logger.info(f"Assays: {', '.join(config_files.keys())}")
+        logger.info(f"Multiomic mode detected: found {len(config_files)} config files")
+        logger.info(f"Assays: {', '.join([assay.name for assay in config_files])}")
         snake_trav = pkg_root_trav.joinpath("workflow").joinpath("Snakefile_multi")
         config_file = None  # Multiomic mode doesn't use --configfile
     else:

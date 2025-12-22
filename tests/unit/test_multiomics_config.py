@@ -4,12 +4,15 @@ from pathlib import Path
 
 import pytest
 
+from seqnado import Assay
 from seqnado.outputs.multiomics import (
-    MultiomicsOutput,
-    find_assay_configs,
+    find_assay_config_paths,
+    find_metadata_paths,
+    validate_config_and_metadata,
     none_str_to_none,
 )
 
+from seqnado.config import MultiomicsConfig
 
 class TestNoneStrToNone:
     """Tests for the none_str_to_none validator function."""
@@ -57,14 +60,16 @@ class TestFindAssayConfigs:
         metadata_file = tmp_path / "metadata_chip.csv"
         metadata_file.write_text("sample,condition\n")
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files = find_assay_config_paths(tmp_path)
+        metadata_files = find_metadata_paths(tmp_path)
 
         assert len(config_files) == 1
+        assert Assay.CHIP in config_files
+        assert config_files[Assay.CHIP] == Path(config_file)
+        
         assert len(metadata_files) == 1
-        assert "chip" in config_files
-        assert "chip" in metadata_files
-        assert config_files["chip"]["path"] == str(config_file)
-        assert metadata_files["chip"] == str(metadata_file)
+        assert Assay.CHIP in metadata_files
+        assert metadata_files[Assay.CHIP] == Path(metadata_file)
 
     def test_finds_multiple_assay_configs(self, tmp_path: Path):
         """Test finding multiple assay configs and metadata pairs."""
@@ -77,16 +82,18 @@ class TestFindAssayConfigs:
             metadata_file = tmp_path / f"metadata_{assay}.csv"
             metadata_file.write_text("sample,condition\n")
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files = find_assay_config_paths(tmp_path)
+        metadata_files = find_metadata_paths(tmp_path)
 
         assert len(config_files) == 3
         assert len(metadata_files) == 3
 
-        for assay in assays:
+        for assay_name in assays:
+            assay = Assay.from_clean_name(assay_name)
             assert assay in config_files
             assert assay in metadata_files
-            assert config_files[assay]["path"] == str(tmp_path / f"config_{assay}.yaml")
-            assert metadata_files[assay] == str(tmp_path / f"metadata_{assay}.csv")
+            assert config_files[assay] == tmp_path / f"config_{assay_name}.yaml"
+            assert metadata_files[assay] == tmp_path / f"metadata_{assay_name}.csv"
 
     def test_raises_error_when_metadata_missing(self, tmp_path: Path):
         """Test that FileNotFoundError is raised when metadata file is missing."""
@@ -94,16 +101,19 @@ class TestFindAssayConfigs:
         config_file = tmp_path / "config_chip.yaml"
         config_file.write_text("test: config")
 
+        config_files = find_assay_config_paths(tmp_path)
+        metadata_files = find_metadata_paths(tmp_path)
+
         with pytest.raises(FileNotFoundError) as exc_info:
-            find_assay_configs(tmp_path)
+            validate_config_and_metadata(config_files, metadata_files)
 
         assert "Missing metadata file" in str(exc_info.value)
-        assert "metadata_chip.csv" in str(exc_info.value)
-        assert "seqnado design chip" in str(exc_info.value)
+        assert "CHIP" in str(exc_info.value)
 
     def test_empty_directory_returns_empty_dicts(self, tmp_path: Path):
         """Test that empty directory returns empty dictionaries."""
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files = find_assay_config_paths(tmp_path)
+        metadata_files = find_metadata_paths(tmp_path)
 
         assert config_files == {}
         assert metadata_files == {}
@@ -115,23 +125,21 @@ class TestFindAssayConfigs:
         (tmp_path / "settings.yaml").write_text("test: data")
         (tmp_path / "config.yaml").write_text("test: data")  # Missing underscore
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files = find_assay_config_paths(tmp_path)
+        metadata_files = find_metadata_paths(tmp_path)
 
         assert config_files == {}
         assert metadata_files == {}
 
-    def test_handles_assay_names_with_hyphens(self, tmp_path: Path):
-        """Test handling assay names with hyphens."""
+    def test_raises_error_for_unknown_assay_names(self, tmp_path: Path):
+        """Test that unknown assay names raise ValueError."""
         config_file = tmp_path / "config_chip-rx.yaml"
         config_file.write_text("test: config")
 
-        metadata_file = tmp_path / "metadata_chip-rx.csv"
-        metadata_file.write_text("sample,condition\n")
-
-        config_files, metadata_files = find_assay_configs(tmp_path)
-
-        assert "chip-rx" in config_files
-        assert "chip-rx" in metadata_files
+        with pytest.raises(ValueError) as exc_info:
+            find_assay_config_paths(tmp_path)
+        
+        assert "Unknown clean name: chip-rx" in str(exc_info.value)
 
     def test_partial_configs_raise_error(self, tmp_path: Path):
         """Test that having some configs with metadata and some without raises error."""
@@ -142,10 +150,14 @@ class TestFindAssayConfigs:
         # Create second config without metadata
         (tmp_path / "config_rna.yaml").write_text("test: config")
 
-        with pytest.raises(FileNotFoundError) as exc_info:
-            find_assay_configs(tmp_path)
+        config_files = find_assay_config_paths(tmp_path)
+        metadata_files = find_metadata_paths(tmp_path)
 
-        assert "metadata_rna.csv" in str(exc_info.value)
+        with pytest.raises(FileNotFoundError) as exc_info:
+            validate_config_and_metadata(config_files, metadata_files)
+
+        assert "Missing metadata file" in str(exc_info.value)
+        assert "RNA" in str(exc_info.value)
 
     def test_skips_multiomics_config(self, tmp_path: Path):
         """Test that config_multiomics.yaml is skipped and doesn't require metadata."""
@@ -156,150 +168,55 @@ class TestFindAssayConfigs:
         # Create multiomics config WITHOUT metadata (should not raise error)
         (tmp_path / "config_multiomics.yaml").write_text("test: multiomics config")
 
-        config_files, metadata_files = find_assay_configs(tmp_path)
+        config_files = find_assay_config_paths(tmp_path)
+        metadata_files = find_metadata_paths(tmp_path)
 
         # Should only find atac, not multiomics
         assert len(config_files) == 1
-        assert "atac" in config_files
-        assert "multiomics" not in config_files
-        assert "multiomics" not in metadata_files
+        assert Assay.ATAC in config_files
+        assert Assay.MULTIOMICS not in config_files
+        assert Assay.MULTIOMICS not in metadata_files
 
 
-class TestMultiomicsOutput:
-    """Tests for the MultiomicsOutput model."""
+class TestMultiomicsConfig:
+    """Tests for the MultiomicsConfig model."""
 
     def test_default_output_dir(self):
-        """Test MultiomicsOutput with default output directory."""
-        output = MultiomicsOutput()
+        """Test MultiomicsConfig with default output directory."""
+        config = MultiomicsConfig()
 
-        assert output.output_dir == "seqnado_output/"
+        assert config.output_dir == "seqnado_output/"
 
     def test_custom_output_dir(self):
-        """Test MultiomicsOutput with custom output directory."""
-        output = MultiomicsOutput(output_dir="custom_output/")
+        """Test MultiomicsConfig with custom output directory."""
+        config = MultiomicsConfig(output_dir="custom_output/")
 
-        assert output.output_dir == "custom_output/"
+        assert config.output_dir == "custom_output/"
 
-    def test_none_string_converts_to_none(self):
-        """Test that 'none' string is converted to None for output_dir."""
-        output = MultiomicsOutput(output_dir="none")
+    def test_default_binsize(self):
+        """Test MultiomicsConfig with default binsize."""
+        config = MultiomicsConfig()
+        assert config.binsize == 1000
 
-        assert output.output_dir is None
-
-    def test_uppercase_none_string_converts_to_none(self):
-        """Test that 'NONE' string is converted to None for output_dir."""
-        output = MultiomicsOutput(output_dir="NONE")
-
-        assert output.output_dir is None
-
-    def test_summary_report_property(self):
-        """Test summary_report property returns correct path."""
-        output = MultiomicsOutput(output_dir="test_output/")
-
-        assert output.summary_report == str(
-            Path("test_output/") / "multiomics_summary.txt"
-        )
-
-    def test_heatmap_property(self):
-        """Test heatmap property returns correct path."""
-        output = MultiomicsOutput(output_dir="test_output/")
-
-        expected = str(Path("test_output/") / "multiomics" / "heatmap" / "heatmap.pdf")
-        assert output.heatmap == expected
-
-    def test_metaplot_property(self):
-        """Test metaplot property returns correct path."""
-        output = MultiomicsOutput(output_dir="test_output/")
-
-        expected = str(Path("test_output/") / "multiomics" / "heatmap" / "metaplot.pdf")
-        assert output.metaplot == expected
-
-    def test_all_outputs_property(self):
-        """Test all_outputs property returns list of all output files."""
-        output = MultiomicsOutput(output_dir="test_output/")
-
-        all_outputs = output.all_outputs
-
-        assert len(all_outputs) == 4
-        assert output.summary_report in all_outputs
-        assert output.heatmap in all_outputs
-        assert output.metaplot in all_outputs
-
-    def test_all_outputs_order(self):
-        """Test that all_outputs returns files in expected order."""
-        output = MultiomicsOutput(output_dir="test_output/")
-
-        all_outputs = output.all_outputs
-
-        assert all_outputs[0] == output.summary_report
-        assert all_outputs[1] == output.heatmap
-        assert all_outputs[2] == output.metaplot
-
-    def test_paths_with_trailing_slash(self):
-        """Test that paths work correctly with trailing slash."""
-        output = MultiomicsOutput(output_dir="test_output/")
-
-        assert "test_output/" in output.summary_report
-        assert "test_output/" in output.heatmap
-
-    def test_paths_without_trailing_slash(self):
-        """Test that paths work correctly without trailing slash."""
-        output = MultiomicsOutput(output_dir="test_output")
-
-        assert "test_output" in output.summary_report
-        assert "test_output" in output.heatmap
-
-    def test_relative_paths(self):
-        """Test that relative paths work correctly."""
-        output = MultiomicsOutput(output_dir="./results/multiomics/")
-
-        # Path normalizes ./results to results, so check for the path components
-        assert "results/multiomics" in output.summary_report
-        assert "multiomics_summary.txt" in output.summary_report
-
-    def test_absolute_paths(self):
-        """Test that absolute paths work correctly."""
-        output = MultiomicsOutput(output_dir="/absolute/path/output/")
-
-        assert output.summary_report.startswith("/absolute/path/output")
-        assert output.heatmap.startswith("/absolute/path/output")
-
-    def test_model_is_immutable_after_creation(self):
-        """Test that model fields can be accessed after creation."""
-        output = MultiomicsOutput(output_dir="test/")
-
-        # Properties should work multiple times
-        assert output.summary_report == output.summary_report
-        assert output.heatmap == output.heatmap
-        assert output.metaplot == output.metaplot
-        assert output.all_outputs == output.all_outputs
+    def test_custom_binsize(self):
+        """Test MultiomicsConfig with custom binsize."""
+        config = MultiomicsConfig(binsize=500)
+        assert config.binsize == 500
 
     def test_model_serialization(self):
         """Test that model can be serialized to dict."""
-        output = MultiomicsOutput(output_dir="test_output/")
+        config = MultiomicsConfig(output_dir="test_output/")
 
-        data = output.model_dump()
+        data = config.model_dump()
 
         assert "output_dir" in data
         assert data["output_dir"] == "test_output/"
+        assert data["binsize"] == 1000
 
     def test_model_from_dict(self):
         """Test that model can be created from dict."""
-        data = {"output_dir": "custom/"}
-        output = MultiomicsOutput(**data)
+        data = {"output_dir": "custom/", "binsize": 200}
+        config = MultiomicsConfig(**data)
 
-        assert output.output_dir == "custom/"
-
-    def test_none_output_dir_causes_error(self):
-        """Test that None output_dir causes TypeError when accessing path properties."""
-        output = MultiomicsOutput(output_dir=None)
-
-        # Path(None) raises TypeError, so accessing properties should fail
-        with pytest.raises(TypeError):
-            _ = output.summary_report
-
-        with pytest.raises(TypeError):
-            _ = output.heatmap
-
-        with pytest.raises(TypeError):
-            _ = output.metaplot
+        assert config.output_dir == "custom/"
+        assert config.binsize == 200

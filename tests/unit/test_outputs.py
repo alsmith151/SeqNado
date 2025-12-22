@@ -14,7 +14,7 @@ from seqnado import (
     QuantificationMethod,
     SNPCallingMethod,
 )
-from seqnado.config.configs import BigwigConfig, GenomeConfig, STARIndex
+from seqnado.config.configs import BigwigConfig, GenomeConfig, STARIndex, QCConfig
 from seqnado.config.core import ATACAssayConfig, SeqnadoConfig
 from seqnado.inputs.bam import BamCollection, BamFile
 from seqnado.inputs.bigwigs import BigWigCollection, BigWigFile
@@ -212,6 +212,30 @@ class TestQCFiles:
 
         files = qc.files
         assert files == []
+
+    def test_qc_files_no_fastq_screen(self, tmp_path):
+        """Test QCFiles does not include fastq_screen files when disabled."""
+        samples = _create_fastq_collection(tmp_path, ["sample1"], Assay.ATAC)
+        
+        # Create QCConfig with run_fastq_screen=False
+        qc_config = QCConfig(run_fastq_screen=False)
+        
+        qc = QCFiles(assay=Assay.ATAC, samples=samples, config=qc_config)
+
+        files = qc.files
+        assert all("fastq_screen" not in f for f in files)
+
+    def test_qc_files_with_fastq_screen(self, tmp_path):
+        """Test QCFiles includes fastq_screen files when enabled."""
+        samples = _create_fastq_collection(tmp_path, ["sample1"], Assay.ATAC)
+        
+        # Create QCConfig with run_fastq_screen=True
+        qc_config = QCConfig(run_fastq_screen=True)
+        
+        qc = QCFiles(assay=Assay.ATAC, samples=samples, config=qc_config)
+
+        files = qc.files
+        assert any("fastq_screen" in f for f in files)
 
     # Removed test_default_files_property: QCFiles no longer has default_files property
 
@@ -884,6 +908,35 @@ class TestSeqnadoOutputFilesCore:
         )
         assert len(result) == 1
         assert "deeptools" in result[0] and "unscaled" in result[0]
+
+    def test_select_bigwig_subtype_with_assay(self):
+        """Test select_bigwig_subtype method with assay filter."""
+        from seqnado.outputs.core import SeqnadoOutputFiles
+
+        files = [
+            "output/bigwigs/deeptools/unscaled/atac/sample1.bigWig",
+            "output/bigwigs/deeptools/unscaled/RNA/sample1.bigWig",
+            "output/bigwigs/deeptools/unscaled/chip/sample1.bigWig",
+        ]
+        output = SeqnadoOutputFiles(files=files, sample_names=["sample1"])
+
+        # Filter for ATAC
+        result = output.select_bigwig_subtype(
+            method=PileupMethod.DEEPTOOLS, 
+            scale=DataScalingTechnique.UNSCALED,
+            assay=Assay.ATAC
+        )
+        assert len(result) == 1
+        assert Assay.ATAC.value.lower() in result[0].lower()
+
+        # Filter for RNA
+        result = output.select_bigwig_subtype(
+            method=PileupMethod.DEEPTOOLS, 
+            scale=DataScalingTechnique.UNSCALED,
+            assay=Assay.RNA
+        )
+        assert len(result) == 1
+        assert "RNA" in result[0]
 
     def test_bigbed_files_property(self):
         """Test bigbed_files property."""

@@ -23,6 +23,7 @@ class Assay(Enum):
     METH = "METH"
     MCC = "MCC"
     CRISPR = "CRISPR"
+    MULTIOMICS = "MULTIOMICS"
 
     @classmethod
     def all_assays(cls):
@@ -41,6 +42,7 @@ class Assay(Enum):
             self.METH: "meth",
             self.MCC: "mcc",
             self.CRISPR: "crispr",
+            self.MULTIOMICS: "multiomics",
         }
         
         if self in short_names:
@@ -60,6 +62,11 @@ class Assay(Enum):
     def all_assay_clean_names(cls):
         """Return a list of all clean names for assays."""
         return [assay.clean_name for assay in cls]
+
+    @classmethod
+    def non_multiomics_assays(cls):
+        """Return assays that are not multiomics."""
+        return [assay for assay in cls if assay != cls.MULTIOMICS]
 
 
     @classmethod

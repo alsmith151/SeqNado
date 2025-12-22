@@ -3,23 +3,30 @@ from pathlib import Path
 import glob
 import yaml
 
-from seqnado.cli import config
-from seqnado.outputs.multiomics import find_assay_configs, MultiomicsOutput
+from seqnado.cli import config as seqnado_cli_config
+from seqnado.outputs import MultiomicsOutputBuilder, SeqnadoOutputFactory
+from seqnado.outputs.multiomics import (find_metadata_paths, find_assay_config_paths, validate_config_and_metadata)
+from seqnado.config import SeqnadoConfig
 from seqnado.config.multiomics import MultiomicsConfig
+from seqnado.inputs import (
+    SampleGroupings,
+    get_sample_collection,
+)
 
 ################################
 # Auto-detect assay configs
 ################################
 
 # Discover available assays
-ASSAY_CONFIGS, METADATA_FILES = find_assay_configs(Path("."))
-ASSAYS = sorted(list(ASSAY_CONFIGS.keys()))
+cwd = Path(".").resolve()
+config_paths = find_assay_config_paths(cwd)
+metadata_paths = find_metadata_paths(cwd)
+validate_config_and_metadata(config_paths, metadata_paths)
 
-if not ASSAYS:
-    raise ValueError(
-        "No config_*.yaml files found in the current directory. "
-        "Please create config files using 'seqnado config <assay>'"
-    )
+# Global variables for workflow
+ASSAYS = sorted(list(config_paths.keys()), key=lambda x: x.clean_name)
+ASSAY_CONFIGS = config_paths
+
 
 ################################
 # Configuration
@@ -28,7 +35,7 @@ if not ASSAYS:
 # Load multiomics config if it exists
 MULTIOMICS_CONFIG_PATH = Path("config_multiomics.yaml")
 if MULTIOMICS_CONFIG_PATH.exists():
-    with open(MULTIOMICS_CONFIG_PATH, 'r') as f:
+    with open(MULTIOMICS_CONFIG_PATH, "r") as f:
         multiomics_config_dict = yaml.safe_load(f)
     MULTIOMICS_CONFIG = MultiomicsConfig(**multiomics_config_dict)
     print(f"[Multiomic Mode] Loaded multiomics config: {MULTIOMICS_CONFIG_PATH}")
@@ -39,20 +46,76 @@ else:
 
 OUTPUT_DIR = MULTIOMICS_CONFIG.output_dir
 
+
+################################################
+# Based on the individual assays build outputs
+################################################
+input_files_per_assay = {
+    assay: get_sample_collection(assay=assay, path=metadata_paths[assay])
+    for assay in ASSAYS
+}
+CONFIGS_PER_ASSAY = {assay: SeqnadoConfig(**yaml.safe_load(open(config_paths[assay]))) for assay in ASSAYS}
+EXAMPLE_CONFIG = CONFIGS_PER_ASSAY[ASSAYS[0]]
+
+OUTPUTS_PER_ASSAY = {
+    assay: SeqnadoOutputFactory(
+        assay=assay,
+        samples=input_files_per_assay[assay],
+        config=CONFIGS_PER_ASSAY[assay],
+        sample_groupings=SampleGroupings(),
+        output_dir=f"seqnado_output/{assay.clean_name}",
+    )
+    .create_output_builder()
+    .build()
+    for assay in ASSAYS
+}
+
+################################
+# Define Multiomics Outputs
+################################
+
+multiomics_builder = MultiomicsOutputBuilder(
+    output_dir=OUTPUT_DIR, assay_outputs=OUTPUTS_PER_ASSAY
+)
+
+# Add desired multiomics outputs
+multiomics_builder.add_assay_outputs()
+if MULTIOMICS_CONFIG.create_heatmaps:
+    multiomics_builder.add_heatmap()
+    multiomics_builder.add_metaplot()
+if MULTIOMICS_CONFIG.create_dataset:
+    multiomics_builder.add_multiomics_dataset()
+if MULTIOMICS_CONFIG.create_summary:
+    multiomics_builder.add_summary_report()
+
+MULTIOMICS_OUTPUT = multiomics_builder.build()
+
+
+################################
+# Set-Up Workflow
+################################
+
 # Snakemake provides the 'workflow' object - access cores from command line -c flag
-CORES = workflow.cores if hasattr(workflow, 'cores') else 1
+CORES = workflow.cores if hasattr(workflow, "cores") else 1
 CORES_PER_ASSAY = max(1, CORES // len(ASSAYS)) if ASSAYS else CORES
 
 # Get workflow arguments from config (passed by seqnado CLI)
 # workflow.config_settings.config is the dict containing config values
-WORKFLOW_ARGS = workflow.config_settings.config.get('workflow_args', '--rerun-incomplete --printshellcmds')
+WORKFLOW_ARGS = workflow.config_settings.config.get(
+    "workflow_args", "--rerun-incomplete --printshellcmds"
+)
 
 
+################################
+# Include assay-specific rules
+################################
 include: "rules/multiomics/all.smk"
 
-MULTIOMICS_OUTPUT = MultiomicsOutput(output_dir=OUTPUT_DIR)
 
+########################################
+# Define workflow targets
+########################################
 rule all:
     input:
-        MULTIOMICS_OUTPUT.all_outputs
+        MULTIOMICS_OUTPUT.files,
     default_target: True
