@@ -61,15 +61,16 @@ class SeqnadoOutputFiles(BaseModel):
         Returns:
             List[str]: A list of files that match the criteria.
         """
+        suffix = suffix.lower()
         return [
             f
             for f in self.files
-            if f.endswith(suffix) and (contains in f if contains else True) and (exclude not in f if exclude else True)
+            if f.lower().endswith(suffix) and (contains in f if contains else True) and (exclude not in f if exclude else True)
         ]
 
     @property
     def bigwig_files(self):
-        return self.select_files(".bigWig")
+        return self.select_files(".bigwig")
 
     def select_bigwig_subtype(
         self,
