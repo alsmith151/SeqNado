@@ -20,7 +20,6 @@ if "atac" in LOADED_CONFIGS:
 
     use rule * from run_atac as atac_*
 
-
 if "cat" in LOADED_CONFIGS:
     module run_cat:
         snakefile: workflow.basedir + "/Snakefile"
