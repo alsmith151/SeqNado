@@ -48,13 +48,15 @@ class SeqnadoOutputFiles(BaseModel):
         """Return all files in the output collection."""
         return self.files
 
-    def _filter_by_suffix(self, suffix: str, contains: str | None = None):
+    def select_files(self, suffix: str, contains: str | None = None, exclude: str | None = None) -> List[str]:
         """Filter files by suffix and optional substring.
 
         Args:
             suffix (str): The file suffix to filter by.
             contains (str, optional): A substring that must be present in the file name.
                 Defaults to None, meaning no additional filtering.
+            exclude (str, optional): A substring that must not be present in the file name.
+                Defaults to None, meaning no exclusion filtering.
 
         Returns:
             List[str]: A list of files that match the criteria.
@@ -62,12 +64,12 @@ class SeqnadoOutputFiles(BaseModel):
         return [
             f
             for f in self.files
-            if f.endswith(suffix) and (contains in f if contains else True)
+            if f.endswith(suffix) and (contains in f if contains else True) and (exclude not in f if exclude else True)
         ]
 
     @property
     def bigwig_files(self):
-        return self._filter_by_suffix(".bigWig")
+        return self.select_files(".bigWig")
 
     def select_bigwig_subtype(
         self,
@@ -104,11 +106,11 @@ class SeqnadoOutputFiles(BaseModel):
 
     @property
     def peak_files(self):
-        return self._filter_by_suffix(".bed")
+        return self.select_files(".bed")
 
     @property
     def bigbed_files(self):
-        return self._filter_by_suffix(".bigBed")
+        return self.select_files(".bigBed")
 
     @property
     def has_consensus_peaks(self):
@@ -120,15 +122,14 @@ class SeqnadoOutputFiles(BaseModel):
 
     @property
     def heatmap_files(self):
-        return self._filter_by_suffix(".pdf", "heatmap")
+        return self.select_files(".pdf", contains="heatmap")
 
     @property
     def genome_browser_plots(self):
-        return self._filter_by_suffix(".pdf", "genome_browser")
-
+        return self.select_files(".pdf", contains="genome_browser")
     @property
     def ucsc_hub_files(self):
-        return self._filter_by_suffix(".txt", "hub")
+        return self.select_files(".txt", contains="hub")
 
 
 class SeqNadoReportFiles:
