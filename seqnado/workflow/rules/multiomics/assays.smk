@@ -55,3 +55,10 @@ if "snp" in LOADED_CONFIGS:
         config: LOADED_CONFIGS["snp"]
 
     use rule * from run_snp as snp_*
+
+if "mcc" in LOADED_CONFIGS:
+    module run_mcc:
+        snakefile: workflow.basedir + "/Snakefile"
+        config: LOADED_CONFIGS["mcc"]
+
+    use rule * from run_mcc as mcc_*
