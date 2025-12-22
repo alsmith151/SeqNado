@@ -122,7 +122,7 @@ class PeakCallingMethod(Enum):
     """Methods for calling peaks."""
 
     MACS2 = "macs2"
-    # MACS3 = "macs3"
+    MACS3 = "macs3"
     HOMER = "homer"
     LANCEOTRON = "lanceotron"
     SEACR = "seacr"
