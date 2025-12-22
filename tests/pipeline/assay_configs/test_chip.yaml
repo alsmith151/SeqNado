@@ -2,3 +2,15 @@ assay: ChIP
 project:
   name: default_project
   description: "Test project for ChIP-seq"
+
+assay_config:
+  peak_calling:
+    method:
+      - lanceotron
+      - homer
+      - macs2
+  bigwigs:
+    pileup_method:
+      - deeptools
+      - bamnado
+    binsize: 100
