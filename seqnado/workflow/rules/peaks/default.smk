@@ -102,8 +102,11 @@ rule macs2_with_input:
         "Calling peaks with MACS2 for sample {wildcards.sample_id}"
     shell:
         """
-    macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1 &&
-    cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
+    if ! macs2 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1; then
+        touch {output.peaks}
+    else
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
+    fi
     """
 
 
@@ -138,8 +141,11 @@ rule macs2_no_input:
         "Calling peaks with MACS2 for sample {wildcards.sample_id}"
     shell:
         """
-    macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1 &&
-    cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
+    if ! macs2 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1; then
+        touch {output.peaks}
+    else
+        cat {params.raw} | grep -v '^#' | grep -vE '^chr\\s+start\\s+end.*' | grep -v '^$' | cut -f 1-3 > {output.peaks}
+    fi
     """
 
 
