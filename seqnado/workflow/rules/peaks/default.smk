@@ -33,7 +33,7 @@ def get_control_file(wildcards, file_type: FileType):
                 + f"/bigwigs/deeptools/{DataScalingTechnique.UNSCALED.value}/{control_name}.bigWig"
             )
         case FileType.TAG_DIRECTORY:
-            return OUTPUT_DIR + f"/tag_dirs/{control_name}.tag"
+            return OUTPUT_DIR + f"/tag_dirs/{control_name}"
         case _:
             raise ValueError(
                 f"Unsupported file type '{file_type}' for control file retrieval"
