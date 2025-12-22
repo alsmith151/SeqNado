@@ -8,7 +8,7 @@ if CONFIG.assay_config.create_ucsc_hub and (OUTPUT.bigwig_files or OUTPUT.bigbed
     rule generate_hub:
         input:
             data=[
-                OUTPUT.bigwig_files,
+                OUTPUT.select_files(suffix=".bigwig", exclude="/geo_submission/"),
                 OUTPUT.bigbed_files,
             ],
             report=OUTPUT_DIR + "/seqnado_report.html",
