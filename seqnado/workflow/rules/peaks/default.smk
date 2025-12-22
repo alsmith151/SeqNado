@@ -9,7 +9,7 @@ def get_control_file(wildcards, file_type: FileType):
 
     Args:
         wildcards: Snakemake wildcards object containing 'sample' and 'treatment'.
-        file_type (FileType): The type of file to retrieve (e.g., FileType.BAM, FileType.BIGWIG, FileType.TAG).
+        file_type (FileType): The type of file to retrieve (e.g., FileType.BAM, FileType.BIGWIG, FileType.TAG_DIRECTORY).
 
     Returns:
         str or None: The path to the control file if it exists, otherwise None.
@@ -32,7 +32,7 @@ def get_control_file(wildcards, file_type: FileType):
                 OUTPUT_DIR
                 + f"/bigwigs/deeptools/{DataScalingTechnique.UNSCALED.value}/{control_name}.bigWig"
             )
-        case FileType.TAG:
+        case FileType.TAG_DIRECTORY:
             return OUTPUT_DIR + f"/tag_dirs/{control_name}.tag"
         case _:
             raise ValueError(
