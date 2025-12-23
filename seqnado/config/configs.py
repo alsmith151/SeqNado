@@ -1,26 +1,37 @@
 import re
-from pydantic import BaseModel, field_validator, computed_field, Field, field_serializer, BeforeValidator
 from datetime import date as _date
-from typing import Annotated, Union, Literal
-from pathlib import Path
 from enum import Enum
-from seqnado import Assay, GenomicCoordinate
+from pathlib import Path
+from typing import Annotated, Literal, Union
+
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
+
 from seqnado import (
-    PileupMethod,
-    PCRDuplicateTool,
+    Assay,
+    GenomicCoordinate,
+    MethylationMethod,
     PCRDuplicateHandling,
+    PCRDuplicateTool,
     PeakCallingMethod,
+    PileupMethod,
     QuantificationMethod,
     SNPCallingMethod,
-    MethylationMethod,
     SpikeInMethod,
 )
+
 from .mixins import (
     CommonComputedFieldsMixin,
-    PeakCallingMixin,
-    SNPCallingMixin,
     MethylationMixin,
     PathValidatorMixin,
+    PeakCallingMixin,
+    SNPCallingMixin,
 )
 
 

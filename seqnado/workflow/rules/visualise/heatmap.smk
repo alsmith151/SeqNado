@@ -1,11 +1,12 @@
 from seqnado.helpers import define_memory_requested, define_time_requested
+from seqnado import PileupMethod, DataScalingTechnique
 
 
 rule heatmap_matrix:
     input:
         bigwigs=OUTPUT.select_bigwig_subtype(
             method=PileupMethod.DEEPTOOLS,
-            scale=ScaleMethod.UNSCALED
+            scale=DataScalingTechnique.UNSCALED
         ),
     output:
         matrix=temp(OUTPUT_DIR + "/heatmap/heatmap_matrix.mat.gz"),

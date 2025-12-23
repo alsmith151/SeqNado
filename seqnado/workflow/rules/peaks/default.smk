@@ -76,6 +76,8 @@ rule macs2_with_input:
         control=lambda wc: get_control_file(wc, file_type=FileType.BAM),
     output:
         peaks=OUTPUT_DIR + "/peaks/macs2/{sample_id}.bed",
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
     params:
         options=lambda wc: str(
             correct_macs_options(
@@ -116,6 +118,8 @@ rule macs2_no_input:
         treatment=OUTPUT_DIR + "/aligned/{sample_id}.bam",
     output:
         peaks=OUTPUT_DIR + "/peaks/macs2/{sample_id}.bed",
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
     params:
         options=lambda wc: str(
             correct_macs_options(
@@ -154,12 +158,103 @@ rule macs2_no_input:
 ruleorder: macs2_with_input > macs2_no_input
 
 
+# MACS3 rules (same as MACS2 but with macs3 container)
+rule macs3_with_input:
+    input:
+        treatment=OUTPUT_DIR + "/aligned/{sample_id}.bam",
+        control=lambda wc: get_control_file(wc, file_type=FileType.BAM),
+    output:
+        peaks=OUTPUT_DIR + "/peaks/macs3/{sample_id}.bed",
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
+    params:
+        options=lambda wc: str(
+            correct_macs_options(
+                wc, CONFIG.third_party_tools.macs.call_peaks.command_line_arguments
+            )
+        ),
+        raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
+        basename=lambda wc, output: output.peaks.replace(".bed", ""),
+        narrow_peak=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+    threads: 1
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(
+            initial_value=4, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+        runtime=lambda wildcards, attempt: define_time_requested(
+            initial_value=6, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+    container:
+        "docker://quay.io/biocontainers/macs3:3.0.3--py39h0699b22_0"
+    log:
+        OUTPUT_DIR + "/logs/macs3/{sample_id}.log",
+    benchmark:
+        OUTPUT_DIR + "/.benchmark/peaks/macs3/{sample_id}.tsv"
+    message:
+        "Calling peaks with MACS3 for sample {wildcards.sample_id}"
+    shell:
+        """
+    if ! macs3 callpeak -t {input.treatment} -c {input.control} -n {params.basename} {params.options} > {log} 2>&1; then
+        touch {output.peaks}
+    else
+        awk 'BEGIN{{OFS="\\t"}} !/^#/ && !/^chr[[:space:]]+start[[:space:]]+end/ && !/^$/ {{print $1, $2, $3}}' {params.narrow_peak} > {output.peaks} 2>> {log}
+    fi
+    """
+
+
+rule macs3_no_input:
+    input:
+        treatment=OUTPUT_DIR + "/aligned/{sample_id}.bam",
+    output:
+        peaks=OUTPUT_DIR + "/peaks/macs3/{sample_id}.bed",
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
+    params:
+        options=lambda wc: str(
+            correct_macs_options(
+                wc, CONFIG.third_party_tools.macs.call_peaks.command_line_arguments
+            )
+        ),
+        raw=lambda wc, output: output.peaks.replace(".bed", "_peaks.xls"),
+        basename=lambda wc, output: output.peaks.replace(".bed", ""),
+        narrow_peak=lambda wc, output: output.peaks.replace(".bed", "_peaks.narrowPeak"),
+    threads: 1
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(
+            initial_value=2, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+        runtime=lambda wildcards, attempt: define_time_requested(
+            initial_value=2, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+    container:
+        "docker://quay.io/biocontainers/macs3:3.0.3--py39h0699b22_0"
+    log:
+        OUTPUT_DIR + "/logs/macs3/{sample_id}.log",
+    benchmark:
+        OUTPUT_DIR + "/.benchmark/peaks/macs3/{sample_id}.tsv"
+    message:
+        "Calling peaks with MACS3 for sample {wildcards.sample_id}"
+    shell:
+        """
+    if ! macs3 callpeak -t {input.treatment} -n {params.basename} {params.options} > {log} 2>&1; then
+        touch {output.peaks}
+    else
+        awk 'BEGIN{{OFS="\\t"}} !/^#/ && !/^chr[[:space:]]+start[[:space:]]+end/ && !/^$/ {{print $1, $2, $3}}' {params.narrow_peak} > {output.peaks} 2>> {log}
+    fi
+    """
+
+
+ruleorder: macs3_with_input > macs3_no_input
+
+
 rule homer_with_input:
     input:
         treatment=OUTPUT_DIR + "/tag_dirs/{sample_id}",
         control=lambda wc: get_control_file(wc, file_type=FileType.TAG_DIRECTORY),
     output:
         peaks=OUTPUT_DIR + "/peaks/homer/{sample_id}.bed",
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
     params:
         options=str(CONFIG.third_party_tools.homer.find_peaks.command_line_arguments),
     threads: 1
@@ -191,6 +286,8 @@ rule homer_no_input:
         treatment=OUTPUT_DIR + "/tag_dirs/{sample_id}",
     output:
         peaks=OUTPUT_DIR + "/peaks/homer/{sample_id}.bed",
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
     params:
         options=str(CONFIG.third_party_tools.homer.find_peaks.command_line_arguments),
     threads: 1
@@ -227,6 +324,8 @@ rule lanceotron_with_input:
     output:
         peaks=OUTPUT_DIR + "/peaks/lanceotron/{sample_id}.bed",
         ltron_peaks=temp(OUTPUT_DIR + "/peaks/lanceotron/{sample_id}_L-tron.bed"),
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
     params:
         threshold=lambda wildcards: get_lanceotron_call_peaks_threshold(wildcards),
         options=str(
@@ -263,6 +362,8 @@ rule lanceotron_no_input:
     output:
         peaks=OUTPUT_DIR + "/peaks/lanceotron/{sample_id}.bed",
         ltron_peaks=temp(OUTPUT_DIR + "/peaks/lanceotron/{sample_id}_L-tron.bed"),
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
     params:
         options=str(
             CONFIG.third_party_tools.lanceotron.call_peaks.command_line_arguments
@@ -304,6 +405,8 @@ if ASSAY == Assay.CAT:
             peaks=OUTPUT_DIR + "/peaks/seacr/{sample_id}.bed",
             seacr=temp(OUTPUT_DIR + "/peaks/seacr/{sample_id}_seacr.txt"),
             noM=temp(OUTPUT_DIR + "/bedgraphs/{sample_id}.nochrM.bedGraph"),
+        wildcard_constraints:
+            sample_id=r"(?!merged/).*",
         params:
             threshold=CONFIG.third_party_tools.seacr.threshold,
             norm=CONFIG.third_party_tools.seacr.normalization,

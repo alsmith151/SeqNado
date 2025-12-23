@@ -1,6 +1,6 @@
 from itertools import chain
 from pathlib import Path
-from typing import List
+from typing import List, Any
 
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -42,6 +42,12 @@ class SeqnadoOutputFiles(BaseModel):
     files: list[str] = Field(default_factory=list)
     sample_names: List[str] = Field(default_factory=list)
     sample_groups: SampleGroupings | None = None
+    assay: Assay | None = None
+    config: Any = None
+    design_dataframe: Any = None  # pd.DataFrame - use Any to avoid circular imports
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @property
     def all_files(self) -> List[str]:
@@ -70,7 +76,7 @@ class SeqnadoOutputFiles(BaseModel):
 
     @property
     def bigwig_files(self):
-        return self.select_files(".bigwig")
+        return self.select_files(".bigwig", exclude="/geo_submission/")
 
     def select_bigwig_subtype(
         self,
@@ -97,17 +103,18 @@ class SeqnadoOutputFiles(BaseModel):
                 and (method.value in f)
                 and (scale.value in f)
                 and (assay.value.lower() in f.lower())
+                and "/geo_submission/" not in f
             ]
         else:
             return [
                 f
                 for f in self.files
-                if f.endswith(".bigWig") and (method.value in f) and (scale.value in f)
+                if f.endswith(".bigWig") and (method.value in f) and (scale.value in f) and "/geo_submission/" not in f
             ]
 
     @property
     def peak_files(self):
-        return self.select_files(".bed")
+        return self.select_files(".bed", exclude="/geo_submission/")
 
     @property
     def bigbed_files(self):
@@ -491,10 +498,19 @@ class SeqnadoOutputBuilder:
         all_files = list(
             chain.from_iterable(p.files for p in self.file_collections if p.files)
         )
+
+        # Get design dataframe from samples if available
+        design_df = None
+        if hasattr(self.samples, 'to_dataframe'):
+            design_df = self.samples.to_dataframe()
+
         return SeqnadoOutputFiles(
             files=all_files,
             sample_names=self.samples.sample_names,
             sample_groups=self.sample_groupings,
+            assay=self.assay,
+            config=self.config,
+            design_dataframe=design_df,
         )
 
 
@@ -564,6 +580,9 @@ class MultiomicsOutputBuilder:
             files=all_files,
             sample_names=[],
             sample_groups=None,
+            assay=None,
+            config=self.config,
+            design_dataframe=None,
         )
 
 

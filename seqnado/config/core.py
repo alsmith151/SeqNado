@@ -1,30 +1,40 @@
-from pathlib import Path
-from typing import Union, Annotated
 from enum import Enum
-from pydantic import BaseModel, computed_field, field_validator, Field, model_validator, BeforeValidator
+from pathlib import Path
+from typing import Annotated, Union
+
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
+
 from seqnado import Assay
+
 from .configs import (
     BigwigConfig,
-    PlottingConfig,
-    UCSCHubConfig,
-    MLDatasetConfig,
-    RNAQuantificationConfig,
-    PCRDuplicatesConfig,
-    QCConfig,
     GenomeConfig,
-    ProjectConfig,
+    MCCConfig,
+    MethylationConfig,
+    MLDatasetConfig,
+    PCRDuplicatesConfig,
     PeakCallingConfig,
+    PlottingConfig,
+    ProjectConfig,
+    QCConfig,
+    RNAQuantificationConfig,
     SNPCallingConfig,
     SpikeInConfig,
-    MethylationConfig,
-    MCCConfig,
+    UCSCHubConfig,
     none_str_to_none,
 )
 from .mixins import (
     CommonComputedFieldsMixin,
+    MethylationMixin,
     PeakCallingMixin,
     SNPCallingMixin,
-    MethylationMixin,
 )
 from .third_party_tools import ThirdPartyToolsConfig
 
