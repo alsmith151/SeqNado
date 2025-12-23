@@ -104,6 +104,11 @@ versions = {
     "bamCoverage": bamCoverage_version(),
 }
 
+trim_options = config.get('trim_galore', {}).get('command_line_arguments')
+if trim_options is None:
+    logger.warning("No trim_galore options found in config; using 'default parameters'.")
+    trim_options = "default parameters"
+
 if assay == 'RNA':
     versions["star"] = star_version()
 else:
@@ -128,32 +133,43 @@ for tool, version in versions.items():
 aligner = 'STAR' if assay == 'RNA' else 'bowtie2'
 aligner_version = versions['star'] if assay == 'RNA' else versions['bowtie2']
 
+aligner_key = 'star' if assay == 'RNA' else 'bowtie2'
+aligner_options = config.get(aligner_key, {}).get('command_line_arguments')
+if aligner_options is None:
+    logger.warning("No %s options found in config; using 'default parameters'.", aligner_key)
+    aligner_options = "default parameters"
+
 content = f"""
 FASTQ files were quality checked using FastQC version {versions['fastqc']}.
-Adapter sequences were removed and low quality reads were trimmed using trim_galore {versions['trim_galore']} using the following parameters: {config['trim_galore']['options']}.
-Reads were aligned to the reference genome {config['genome']['name']} using {aligner} v{aligner_version} with the following parameters: {config['star' if assay == 'RNA' else 'bowtie2']['options']}.
+Adapter sequences were removed and low quality reads were trimmed using trim_galore {versions['trim_galore']} using the following parameters: {trim_options}.
+Reads were aligned to the reference genome {config['genome']['name']} using {aligner} v{aligner_version} with the following parameters: {aligner_options}.
 """
 
 if config.get('remove_pcr_duplicates_method'):
-    content += f"""Duplicate reads were removed using Picard MarkDuplicates v{versions['picard']} with the following parameters: {config['picard']['options']}"""
+    picard_options = config.get('picard', {}).get('command_line_arguments', 'default parameters')
+    content += f"""Duplicate reads were removed using Picard MarkDuplicates v{versions['picard']} with the following parameters: {picard_options}"""
 
 
+deeptools_options = config.get('deeptools', {}).get('command_line_arguments', 'default parameters')
 content += f"""
-BigWig files were generated using deepTools {versions['bamCoverage']} with the following parameters: {config['deeptools']['bamcoverage']}.
+BigWig files were generated using deepTools {versions['bamCoverage']} with the following parameters: {deeptools_options}.
 """
 
 if assay == 'RNA':
     content += """Strands were separated using the --filterRNAstrand option. """
-    content += f"""Alignments were quantified using featureCounts v{versions['featureCounts']} with the following parameters: {config['featurecounts']['options']}"""
+    featurecounts_options = config.get('featurecounts', {}).get('command_line_arguments', 'default parameters')
+    content += f"""Alignments were quantified using featureCounts v{versions['featureCounts']} with the following parameters: {featurecounts_options}"""
 
 
 if assay in ['ChIP', 'ATAC', 'CUT&TAG'] and config.get('call_peaks'):
     if "lanceotron" in peak_methods:
         lanceotron_ver = versions.get('lanceotron', '1.2.6')
-        content += f"""Peak calling was performed using lanceotron v{lanceotron_ver} with the following parameters: {config['lanceotron']['callpeak']}"""
-    
+        lanceotron_options = config.get('lanceotron', {}).get('command_line_arguments', 'default parameters')
+        content += f"""Peak calling was performed using lanceotron v{lanceotron_ver} with the following parameters: {lanceotron_options}"""
+
     if 'macs2' in peak_methods:
-        content += f"""Peak calling was performed using MACS2 v{versions.get('macs2', 'unknown')} with the following parameters: {config['macs2']['callpeak']}"""
+        macs_options = config.get('macs2', {}).get('command_line_arguments', 'default parameters')
+        content += f"""Peak calling was performed using MACS2 v{versions.get('macs2', 'unknown')} with the following parameters: {macs_options}"""
 
 
 content = content.strip().replace('the following parameters: False', 'with default parameters').replace('/n/n', '/n')
