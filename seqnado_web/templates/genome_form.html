@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<header style="margin-bottom: 2rem;">
+    <h1>{{ 'Edit' if is_edit else 'Add' }} Genome</h1>
+    <p class="text-muted">Configure genome paths and indices</p>
+</header>
+
+<div class="card" style="max-width: 800px;">
+    <form method="POST">
+        {% if is_edit %}
+        <!-- Hidden input to track original name if renaming is allowed (though usually name is key) -->
+        <input type="hidden" name="original_name" value="{{ name }}">
+        {% endif %}
+
+        <div class="form-group">
+            <label for="name">Genome Name (ID)</label>
+            <input type="text" id="name" name="name" value="{{ name if name else '' }}" required {{ 'readonly' if
+                is_edit else '' }}>
+            {% if is_edit %}<p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Genome ID cannot be
+                changed once created.</p>{% endif %}
+        </div>
+
+        <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="organism">Organism</label>
+                <input type="text" id="organism" name="organism" value="{{ config.organism if config else '' }}"
+                    placeholder="e.g. Homo sapiens">
+            </div>
+            <div class="form-group">
+                <label for="version">Version</label>
+                <input type="text" id="version" name="version" value="{{ config.version if config else '' }}"
+                    placeholder="e.g. hg38">
+            </div>
+        </div>
+
+        <h3>File Paths</h3>
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
+        <div class="form-group">
+            <label for="fasta">FASTA Path</label>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="fasta" name="fasta" value="{{ config.fasta if config else '' }}"
+                    placeholder="/path/to/genome.fa" style="flex-grow: 1;">
+                <button type="button" class="btn btn-outline" onclick="openBrowserModal('fasta')">
+                    <i class="fa-solid fa-folder-open"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="gtf">GTF Path</label>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="gtf" name="gtf" value="{{ config.gtf if config else '' }}"
+                    placeholder="/path/to/genes.gtf" style="flex-grow: 1;">
+                <button type="button" class="btn btn-outline" onclick="openBrowserModal('gtf')">
+                    <i class="fa-solid fa-folder-open"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="star_index">STAR Index</label>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="star_index" name="star_index" value="{{ config.star_index if config else '' }}"
+                    placeholder="/path/to/star_index/" style="flex-grow: 1;">
+                <button type="button" class="btn btn-outline" onclick="openBrowserModal('star_index')">
+                    <i class="fa-solid fa-folder-open"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="bt2_index">Bowtie2 Index</label>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="bt2_index" name="bt2_index" value="{{ config.bt2_index if config else '' }}"
+                    placeholder="/path/to/bowtie2_index/genome" style="flex-grow: 1;">
+                <button type="button" class="btn btn-outline" onclick="openBrowserModal('bt2_index')">
+                    <i class="fa-solid fa-folder-open"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="blacklist">Blacklist</label>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="blacklist" name="blacklist" value="{{ config.blacklist if config else '' }}"
+                    placeholder="/path/to/blacklist.bed" style="flex-grow: 1;">
+                <button type="button" class="btn btn-outline" onclick="openBrowserModal('blacklist')">
+                    <i class="fa-solid fa-folder-open"></i>
+                </button>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary">Save Genome</button>
+            <a href="{{ url_for('genomes') }}" class="btn btn-outline" style="border: none;">Cancel</a>
+
+            {% if is_edit %}
+            <button type="submit" name="action" value="delete" class="btn btn-danger"
+                style="margin-left: auto; background-color: var(--danger); color: white; border: none;"
+                onclick="return confirm('Are you sure you want to delete this genome?');">Delete</button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -188,7 +188,7 @@ class SeqnadoConfig(BaseModel):
     @property
     def mcc_viewpoints(self) -> str:
         """Return the MCC viewpoints file path."""
-        if self.assay_config and hasattr(self.assay_config, "mcc"):
+        if self.assay_config and getattr(self.assay_config, "mcc", None):
             return str(self.assay_config.mcc.viewpoints)
         return ""
 

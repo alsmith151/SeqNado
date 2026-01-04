@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<header style="margin-bottom: 2rem;">
+    <h1>Run Configuration Generated</h1>
+    <p class="text-muted">Your experiment is ready to go!</p>
+</header>
+
+<div class="card">
+    <div style="text-align: center; padding: 2rem;">
+        <i class="fa-solid fa-check-circle" style="color: var(--success); font-size: 3rem; margin-bottom: 1rem;"></i>
+        <h2>Configuration Successful</h2>
+        <p class="text-muted">The following parameters were captured for <strong>{{ project_name }}</strong>:</p>
+    </div>
+
+    <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div
+            style="background: var(--bg-dark); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+            <div class="text-muted" style="font-size: 0.875rem;">Assay</div>
+            <div style="font-size: 1.25rem; font-weight: 600;">{{ assay }}</div>
+        </div>
+        <div
+            style="background: var(--bg-dark); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+            <div class="text-muted" style="font-size: 0.875rem;">Genome</div>
+            <div style="font-size: 1.25rem; font-weight: 600;">{{ genome }}</div>
+        </div>
+        <div
+            style="background: var(--bg-dark); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+            <div class="text-muted" style="font-size: 0.875rem;">Design File</div>
+            <div style="font-size: 1.25rem; font-weight: 600;">{{ design_file }}</div>
+        </div>
+    </div>
+
+    <h3>Next Steps</h3>
+    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
+    <p style="margin-bottom: 1rem;">To run this pipeline on the HPC, execute the following command in your terminal:</p>
+
+    <div style="background: #1e1e1e; padding: 1rem; border-radius: 0.5rem; font-family: monospace; position: relative;">
+        <code>{{ run_command }}</code>
+        <button class="btn btn-outline"
+            style="position: absolute; right: 8px; top: 8px; padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+            onclick="navigator.clipboard.writeText('{{ run_command }}')">Copy</button>
+    </div>
+
+    <p class="text-muted" style="margin-top: 1rem; font-size: 0.9rem;">
+        Project Directory created: <code>{{ run_dir }}</code>
+    </p>
+
+    <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Dashboard</a>
+        <a href="#" class="btn btn-outline"><i class="fa-solid fa-download"></i> Download YAML</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeqNado Web</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Using CDN for icons for simplicity, in production we might bundle -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="app-container">
+            <aside class="sidebar">
+                <div class="logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="SeqNado Logo"
+                        style="height: 40px; margin-right: 10px; vertical-align: middle;">
+                    SeqNado Web
+                </div>
+                <nav>
+                    <ul class="nav-links">
+                        <li>
+                            <a href="{{ url_for('index') }}"
+                                class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                                <i class="fa-solid fa-gauge-high"></i> Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('init_project') }}"
+                                class="nav-link {% if request.endpoint == 'init_project' %}active{% endif %}">
+                                <i class="fa-solid fa-plus"></i> New Project
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('run_experiment') }}"
+                                class="nav-link {% if request.endpoint == 'run_experiment' %}active{% endif %}">
+                                <i class="fa-solid fa-play"></i> Run Experiment
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('genomes') }}"
+                                class="nav-link {% if request.endpoint == 'genomes' %}active{% endif %}">
+                                <i class="fa-solid fa-server"></i> Genomes
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('configs') }}"
+                                class="nav-link {% if request.endpoint == 'configs' %}active{% endif %}">
+                                <i class="fa-solid fa-gear"></i> Configs
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('designs_list') }}"
+                                class="nav-link {% if request.endpoint == 'designs_list' %}active{% endif %}">
+                                <i class="fa-solid fa-table"></i> Designs
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <main class="main-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+        <!-- Directory Browser Modal -->
+        <div id="browserModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+            <div
+                style="background: var(--bg-card); width: 600px; max-height: 80vh; padding: 1.5rem; border-radius: var(--radius); display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">Select Directory</h3>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="closeBrowserModal()"><i
+                            class="fa-solid fa-times"></i></button>
+                </div>
+
+                <div
+                    style="background: var(--bg-dark); padding: 0.5rem; margin-bottom: 1rem; border-radius: 0.5rem; font-family: monospace; word-break: break-all;">
+                    <i class="fa-solid fa-location-dot"></i> <span id="currentBrowserPath">Loading...</span>
+                </div>
+
+                <div id="browserList"
+                    style="flex-grow: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 1rem; min-height: 200px;">
+                    <!-- Items injected here -->
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                    <button type="button" class="btn btn-outline" onclick="closeBrowserModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="selectCurrentDir()">Select This
+                        Folder</button>
+                    <button type="button" id="selectFileBtn" class="btn btn-primary" style="display: none;"
+                        onclick="selectCurrentFile()">Select File</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Directory Browser Logic
+            let currentPath = ".";
+            let targetInputId = null;
+            let selectedFile = null;
+
+            function openBrowserModal(inputId) {
+                targetInputId = inputId;
+                document.getElementById('browserModal').style.display = 'flex';
+                selectedFile = null;
+                document.getElementById('selectFileBtn').style.display = 'none';
+
+                // Use path from input if valid, otherwise current
+                const inputVal = document.getElementById(inputId).value;
+                if (inputVal && inputVal !== ".") {
+                    // If input looks like a file, try parent ?? No, just try path. 
+                    // Creating a simplified robust loader
+                    loadPath(inputVal);
+                } else {
+                    loadPath(".");
+                }
+            }
+
+            function closeBrowserModal() {
+                document.getElementById('browserModal').style.display = 'none';
+                targetInputId = null;
+            }
+
+            async function loadPath(path) {
+                try {
+                    // If path is a file, we might want to load its parent? The API browse handles directories.
+                    // We'll rely on API returning error for file, then we try parent?
+                    // For now assuming directory or '.'
+
+                    const response = await fetch(`/api/browse?path=${encodeURIComponent(path)}`);
+                    if (!response.ok) throw new Error("Failed to load path");
+                    const data = await response.json();
+
+                    currentPath = data.current_path;
+                    document.getElementById('currentBrowserPath').textContent = currentPath;
+
+                    const listEl = document.getElementById('browserList');
+                    listEl.innerHTML = '';
+
+                    if (data.items) {
+                        data.items.forEach(item => {
+                            const div = document.createElement('div');
+                            div.style.padding = '0.5rem 1rem';
+                            div.style.cursor = 'pointer';
+                            div.style.borderBottom = '1px solid var(--border)';
+                            div.style.display = 'flex';
+                            div.style.alignItems = 'center';
+                            div.style.gap = '0.5rem';
+
+                            if (item.is_dir) {
+                                div.onclick = () => loadPath(item.path);
+                                div.innerHTML = `<i class="fa-solid fa-folder" style="color: var(--primary);"></i> ${item.name}`;
+                            } else {
+                                // File selection logic
+                                div.onclick = () => selectFile(item.path, div);
+                                div.innerHTML = `<i class="fa-solid fa-file" style="color: var(--text-muted);"></i> ${item.name}`;
+                            }
+
+                            div.onmouseover = () => { if (selectedFile !== item.path) div.style.backgroundColor = 'rgba(255,255,255,0.05)'; };
+                            div.onmouseout = () => { if (selectedFile !== item.path) div.style.backgroundColor = 'transparent'; };
+
+                            listEl.appendChild(div);
+                        });
+                    }
+                } catch (e) {
+                    console.error(e);
+                    // Fallback to dot if error on initial load and it wasn't dot
+                    if (path !== ".") loadPath(".");
+                }
+            }
+
+            function selectFile(path, el) {
+                selectedFile = path;
+                // Highlight
+                const listEl = document.getElementById('browserList');
+                Array.from(listEl.children).forEach(child => child.style.backgroundColor = 'transparent');
+                el.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)'; // approximate highlight
+
+                // Show select file button
+                const btn = document.getElementById('selectFileBtn');
+                btn.style.display = 'inline-block';
+                btn.onclick = () => {
+                    if (targetInputId) {
+                        document.getElementById(targetInputId).value = path;
+                    }
+                    closeBrowserModal();
+                };
+            }
+
+            function selectCurrentDir() {
+                if (targetInputId) {
+                    document.getElementById(targetInputId).value = currentPath;
+                }
+                closeBrowserModal();
+            }
+
+            function selectCurrentFile() {
+                // Helper if needed, but handled in selectFile onclick closure
+            }
+        </script>
+        {% block scripts %}{% endblock %}
+</body>
+
+</html>

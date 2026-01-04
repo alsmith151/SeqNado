@@ -46,6 +46,18 @@ mamba install -c bioconda seqnado
 ```
 
 
+## Web Interface
+
+SeqNado includes a user-friendly web interface for managing genomes, generating designs, and configuring workflows.
+
+To start the web app:
+```bash
+seqnado-web
+```
+
+Open your browser to `http://localhost:5001`. 
+For remote usage (e.g., HPC), see the [Web Interface documentation](docs/web_interface.md) for SSH tunnel instructions.
+
 ## Quickstart
 
 Generate a config and working directory for your assay:  

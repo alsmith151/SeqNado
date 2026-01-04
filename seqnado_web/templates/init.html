@@ -1,0 +1,479 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<style>
+    .step-container {
+        display: none;
+    }
+
+    .step-container.active {
+        display: block;
+    }
+
+    .step-indicator {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 1rem;
+    }
+
+    .step {
+        color: var(--text-muted);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .step.active {
+        color: var(--primary);
+    }
+
+    .step.completed {
+        color: var(--success);
+    }
+
+    .option-card {
+        background: var(--bg-dark);
+        border: 1px solid var(--border);
+        padding: 1rem;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .option-card:hover,
+    .option-card.selected {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.1);
+    }
+
+    .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .file-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--border);
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+
+    .file-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header style="margin-bottom: 2rem;">
+    <h1>Initialize Project</h1>
+    <p class="text-muted">Create a new SeqNado experiment project</p>
+</header>
+
+<div class="card">
+    <div class="step-indicator">
+        <span class="step active" id="badge-1"><i class="fa-solid fa-circle-check"></i> 1. Assay</span>
+        <span class="step" id="badge-2">2. Details</span>
+        <span class="step" id="badge-3">3. FASTQs</span>
+        <span class="step" id="badge-4">4. Config</span>
+        <span class="step" id="badge-5">5. Create</span>
+    </div>
+
+    <form id="initForm" method="POST" action="{{ url_for('create_project') }}">
+        <!-- Step 1: Assay -->
+        <div id="step-1" class="step-container active">
+            <h3 style="margin-bottom: 1.5rem;">Select Assay</h3>
+            <div class="grid-4">
+                {% for assay in assays %}
+                <div class="option-card" onclick="selectAssay('{{ assay }}', this)">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--primary);">
+                        <i class="fa-solid fa-dna"></i>
+                    </div>
+                    <strong>{{ assay }}</strong>
+                    <input type="radio" name="assay" value="{{ assay }}" style="display:none;" required>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 2rem; text-align: right;">
+                <button type="button" class="btn btn-primary" onclick="nextStep(1)">Next <i
+                        class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <!-- Step 2: Details -->
+        <div id="step-2" class="step-container">
+            <h3 style="margin-bottom: 1.5rem;">Project Details</h3>
+
+            <div class="form-group">
+                <label for="project_name">Project Name <span style="color: var(--danger)">*</span></label>
+                <input type="text" id="project_name" name="project_name" required placeholder="e.g. Experiment_001"
+                    pattern="[A-Za-z0-9_-]+" title="Letters, numbers, underscores, hyphens only">
+            </div>
+
+            <div class="form-group">
+                <label for="genome">Reference Genome <span style="color: var(--danger)">*</span></label>
+                <select id="genome" name="genome" required>
+                    <option value="" disabled selected>Select a genome...</option>
+                    {% for name in genomes %}
+                    <option value="{{ name }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Output Directory</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" name="output_dir" id="outputDirInput" placeholder="Parent folder for new project"
+                        value=".">
+                    <button type="button" class="btn btn-outline" onclick="openBrowserModal('outputDirInput')">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-outline" onclick="prevStep(2)">Back</button>
+                <button type="button" class="btn btn-primary" onclick="nextStep(2)">Next <i
+                        class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <!-- Step 3: FASTQ Selection -->
+        <div id="step-3" class="step-container">
+            <h3 style="margin-bottom: 1.5rem;">Select Input Files</h3>
+            <p class="text-muted">Point to a folder containing your FASTQ files (scans subdirectories recursively).</p>
+
+            <div class="form-group">
+                <label>Source Directory</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="scanSourceInput" placeholder="/path/to/raw_data/">
+                    <button type="button" class="btn btn-outline" onclick="openBrowserModal('scanSourceInput')">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="scanFastqs()">
+                        <i class="fa-solid fa-search"></i> Scan
+                    </button>
+                </div>
+            </div>
+
+            <div id="scanStatus" style="display:none; color: var(--text-muted); margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Scanning...
+            </div>
+
+            <div id="fileSelectionArea" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                    <strong>Found Files:</strong>
+                    <div>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllFiles(true)">Select
+                            All</button>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllFiles(false)">Select
+                            None</button>
+                    </div>
+                </div>
+
+                <div id="fileList"
+                    style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-dark);">
+                    <!-- Injected via JS -->
+                </div>
+                <p id="fileCount" class="text-muted" style="font-size: 0.8rem; margin-top: 0.5rem;"></p>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-outline" onclick="prevStep(3)">Back</button>
+                <button type="button" class="btn btn-primary" onclick="nextStep(3)">Next <i
+                        class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <!-- Step 4: Configuration Options -->
+        <div id="step-4" class="step-container">
+            <h3 style="margin-bottom: 1.5rem;">Configuration Options</h3>
+            <p class="text-muted">Customize pipeline settings. Defaults are pre-filled.</p>
+
+            <!-- Common Options -->
+            <details open style="margin-bottom: 1rem;">
+                <summary style="cursor:pointer; font-weight:600; margin-bottom:0.5rem;"><i class="fa-solid fa-cog"></i>
+                    Pipeline Options</summary>
+                <div style="padding-left: 1rem; border-left: 2px solid var(--border);">
+                    <div class="form-group">
+                        <label><input type="checkbox" name="make_bigwigs" value="yes" checked> Generate Bigwigs</label>
+                    </div>
+                    <div class="form-group" id="bigwig-options" style="margin-left: 1.5rem;">
+                        <label>Pileup Method</label>
+                        <select name="pileup_method">
+                            <option value="deeptools" selected>deeptools</option>
+                            <option value="bamnado">bamnado</option>
+                        </select>
+                        <label style="margin-top:0.5rem;">Bin Size</label>
+                        <input type="number" name="binsize" value="10" style="width: 100px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label><input type="checkbox" name="make_heatmaps" value="yes"> Generate Heatmaps</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" name="make_ucsc_hub" value="yes"> Create UCSC Hub</label>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Assay-Specific Options (show/hide based on assay) -->
+            <details id="atac-options" style="display:none; margin-bottom: 1rem;">
+                <summary style="cursor:pointer; font-weight:600; margin-bottom:0.5rem;"><i class="fa-solid fa-dna"></i>
+                    ATAC-Specific Options</summary>
+                <div style="padding-left: 1rem; border-left: 2px solid var(--border);">
+                    <div class="form-group">
+                        <label><input type="checkbox" name="tn5_shift" value="yes" checked> Shift reads for Tn5
+                            insertion</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" name="call_peaks" value="yes" checked> Call Peaks</label>
+                    </div>
+                    <div class="form-group" style="margin-left: 1.5rem;">
+                        <label>Peak Calling Method</label>
+                        <select name="peak_calling_method">
+                            <option value="lanceotron" selected>lanceotron</option>
+                            <option value="macs2">MACS2</option>
+                            <option value="seacr">SEACR</option>
+                        </select>
+                    </div>
+                </div>
+            </details>
+
+            <details id="chip-options" style="display:none; margin-bottom: 1rem;">
+                <summary style="cursor:pointer; font-weight:600; margin-bottom:0.5rem;"><i class="fa-solid fa-dna"></i>
+                    ChIP-Specific Options</summary>
+                <div style="padding-left: 1rem; border-left: 2px solid var(--border);">
+                    <div class="form-group">
+                        <label><input type="checkbox" name="has_spikein" value="yes"> Sample has spike-in</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" name="call_peaks" value="yes" checked> Call Peaks</label>
+                    </div>
+                    <div class="form-group" style="margin-left: 1.5rem;">
+                        <label>Peak Calling Method</label>
+                        <select name="peak_calling_method">
+                            <option value="lanceotron" selected>lanceotron</option>
+                            <option value="macs2">MACS2</option>
+                        </select>
+                    </div>
+                </div>
+            </details>
+
+            <details id="rna-options" style="display:none; margin-bottom: 1rem;">
+                <summary style="cursor:pointer; font-weight:600; margin-bottom:0.5rem;"><i class="fa-solid fa-dna"></i>
+                    RNA-Specific Options</summary>
+                <div style="padding-left: 1rem; border-left: 2px solid var(--border);">
+                    <div class="form-group">
+                        <label>Quantification Method</label>
+                        <select name="quant_method">
+                            <option value="feature_counts" selected>Feature Counts</option>
+                            <option value="salmon">Salmon</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" name="run_deseq2" value="yes"> Run DESeq2 analysis</label>
+                    </div>
+                </div>
+            </details>
+
+            <details id="mcc-options" style="display:none; margin-bottom: 1rem;">
+                <summary style="cursor:pointer; font-weight:600; margin-bottom:0.5rem;"><i class="fa-solid fa-dna"></i>
+                    MCC-Specific Options</summary>
+                <div style="padding-left: 1rem; border-left: 2px solid var(--border);">
+                    <div class="form-group">
+                        <label>Viewpoints File <span style="color: var(--danger)">*</span></label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" name="mcc_viewpoints" id="mccViewpointsInput"
+                                placeholder="path/to/viewpoints.bed" required>
+                            <button type="button" class="btn btn-outline"
+                                onclick="openBrowserModal('mccViewpointsInput')">
+                                <i class="fa-solid fa-folder-open"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Resolutions (comma-separated)</label>
+                        <input type="text" name="mcc_resolutions" value="100,1000">
+                    </div>
+                </div>
+            </details>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-outline" onclick="prevStep(4)">Back</button>
+                <button type="button" class="btn btn-primary" onclick="nextStep(4)">Next <i
+                        class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <!-- Step 5: Review -->
+        <div id="step-5" class="step-container">
+            <h3 style="margin-bottom: 1.5rem;">Review & Create</h3>
+
+            <div style="background: var(--bg-dark); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                <p><strong>Assay:</strong> <span id="review-assay">-</span></p>
+                <p><strong>Project Name:</strong> <span id="review-project">-</span></p>
+                <p><strong>Genome:</strong> <span id="review-genome">-</span></p>
+                <p><strong>Output Location:</strong> <span id="review-output">-</span></p>
+                <p><strong>Selected Files:</strong> <span id="review-files-count">0</span> files</p>
+            </div>
+
+            <p class="text-muted">
+                <i class="fa-solid fa-info-circle"></i> On create, a new directory will be created, FASTQs will be
+                linked,
+                a design file will be auto-generated, and a config will be written.
+            </p>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-outline" onclick="prevStep(5)">Back</button>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-magic"></i> Create Project</button>
+            </div>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function selectAssay(val, el) {
+        document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        el.querySelector('input').checked = true;
+    }
+
+    function nextStep(current) {
+        // Validation
+        if (current === 1 && !document.querySelector('input[name="assay"]:checked')) {
+            alert("Please select an assay."); return;
+        }
+        if (current === 2) {
+            if (!document.getElementById('project_name').value) { alert("Project name required"); return; }
+            if (!document.getElementById('genome').value) { alert("Genome required"); return; }
+        }
+        if (current === 3) {
+            // Check if any files selected
+            const count = document.querySelectorAll('input[name="selected_fastqs"]:checked').length;
+            if (count === 0) {
+                if (!confirm("No FASTQ files selected. Proceed with empty project?")) return;
+            }
+            // Show assay-specific options
+            showAssayOptions();
+        }
+        if (current === 4) {
+            updateReview();
+        }
+
+        document.getElementById(`step-${current}`).classList.remove('active');
+        document.getElementById(`step-${current + 1}`).classList.add('active');
+
+        document.getElementById(`badge-${current}`).classList.add('completed');
+        document.getElementById(`badge-${current + 1}`).classList.add('active');
+    }
+
+    function prevStep(current) {
+        document.getElementById(`step-${current}`).classList.remove('active');
+        document.getElementById(`step-${current - 1}`).classList.add('active');
+
+        document.getElementById(`badge-${current}`).classList.remove('active');
+        document.getElementById(`badge-${current - 1}`).classList.remove('completed');
+    }
+
+    // FASTQ Scanning
+    async function scanFastqs() {
+        const path = document.getElementById('scanSourceInput').value;
+        if (!path) { alert("Enter a path first"); return; }
+
+        document.getElementById('scanStatus').style.display = 'block';
+        document.getElementById('fileSelectionArea').style.display = 'none';
+        document.getElementById('fileList').innerHTML = '';
+
+        try {
+            const formData = new FormData();
+            formData.append('path', path);
+
+            const res = await fetch("{{ url_for('scan_fastqs_api') }}", {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            document.getElementById('scanStatus').style.display = 'none';
+            document.getElementById('fileSelectionArea').style.display = 'block';
+
+            const listEl = document.getElementById('fileList');
+            if (data.files.length === 0) {
+                listEl.innerHTML = '<div style="padding:1rem;">No FASTQ files found.</div>';
+            } else {
+                data.files.forEach(f => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.innerHTML = `
+                        <input type="checkbox" name="selected_fastqs" value="${f.path}" checked>
+                        <span title="${f.path}">${f.rel_path}</span>
+                    `;
+                    listEl.appendChild(div);
+                });
+            }
+            document.getElementById('fileCount').innerText = `${data.files.length} files found.`;
+
+        } catch (e) {
+            console.error(e);
+            alert("Error scanning directory");
+            document.getElementById('scanStatus').style.display = 'none';
+        }
+    }
+
+    function toggleAllFiles(checked) {
+        document.querySelectorAll('input[name="selected_fastqs"]').forEach(cb => cb.checked = checked);
+    }
+
+    function updateReview() {
+        document.getElementById('review-assay').innerText = document.querySelector('input[name="assay"]:checked').value;
+        document.getElementById('review-project').innerText = document.getElementById('project_name').value;
+        const genSel = document.getElementById('genome');
+        document.getElementById('review-genome').innerText = genSel.options[genSel.selectedIndex].text;
+        document.getElementById('review-output').innerText = document.getElementById('outputDirInput').value;
+        document.getElementById('review-files-count').innerText = document.querySelectorAll('input[name="selected_fastqs"]:checked').length;
+    }
+
+    function showAssayOptions() {
+        // Hide all assay-specific option panels first
+        const panels = ['atac-options', 'chip-options', 'rna-options', 'mcc-options'];
+        panels.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+
+        // Get selected assay
+        const assayEl = document.querySelector('input[name="assay"]:checked');
+        if (!assayEl) return;
+        const assay = assayEl.value.toLowerCase();
+
+        // Show the relevant panel and open it
+        const map = {
+            'atac': 'atac-options',
+            'chip': 'chip-options',
+            'rna': 'rna-options',
+            'mcc': 'mcc-options',
+            'cat': 'chip-options', // CAT similar to ChIP
+        };
+        const panelId = map[assay];
+        if (panelId) {
+            const panel = document.getElementById(panelId);
+            if (panel) {
+                panel.style.display = 'block';
+                panel.open = true; // Expand details element
+            }
+        }
+    }
+</script>
+{% endblock %}

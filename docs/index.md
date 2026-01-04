@@ -48,4 +48,5 @@ These features are fully customizable through configuration files, making SeqNad
 - [Genomes](genomes.md)
 - [Configuration](configuration.md)
 - [Design](design.md)
+- [Web Interface](web_interface.md)
 - [Pipeline](pipeline.md)

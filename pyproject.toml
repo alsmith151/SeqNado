@@ -20,6 +20,9 @@ dynamic = ["version"]
 dependencies = [
     "click<=8.3.1",
     "cookiecutter<=2.6.0",
+    "flask<=3.0.0",
+    "gunicorn<=23.0.0",
+
     "numpy<=2.3.5",
     "pandas<=2.3.3",
     "pandera<=0.27.0",
@@ -41,6 +44,8 @@ slurm = ["snakemake-executor-plugin-slurm<=2.0.3"]
 
 [project.scripts]
 seqnado = "seqnado.cli:app"
+seqnado-web = "seqnado_web.cli:main"
+
 
 [project.urls]
 Homepage = "https://github.com/alsmith151/seqnado"

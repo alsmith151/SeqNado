@@ -76,7 +76,7 @@ def get_mcc_bam_files_for_merge(wildcards):
         return []
 
 
-rule merge_mcc_bams:
+rule merge_consensus_mcc_bams:
     input:
         bams=get_mcc_bam_files_for_merge,
     output:
@@ -138,6 +138,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_unscaled.tsv",
     message: "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
 
+        
 
 
 rule confirm_mcc_bigwigs_generated:
@@ -145,6 +146,8 @@ rule confirm_mcc_bigwigs_generated:
         expand(OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig", sample=SAMPLE_NAMES, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
         expand(OUTPUT_DIR + "/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig", group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
         expand(OUTPUT_DIR + "/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig", group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
+        expand(OUTPUT_DIR + "/bigwigs/mcc/combined/{condition}_{viewpoint_group}.bigWig", condition=SAMPLE_GROUPINGS.get_grouping('condition').group_names, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
+        
     output:
         touch(OUTPUT_DIR + "/bigwigs/mcc/.mcc_bigwigs_generated.txt"),
     message: "Confirming all MCC bigWigs have been generated"

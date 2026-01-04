@@ -45,3 +45,4 @@ testing
 snakefiles_old
 old_docs/
 design_test/metadata_chip.csv
+repos/*

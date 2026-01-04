@@ -17,6 +17,7 @@ ILLUMINA_FILENAME_PATTERNS = {
     r"_S\d+_": "_",
     r"_L00\d_": "_",
     r"_R?[12](_001)?$": "_",
+    r"\.[a-zA-Z]+$": "",  # Remove .sliced, .trimmed, etc.
     r"__": "_",
     r"_$": "",
 }

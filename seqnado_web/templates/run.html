@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<header style="margin-bottom: 2rem;">
+    <h1>Run Experiment</h1>
+    <p class="text-muted">Launch a pipeline run for an existing project folder</p>
+</header>
+
+<div class="card">
+    <form id="runForm" method="POST" action="{{ url_for('submit_run') }}">
+
+        <div class="form-group">
+            <label>Project Directory</label>
+            <p class="text-muted" style="font-size: 0.9rem;">Select the folder containing your
+                <code>config_*.yaml</code> file.</p>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" name="project_dir" id="projectDirInput" placeholder="/path/to/project_folder"
+                    required>
+                <button type="button" class="btn btn-outline" onclick="openBrowserModal('projectDirInput')">
+                    <i class="fa-solid fa-folder-open"></i> Browse
+                </button>
+                <button type="button" class="btn btn-primary" onclick="loadConfig()">
+                    <i class="fa-solid fa-sync"></i> Load Config
+                </button>
+            </div>
+        </div>
+
+        <div id="configDetails"
+            style="display:none; margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+            <h3>Project Summary</h3>
+            <div style="background: var(--bg-dark); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div><strong>Assay:</strong> <span id="conf-assay">-</span></div>
+                    <div><strong>Project Name:</strong> <span id="conf-project">-</span></div>
+                    <div><strong>Genome:</strong> <span id="conf-genome">-</span></div>
+                    <div><strong>Config File:</strong> <span id="conf-file">-</span></div>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 1.5rem;">Run Options</h3>
+            <div class="form-group">
+                <label for="profile">Execution Profile</label>
+                <select name="profile" id="profile">
+                    <option value="slurm" selected>Slurm (HPC)</option>
+                    <option value="local">Local (Single Machine)</option>
+                    <option value="default">Default (Snakemake)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="unlock" value="yes">
+                    Unlock Directory (if accidentally locked by previous failure)
+                </label>
+            </div>
+
+            <div style="margin-top: 2rem; text-align: right;">
+                <button type="submit" class="btn btn-success" style="font-size: 1.1rem; padding: 0.75rem 2rem;">
+                    <i class="fa-solid fa-play"></i> Run Pipeline
+                </button>
+            </div>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadConfig() {
+        const path = document.getElementById('projectDirInput').value;
+        if (!path) { alert("Please select a directory first."); return; }
+
+        try {
+            const formData = new FormData();
+            formData.append('path', path);
+
+            const res = await fetch("{{ url_for('api_load_project_config') }}", {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Failed to load config");
+            }
+
+            const data = await res.json();
+
+            document.getElementById('conf-assay').innerText = data.assay;
+            document.getElementById('conf-project').innerText = data.project;
+            document.getElementById('conf-genome').innerText = data.genome;
+            document.getElementById('conf-file').innerText = data.config_file;
+
+            document.getElementById('configDetails').style.display = 'block';
+
+        } catch (e) {
+            console.error(e);
+            alert("Error loading configuration: " + e.message);
+            document.getElementById('configDetails').style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

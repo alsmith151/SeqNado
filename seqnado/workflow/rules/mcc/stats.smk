@@ -21,4 +21,14 @@ use rule extract_ligation_stats as extract_ligation_stats_merged with:
     log: OUTPUT_DIR + "/logs/extract_ligation_stats_merged/{group}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/extract_ligation_stats_merged/{group}.tsv",
     message: "Extracting ligation stats for merged MCC BAM of group {wildcards.group}",
-    
+
+use rule extract_ligation_stats as extract_ligation_stats_condition with:
+    input:
+        bam=OUTPUT_DIR + "/mcc/{condition}/{condition}.bam",
+    output:
+        stats=OUTPUT_DIR + "/resources/{condition}_ligation_stats.json",
+    wildcard_constraints:
+        condition="|".join(SAMPLE_GROUPINGS.get_grouping('condition').group_names),
+    log: OUTPUT_DIR + "/logs/extract_ligation_stats_merged/{condition}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/extract_ligation_stats_merged/{condition}.tsv",
+    message: "Extracting ligation stats for merged MCC BAM of condition {wildcards.condition}",
