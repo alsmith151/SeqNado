@@ -1,10 +1,13 @@
 """Helper functions for generating FastqScreen configuration from genome configs."""
 
 import json
+import logging
 from pathlib import Path
 from typing import Dict
 
 from seqnado.config.configs import GenomeConfig
+
+logger = logging.getLogger(__name__)
 
 
 def generate_fastq_screen_config(
@@ -126,22 +129,20 @@ def generate_fastq_screen_config(
                     lines.append(f"DATABASE\t{display_name}\t{index_path}")
                     lines.append("")
                 else:
-                    print(
-                        f"⚠️  Warning: No bowtie2 index files found for {genome_name} at {index_path}"
+                    logger.warning(
+                        f"No bowtie2 index files found for {genome_name} at {index_path}"
                     )
             else:
-                print(
-                    f"⚠️  Warning: Index path does not exist for {genome_name}: {parent}"
+                logger.warning(
+                    f"Index path does not exist for {genome_name}: {parent}"
                 )
 
     # Add common contaminants if requested
     if include_contaminants:
         if contaminant_base_path is None:
-            print(
-                "⚠️  Warning: include_contaminants=True but no contaminant_base_path provided"
-            )
-            print(
-                "    Skipping contaminant databases. Use --contaminant-path to specify location."
+            logger.warning(
+                "include_contaminants=True but no contaminant_base_path provided. "
+                "Skipping contaminant databases. Use --contaminant-path to specify location."
             )
         elif contaminant_base_path.exists():
             contaminants = [
@@ -175,17 +176,14 @@ def generate_fastq_screen_config(
                         lines.append(f"DATABASE\t{name}\t{full_path}")
                         lines.append("")
         else:
-            print(
-                f"⚠️  Warning: Contaminant path does not exist: {contaminant_base_path}"
+            logger.warning(
+                f"Contaminant path does not exist: {contaminant_base_path}"
             )
-            print("    Skipping contaminant databases.")
 
     # Write to file
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         f.write("\n".join(lines))
-
-    print(f"✅ FastqScreen config written to: {output_path}")
 
 
 def load_genome_configs_for_fastqscreen() -> Dict[str, GenomeConfig]:

@@ -232,7 +232,7 @@ def test_generate_fastq_screen_config_skips_combined_genomes(tmp_path, test_geno
     assert "dm6_mm39" not in content
 
 
-def test_generate_fastq_screen_config_missing_index_files(tmp_path, capsys, test_genome_dir):
+def test_generate_fastq_screen_config_missing_index_files(tmp_path, caplog, test_genome_dir):
     """Test warning when index files don't exist."""
     # Create directory with index files first
     empty_dir = tmp_path / "empty"
@@ -260,12 +260,11 @@ def test_generate_fastq_screen_config_missing_index_files(tmp_path, capsys, test
         include_contaminants=False,
     )
 
-    # Check warning was printed
-    captured = capsys.readouterr()
-    assert "Warning: No bowtie2 index files found" in captured.out
+    # Check warning was logged
+    assert "No bowtie2 index files found" in caplog.text
 
 
-def test_generate_fastq_screen_config_missing_index_directory(tmp_path, capsys, test_genome_dir):
+def test_generate_fastq_screen_config_missing_index_directory(tmp_path, caplog, test_genome_dir):
     """Test warning when index directory doesn't exist."""
     # Create directory and index files first
     temp_dir = tmp_path / "temp"
@@ -292,9 +291,8 @@ def test_generate_fastq_screen_config_missing_index_directory(tmp_path, capsys, 
         include_contaminants=False,
     )
 
-    # Check warning was printed
-    captured = capsys.readouterr()
-    assert "Warning: Index path does not exist" in captured.out
+    # Check warning was logged
+    assert "Index path does not exist" in caplog.text
 
 
 def test_generate_fastq_screen_config_unknown_organism(tmp_path, test_genome_dir, bt2_index_path):
@@ -319,7 +317,7 @@ def test_generate_fastq_screen_config_unknown_organism(tmp_path, test_genome_dir
     assert "Custom Genome" in content
 
 
-def test_generate_fastq_screen_config_contaminants_no_path(tmp_path, capsys, test_genome_dir, bt2_index_path):
+def test_generate_fastq_screen_config_contaminants_no_path(tmp_path, caplog, test_genome_dir, bt2_index_path):
     """Test warning when include_contaminants=True but no path provided."""
     configs = {
         "hg38": GenomeConfig(
@@ -337,18 +335,15 @@ def test_generate_fastq_screen_config_contaminants_no_path(tmp_path, capsys, tes
         contaminant_base_path=None,
     )
 
-    captured = capsys.readouterr()
-    assert (
-        "include_contaminants=True but no contaminant_base_path provided"
-        in captured.out
-    )
-    assert "Skipping contaminant databases" in captured.out
+    # Check warning was logged
+    assert "include_contaminants=True but no contaminant_base_path provided" in caplog.text
+    assert "Skipping contaminant databases" in caplog.text
 
 
-def test_generate_fastq_screen_config_contaminants_path_not_exist(tmp_path, capsys, test_genome_dir, bt2_index_path):
+def test_generate_fastq_screen_config_contaminants_path_not_exist(tmp_path, caplog, test_genome_dir, bt2_index_path):
     """Test warning when contaminant path doesn't exist."""
     nonexistent_path = tmp_path / "nonexistent_contaminants"
-    
+
     configs = {
         "hg38": GenomeConfig(
             name="hg38",
@@ -356,7 +351,7 @@ def test_generate_fastq_screen_config_contaminants_path_not_exist(tmp_path, caps
             index=BowtieIndex(prefix=str(bt2_index_path)),
         ),
     }
-    
+
     output_path = tmp_path / "test.conf"
     generate_fastq_screen_config(
         genome_configs=configs,
@@ -364,10 +359,9 @@ def test_generate_fastq_screen_config_contaminants_path_not_exist(tmp_path, caps
         include_contaminants=True,
         contaminant_base_path=nonexistent_path,
     )
-    
-    captured = capsys.readouterr()
-    assert "Contaminant path does not exist" in captured.out
-    assert "Skipping contaminant databases" in captured.out
+
+    # Check warning was logged
+    assert "Contaminant path does not exist" in caplog.text
 
 
 def test_generate_fastq_screen_config_version_selection(test_genome_dir, bt2_index_path):
