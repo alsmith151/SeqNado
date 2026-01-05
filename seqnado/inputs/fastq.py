@@ -520,7 +520,11 @@ class FastqCollection(BaseFastqCollection):
             row.update(metadata_dict)
             rows.append(row)
 
-        df = pd.DataFrame(rows).sort_values("sample_id").set_index("uid")
+        if not rows:
+            # Return empty DataFrame with expected columns
+            df = pd.DataFrame(columns=["sample_id", "r1", "r2", "uid"]).set_index("uid")
+        else:
+            df = pd.DataFrame(rows).sort_values("sample_id").set_index("uid")
 
         # Define column order: critical columns first (assay, sample info, files), then other metadata
         core_cols = ["assay", "sample_id", "r1", "r2"]

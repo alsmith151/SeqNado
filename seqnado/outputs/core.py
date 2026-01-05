@@ -581,7 +581,7 @@ class MultiomicsOutputBuilder:
             sample_names=[],
             sample_groups=None,
             assay=None,
-            config=self.config,
+            config=None,
             design_dataframe=None,
         )
 
