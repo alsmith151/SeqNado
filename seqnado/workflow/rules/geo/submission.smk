@@ -5,13 +5,16 @@ def get_files_for_symlink(wc: Any = None) -> List[str]:
     """
     Get all files that need to be symlinked for GEO submission
     """
-    from seqnado.design import GEOFiles
+    from seqnado.outputs.files import GEOFiles
+    # Exclude geo_submission files to avoid circular dependencies
+    source_files = [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p)]
+
     geo_files = GEOFiles(make_geo_submission_files=True,
                          assay=OUTPUT.assay,
                          design=OUTPUT.design_dataframe,
                          sample_names=OUTPUT.sample_names,
                          config=OUTPUT.config,
-                         processed_files=[str(p) for p in OUTPUT.files])
+                         processed_files=source_files)
 
     fastq_dir = Path(OUTPUT_DIR + "/fastqs")
     fastqs = sorted([str(fastq_dir / fn) for fq_pair in geo_files.raw_files.values() for fn in fq_pair])
@@ -22,15 +25,18 @@ def get_symlinked_files(wc: Any = None) -> List[str]:
     """
     Get all files that have been symlinked for GEO submission
     """
-    from seqnado.design import GEOFiles
+    from seqnado.outputs.files import GEOFiles
     outdir = Path(OUTPUT_DIR + "/geo_submission")
+
+    # Exclude geo_submission files to avoid circular dependencies
+    source_files = [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p)]
 
     geo_files = GEOFiles(make_geo_submission_files=True,
                          assay=OUTPUT.assay,
                          design=OUTPUT.design_dataframe,
                          sample_names=OUTPUT.sample_names,
                          config=OUTPUT.config,
-                         processed_files=[str(p) for p in OUTPUT.files])
+                         processed_files=source_files)
 
     fastqs = [str(outdir / fn) for fqs in geo_files.raw_files.values() for fn in fqs]
 
@@ -55,14 +61,17 @@ rule geo_symlink:
     message: "Creating symlinks for GEO submission files",
     run:
         from pathlib import Path
-        from seqnado.design import GEOFiles
+        from seqnado.outputs.files import GEOFiles
+
+        # Exclude geo_submission files to avoid circular dependencies
+        source_files = [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p)]
 
         geo_files = GEOFiles(make_geo_submission_files=True,
                              assay=OUTPUT.assay,
                              design=OUTPUT.design_dataframe,
                              sample_names=OUTPUT.sample_names,
                              config=OUTPUT.config,
-                             processed_files=[str(p) for p in OUTPUT.files])
+                             processed_files=source_files)
 
         fastqs = geo_files.raw_files
         processed_files = geo_files.processed_data_files
@@ -142,22 +151,28 @@ rule samples_table:
     benchmark: OUTPUT_DIR + "/.benchmark/geo/samples_table.tsv",
     message: "Generating samples table for GEO submission",
     run:
-        from seqnado.design import GEOFiles
+        from seqnado.outputs.files import GEOFiles
+        # Exclude geo_submission files to avoid circular dependencies
+        source_files = [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p)]
+
         df = GEOFiles(make_geo_submission_files=True,
                       assay=OUTPUT.assay,
                       design=OUTPUT.design_dataframe,
                       sample_names=OUTPUT.sample_names,
                       config=OUTPUT.config,
-                      processed_files=[str(p) for p in OUTPUT.files]
+                      processed_files=source_files
                       ).metadata
-        
+
         df.to_csv(output[0], sep="\t", index=False)
+
+assay_for_protocol = ASSAY.name
 
 rule geo_protocol:
     output:
         OUTPUT_DIR + "/geo_submission/protocol.txt",
     params:
-        assay=ASSAY,
+        assay=assay_for_protocol,
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/geo/geo_protocol.log",
     benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_protocol.tsv",
     message: "Producing data processing protocol for GEO submission",
@@ -185,7 +200,7 @@ rule move_to_upload:
         infiles = get_symlinked_files,
         validated=OUTPUT_DIR + "/geo_submission/.validated",
     output:
-        outdir = directory(OUTPUT_DIR + "/geo_submission/{ASSAY.replace('&', '_and_')}")
+        outdir = directory(OUTPUT_DIR + f"/geo_submission/{ASSAY.clean_name}")
     params:
         output=OUTPUT,
     log: OUTPUT_DIR + "/logs/geo/move_to_upload.log",

@@ -1,30 +1,40 @@
-from pathlib import Path
-from typing import Union, Annotated
 from enum import Enum
-from pydantic import BaseModel, computed_field, field_validator, Field, model_validator, BeforeValidator
+from pathlib import Path
+from typing import Annotated, Union
+
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
+
 from seqnado import Assay
+
 from .configs import (
     BigwigConfig,
-    PlottingConfig,
-    UCSCHubConfig,
-    MLDatasetConfig,
-    RNAQuantificationConfig,
-    PCRDuplicatesConfig,
-    QCConfig,
     GenomeConfig,
-    ProjectConfig,
+    MCCConfig,
+    MethylationConfig,
+    MLDatasetConfig,
+    PCRDuplicatesConfig,
     PeakCallingConfig,
+    PlottingConfig,
+    ProjectConfig,
+    QCConfig,
+    RNAQuantificationConfig,
     SNPCallingConfig,
     SpikeInConfig,
-    MethylationConfig,
-    MCCConfig,
+    UCSCHubConfig,
     none_str_to_none,
 )
 from .mixins import (
     CommonComputedFieldsMixin,
+    MethylationMixin,
     PeakCallingMixin,
     SNPCallingMixin,
-    MethylationMixin,
 )
 from .third_party_tools import ThirdPartyToolsConfig
 
@@ -158,7 +168,29 @@ class SeqnadoConfig(BaseModel):
     @model_validator(mode="before")
     def set_default_third_party_tools(cls, values):
         if "third_party_tools" not in values or values["third_party_tools"] is None:
-            values["third_party_tools"] = ThirdPartyToolsConfig.for_assay(values.get("assay"))
+            assay = values.get("assay")
+            # Normalize assay to Assay enum if it's a string
+            if isinstance(assay, str):
+                assay = Assay(assay)
+            values["third_party_tools"] = ThirdPartyToolsConfig.for_assay(assay)
+
+        return values
+
+    @model_validator(mode="before")
+    def set_default_pcr_duplicates(cls, values):
+        """Set default PCR duplicate handling based on assay type."""
+        from seqnado import PCRDuplicateHandling
+
+        if "pcr_duplicates" not in values or values["pcr_duplicates"] is None:
+            assay = values.get("assay")
+            # Normalize assay to Assay enum if it's a string
+            if isinstance(assay, str):
+                assay = Assay(assay)
+            # Default to REMOVE for ATAC, ChIP, CAT, SNP, and METH; KEEP for RNA
+            if assay in [Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.SNP, Assay.METH]:
+                values["pcr_duplicates"] = PCRDuplicatesConfig(strategy=PCRDuplicateHandling.REMOVE)
+            else:
+                values["pcr_duplicates"] = PCRDuplicatesConfig(strategy=PCRDuplicateHandling.NONE)
 
         return values
 

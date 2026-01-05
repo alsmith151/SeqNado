@@ -139,6 +139,16 @@ match ASSAY:
 
 
 ################################
+# Conditional Includes
+################################
+if CONFIG.assay_config.create_heatmaps:
+    include: "rules/visualise/heatmap.smk"
+
+if CONFIG.assay_config.create_geo_submission_files:
+    include: "rules/geo/submission.smk"
+
+
+################################
 # Rule Ordering
 ################################
 if CONFIG.assay_config.has_spikein:
