@@ -168,7 +168,11 @@ class SeqnadoConfig(BaseModel):
     @model_validator(mode="before")
     def set_default_third_party_tools(cls, values):
         if "third_party_tools" not in values or values["third_party_tools"] is None:
-            values["third_party_tools"] = ThirdPartyToolsConfig.for_assay(values.get("assay"))
+            assay = values.get("assay")
+            # Normalize assay to Assay enum if it's a string
+            if isinstance(assay, str):
+                assay = Assay(assay)
+            values["third_party_tools"] = ThirdPartyToolsConfig.for_assay(assay)
 
         return values
 
@@ -179,6 +183,9 @@ class SeqnadoConfig(BaseModel):
 
         if "pcr_duplicates" not in values or values["pcr_duplicates"] is None:
             assay = values.get("assay")
+            # Normalize assay to Assay enum if it's a string
+            if isinstance(assay, str):
+                assay = Assay(assay)
             # Default to REMOVE for ATAC, ChIP, CAT, SNP, and METH; KEEP for RNA
             if assay in [Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.SNP, Assay.METH]:
                 values["pcr_duplicates"] = PCRDuplicatesConfig(strategy=PCRDuplicateHandling.REMOVE)

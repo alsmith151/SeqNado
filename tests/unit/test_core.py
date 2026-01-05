@@ -111,6 +111,15 @@ class TestAssayEnum:
         assert Assay.CAT in ip_assays
         assert len(ip_assays) == 2
 
+    def test_non_multiomics_assays(self):
+        """Test non_multiomics_assays excludes MULTIOMICS."""
+        non_multi = Assay.non_multiomics_assays()
+        assert Assay.MULTIOMICS not in non_multi
+        assert Assay.RNA in non_multi
+        assert Assay.ATAC in non_multi
+        assert Assay.CHIP in non_multi
+        assert len(non_multi) == len(Assay) - 1
+
 
 class TestFileTypeEnum:
     """Tests for FileType enum."""
