@@ -40,6 +40,8 @@ rule homer_make_tag_directory:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
     output:
         homer_tag_directory=directory(OUTPUT_DIR + "/tag_dirs/{sample}"),
+    wildcard_constraints:
+        sample=r"(?!merged/).*",
     params:
         options=str(
             CONFIG.third_party_tools.homer.make_tag_directory.command_line_arguments

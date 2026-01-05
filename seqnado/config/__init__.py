@@ -15,6 +15,7 @@ from .configs import (
     STARIndex,
     GenomeConfig,
     BigwigConfig,
+    QCConfig,
     ProjectConfig,
     PCRDuplicatesConfig,
     UserFriendlyError,

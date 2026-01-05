@@ -1,4 +1,4 @@
-from typing import Protocol, List
+from typing import Protocol, List, Any
 from pathlib import Path
 
 from pydantic import BaseModel, computed_field, Field, field_validator
@@ -484,8 +484,9 @@ class GeoSubmissionFiles(BaseModel):
     @property
     def raw_files(self) -> list[str]:
         """Return FASTQ files for raw data."""
+        base_dir = Path(f"{self.output_dir}/geo_submission")
         return expand(
-            str(self.upload_directory / "{sample}_{read}.fastq.gz"),
+            str(base_dir / "{sample}_{read}.fastq.gz"),
             sample=self.names,
             read=["1", "2"],
         )
@@ -493,6 +494,7 @@ class GeoSubmissionFiles(BaseModel):
     @property
     def processed_data_files(self) -> list[str]:
         """Return processed files for GEO submission."""
+        base_dir = Path(f"{self.output_dir}/geo_submission")
         files = []
         for file in self.seqnado_files:
             file_path = Path(file)
@@ -504,9 +506,9 @@ class GeoSubmissionFiles(BaseModel):
                 basename = file_path.stem
                 scale_method = file_path.parent.name
                 method = file_path.parent.parent.name
-                
+
                 files.append(
-                    str(self.upload_directory / f"{basename}_{method}_{scale_method}{ext}")
+                    str(base_dir / f"{basename}_{method}_{scale_method}{ext}")
                 )
 
         return files
@@ -516,3 +518,182 @@ class GeoSubmissionFiles(BaseModel):
     def files(self) -> list[str]:
         """Return a list of all files for GEO submission."""
         return [*self.default_files, *self.raw_files, *self.processed_data_files]
+
+
+class GEOFiles(BaseModel):
+    """
+    Class to manage GEO submission files including raw FASTQ files and processed data files.
+
+    This class handles the renaming and organization of files for GEO submission by:
+    - Flattening nested directory structures
+    - Extracting method and scale information from file paths
+    - Creating appropriate symlink names
+    """
+
+    make_geo_submission_files: bool
+    assay: Assay
+    design: Any  # pd.DataFrame, but use Any to avoid circular import
+    sample_names: List[str]
+    config: Any  # SeqnadoConfig, but use Any to avoid issues
+    processed_files: List[str] = Field(default_factory=list)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @property
+    def raw_files(self) -> dict[str, List[str]]:
+        """
+        Get raw FASTQ files for each sample.
+
+        Returns:
+            dict[str, List[str]]: Dictionary mapping sample names to lists of FASTQ filenames
+        """
+        raw_files_dict = {}
+
+        for sample in self.sample_names:
+            # For paired-end data, return both R1 and R2
+            raw_files_dict[sample] = [
+                f"{sample}_1.fastq.gz",
+                f"{sample}_2.fastq.gz",
+            ]
+
+        return raw_files_dict
+
+    @property
+    def processed_data_files(self):
+        """
+        Get processed data files with renamed paths for GEO submission.
+
+        This method:
+        1. Filters files by allowed extensions (.bigWig, .bed, .tsv, .vcf.gz)
+        2. Extracts method and scale information from the directory structure
+        3. Creates flat filenames incorporating the metadata
+
+        Returns:
+            pd.DataFrame: DataFrame with columns 'path' (original) and 'output_file_name' (for GEO)
+        """
+        import pandas as pd
+
+        if not self.make_geo_submission_files:
+            return pd.DataFrame(columns=['path', 'output_file_name'])
+
+        allowed_extensions = [".bigWig", ".bed", ".tsv", ".vcf.gz"]
+        processed_data = []
+
+        for file_path_str in self.processed_files:
+            file_path = Path(file_path_str)
+
+            # Check if file has an allowed extension
+            # Handle both single suffix (.bed) and compound suffix (.vcf.gz)
+            ext = ''.join(file_path.suffixes)
+            if ext not in allowed_extensions and file_path.suffix not in allowed_extensions:
+                continue
+
+            # Extract metadata from path structure
+            parts = file_path.parts
+            basename = file_path.stem
+
+            # Handle compound extensions like .vcf.gz
+            if len(file_path.suffixes) > 1:
+                ext = ''.join(file_path.suffixes)
+            else:
+                ext = file_path.suffix
+
+            # Try to extract method and scale from directory structure
+            try:
+                # Find the index of known directories
+                if 'bigwigs' in parts:
+                    bigwigs_idx = parts.index('bigwigs')
+                    method = parts[bigwigs_idx + 1] if len(parts) > bigwigs_idx + 1 else None
+                    scale = parts[bigwigs_idx + 2] if len(parts) > bigwigs_idx + 2 else None
+
+                    if method and scale:
+                        output_name = f"{basename}_{method}_{scale}{ext}"
+                    elif method:
+                        output_name = f"{basename}_{method}{ext}"
+                    else:
+                        output_name = f"{basename}{ext}"
+
+                elif 'peaks' in parts:
+                    peaks_idx = parts.index('peaks')
+                    method = parts[peaks_idx + 1] if len(parts) > peaks_idx + 1 else None
+
+                    # Check if this is a merged peak file
+                    if 'merged' in parts:
+                        if method:
+                            output_name = f"{basename}_{method}_merged{ext}"
+                        else:
+                            output_name = f"{basename}_merged{ext}"
+                    else:
+                        if method and len(parts) > peaks_idx + 2:
+                            output_name = f"{basename}_peaks_{method}{ext}"
+                        elif method:
+                            output_name = f"{basename}_{method}{ext}"
+                        else:
+                            output_name = f"{basename}{ext}"
+
+                elif 'quantification' in parts:
+                    quant_idx = parts.index('quantification')
+                    method = parts[quant_idx + 1] if len(parts) > quant_idx + 1 else None
+
+                    if method:
+                        output_name = f"{basename}_{method}{ext}"
+                    else:
+                        output_name = f"{basename}{ext}"
+
+                elif 'variant' in parts:
+                    # Variant files are typically just {NAME}.vcf.gz
+                    output_name = f"{basename}{ext}"
+
+                else:
+                    # Fallback: just use the basename
+                    output_name = f"{basename}{ext}"
+
+            except (ValueError, IndexError):
+                # If we can't parse the path, just use the basename
+                output_name = f"{basename}{ext}"
+
+            processed_data.append({
+                'path': str(file_path),
+                'output_file_name': output_name
+            })
+
+        return pd.DataFrame(processed_data)
+
+    @property
+    def metadata(self):
+        """
+        Get GEO submission metadata table.
+
+        Returns:
+            pd.DataFrame: Metadata table formatted for GEO submission
+        """
+        import pandas as pd
+
+        if self.design is None or (hasattr(self.design, 'empty') and self.design.empty):
+            # Create minimal metadata if design is not available
+            metadata = pd.DataFrame({
+                'Sample name': self.sample_names,
+                'title': self.sample_names,
+                'source name': [f"Sample {name}" for name in self.sample_names],
+                'organism': [''] * len(self.sample_names),
+            })
+        else:
+            # Use the existing design dataframe as base
+            metadata = self.design.copy()
+
+            # Ensure required columns exist
+            if 'Sample name' not in metadata.columns and 'samplename' in metadata.columns:
+                metadata['Sample name'] = metadata['samplename']
+            elif 'Sample name' not in metadata.columns:
+                # If the design has fewer rows than sample_names (e.g., due to merging/consensus),
+                # we need to create a row for each sample
+                if len(metadata) != len(self.sample_names):
+                    # Create a new metadata DataFrame with one row per sample
+                    metadata = pd.DataFrame({
+                        'Sample name': self.sample_names,
+                    })
+                else:
+                    metadata['Sample name'] = self.sample_names
+
+        return metadata

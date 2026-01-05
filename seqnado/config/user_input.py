@@ -4,49 +4,52 @@ User input module for SeqNado configuration using the new Pydantic models.
 
 import json
 import os
-from pathlib import Path
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import jinja2
 from loguru import logger
 from pydantic import ValidationError
-import jinja2
 
 from seqnado import (
     Assay,
-    SpikeInMethod,
-    PileupMethod,
+    MethylationMethod,
     PeakCallingMethod,
+    PileupMethod,
     QuantificationMethod,
     SNPCallingMethod,
-    MethylationMethod,
+    SpikeInMethod,
 )
+
 from seqnado.config import (
-    SeqnadoConfig,
-    GenomeConfig,
-    ProjectConfig,
+    AssaySpecificConfig,
+    ATACAssayConfig,
     BigwigConfig,
-    PlottingConfig,
-    PeakCallingConfig,
-    SpikeInConfig,
-    UCSCHubConfig,
-    RNAQuantificationConfig,
-    SNPCallingConfig,
+    BowtieIndex,
+    CATAssayConfig,
+    ChIPAssayConfig,
+    CRISPRAssayConfig,
+    GenomeConfig,
+    MCCAssayConfig,
     MCCConfig,
+    MethylationAssayConfig,
     MethylationConfig,
     MLDatasetConfig,
-    UserFriendlyError,
-    ATACAssayConfig,
-    ChIPAssayConfig,
-    CATAssayConfig,
+    PeakCallingConfig,
+    PlottingConfig,
+    ProjectConfig,
+    QCConfig,
     RNAAssayConfig,
+    RNAQuantificationConfig,
+    SeqnadoConfig,
     SNPAssayConfig,
-    MCCAssayConfig,
-    MethylationAssayConfig,
-    CRISPRAssayConfig,
-    BowtieIndex,
+    SNPCallingConfig,
+    SpikeInConfig,
     STARIndex,
-    AssaySpecificConfig,
+    UCSCHubConfig,
+    UserFriendlyError,
 )
 
 
@@ -57,15 +60,31 @@ def get_user_input(
     choices: Optional[List[str]] = None,
     is_path: bool = False,
     required: bool = True,
-) -> str:
+    multi_select: bool = False,
+) -> str | List[str]:
     """
     Prompt the user for input with validation for choices, boolean values, or path existence.
     Re-prompts until valid input is provided.
+
+    Args:
+        prompt: The prompt message to display
+        default: Default value if user provides no input
+        is_boolean: If True, expect yes/no input
+        choices: List of valid choices
+        is_path: If True, validate that path exists
+        required: If False, allow empty input
+        multi_select: If True, allow comma-separated multiple selections from choices
+
+    Returns:
+        str or List[str]: Single value or list of values (when multi_select=True)
     """
     while True:
         # Construct the prompt suffix based on choices or default
         if choices:
-            prompt_suffix = f"({'/'.join(choices)})"
+            if multi_select:
+                prompt_suffix = f"({', '.join(choices)})"
+            else:
+                prompt_suffix = f"({'/'.join(choices)})"
         elif default is not None:
             prompt_suffix = f"(default: {default})"
         else:
@@ -95,7 +114,24 @@ def get_user_input(
                 )
                 continue
 
-        # Validate against allowed choices
+        # Handle multi-select from choices
+        if multi_select and choices:
+            # Split by comma and validate each selection
+            selections = [s.strip() for s in user_input.split(',')]
+            invalid_selections = [s for s in selections if s not in choices]
+
+            if invalid_selections:
+                print(f"Invalid choices: {', '.join(invalid_selections)}")
+                print(f"Please choose from: {', '.join(choices)}")
+                continue
+
+            if not selections:
+                print("No valid selections made. Please try again.")
+                continue
+
+            return selections
+
+        # Validate against allowed choices (single select)
         if choices and user_input not in choices:
             print(f"Invalid choice. Please choose from: {', '.join(choices)}")
             continue
@@ -158,6 +194,12 @@ def get_project_config() -> ProjectConfig:
 
     return ProjectConfig(name=project_name, date=today, directory=Path(project_dir))
 
+def get_qc_config() -> QCConfig:
+    """Get QC configuration from user input."""
+    run_fastq_screen = get_user_input("Perform FastQScreen?", default="no", is_boolean=True)
+    calculate_library_complexity = get_user_input("Calculate library complexity?", default="no", is_boolean=True)
+    calculate_fraction_of_reads_in_peaks = get_user_input("Calculate Fraction of Reads in Peaks (FRiP)?", default="no", is_boolean=True)
+    return QCConfig(run_fastq_screen=run_fastq_screen, calculate_library_complexity=calculate_library_complexity, calculate_fraction_of_reads_in_peaks=calculate_fraction_of_reads_in_peaks)
 
 def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay = None) -> GenomeConfig:
     """Allow user to select a genome configuration.
@@ -197,13 +239,21 @@ def get_bigwig_config(assay: Assay) -> Optional[BigwigConfig]:
     if not make_bigwigs:
         return None
 
-    pileup_method = get_user_input(
-        "Bigwig method:", choices=[m.value for m in PileupMethod], default="deeptools" if not assay == Assay.MCC else PileupMethod.BAMNADO.value
+    # Multi-select for pileup methods
+    pileup_methods = get_user_input(
+        "Bigwig method(s) (comma-separated for multiple):",
+        choices=[m.value for m in PileupMethod],
+        default="deeptools" if not assay == Assay.MCC else PileupMethod.BAMNADO.value,
+        multi_select=True
     )
+
+    # Convert single string to list if default was used
+    if isinstance(pileup_methods, str):
+        pileup_methods = [pileup_methods]
 
     binsize = get_user_input("Binsize for bigwigs:", default="10", required=False)
 
-    return BigwigConfig(pileup_method=[PileupMethod(pileup_method)], binsize=binsize)
+    return BigwigConfig(pileup_method=[PileupMethod(m) for m in pileup_methods], binsize=binsize)
 
 
 def get_plotting_config() -> Optional[PlottingConfig]:
@@ -216,10 +266,10 @@ def get_plotting_config() -> Optional[PlottingConfig]:
         return None
 
     coordinates = get_user_input(
-        "Path to bed file with coordinates for plotting:", required=False, is_path=True
+        "Path to bed file with coordinates for plotting?", required=False, is_path=True
     )
 
-    genes = get_user_input("Path to bed file with genes:", required=False, is_path=True)
+    genes = get_user_input("Path to bed file with genes?", required=False, is_path=True)
 
     return PlottingConfig(coordinates=coordinates, genes=genes)
 
@@ -241,11 +291,17 @@ def get_peak_calling_config(assay: Assay) -> Optional[PeakCallingConfig]:
         Assay.CAT: "seacr",
     }.get(assay, "lanceotron")
 
-    peak_calling_method = get_user_input(
-        "Peak calling method:",
+    # Multi-select for peak calling methods
+    peak_calling_methods = get_user_input(
+        "Peak calling method(s) (comma-separated for multiple):",
         choices=[m.value for m in PeakCallingMethod],
         default=default_method,
+        multi_select=True
     )
+
+    # Convert single string to list if default was used
+    if isinstance(peak_calling_methods, str):
+        peak_calling_methods = [peak_calling_methods]
 
     consensus_counts = get_user_input(
         "Generate consensus counts from Design merge column?",
@@ -254,7 +310,7 @@ def get_peak_calling_config(assay: Assay) -> Optional[PeakCallingConfig]:
     )
 
     return PeakCallingConfig(
-        method=[PeakCallingMethod(peak_calling_method)],
+        method=[PeakCallingMethod(m) for m in peak_calling_methods],
         consensus_counts=consensus_counts,
     )
 
@@ -268,7 +324,7 @@ def get_spikein_config(assay: Assay) -> Optional[SpikeInConfig]:
         return None
 
     normalisation_method = get_user_input(
-        "Normalisation method:",
+        "Normalisation method?",
         choices=[m.value for m in SpikeInMethod],
         default="orlando",
     )
@@ -297,12 +353,14 @@ def get_ucsc_hub_config() -> Optional[UCSCHubConfig]:
     email = get_user_input(
         "What is your email address?", default=f"{username}@example.com"
     )
-
+    genome_name = get_user_input(
+        "Genome name for UCSC hub?", default="hg38"
+    )
     color_by_input = get_user_input("Color by (for UCSC hub):", default="samplename")
     # Convert to list if it's a string
     color_by = [color_by_input] if isinstance(color_by_input, str) else color_by_input
 
-    return UCSCHubConfig(directory=directory, email=email, color_by=color_by)
+    return UCSCHubConfig(directory=directory, email=email, color_by=color_by, genome_name=genome_name)
 
 
 def get_ml_dataset_config(assay: Assay) -> Optional[MLDatasetConfig]:
@@ -544,6 +602,7 @@ def build_default_assay_config(
         directory="seqnado_output/hub/",
         genome=genome_config.name,
         email="user@example.com",
+        genome_name=genome_config.name,
     )
     create_heatmaps = False
     geo_files = False
