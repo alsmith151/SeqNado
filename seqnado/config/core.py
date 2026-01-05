@@ -172,6 +172,21 @@ class SeqnadoConfig(BaseModel):
 
         return values
 
+    @model_validator(mode="before")
+    def set_default_pcr_duplicates(cls, values):
+        """Set default PCR duplicate handling based on assay type."""
+        from seqnado import PCRDuplicateHandling
+
+        if "pcr_duplicates" not in values or values["pcr_duplicates"] is None:
+            assay = values.get("assay")
+            # Default to REMOVE for ATAC, ChIP, CAT, SNP, and METH; KEEP for RNA
+            if assay in [Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.SNP, Assay.METH]:
+                values["pcr_duplicates"] = PCRDuplicatesConfig(strategy=PCRDuplicateHandling.REMOVE)
+            else:
+                values["pcr_duplicates"] = PCRDuplicatesConfig(strategy=PCRDuplicateHandling.NONE)
+
+        return values
+
     @classmethod
     def from_yaml(cls, path: Path) -> "SeqnadoConfig":
         """Load configuration from a YAML file."""
