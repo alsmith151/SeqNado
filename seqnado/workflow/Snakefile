@@ -99,6 +99,7 @@ match ASSAY:
         include: "rules/alignment/dna.smk"
         include: "rules/pileup/default.smk"
         include: "rules/peaks/default.smk"
+        include: "rules/motifs/motif.smk"
         include: "rules/pileup/merge.smk"
         include: "rules/pileup/normalized.smk"
         include: "rules/visualise/hub.smk"
@@ -122,7 +123,7 @@ match ASSAY:
         include: "rules/fastq/manipulate.smk"
         include: "rules/visualise/hub.smk"
     case Assay.CRISPR:
-        include: "rules/crispr/crispr.smk"
+        include: "rules/crispr/all.smk"
     case Assay.METH:
         include: "rules/fastq/trim.smk"
         include: "rules/alignment/dna.smk"

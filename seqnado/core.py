@@ -129,6 +129,13 @@ class PeakCallingMethod(Enum):
     LANCEOTRON_MCC = "lanceotron-mcc"
 
 
+class MotifMethod(Enum):
+    """Methods for motif analysis."""
+
+    HOMER = "homer"
+    MEME = "meme"
+
+
 class PCRDuplicateHandling(Enum):
     """Methods for handling PCR duplicates."""
 

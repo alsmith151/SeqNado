@@ -9,6 +9,8 @@ rule feature_counts:
         counts=OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
     params:
         options=str(CONFIG.third_party_tools.subread.feature_counts.command_line_arguments),
+        annotation_format= "SAF" if config["genome"]["gtf"].endswith(".saf") else "GTF",
+        paired= "-p --countReadPairs" if INPUT_FILES.is_paired_end(SAMPLE_NAMES[0]) else "",
     threads: 
         CONFIG.third_party_tools.subread.feature_counts.threads
     resources:
@@ -19,15 +21,23 @@ rule feature_counts:
     benchmark: OUTPUT_DIR + "/.benchmark/readcounts/featurecounts/featurecounts.tsv",
     message: "Running featureCounts to quantify reads for all samples"
     shell: """
+    # Determine annotation format from file extension
+    annotation="{input.annotation}"
+    if [[ "$annotation" == *.saf ]]; then
+        format_flag="-F SAF"
+    else
+        format_flag="-F GTF"
+    fi
+    
     featureCounts \
-    -a \
-    {input.annotation} \
-    -T \
-    {threads} \
+    $format_flag \
+    -a {input.annotation} \
+    -F {params.annotation_format} \
+    -T {threads} \
     --donotsort \
+    {params.paired} \
     {params.options} \
-    -o \
-    {output.counts} \
+    -o {output.counts} \
     {input.bam} \
     > {log} 2>&1
     """

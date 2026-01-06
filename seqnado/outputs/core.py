@@ -202,6 +202,17 @@ class SeqNadoReportFiles:
         ):
             builder.add_peak_files()
 
+            # Add motif files for assays with peak calling
+            peak_config = self.config.assay_config.peak_calling
+            if peak_config and peak_config.run_motif_analysis and peak_config.motif_method:
+                from seqnado import MotifMethod
+                run_homer = MotifMethod.HOMER in peak_config.motif_method
+                run_meme = MotifMethod.MEME in peak_config.motif_method
+                builder.add_motif_files(
+                    run_homer=run_homer,
+                    run_meme=run_meme,
+                )
+
         if (
             "create_quantification_files" in self.config.assay_config
             and self.config.assay_config.create_quantification_files
@@ -360,6 +371,27 @@ class SeqnadoOutputBuilder:
             output_dir=self.output_dir,
         )
         self.file_collections.append(peaks)
+
+    def add_motif_files(self, run_homer: bool = True, run_meme: bool = False) -> None:
+        """Add motif analysis files to the output collection."""
+        from seqnado.outputs.files import MotifFiles
+        from seqnado.inputs import FastqCollectionForIP
+
+        # For IP-based assays, only analyze motifs from IP samples
+        if isinstance(self.samples, FastqCollectionForIP):
+            sample_names = self.samples.ip_sample_names
+        else:
+            sample_names = self.samples.sample_names
+
+        motifs = MotifFiles(
+            assay=self.assay,
+            names=sample_names,
+            peak_calling_method=self.config.assay_config.peak_calling.method,
+            output_dir=self.output_dir,
+            run_homer=run_homer,
+            run_meme=run_meme,
+        )
+        self.file_collections.append(motifs)
 
     def add_grouped_peak_files(self) -> None:
         """Add grouped peak files to the output collection."""
@@ -671,6 +703,17 @@ class SeqnadoOutputFactory:
             builder.add_peak_files()
             if self.sample_groupings.groupings.get("consensus"):
                 builder.add_grouped_peak_files()
+
+            # Add motif files if motif analysis is enabled
+            peak_config = self.assay_config.peak_calling
+            if peak_config and peak_config.run_motif_analysis and peak_config.motif_method:
+                from seqnado import MotifMethod
+                run_homer = MotifMethod.HOMER in peak_config.motif_method
+                run_meme = MotifMethod.MEME in peak_config.motif_method
+                builder.add_motif_files(
+                    run_homer=run_homer,
+                    run_meme=run_meme,
+                )
 
         if self.assay_config.create_heatmaps:
             builder.add_heatmap_files()

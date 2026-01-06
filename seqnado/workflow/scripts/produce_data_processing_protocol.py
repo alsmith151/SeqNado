@@ -163,6 +163,7 @@ TOOL_VERSIONS = {
     "samtools": ("samtools --version", r"samtools (\d+\.\d+)", "1.22"),
     "salmon": ("salmon --version", r"salmon (\d+\.\d+\.\d+)", "1.10.0"),
     "mageck": ("mageck --version", r"(\d+\.\d+\.\d+)", "0.5.9"),
+    "meme": ("meme-chip --version", r"(\d+\.\d+\.\d+)", "5.5.9"),
 }
 
 
@@ -610,6 +611,76 @@ class PeakCallingSection(ProtocolSection):
         return lines
 
 
+class MotifAnalysisSection(ProtocolSection):
+    """Motif analysis for ChIP-seq, ATAC-seq, and CUT&Tag."""
+
+    def is_applicable(self) -> bool:
+        if self.assay_config is None:
+            return False
+        # Check if peak_calling exists and run_motif_analysis is enabled
+        peak_config = self.assay_config.get("peak_calling")
+        if not peak_config:
+            return False
+        return peak_config.get("run_motif_analysis", False)
+
+    def collect_versions(self) -> dict:
+        versions = {}
+        if not self.is_applicable():
+            return versions
+
+        peak_config = self.assay_config.get("peak_calling", {})
+        motif_methods = peak_config.get("motif_method", [])
+
+        # Normalize motif methods to lowercase strings for comparison
+        motif_methods_normalized = [str(method).lower() for method in listify(motif_methods)]
+
+        # Check which motif tools are enabled
+        if "homer" in motif_methods_normalized:
+            versions["homer"] = get_tool_version("homer")
+        if "meme" in motif_methods_normalized:
+            versions["meme"] = get_tool_version("meme")
+
+        return versions
+
+    def generate_text(self) -> list[str]:
+        if self.assay_config is None:
+            return []
+
+        peak_config = self.assay_config.get("peak_calling", {})
+        motif_methods = peak_config.get("motif_method", [])
+        motif_methods_normalized = [str(method).lower() for method in listify(motif_methods)]
+        lines = []
+
+        # HOMER motif analysis
+        if "homer" in motif_methods_normalized and "homer" in self.versions:
+            homer_params = tool_arguments(
+                "homer", "find_motifs_genome", "command_line_arguments",
+                default="default parameters"
+            )
+            lines.append(
+                f"De novo motif discovery was performed using HOMER findMotifsGenome.pl v{self.versions['homer']} "
+                f"with the following parameters: {homer_params}."
+            )
+
+        # MEME-ChIP motif analysis
+        if "meme" in motif_methods_normalized and "meme" in self.versions:
+            meme_params = safe_get(third_party_tools, "meme", "meme_chip_params", default="default parameters")
+            meme_db = safe_get(third_party_tools, "meme", "meme_chip_db", default="")
+
+            if meme_db:
+                lines.append(
+                    f"Motif enrichment analysis was performed using MEME-ChIP v{self.versions['meme']} "
+                    f"with motif database {meme_db} and parameters: {meme_params}."
+                )
+            else:
+                lines.append(
+                    f"De novo motif discovery and enrichment analysis was performed using MEME-ChIP v{self.versions['meme']} "
+                    f"with the following parameters: {meme_params}."
+                )
+
+        return lines
+
+
 class BigWigSection(ProtocolSection):
     """BigWig track generation."""
 
@@ -955,6 +1026,7 @@ class ProtocolBuilder:
         VariantCallingSection,
         MCCSection,  # MCC must come before PeakCalling to avoid conflicts
         PeakCallingSection,
+        MotifAnalysisSection,  # Motif analysis comes after peak calling
     ]
 
     def __init__(self, config: dict, assay_config: dict, logger: logging.Logger):

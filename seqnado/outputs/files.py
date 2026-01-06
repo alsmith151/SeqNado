@@ -37,9 +37,6 @@ class QCFiles(BaseModel):
 
     @property
     def fastqc_files(self) -> list[str]:
-        # CRISPR doesn't need fastqc
-        if self.assay == Assay.CRISPR:
-            return []
         if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)):
             files = []
             for sample in self.samples.sample_names:
@@ -57,9 +54,6 @@ class QCFiles(BaseModel):
 
     @property
     def fastqscreen_files(self) -> list[str]:
-        # CRISPR doesn't need fastq_screen
-        if self.assay == Assay.CRISPR:
-            return []
         if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)) and self.config.run_fastq_screen:
             files = []
             for sample in self.samples.sample_names:
@@ -199,6 +193,51 @@ class PeakCallingFiles(BaseModel):
     def files(self) -> list[str]:
         """Return a list of peak calling files."""
         return self.peak_files
+
+
+class MotifFiles(BaseModel):
+    """Motif analysis output files for ChIP-seq, ATAC-seq, and CUT&Tag assays."""
+
+    assay: Assay
+    names: list[str]
+    peak_calling_method: list[PeakCallingMethod]
+    output_dir: str = "seqnado_output"
+    run_homer: bool = True
+    run_meme: bool = False
+
+    @field_validator("assay")
+    def validate_assay(cls, value):
+        if value not in AssaysWithPeakCalling:
+            raise ValueError(f"Invalid assay for motif analysis: {value}")
+        return value
+
+    @property
+    def homer_files(self) -> list[str]:
+        """Return HOMER motif analysis output files."""
+        if not self.run_homer:
+            return []
+        return expand(
+            f"{self.output_dir}/motifs/homer/{{method}}/{{sample}}/.completed",
+            sample=self.names,
+            method=[m.value for m in self.peak_calling_method],
+        )
+
+    @property
+    def meme_files(self) -> list[str]:
+        """Return MEME-ChIP motif analysis output files."""
+        if not self.run_meme:
+            return []
+        return expand(
+            f"{self.output_dir}/motifs/meme/{{method}}/{{sample}}/.completed",
+            sample=self.names,
+            method=[m.value for m in self.peak_calling_method],
+        )
+
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        """Return all motif analysis files."""
+        return [*self.homer_files, *self.meme_files]
 
 
 class HeatmapFiles(BaseModel):
@@ -412,9 +451,9 @@ class CRISPRFiles(BaseModel):
             return []
         
         return [
-            f"{self.output_dir}/readcounts/mageck/read_counts.txt",
-            f"{self.output_dir}/readcounts/mageck/mageck_mle_gene_summary.txt",
-            f"{self.output_dir}/readcounts/mageck/mageck_mle_sgrna_summary.txt",
+            f"{self.output_dir}/readcounts/mageck/mageck_count.count.txt",
+            f"{self.output_dir}/readcounts/mageck/mageck_mle.gene_summary.txt",
+            f"{self.output_dir}/readcounts/mageck/mageck_mle.sgrna_summary.txt",
         ]
     
     @computed_field

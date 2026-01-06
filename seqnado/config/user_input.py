@@ -7,7 +7,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import jinja2
 from loguru import logger
@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from seqnado import (
     Assay,
     MethylationMethod,
+    MotifMethod,
     PeakCallingMethod,
     PileupMethod,
     QuantificationMethod,
@@ -49,7 +50,6 @@ from seqnado.config import (
     SpikeInConfig,
     STARIndex,
     UCSCHubConfig,
-    UserFriendlyError,
 )
 
 
@@ -309,9 +309,34 @@ def get_peak_calling_config(assay: Assay) -> Optional[PeakCallingConfig]:
         is_boolean=True,
     )
 
+    # Motif analysis questions
+    run_motif_analysis = get_user_input(
+        "Run motif analysis on called peaks?",
+        default="no",
+        is_boolean=True,
+    )
+
+    motif_method = None
+
+    if run_motif_analysis:
+        motif_methods = get_user_input(
+            "Motif analysis method(s) (comma-separated for multiple):",
+            choices=[m.value for m in MotifMethod],
+            default="homer",
+            multi_select=True,
+        )
+
+        # Convert single string to list if default was used
+        if isinstance(motif_methods, str):
+            motif_methods = [motif_methods]
+
+        motif_method = [MotifMethod(m) for m in motif_methods]
+
     return PeakCallingConfig(
         method=[PeakCallingMethod(m) for m in peak_calling_methods],
         consensus_counts=consensus_counts,
+        run_motif_analysis=run_motif_analysis,
+        motif_method=motif_method,
     )
 
 
@@ -994,8 +1019,6 @@ def render_multiomics_configs(
     Returns:
         List of paths to generated config files
     """
-    # Import here to avoid circular import (for type checking at runtime)
-    from seqnado.config.multiomics import MultiomicsConfig
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
