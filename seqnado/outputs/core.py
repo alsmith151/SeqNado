@@ -1,11 +1,12 @@
 from itertools import chain
 from pathlib import Path
-from typing import List, Any
+from typing import Any, List
 
 from loguru import logger
 from pydantic import BaseModel, Field
 
 from seqnado import Assay, DataScalingTechnique, PeakCallingMethod, PileupMethod
+from seqnado import QuantificationMethod
 from seqnado.config import SeqnadoConfig
 from seqnado.inputs import (
     BamCollection,
@@ -20,6 +21,7 @@ from seqnado.outputs.files import (
     BigBedFiles,
     BigWigFiles,
     ContactFiles,
+    CRISPRFiles,
     FileCollection,
     GeoSubmissionFiles,
     HeatmapFiles,
@@ -54,7 +56,9 @@ class SeqnadoOutputFiles(BaseModel):
         """Return all files in the output collection."""
         return self.files
 
-    def select_files(self, suffix: str, contains: str | None = None, exclude: str | None = None) -> List[str]:
+    def select_files(
+        self, suffix: str, contains: str | None = None, exclude: str | None = None
+    ) -> List[str]:
         """Filter files by suffix and optional substring.
 
         Args:
@@ -71,7 +75,9 @@ class SeqnadoOutputFiles(BaseModel):
         return [
             f
             for f in self.files
-            if f.lower().endswith(suffix) and (contains in f if contains else True) and (exclude not in f if exclude else True)
+            if f.lower().endswith(suffix)
+            and (contains in f if contains else True)
+            and (exclude not in f if exclude else True)
         ]
 
     @property
@@ -109,7 +115,10 @@ class SeqnadoOutputFiles(BaseModel):
             return [
                 f
                 for f in self.files
-                if f.endswith(".bigWig") and (method.value in f) and (scale.value in f) and "/geo_submission/" not in f
+                if f.endswith(".bigWig")
+                and (method.value in f)
+                and (scale.value in f)
+                and "/geo_submission/" not in f
             ]
 
     @property
@@ -135,6 +144,7 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def genome_browser_plots(self):
         return self.select_files(".pdf", contains="genome_browser")
+
     @property
     def ucsc_hub_files(self):
         return self.select_files(".txt", contains="hub")
@@ -452,6 +462,18 @@ class SeqnadoOutputBuilder:
         )
         self.file_collections.append(contact_files)
 
+    def add_crispr_files(self) -> None:
+        """Add CRISPR-specific files (including MAGeCK outputs) to the output collection."""
+        use_mageck = False
+        if hasattr(self.config.assay_config, "use_mageck"):
+            use_mageck = self.config.assay_config.use_mageck
+
+        crispr_files = CRISPRFiles(
+            use_mageck=use_mageck,
+            output_dir=self.output_dir,
+        )
+        self.file_collections.append(crispr_files)
+
     def add_quantification_files(self) -> None:
         """Add quantification files to the output collection."""
         # Get the consensus grouping if it exists, otherwise use empty SampleGroups
@@ -464,10 +486,12 @@ class SeqnadoOutputBuilder:
 
         quantification_files = QuantificationFiles(
             assay=self.assay,
-            methods=[self.config.assay_config.rna_quantification.method],
+            methods=[self.config.assay_config.rna_quantification.method]
+            if hasattr(self.config.assay_config, "rna_quantification")
+            else [QuantificationMethod.FEATURE_COUNTS],
             names=self.samples.sample_names,
             groups=groups,
-            output_dir=f"{self.output_dir}/quantification",
+            output_dir=self.output_dir,
         )
         self.file_collections.append(quantification_files)
 
@@ -502,7 +526,7 @@ class SeqnadoOutputBuilder:
 
         # Get design dataframe from samples if available
         design_df = None
-        if hasattr(self.samples, 'to_dataframe'):
+        if hasattr(self.samples, "to_dataframe"):
             design_df = self.samples.to_dataframe()
 
         return SeqnadoOutputFiles(
@@ -620,8 +644,20 @@ class SeqnadoOutputFactory:
             output_dir=self.output_dir,
         )
 
-        builder.add_qc_files()
-        builder.add_report_files()
+        # Only add QC files and reports for assays that support them (those with QC tools configured)
+        qc_supported_assays = [
+            Assay.ATAC,
+            Assay.CHIP,
+            Assay.CAT,
+            Assay.RNA,
+            Assay.SNP,
+            Assay.METH,
+            Assay.MCC,
+            Assay.CRISPR,
+        ]
+        if self.assay in qc_supported_assays:
+            builder.add_qc_files()
+            builder.add_report_files()
 
         if self.assay_config.create_bigwigs:
             if not self.assay == Assay.MCC:
@@ -656,6 +692,8 @@ class SeqnadoOutputFactory:
             case Assay.ATAC | Assay.CHIP | Assay.CAT | Assay.RNA:
                 if self.assay_config.plot_with_plotnado:
                     builder.add_plot_files()
+            case Assay.CRISPR:
+                builder.add_crispr_files()
             case Assay.SNP:
                 if self.assay_config.call_snps:
                     builder.add_snp_files()

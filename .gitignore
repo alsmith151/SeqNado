@@ -38,6 +38,7 @@ pytestdebug.log
 seqnado/_version.py
 snakefiles_old
 sps*
+test_data_crispr/
 test_output/
 test_rna_size_factors.ipynb
 test_run.sh

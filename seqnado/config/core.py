@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Union
+from typing import Annotated, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -110,10 +110,10 @@ class MethylationAssayConfig(BaseAssayConfig, MethylationMixin):
 class CRISPRAssayConfig(BaseAssayConfig):
     """Configuration specific to CRISPR assays."""
 
-    # CRISPR-specific options can be added here
+    # CRISPR-specific options
     ucsc_hub: None
     create_heatmaps: bool = False
-
+    use_mageck: bool = False
 
 # Union type for all assay-specific configurations
 AssaySpecificConfig = Union[

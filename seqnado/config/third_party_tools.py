@@ -444,6 +444,25 @@ class Subread(BaseModel):
     )
 
 
+class Mageck(BaseModel):
+    """MAGeCK CRISPR screen analysis tool configuration."""
+    
+    count: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="--norm-method median --count-filter=0")
+        ),
+        description="MAGeCK count configuration for guide RNA quantification"
+    )
+    sgrna_library: Optional[str] = Field(
+        default=None,
+        description="Path to sgRNA library file (.txt or .csv format)"
+    )
+    design_matrix: Optional[str] = Field(
+        default=None,
+        description="Path to design matrix file for MAGeCK MLE analysis"
+    )
+
+
 class Lanceotron(BaseModel):
     """Lanceotron peak calling tool configuration."""
     
@@ -572,7 +591,6 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
     
     qc_tools = [FastqScreen, FastQC, Qualimap]
 
-
     generic_dna_tools = [
         Bowtie2,
         Bamnado,
@@ -593,7 +611,7 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
         Assay.RNA: qc_tools + [Star, Deeptools, Samtools, Trimgalore, Salmon, Subread],
         Assay.SNP: qc_tools + [Bowtie2, Trimgalore, Samtools, BcfTools],
         Assay.METH: qc_tools + [Bowtie2, Trimgalore, Methyldackel, Samtools, Picard],
-        Assay.CRISPR: [Cutadapt, Bowtie2, Subread, Samtools],
+        Assay.CRISPR: qc_tools + [Qualimap, Cutadapt, Bowtie2, Subread, Samtools, Mageck],
         Assay.MCC: qc_tools + [Trimgalore, Bowtie2, Samtools, Deeptools, LanceotronMCC, Bamnado],
     }
     return tools.get(assay, [])
@@ -635,6 +653,7 @@ class ThirdPartyToolsConfig(BaseModel):
     bamnado: Annotated[Optional[Bamnado], BeforeValidator(none_str_to_none)] = Field(default=None, description="Bamnado coverage analysis configuration")
     subread: Annotated[Optional[Subread], BeforeValidator(none_str_to_none)] = Field(default=None, description="Subread feature counting configuration")
     salmon: Annotated[Optional[Salmon], BeforeValidator(none_str_to_none)] = Field(default=None, description="Salmon quantification configuration")
+    mageck: Annotated[Optional[Mageck], BeforeValidator(none_str_to_none)] = Field(default=None, description="MAGeCK CRISPR screen analysis configuration")
 
     
     # Specialized tools

@@ -492,7 +492,26 @@ def build_assay_config(
 ) -> Optional[AssaySpecificConfig]:
     """Build assay-specific configuration based on the assay type."""
 
-    # Get common configurations
+    # For CRISPR, skip bigwigs, plotting, UCSC hub, and heatmaps
+    if assay == Assay.CRISPR:
+        geo_files = get_user_input(
+            "Generate GEO submission files?", default="no", is_boolean=True
+        )
+        use_mageck = get_user_input(
+            "Use MAGeCK for guide RNA analysis?", default="no", is_boolean=True
+        )
+        base_config = {
+            "genome": genome_config,
+            "bigwigs": None,
+            "plotting": None,
+            "ucsc_hub": None,
+            "create_heatmaps": False,
+            "create_geo_submission_files": geo_files,
+            "use_mageck": use_mageck,
+        }
+        return CRISPRAssayConfig(**base_config)
+
+    # Get common configurations (for non-CRISPR assays)
     bigwigs = get_bigwig_config(assay=assay)
     plotting = get_plotting_config()
     ucsc_hub = get_ucsc_hub_config()
@@ -580,7 +599,8 @@ def build_assay_config(
             return MethylationAssayConfig(**base_config_meth, methylation=methylation)
 
         case Assay.CRISPR:
-            return CRISPRAssayConfig(**base_config)
+            # CRISPR already handled above in early return
+            raise ValueError("CRISPR should have been handled in early return")
 
         case _:
             raise ValueError(f"Unsupported assay type: {assay}")

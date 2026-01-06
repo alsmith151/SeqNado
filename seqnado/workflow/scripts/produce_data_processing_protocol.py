@@ -134,6 +134,7 @@ def tool_arguments(*keys, default=None) -> str:
 TOOL_VERSIONS = {
     "fastqc": ("fastqc --version", r"v(\d+\.\d+\.\d+)", "0.12.1"),
     "trim_galore": ("trim_galore --version", r"version (\d+\.\d+\.\d+)", "0.6.10"),
+    "cutadapt": ("cutadapt --version", r"(\d+\.\d+\.\d+)", "4.9"),
     "star": ("STAR --version", r"(\d+\.\d+\.\d+[a-z]*)", "2.7.11a"),
     "bowtie2": ("bowtie2 --version", r"version (\d+\.\d+\.\d+)", "2.5.4"),
     "featureCounts": ("featureCounts -v", r"v(\S+)", "2.0.3"),
@@ -161,6 +162,7 @@ TOOL_VERSIONS = {
     "cooler": ("cooler --version", r"(\d+\.\d+\.\d+)", "0.10.4"),
     "samtools": ("samtools --version", r"samtools (\d+\.\d+)", "1.22"),
     "salmon": ("salmon --version", r"salmon (\d+\.\d+\.\d+)", "1.10.0"),
+    "mageck": ("mageck --version", r"(\d+\.\d+\.\d+)", "0.5.9"),
 }
 
 
@@ -285,6 +287,10 @@ class ProtocolSection:
 class QCSection(ProtocolSection):
     """Quality control steps."""
 
+    def is_applicable(self) -> bool:
+        # QCSection is for non-CRISPR assays
+        return assay != "CRISPR"
+
     def collect_versions(self) -> dict:
         return {
             "fastqc": get_tool_version("fastqc"),
@@ -302,6 +308,26 @@ class QCSection(ProtocolSection):
         return [
             f"FASTQ files were quality checked using FastQC v{self.versions['fastqc']}.",
             f"Adapter sequences were removed and low quality reads were trimmed using trim_galore v{self.versions['trim_galore']} with the following parameters: {trim_options}.",
+        ]
+
+
+class CRISPRQCSection(ProtocolSection):
+    """Quality control steps for CRISPR assays."""
+
+    def is_applicable(self) -> bool:
+        return assay == "CRISPR"
+
+    def collect_versions(self) -> dict:
+        return {
+            "cutadapt": get_tool_version("cutadapt"),
+        }
+
+    def generate_text(self) -> list[str]:
+        trim_options = tool_arguments(
+            "cutadapt", "command_line_arguments", default="default parameters"
+        )
+        return [
+            f"Adapter sequences were trimmed using cutadapt v{self.versions['cutadapt']} with the following parameters: {trim_options}.",
         ]
 
 
@@ -338,7 +364,12 @@ class AlignmentSection(ProtocolSection):
         aligner_version = self.versions.get(aligner_key, "unknown")
         samtools_version = self.versions.get("samtools", "unknown")
 
-        aligner_options = tool_arguments(aligner_key, "align", "command_line_arguments")
+        # For CRISPR, options are stored differently
+        if assay == "CRISPR":
+            aligner_options = tool_arguments(aligner_key, "options", default="default parameters")
+        else:
+            aligner_options = tool_arguments(aligner_key, "align", "command_line_arguments")
+
         if not aligner_options:
             self.logger.warning(
                 "No %s options found in config; using 'default parameters'.",
@@ -350,8 +381,11 @@ class AlignmentSection(ProtocolSection):
 
         lines = [
             f"Reads were aligned to the reference genome {genome_name} using {aligner_label} v{aligner_version} with the following parameters: {aligner_options}.",
-            f"Aligned reads were sorted by coordinate using samtools sort v{samtools_version}.",
         ]
+
+        # Add sorting step for non-CRISPR assays
+        if assay != "CRISPR":
+            lines.append(f"Aligned reads were sorted by coordinate using samtools sort v{samtools_version}.")
 
         # Add blacklist removal if enabled
         if self.config.get("remove_blacklist", False):
@@ -391,6 +425,8 @@ class Tn5ShiftSection(ProtocolSection):
     """Tn5 transposase shifting for ATAC-seq."""
 
     def is_applicable(self) -> bool:
+        if self.assay_config is None:
+            return False
         return self.assay_config.get("tn5_shift", False)
 
     def collect_versions(self) -> dict:
@@ -470,9 +506,15 @@ class PeakCallingSection(ProtocolSection):
     """Peak calling for ChIP-seq, ATAC-seq, etc."""
 
     def is_applicable(self) -> bool:
-        call_peaks = self.assay_config.get("call_peaks", False)
+        if self.assay_config is None:
+            return False
+        # Check if peak_calling section exists and call_peaks is True
+        if "peak_calling" not in self.assay_config:
+            return False
+        if not self.assay_config.get("call_peaks", False):
+            return False
         peak_methods = listify(self.assay_config.get("peak_calling", {}).get("method"))
-        return call_peaks and bool(peak_methods)
+        return bool(peak_methods)
 
     # Configuration mapping for peak callers
     PEAK_CALLER_CONFIG = {
@@ -508,6 +550,9 @@ class PeakCallingSection(ProtocolSection):
         if not self.is_applicable():
             return versions
 
+        if self.assay_config is None:
+            return versions
+
         peak_methods = listify(self.assay_config.get("peak_calling", {}).get("method"))
         peak_methods_normalized = {str(method).lower() for method in peak_methods}
 
@@ -528,6 +573,8 @@ class PeakCallingSection(ProtocolSection):
         return versions
 
     def generate_text(self) -> list[str]:
+        if self.assay_config is None:
+            return []
         peak_methods = listify(self.assay_config.get("peak_calling", {}).get("method"))
         peak_methods_normalized = [str(method).lower() for method in peak_methods]
         lines = []
@@ -586,15 +633,23 @@ class BigWigSection(ProtocolSection):
     }
 
     def is_applicable(self) -> bool:
-        create_bigwigs = self.assay_config.get("create_bigwigs", True)
+        if self.assay_config is None:
+            return False
+        if "bigwigs" not in self.assay_config:
+            return False
+        if not self.assay_config.get("create_bigwigs", True):
+            return False
         bigwig_methods = listify(
             self.assay_config.get("bigwigs", {}).get("pileup_method")
         )
-        return create_bigwigs and bool(bigwig_methods)
+        return bool(bigwig_methods)
 
     def collect_versions(self) -> dict:
         versions = {}
         if not self.is_applicable():
+            return versions
+
+        if self.assay_config is None:
             return versions
 
         bigwig_methods = listify(
@@ -611,6 +666,8 @@ class BigWigSection(ProtocolSection):
         return versions
 
     def generate_text(self) -> list[str]:
+        if self.assay_config is None:
+            return []
         bigwig_config = self.assay_config.get("bigwigs", {})
         bigwig_methods = listify(bigwig_config.get("pileup_method"))
         bigwig_methods_normalized = [str(method).lower() for method in bigwig_methods]
@@ -639,7 +696,7 @@ class BigWigSection(ProtocolSection):
 
 
 class RNAQuantificationSection(ProtocolSection):
-    """RNA-seq quantification."""
+    """RNA-seq and CRISPR quantification."""
 
     # Configuration mapping for RNA quantification tools
     RNA_QUANT_CONFIG = {
@@ -659,19 +716,43 @@ class RNAQuantificationSection(ProtocolSection):
             "verb": "quantified",
             "config_path": ("salmon", "quant", "command_line_arguments"),
         },
+        "mageck": {
+            "version_key": "mageck",
+            "tool_check": "mageck",
+            "preamble": None,
+            "display_name": "MAGeCK",
+            "verb": "analyzed",
+            "config_path": ("mageck", "count", "command_line_arguments"),
+        },
     }
 
     def _get_method(self) -> str:
         """Get the configured RNA quantification method."""
+        if self.assay_config is None:
+            return ""
         rna_quant = self.assay_config.get("rna_quantification") or {}
         return (rna_quant.get("method") or "").lower()
 
     def is_applicable(self) -> bool:
+        # For CRISPR, check if featureCounts or mageck is configured
+        if assay == "CRISPR":
+            return tool_configured("featurecounts") or tool_configured("mageck")
+        # For RNA, check if a quantification method is configured
         method = self._get_method()
         return method in self.RNA_QUANT_CONFIG
 
     def collect_versions(self) -> dict:
         versions = {}
+
+        # For CRISPR, use featureCounts or mageck
+        if assay == "CRISPR":
+            if tool_configured("featurecounts"):
+                versions["featureCounts"] = get_tool_version("featureCounts")
+            if tool_configured("mageck"):
+                versions["mageck"] = get_tool_version("mageck")
+            return versions
+
+        # For RNA, use configured method
         method = self._get_method()
         config = self.RNA_QUANT_CONFIG.get(method)
 
@@ -682,6 +763,28 @@ class RNAQuantificationSection(ProtocolSection):
 
     def generate_text(self) -> list[str]:
         lines = []
+
+        # Handle CRISPR separately
+        if assay == "CRISPR":
+            if "featureCounts" in self.versions:
+                params = tool_arguments(
+                    "featurecounts", "command_line_arguments", default="default parameters"
+                )
+                version = self.versions["featureCounts"]
+                lines.append(
+                    f"Features were quantified using featureCounts v{version} with the following parameters: {params}."
+                )
+            if "mageck" in self.versions:
+                params = tool_arguments(
+                    "mageck", "count", "command_line_arguments", default="default parameters"
+                )
+                version = self.versions["mageck"]
+                lines.append(
+                    f"CRISPR screen data was analyzed using MAGeCK v{version} with the following parameters: {params}."
+                )
+            return lines
+
+        # Handle RNA quantification
         method = self._get_method()
         config = self.RNA_QUANT_CONFIG.get(method)
 
@@ -751,6 +854,8 @@ class MCCSection(ProtocolSection):
     """Micro-C/Capture-C processing."""
 
     def is_applicable(self) -> bool:
+        if self.assay_config is None:
+            return False
         return self.assay_config.get("mcc") is not None
 
     def collect_versions(self) -> dict:
@@ -767,6 +872,8 @@ class MCCSection(ProtocolSection):
         return versions
 
     def generate_text(self) -> list[str]:
+        if self.assay_config is None:
+            return []
         mcc_config = self.assay_config.get("mcc", {})
         viewpoints_file = mcc_config.get("viewpoints", "viewpoints BED file")
         resolutions = mcc_config.get("resolutions", [100])
@@ -785,6 +892,25 @@ class MCCSection(ProtocolSection):
 
         lines.extend(
             [
+                # Data was processed using SeqNado v0.7.7.dev126.
+                # FASTQ files were quality checked using FastQC v0.12.1.
+                # Adapter sequences were removed and low quality reads were trimmed using trim_galore v0.6.10 with the following parameters: --2colour 20.
+                # Due to the high degree of duplication in the data, the ⁠ mccnado ⁠ package (vXXXX) was used to deduplicate reads based on exact sequence matches.
+                # FLASh (vXXX) was used to merge paired-end reads with parameters: FLASH_PARAMS
+                # Viewpoint sequences were extracted and indexed using samtools faidx v1.22.
+                # Reads were aligned to viewpoint oligonucleotide sequences using minimap2 (vXXX) with parameters: -x sr -a -k 8 -w 1 --cs=long.
+                # ⁠ mccnado ⁠ was used to split the aligned reads based on CIGAR strings into segments containing viewpoint and non-viewpoint sequences.
+                # Reads were aligned to the reference genome hg38 using bowtie2 v2.5.4 with the following parameters: --very-sensitive.
+                # In an effort to maximize alignment rates, unaligned reads were re-aligned using bowtie2 (vXXXX) with parameters: --very-sensitive-local.
+                # Aligned reads were sorted by coordinate using samtools sort v1.22, indexed using samtools index v1.22, and merged using samtools merge v1.22.
+                # ⁠ mccnado ⁠ was used to annotate the BAM files with read group information which identifies the viewpoint of origin and links each read segment to the original read.
+                # Exclusion regions within 500 bp of each viewpoint were defined to avoid self-ligation artifacts and created using bedtools slop vXXXX
+                # BigWig files were generated using bamnado v0.3.11 with the following parameters: --blacklisted-locations ⁠ excluded_regions ⁠ --min-mapq 0 --read-group ⁠ viewpoint_name ⁠.
+                # Ligation junctions were identified using ⁠ mccnado identify-ligation-junctions ⁠ and sorted by genomic position.
+                # The pairs files generated were converted to .cool format using cooler (vXXXX) cload pairs with parameters: --assembly GENOME -c1 2 -p1 3 -c2 4 -p2 5.
+                # Multi-resolution contact matrices (.mcool) were generated at resolutions of RESOLUTIONS bp using cooler zoomify vunknown.
+                # Cooler files were merged using ⁠ mccnado combine-ligation-junction-coolers ⁠ to create a single .mcool file containing all viewpoints for a single sample/group.
+                # Regions of interactions were identified using a custom implementation of lanceotron-mcc (https://github.com/alsmith151/lanceotron-mcc) on the generated bigwig files.
                 "Viewpoint-aligned reads were extracted and their unmapped mates were re-aligned to the reference genome.",
                 "Genome-mapped reads were combined to create viewpoint-to-genome contact maps.",
                 "Ligation junctions were identified and sorted by genomic position.",
@@ -818,6 +944,7 @@ class ProtocolBuilder:
     # Define the order of sections for the protocol
     SECTION_CLASSES = [
         QCSection,
+        CRISPRQCSection,
         AlignmentSection,
         PCRDuplicatesSection,
         Tn5ShiftSection,

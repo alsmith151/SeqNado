@@ -37,6 +37,9 @@ class QCFiles(BaseModel):
 
     @property
     def fastqc_files(self) -> list[str]:
+        # CRISPR doesn't need fastqc
+        if self.assay == Assay.CRISPR:
+            return []
         if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)):
             files = []
             for sample in self.samples.sample_names:
@@ -54,6 +57,9 @@ class QCFiles(BaseModel):
 
     @property
     def fastqscreen_files(self) -> list[str]:
+        # CRISPR doesn't need fastq_screen
+        if self.assay == Assay.CRISPR:
+            return []
         if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)) and self.config.run_fastq_screen:
             files = []
             for sample in self.samples.sample_names:
@@ -386,7 +392,37 @@ class MethylationFiles(BaseModel):
         return [*self.split_bams_files, *self.methyldackel_files, *self.methylation_bias]
     
 
-
+class CRISPRFiles(BaseModel):
+    """Returns a list of CRISPR-related files including MAGeCK outputs."""
+    
+    use_mageck: bool = False
+    output_dir: str = "seqnado_output"
+    
+    @property
+    def feature_counts_files(self) -> list[str]:
+        """Return featureCounts files (always generated)."""
+        return [
+            f"{self.output_dir}/readcounts/feature_counts/read_counts.tsv",
+        ]
+    
+    @property
+    def mageck_files(self) -> list[str]:
+        """Return MAGeCK files if enabled for CRISPR assays."""
+        if not self.use_mageck:
+            return []
+        
+        return [
+            f"{self.output_dir}/readcounts/mageck/read_counts.txt",
+            f"{self.output_dir}/readcounts/mageck/mageck_mle_gene_summary.txt",
+            f"{self.output_dir}/readcounts/mageck/mageck_mle_sgrna_summary.txt",
+        ]
+    
+    @computed_field
+    @property
+    def files(self) -> list[str]:
+        """Return a list of CRISPR-specific files."""
+        return [*self.feature_counts_files, *self.mageck_files]
+    
 class BigBedFiles(BaseModel):
     bed_files: list[Path] = Field(default_factory=list)
 
@@ -427,6 +463,9 @@ class QuantificationFiles(BaseModel):
     names: list[str]
     groups: SampleGroups
     output_dir: str = "seqnado_output"
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @property
     def prefix(self) -> str:
