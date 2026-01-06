@@ -4,10 +4,6 @@ from seqnado.helpers import (
     should_trim_fastqs,
     get_alignment_input_paired,
     get_alignment_input_single,
-    get_trimmed_fastq_paired,
-    get_trimmed_fastq_single,
-    get_raw_fastq_paired,
-    get_raw_fastq_single,
 )
 
 # Check if trimming is enabled

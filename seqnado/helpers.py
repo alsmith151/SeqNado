@@ -233,43 +233,35 @@ def should_trim_fastqs(config) -> bool:
     return getattr(config.qc, "trim_fastq", True)
 
 
-def get_trimmed_fastq_paired(wildcards, output_dir: str) -> dict:
-    """Return paths for trimmed paired-end fastq files."""
-    return {
-        "fq1": f"{output_dir}/trimmed/{wildcards.sample}_1.fastq.gz",
-        "fq2": f"{output_dir}/trimmed/{wildcards.sample}_2.fastq.gz",
-    }
-
-
-def get_trimmed_fastq_single(wildcards, output_dir: str) -> str:
-    """Return path for trimmed single-end fastq file."""
-    return f"{output_dir}/trimmed/{wildcards.sample}.fastq.gz"
-
-
-def get_raw_fastq_paired(wildcards, output_dir: str) -> dict:
-    """Return paths for raw paired-end fastq files."""
-    return {
-        "fq1": f"{output_dir}/fastqs/{wildcards.sample}_1.fastq.gz",
-        "fq2": f"{output_dir}/fastqs/{wildcards.sample}_2.fastq.gz",
-    }
-
-
-def get_raw_fastq_single(wildcards, output_dir: str) -> str:
-    """Return path for raw single-end fastq file."""
-    return f"{output_dir}/fastqs/{wildcards.sample}.fastq.gz"
+def get_fastq_paths(wildcards, output_dir: str, directory: str, paired: bool = True) -> Union[dict, str]:
+    """
+    Get fastq file paths for a given directory and pairing.
+    
+    Args:
+        wildcards: Snakemake wildcards object
+        output_dir: Base output directory
+        directory: Subdirectory ('fastqs' for raw, 'trimmed' for trimmed)
+        paired: Whether to return paired-end (dict) or single-end (str) paths
+        
+    Returns:
+        dict with 'fq1' and 'fq2' keys for paired-end, or str for single-end
+    """
+    if paired:
+        return {
+            "fq1": f"{output_dir}/{directory}/{wildcards.sample}_1.fastq.gz",
+            "fq2": f"{output_dir}/{directory}/{wildcards.sample}_2.fastq.gz",
+        }
+    else:
+        return f"{output_dir}/{directory}/{wildcards.sample}.fastq.gz"
 
 
 def get_alignment_input_paired(wildcards, output_dir: str, trimming_enabled: bool) -> dict:
     """Return paired-end input paths based on trimming config."""
-    if trimming_enabled:
-        return get_trimmed_fastq_paired(wildcards, output_dir)
-    else:
-        return get_raw_fastq_paired(wildcards, output_dir)
+    directory = "trimmed" if trimming_enabled else "fastqs"
+    return get_fastq_paths(wildcards, output_dir, directory, paired=True)
 
 
 def get_alignment_input_single(wildcards, output_dir: str, trimming_enabled: bool) -> str:
     """Return single-end input path based on trimming config."""
-    if trimming_enabled:
-        return get_trimmed_fastq_single(wildcards, output_dir)
-    else:
-        return get_raw_fastq_single(wildcards, output_dir)
+    directory = "trimmed" if trimming_enabled else "fastqs"
+    return get_fastq_paths(wildcards, output_dir, directory, paired=False)
