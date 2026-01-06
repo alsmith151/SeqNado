@@ -94,7 +94,7 @@ def _small_collection(tmp: Path) -> FastqCollection:
     r1 = FastqFile(path=r1_path)
     r2 = FastqFile(path=r2_path)
     fs = FastqSet(sample_id="s1", r1=r1, r2=r2)
-    return FastqCollection(assay=Assay.ATAC, metadata=[], fastq_sets=[fs])
+    return FastqCollection(assay=Assay.ATAC, metadata=[Metadata(assay=Assay.ATAC)], fastq_sets=[fs])
 
 
 def test_output_builder_bigwigs_only(tmp_path: Path):
@@ -992,7 +992,7 @@ class TestSeqnadoOutputBuilderCore:
 
         fs1 = FastqSet(sample_id="s1", r1=FastqFile(path=r1_path))
         fs2 = FastqSet(sample_id="s2", r1=FastqFile(path=r2_path))
-        samples = FastqCollection(assay=Assay.ATAC, metadata=[], fastq_sets=[fs1, fs2])
+        samples = FastqCollection(assay=Assay.ATAC, metadata=[Metadata(assay=Assay.ATAC), Metadata(assay=Assay.ATAC)], fastq_sets=[fs1, fs2])
 
         groups = SampleGroupings(
             groupings={
@@ -1064,7 +1064,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.ATAC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.ATAC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1107,7 +1107,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.ATAC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.ATAC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1247,7 +1247,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.SNP,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.SNP)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1281,7 +1281,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.METH,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.METH)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1321,7 +1321,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.MCC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.MCC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1354,7 +1354,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.RNA,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.RNA)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1395,7 +1395,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.SNP,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.SNP)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1542,7 +1542,7 @@ class TestSeqnadoOutputFactoryCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.ATAC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.ATAC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1586,7 +1586,7 @@ class TestSeqnadoOutputFactoryCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.ATAC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.ATAC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 

@@ -18,7 +18,12 @@ def get_files_for_symlink(wc: Any = None) -> List[str]:
 
     fastq_dir = Path(OUTPUT_DIR + "/fastqs")
     fastqs = sorted([str(fastq_dir / fn) for fq_pair in geo_files.raw_files.values() for fn in fq_pair])
-    processed_files = [str(p) for p in geo_files.processed_data_files['path'].tolist()]
+
+    if not geo_files.processed_data_files.empty:
+        processed_files = [str(p) for p in geo_files.processed_data_files['path'].tolist()]
+    else:
+        processed_files = []
+
     return [*fastqs, *processed_files]
 
 def get_symlinked_files(wc: Any = None) -> List[str]:
@@ -101,13 +106,15 @@ rule md5sum:
         files=get_symlinked_files,
     output:
         OUTPUT_DIR + "/geo_submission/md5sums.txt",
+    params:
+        geo_dir=OUTPUT_DIR + "/geo_submission",
     log: OUTPUT_DIR + "/logs/geo/md5sum.log",
     benchmark: OUTPUT_DIR + "/.benchmark/geo/md5sum.tsv",
     message: "Generating MD5 checksums for GEO submission files",
     shell:
         """
-        cd seqnado_output/geo_submission
-        
+        cd {params.geo_dir}
+
         # Get the basename of the files and store in the infiles variable
         infiles=""
         for f in {input.files}
@@ -116,7 +123,6 @@ rule md5sum:
         done
 
         md5sum $infiles > md5sums.txt
-        cd ../..
         """
 
 rule geo_md5_table:
@@ -248,4 +254,8 @@ rule remove_headers_for_security:
 localrules:
     geo_symlink,
     geo_md5_table,
-    samples_table
+    samples_table,
+    geo_protocol,
+    geo_upload_instructions,
+    move_to_upload,
+    remove_headers_for_security

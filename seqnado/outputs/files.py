@@ -38,21 +38,35 @@ class QCFiles(BaseModel):
     @property
     def fastqc_files(self) -> list[str]:
         if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)):
-            return expand(
-                f"{self.output_dir}/qc/fastqc_raw/{{sample}}_{{read}}_fastqc.html",
-                sample=self.samples.sample_names,
-                read=["1", "2"],
-            )
+            files = []
+            for sample in self.samples.sample_names:
+                if self.samples.is_paired_end(sample):
+                    # Paired-end: generate files for both reads
+                    files.extend([
+                        f"{self.output_dir}/qc/fastqc_raw/{sample}_1_fastqc.html",
+                        f"{self.output_dir}/qc/fastqc_raw/{sample}_2_fastqc.html",
+                    ])
+                else:
+                    # Single-end: generate file without read number
+                    files.append(f"{self.output_dir}/qc/fastqc_raw/{sample}_fastqc.html")
+            return files
         return []
 
     @property
     def fastqscreen_files(self) -> list[str]:
         if isinstance(self.samples, (FastqCollection, FastqCollectionForIP)) and self.config.run_fastq_screen:
-            return expand(
-                f"{self.output_dir}/qc/fastq_screen/{{sample}}_{{read}}_screen.html",
-                sample=self.samples.sample_names,
-                read=["1", "2"],
-            )
+            files = []
+            for sample in self.samples.sample_names:
+                if self.samples.is_paired_end(sample):
+                    # Paired-end: generate files for both reads
+                    files.extend([
+                        f"{self.output_dir}/qc/fastq_screen/{sample}_1_screen.html",
+                        f"{self.output_dir}/qc/fastq_screen/{sample}_2_screen.html",
+                    ])
+                else:
+                    # Single-end: generate file without read number
+                    files.append(f"{self.output_dir}/qc/fastq_screen/{sample}_screen.html")
+            return files
         return []
     
     @property
@@ -455,12 +469,16 @@ class QuantificationFiles(BaseModel):
 
 class GeoSubmissionFiles(BaseModel):
     """Class to handle files for GEO submission."""
-    
+
     assay: Assay
     names: list[str]
     seqnado_files: list[str] = Field(default_factory=list, description="Unfiltered list of files. Will be filtered based on allowed extensions and added.")
     allowed_extensions: list[str] = Field(default_factory=lambda: [".bigWig", ".bed", ".tsv", ".vcf.gz"])
     output_dir: str = "seqnado_output"
+    samples: Any = None  # Optional: FastqCollection or FastqCollectionForIP to check if paired-end
+
+    class Config:
+        arbitrary_types_allowed = True
     
     @property
     def default_files(self):
@@ -485,11 +503,29 @@ class GeoSubmissionFiles(BaseModel):
     def raw_files(self) -> list[str]:
         """Return FASTQ files for raw data."""
         base_dir = Path(f"{self.output_dir}/geo_submission")
-        return expand(
-            str(base_dir / "{sample}_{read}.fastq.gz"),
-            sample=self.names,
-            read=["1", "2"],
-        )
+        files = []
+
+        for sample in self.names:
+            # Check if this sample is paired-end
+            is_paired = True  # Default to paired-end for backwards compatibility
+            if self.samples is not None and hasattr(self.samples, 'is_paired_end'):
+                try:
+                    is_paired = self.samples.is_paired_end(sample)
+                except Exception:
+                    # If we can't determine, assume paired-end
+                    is_paired = True
+
+            if is_paired:
+                # Paired-end: add both R1 and R2
+                files.extend([
+                    str(base_dir / f"{sample}_1.fastq.gz"),
+                    str(base_dir / f"{sample}_2.fastq.gz"),
+                ])
+            else:
+                # Single-end: add only the sample file
+                files.append(str(base_dir / f"{sample}.fastq.gz"))
+
+        return files
     
     @property
     def processed_data_files(self) -> list[str]:
@@ -551,11 +587,59 @@ class GEOFiles(BaseModel):
         raw_files_dict = {}
 
         for sample in self.sample_names:
-            # For paired-end data, return both R1 and R2
-            raw_files_dict[sample] = [
-                f"{sample}_1.fastq.gz",
-                f"{sample}_2.fastq.gz",
-            ]
+            # Check if sample is paired-end by looking at the design DataFrame
+            is_paired = False
+            if self.design is not None and not (hasattr(self.design, 'empty') and self.design.empty):
+                try:
+                    import pandas as pd
+
+                    # For IP-based assays (ChIP, CUT&TAG), sample names include IP/control suffix
+                    # e.g., "chip-rx_MLL" where sample_id is "chip-rx" and ip is "MLL"
+                    # Try to find the matching row by checking if sample contains sample_id
+                    sample_row = None
+
+                    # First try exact match with sample_id
+                    if 'sample_id' in self.design.columns:
+                        sample_row = self.design[self.design['sample_id'] == sample]
+
+                        # If no exact match, try to match the base part (for IP assays)
+                        if sample_row.empty:
+                            # Try to find sample_id that is a prefix of the sample name
+                            for _, row in self.design.iterrows():
+                                sid = str(row['sample_id'])
+                                if sample.startswith(sid + '_') or sample == sid:
+                                    sample_row = pd.DataFrame([row])
+                                    break
+
+                    if sample_row is not None and not sample_row.empty:
+                        # Check r2 column to determine if paired-end
+                        if 'r2' in self.design.columns:
+                            r2_value = sample_row['r2'].iloc[0]
+                            is_paired = pd.notna(r2_value) and str(r2_value).strip() != ''
+                        else:
+                            # No r2 column, assume paired-end for safety
+                            is_paired = True
+                    else:
+                        # Can't find sample in design, assume paired-end for backwards compatibility
+                        is_paired = True
+                except Exception:
+                    # If we can't determine, assume paired-end for backwards compatibility
+                    is_paired = True
+            else:
+                # If no design available, assume paired-end for backwards compatibility
+                is_paired = True
+
+            if is_paired:
+                # Paired-end: return both R1 and R2
+                raw_files_dict[sample] = [
+                    f"{sample}_1.fastq.gz",
+                    f"{sample}_2.fastq.gz",
+                ]
+            else:
+                # Single-end: return only the sample file
+                raw_files_dict[sample] = [
+                    f"{sample}.fastq.gz",
+                ]
 
         return raw_files_dict
 

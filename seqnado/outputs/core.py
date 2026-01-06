@@ -204,10 +204,10 @@ class SeqNadoReportFiles:
         ):
             builder.add_spikein_files()
 
-        if self.assay == Assay.SNP:
+        if self.assay == Assay.SNP and self.config.assay_config.call_snps:
             builder.add_snp_files()
 
-        if self.assay == Assay.METH:
+        if self.assay == Assay.METH and self.config.assay_config.call_methylation:
             builder.add_methylation_files()
 
         all_files = builder.build().all_files
@@ -490,6 +490,7 @@ class SeqnadoOutputBuilder:
             names=self.samples.sample_names,
             seqnado_files=outfiles,
             output_dir=self.output_dir,
+            samples=self.samples,  # Pass samples so we can check if paired-end
         )
         self.file_collections.append(geo_files)
 
@@ -656,9 +657,11 @@ class SeqnadoOutputFactory:
                 if self.assay_config.plot_with_plotnado:
                     builder.add_plot_files()
             case Assay.SNP:
-                builder.add_snp_files()
+                if self.assay_config.call_snps:
+                    builder.add_snp_files()
             case Assay.METH:
-                builder.add_methylation_files()
+                if self.assay_config.call_methylation:
+                    builder.add_methylation_files()
             case Assay.MCC:
                 builder.add_contact_files()
             case _:

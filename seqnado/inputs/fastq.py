@@ -326,10 +326,17 @@ class BaseFastqCollection(BaseCollection):
         output_dir.mkdir(parents=True, exist_ok=True)
 
         for sample_name, paths in self.fastq_pairs.items():
-            for read_number, path in enumerate(paths, start=1):
-                symlink_path = output_dir / f"{sample_name}_{read_number}.fastq.gz"
+            # For single-end data, don't add read number suffix
+            if len(paths) == 1:
+                symlink_path = output_dir / f"{sample_name}.fastq.gz"
                 if not symlink_path.exists():
-                    symlink_path.symlink_to(path.resolve().absolute())
+                    symlink_path.symlink_to(paths[0].resolve().absolute())
+            else:
+                # For paired-end data, add _1 and _2 suffixes
+                for read_number, path in enumerate(paths, start=1):
+                    symlink_path = output_dir / f"{sample_name}_{read_number}.fastq.gz"
+                    if not symlink_path.exists():
+                        symlink_path.symlink_to(path.resolve().absolute())
 
 
 class FastqCollection(BaseFastqCollection):

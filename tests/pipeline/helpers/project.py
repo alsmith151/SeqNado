@@ -183,6 +183,7 @@ def create_config_yaml(
     fastq_screen_config_path = genome_path / "fastq_screen.conf"
 
     # Update config with test assay settings
+    config["assay_config"]["create_geo_submission_files"] = True
     config["qc"]["run_fastq_screen"] = True
 
     # Update the third_party_tools config which is what the Snakemake rule uses
