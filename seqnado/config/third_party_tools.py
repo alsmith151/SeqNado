@@ -230,19 +230,39 @@ class MacsMode(Enum):
 # =============================================================================
 
 class Cutadapt(ToolConfig):
-    """Cutadapt adapter trimming tool configuration."""
-    
-    mode: CutadaptMode = Field(default=CutadaptMode.CRISPR)
+    """Cutadapt adapter trimming tool configuration.
+
+    When mode='crispr', adapters are auto-detected from FASTQ files.
+    Otherwise, specify adapters in command_line_arguments.
+    """
+
+    mode: CutadaptMode = Field(default=CutadaptMode.CRISPR, description="Cutadapt mode: 'crispr' for auto-detection, 'default' for manual")
 
     @model_validator(mode="before")
     @classmethod
     def set_defaults(cls, data: dict) -> dict:
         data = dict(data)
         data.setdefault("threads", 4)
-        data.setdefault(
-            "command_line_arguments",
-            CommandLineArguments(value="-g 'ACACCG' --cut 0 -l 20 -m 20 -M 20 --discard-untrimmed"),
-        )
+
+        # Set default command_line_arguments based on mode
+        mode = data.get("mode", CutadaptMode.CRISPR)
+        if isinstance(mode, str):
+            mode = CutadaptMode(mode.lower())
+
+        if mode == CutadaptMode.CRISPR:
+            # For CRISPR mode, don't include adapter specs - they'll be auto-detected
+            # Only include parameters that affect trimming behavior
+            data.setdefault(
+                "command_line_arguments",
+                CommandLineArguments(value="--cut 0 -l 20 -m 20 -M 20 --discard-untrimmed"),
+            )
+        else:
+            # For default mode, use empty defaults (user should specify adapters)
+            data.setdefault(
+                "command_line_arguments",
+                CommandLineArguments(value=""),
+            )
+
         return data
 
 

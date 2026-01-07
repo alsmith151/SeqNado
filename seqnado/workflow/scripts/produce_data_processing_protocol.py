@@ -164,6 +164,9 @@ TOOL_VERSIONS = {
     "salmon": ("salmon --version", r"salmon (\d+\.\d+\.\d+)", "1.10.0"),
     "mageck": ("mageck --version", r"(\d+\.\d+\.\d+)", "0.5.9"),
     "meme": ("meme-chip --version", r"(\d+\.\d+\.\d+)", "5.5.9"),
+    "mccnado": ("mccnado --version", r"(\d+\.\d+\.\d+)", "0.1.0"),
+    "flash": ("flash --version", r"v(\d+\.\d+\.\d+)", "1.2.11"),
+    "bedtools": ("bedtools --version", r"bedtools v(\d+\.\d+\.\d+)", "2.31.0"),
 }
 
 
@@ -336,6 +339,12 @@ class AlignmentSection(ProtocolSection):
     """Read alignment steps."""
 
     ALIGNER_LABELS = {"star": "STAR", "bowtie2": "bowtie2"}
+
+    def is_applicable(self) -> bool:
+        # Skip alignment section for MCC assays as they handle alignment differently
+        if self.assay_config is not None and self.assay_config.get("mcc") is not None:
+            return False
+        return True
 
     def _detect_aligner(self) -> str:
         """Determine which aligner is configured."""
@@ -932,8 +941,16 @@ class MCCSection(ProtocolSection):
     def collect_versions(self) -> dict:
         versions = {}
         if self.is_applicable():
+            if tool_configured("mccnado"):
+                versions["mccnado"] = get_tool_version("mccnado")
+            if tool_configured("flash"):
+                versions["flash"] = get_tool_version("flash")
             if tool_configured("minimap2"):
                 versions["minimap2"] = get_tool_version("minimap2")
+            if tool_configured("bowtie2"):
+                versions["bowtie2"] = get_tool_version("bowtie2")
+            if tool_configured("bedtools"):
+                versions["bedtools"] = get_tool_version("bedtools")
             if tool_configured("cooler"):
                 versions["cooler"] = get_tool_version("cooler")
             versions["samtools"] = get_tool_version("samtools")
@@ -950,56 +967,51 @@ class MCCSection(ProtocolSection):
         resolutions = mcc_config.get("resolutions", [100])
         exclusion_zone = mcc_config.get("exclusion_zone", 500)
 
+        # Get genome name from config
+        genome_name = self.config.get("genome", {}).get("name", "hg38")
+
+        # Get FLASh parameters if configured
+        flash_params = tool_arguments("flash", "command_line_arguments", default="FLASH_PARAMS")
+
+        # Get bowtie2 parameters
+        bowtie2_options = tool_arguments("bowtie2", "align", "command_line_arguments", default="--very-sensitive")
+        bowtie2_local_options = tool_arguments("bowtie2", "align_local", "command_line_arguments", default="--very-sensitive-local")
+
+        # Get minimap2 parameters
+        minimap2_options = tool_arguments("minimap2", "align", "command_line_arguments", default="-x sr -a -k 8 -w 1 --cs=long")
+
+        # Get bamnado parameters
+        bamnado_options = tool_arguments("bamnado", "bam_coverage", "command_line_arguments", default="--blacklisted-locations excluded_regions --min-mapq 0 --read-group viewpoint_name")
+
+        # Get cooler parameters
+        cooler_cload_params = tool_arguments("cooler", "cload_pairs", "command_line_arguments", default=f"--assembly {genome_name} -c1 2 -p1 3 -c2 4 -p2 5")
+
+        # Format resolutions
+        resolution_str = f"{', '.join(map(str, resolutions))}" if resolutions else "RESOLUTIONS"
+
         lines = [
-            f"Viewpoint sequences were extracted and indexed using samtools faidx v{self.versions.get('samtools', 'unknown')}.",
+            f"Due to the high degree of duplication in the data, the MCCNado package (v{self.versions.get('mccnado', 'unknown')}) was used to deduplicate reads based on exact sequence matches.",
+            f"FLASh (v{self.versions.get('flash', 'unknown')}) was used to merge paired-end reads with parameters: {flash_params}.",
+            f"Viewpoint sequences were extracted and indexed using samtools faidx (v{self.versions.get('samtools', 'unknown')}).",
+            f"Reads were aligned to viewpoint oligonucleotide sequences using minimap2 (v{self.versions.get('minimap2', 'unknown')}) with parameters: {minimap2_options}.",
+            f"MCCNado (v{self.versions.get('mccnado', 'unknown')}) was used to split the aligned reads based on CIGAR strings into segments containing viewpoint and non-viewpoint sequences.",
+            f"Reads were aligned to the reference genome {genome_name} using bowtie2 (v{self.versions.get('bowtie2', 'unknown')}) with the following parameters: {bowtie2_options}.",
+            f"In an effort to maximize alignment rates, unaligned reads were re-aligned using bowtie2 (v{self.versions.get('bowtie2', 'unknown')}) with parameters: {bowtie2_local_options}.",
+            f"Aligned reads were sorted by coordinate using samtools sort (v{self.versions.get('samtools', 'unknown')}), indexed using samtools index (v{self.versions.get('samtools', 'unknown')}), and merged using samtools merge (v{self.versions.get('samtools', 'unknown')}).",
+            f"MCCNado (v{self.versions.get('mccnado', 'unknown')}) was used to annotate the BAM files with read group information which identifies the viewpoint of origin and links each read segment to the original read.",
+            f"Exclusion regions within {exclusion_zone} bp of each viewpoint were defined to avoid self-ligation artifacts and created using bedtools slop (v{self.versions.get('bedtools', 'unknown')}).",
+            f"BigWig files were generated using bamnado (v{self.versions.get('bamnado', 'unknown')}) with the following parameters: {bamnado_options}.",
+            f"Ligation junctions were identified using MCCNado identify-ligation-junctions (v{self.versions.get('mccnado', 'unknown')}) and sorted by genomic position.",
+            f"The pairs files generated were converted to .cool format using cooler (v{self.versions.get('cooler', 'unknown')}) cload pairs with parameters: {cooler_cload_params}.",
+            f"Multi-resolution contact matrices (.mcool) were generated at resolutions of {resolution_str} bp using cooler zoomify (v{self.versions.get('cooler', 'unknown')}).",
+            f"Cooler files were merged using MCCNado combine-ligation-junction-coolers (v{self.versions.get('mccnado', 'unknown')}) to create a single .mcool file containing all viewpoints for a single sample/group.",
         ]
-
-        minimap2_options = tool_arguments(
-            "minimap2", "align", "command_line_arguments", default="-x sr -a -k 8 -w 1"
-        )
-        lines.append(
-            f"Reads were aligned to viewpoint sequences using minimap2 v{self.versions.get('minimap2', 'unknown')} with parameters: {minimap2_options}."
-        )
-
-        lines.extend(
-            [
-                # Data was processed using SeqNado v0.7.7.dev126.
-                # FASTQ files were quality checked using FastQC v0.12.1.
-                # Adapter sequences were removed and low quality reads were trimmed using trim_galore v0.6.10 with the following parameters: --2colour 20.
-                # Due to the high degree of duplication in the data, the ⁠ mccnado ⁠ package (vXXXX) was used to deduplicate reads based on exact sequence matches.
-                # FLASh (vXXX) was used to merge paired-end reads with parameters: FLASH_PARAMS
-                # Viewpoint sequences were extracted and indexed using samtools faidx v1.22.
-                # Reads were aligned to viewpoint oligonucleotide sequences using minimap2 (vXXX) with parameters: -x sr -a -k 8 -w 1 --cs=long.
-                # ⁠ mccnado ⁠ was used to split the aligned reads based on CIGAR strings into segments containing viewpoint and non-viewpoint sequences.
-                # Reads were aligned to the reference genome hg38 using bowtie2 v2.5.4 with the following parameters: --very-sensitive.
-                # In an effort to maximize alignment rates, unaligned reads were re-aligned using bowtie2 (vXXXX) with parameters: --very-sensitive-local.
-                # Aligned reads were sorted by coordinate using samtools sort v1.22, indexed using samtools index v1.22, and merged using samtools merge v1.22.
-                # ⁠ mccnado ⁠ was used to annotate the BAM files with read group information which identifies the viewpoint of origin and links each read segment to the original read.
-                # Exclusion regions within 500 bp of each viewpoint were defined to avoid self-ligation artifacts and created using bedtools slop vXXXX
-                # BigWig files were generated using bamnado v0.3.11 with the following parameters: --blacklisted-locations ⁠ excluded_regions ⁠ --min-mapq 0 --read-group ⁠ viewpoint_name ⁠.
-                # Ligation junctions were identified using ⁠ mccnado identify-ligation-junctions ⁠ and sorted by genomic position.
-                # The pairs files generated were converted to .cool format using cooler (vXXXX) cload pairs with parameters: --assembly GENOME -c1 2 -p1 3 -c2 4 -p2 5.
-                # Multi-resolution contact matrices (.mcool) were generated at resolutions of RESOLUTIONS bp using cooler zoomify vunknown.
-                # Cooler files were merged using ⁠ mccnado combine-ligation-junction-coolers ⁠ to create a single .mcool file containing all viewpoints for a single sample/group.
-                # Regions of interactions were identified using a custom implementation of lanceotron-mcc (https://github.com/alsmith151/lanceotron-mcc) on the generated bigwig files.
-                "Viewpoint-aligned reads were extracted and their unmapped mates were re-aligned to the reference genome.",
-                "Genome-mapped reads were combined to create viewpoint-to-genome contact maps.",
-                "Ligation junctions were identified and sorted by genomic position.",
-                f"Exclusion regions within {exclusion_zone} bp of each viewpoint were defined to avoid self-ligation artifacts.",
-                f"Contact matrices were generated at resolutions of {', '.join(map(str, resolutions))} bp using cooler v{self.versions.get('cooler', 'unknown')}.",
-                f"Multi-resolution contact matrices (.mcool files) were created using cooler zoomify v{self.versions.get('cooler', 'unknown')} for interactive visualization.",
-            ]
-        )
 
         # Add lanceotron peak calling if configured
         if "lanceotron" in self.versions:
             lines.append(
-                f"Chromatin interactions were identified using lanceotron v{self.versions.get('lanceotron', 'unknown')} peak calling on viewpoint contact profiles."
+                "Regions of interactions were identified using a custom implementation of lanceotron-mcc (https://github.com/alsmith151/lanceotron-mcc) on the generated bigwig files."
             )
-
-        lines.append(
-            f"BigWig coverage tracks were generated using bamnado v{self.versions['bamnado']} for each viewpoint to visualize interaction landscapes."
-        )
 
         return lines
 
@@ -1082,6 +1094,12 @@ class ProtocolBuilder:
             .replace("the following parameters: False", "with default parameters")
             .replace("\n\n", "\n")
         )
+
+        # Standardize version formatting: wrap all versions in parentheses
+        # Match patterns like "tool v1.2.3" or "tool vunknown" and convert to "tool (v1.2.3)"
+        # This regex looks for tool names followed by a space and v(version) not already in parentheses
+        content = re.sub(r'\b(\w+)\s+v([\d\.]+|unknown)\b(?!\))', r'\1 (v\2)', content)
+
         # Remove empty lines
         content = "\n".join(
             [line.strip() for line in content.splitlines() if line.strip()]
