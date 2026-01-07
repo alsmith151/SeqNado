@@ -508,7 +508,7 @@ class QuantificationFiles(BaseModel):
 
     @property
     def prefix(self) -> str:
-        return f"{self.output_dir}/quantification"
+        return f"{self.output_dir}/readcounts"
 
     @field_validator("methods", mode="before")
     def validate_methods_and_assays(cls, v: list[QuantificationMethod], info) -> list[QuantificationMethod]:
@@ -521,7 +521,13 @@ class QuantificationFiles(BaseModel):
     @property
     def combined_counts_file(self) -> list[str]:
         """Return the combined read counts file."""
-        return expand(self.prefix + "/{methods}/read_counts.tsv", methods=[m.value for m in self.methods])
+        files = []
+        for m in self.methods:
+            if m == QuantificationMethod.FEATURE_COUNTS:
+                files.append(f"{self.prefix}/feature_counts/read_counts.tsv")
+            elif m == QuantificationMethod.SALMON:
+                files.append(f"{self.prefix}/salmon/salmon_counts.csv")
+        return files
 
     @property
     def grouped_counts_files(self) -> list[str]:

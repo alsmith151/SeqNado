@@ -213,7 +213,10 @@ class SeqNadoReportFiles:
                     run_meme=run_meme,
                 )
 
-        if (
+        # Add quantification files for RNA assays with quantification method or if explicitly requested
+        if self.assay == Assay.RNA and hasattr(self.config.assay_config, "rna_quantification") and self.config.assay_config.rna_quantification:
+            builder.add_quantification_files()
+        elif (
             "create_quantification_files" in self.config.assay_config
             and self.config.assay_config.create_quantification_files
         ):
