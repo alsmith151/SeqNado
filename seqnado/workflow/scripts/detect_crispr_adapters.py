@@ -28,14 +28,22 @@ def open_fastq(file_path: str):
 def parse_fastq(file_path: str, n_reads: int = 10000) -> List[str]:
     """Parse first n_reads sequences from a FASTQ file."""
     sequences = []
-    with open_fastq(file_path) as f:
-        line_count = 0
-        for line in f:
-            if line_count % 4 == 1:  # Sequence line
-                sequences.append(line.strip())
-                if len(sequences) >= n_reads:
-                    break
-            line_count += 1
+    try:
+        with open_fastq(file_path) as f:
+            line_count = 0
+            for line in f:
+                if line_count % 4 == 1:  # Sequence line
+                    sequences.append(line.strip())
+                    if len(sequences) >= n_reads:
+                        break
+                line_count += 1
+        logger.debug(f"Parsed {len(sequences)} sequences from {file_path}")
+    except FileNotFoundError:
+        logger.error(f"FASTQ file not found: {file_path}")
+        raise
+    except Exception as e:
+        logger.error(f"Error parsing FASTQ file {file_path}: {e}")
+        raise
     return sequences
 
 
@@ -78,7 +86,11 @@ def detect_adapter(sequences: List[str],
         The detected adapter sequence, or None if no clear adapter found
     """
     if not sequences:
+        logger.warning("No sequences provided for adapter detection")
         return None
+
+    logger.info(f"Analyzing {len(sequences)} sequences for adapter detection")
+    logger.info(f"Parameters: min_length={min_length}, max_length={max_length}, min_frequency={min_frequency}")
 
     prefix_counts = find_common_prefix(sequences, min_length, max_length)
     n_sequences = len(sequences)
@@ -96,10 +108,24 @@ def detect_adapter(sequences: List[str],
         prefix, count = most_common[0]
         frequency = count / n_sequences
 
+        logger.debug(f"Length {k}: most common prefix '{prefix}' appears in {count}/{n_sequences} reads ({frequency:.2%})")
+
         if frequency >= min_frequency and k > best_length:
             best_adapter = prefix
             best_length = k
-            logger.info(f"Found adapter of length {k}: {prefix} (frequency: {frequency:.2%})")
+            logger.info(f"Found adapter candidate of length {k}: {prefix} (frequency: {frequency:.2%})")
+
+    if best_adapter:
+        logger.info(f"Best adapter detected: {best_adapter} (length: {best_length})")
+    else:
+        logger.warning(f"No adapter found meeting frequency threshold of {min_frequency:.2%}")
+        # Log top candidates for troubleshooting
+        logger.info("Top prefix candidates for troubleshooting:")
+        for k in sorted(prefix_counts.keys(), reverse=True)[:5]:
+            most_common = prefix_counts[k].most_common(3)
+            for prefix, count in most_common:
+                frequency = count / n_sequences
+                logger.info(f"  Length {k}: '{prefix}' - {frequency:.2%} ({count}/{n_sequences} reads)")
 
     return best_adapter
 
@@ -200,43 +226,83 @@ def detect_adapters_from_fastq(fq1: str,
 
 def main():
     """Main function for Snakemake integration."""
-    # Setup logging
-    logger.add(snakemake.log[0], level="INFO")
+    try:
+        # Setup logging
+        logger.add(snakemake.log[0], level="INFO")
+        logger.info("=" * 80)
+        logger.info("CRISPR Adapter Detection Script")
+        logger.info("=" * 80)
 
-    # Get input files
-    fq1 = snakemake.input.get('fq1', snakemake.input[0])
-    fq2 = snakemake.input.get('fq2', None) if len(snakemake.input) > 1 else None
+        # Get input files
+        fq1 = snakemake.input.get('fq1', snakemake.input[0])
+        fq2 = snakemake.input.get('fq2', None) if len(snakemake.input) > 1 else None
 
-    # Get parameters
-    n_reads = snakemake.params.get('n_reads', 10000)
-    min_length = snakemake.params.get('min_length', 6)
-    max_length = snakemake.params.get('max_length', 100)
-    min_frequency = snakemake.params.get('min_frequency', 0.7)
+        # Get parameters
+        n_reads = snakemake.params.get('n_reads', 10000)
+        min_length = snakemake.params.get('min_length', 6)
+        max_length = snakemake.params.get('max_length', 100)
+        min_frequency = snakemake.params.get('min_frequency', 0.7)
 
-    logger.info("Starting CRISPR adapter detection")
-    logger.info(f"Input R1: {fq1}")
-    if fq2:
-        logger.info(f"Input R2: {fq2}")
+        logger.info("Configuration:")
+        logger.info(f"  Input R1: {fq1}")
+        if fq2:
+            logger.info(f"  Input R2: {fq2}")
+        logger.info(f"  Number of reads to analyze: {n_reads}")
+        logger.info(f"  Min adapter length: {min_length}")
+        logger.info(f"  Max adapter length: {max_length}")
+        logger.info(f"  Min frequency threshold: {min_frequency}")
+        logger.info(f"  Output file: {snakemake.output[0]}")
+        logger.info("")
 
-    # Detect adapters
-    adapters = detect_adapters_from_fastq(
-        fq1=fq1,
-        fq2=fq2,
-        n_reads=n_reads,
-        min_length=min_length,
-        max_length=max_length,
-        min_frequency=min_frequency
-    )
+        # Check input files exist
+        from pathlib import Path
+        if not Path(fq1).exists():
+            logger.error(f"Input file R1 does not exist: {fq1}")
+            raise FileNotFoundError(f"Input file R1 not found: {fq1}")
+        if fq2 and not Path(fq2).exists():
+            logger.error(f"Input file R2 does not exist: {fq2}")
+            raise FileNotFoundError(f"Input file R2 not found: {fq2}")
 
-    logger.info(f"Detected R1 adapter: {adapters['adapter_r1']}")
-    if adapters['adapter_r2']:
-        logger.info(f"Detected R2 adapter: {adapters['adapter_r2']}")
+        logger.info("Starting adapter detection...")
+        logger.info("")
 
-    # Write results
-    with open(snakemake.output[0], 'w') as f:
-        json.dump(adapters, f, indent=2)
+        # Detect adapters
+        adapters = detect_adapters_from_fastq(
+            fq1=fq1,
+            fq2=fq2,
+            n_reads=n_reads,
+            min_length=min_length,
+            max_length=max_length,
+            min_frequency=min_frequency
+        )
 
-    logger.info(f"Adapter detection complete. Results written to {snakemake.output[0]}")
+        logger.info("")
+        logger.info("=" * 80)
+        logger.info("RESULTS:")
+        logger.info("=" * 80)
+        logger.info(f"R1 adapter: {adapters['adapter_r1'] if adapters['adapter_r1'] else 'None detected'}")
+        if fq2:
+            logger.info(f"R2 adapter: {adapters['adapter_r2'] if adapters['adapter_r2'] else 'None detected'}")
+        logger.info("=" * 80)
+        logger.info("")
+
+        # Write results
+        output_path = snakemake.output[0]
+        with open(output_path, 'w') as f:
+            json.dump(adapters, f, indent=2)
+
+        logger.info(f"Results successfully written to: {output_path}")
+        logger.info("Adapter detection complete!")
+        logger.info("=" * 80)
+
+    except Exception as e:
+        logger.error("=" * 80)
+        logger.error("FATAL ERROR")
+        logger.error("=" * 80)
+        logger.error(f"An error occurred during adapter detection: {e}")
+        logger.exception("Full traceback:")
+        logger.error("=" * 80)
+        raise
 
 
 if __name__ == "__main__":

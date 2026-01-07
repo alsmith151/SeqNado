@@ -12,7 +12,9 @@ TRIMMING_ENABLED = should_trim_fastqs(CONFIG)
 
 # Check cutadapt mode to determine if we should auto-detect adapters
 CUTADAPT_MODE = getattr(CONFIG.third_party_tools.cutadapt, 'mode', None)
-AUTO_DETECT_ADAPTERS = CUTADAPT_MODE == 'crispr'
+# Handle both string and Enum values for mode
+CUTADAPT_MODE_VALUE = getattr(CUTADAPT_MODE, 'value', CUTADAPT_MODE) if CUTADAPT_MODE else None
+AUTO_DETECT_ADAPTERS = CUTADAPT_MODE_VALUE == 'crispr'
 
 if TRIMMING_ENABLED and AUTO_DETECT_ADAPTERS:
     # Rule to detect adapters from a representative sample
@@ -21,7 +23,7 @@ if TRIMMING_ENABLED and AUTO_DETECT_ADAPTERS:
             fq1=OUTPUT_DIR + "/fastqs/{sample}_1.fastq.gz",
             fq2=OUTPUT_DIR + "/fastqs/{sample}_2.fastq.gz",
         output:
-            adapters=OUTPUT_DIR + "/qc/adapters/{sample}_adapters.json",
+            adapters=OUTPUT_DIR + "/resources/{sample}_adapters.json",
         params:
             n_reads=10000,
             min_length=6,
@@ -36,13 +38,13 @@ if TRIMMING_ENABLED and AUTO_DETECT_ADAPTERS:
         benchmark: OUTPUT_DIR + "/.benchmark/adapter_detection/{sample}.tsv",
         message: "Detecting adapters for CRISPR sample {wildcards.sample} (paired-end)",
         script:
-            "../scripts/detect_crispr_adapters.py"
+            "../../scripts/detect_crispr_adapters.py"
 
     rule detect_crispr_adapters_single:
         input:
             fq1=OUTPUT_DIR + "/fastqs/{sample}.fastq.gz",
         output:
-            adapters=OUTPUT_DIR + "/qc/adapters/{sample}_adapters.json",
+            adapters=OUTPUT_DIR + "/resources/{sample}_adapters.json",
         params:
             n_reads=10000,
             min_length=6,
@@ -57,7 +59,7 @@ if TRIMMING_ENABLED and AUTO_DETECT_ADAPTERS:
         benchmark: OUTPUT_DIR + "/.benchmark/adapter_detection/{sample}.tsv",
         message: "Detecting adapters for CRISPR sample {wildcards.sample} (single-end)",
         script:
-            "../scripts/detect_crispr_adapters.py"
+            "../../scripts/detect_crispr_adapters.py"
 
     ruleorder: detect_crispr_adapters_paired > detect_crispr_adapters_single
 
@@ -67,7 +69,7 @@ if TRIMMING_ENABLED and AUTO_DETECT_ADAPTERS:
         Build cutadapt adapter arguments from detected adapters.
         Falls back to config if detection fails or returns None.
         """
-        adapter_file = OUTPUT_DIR + f"/qc/adapters/{wildcards.sample}_adapters.json"
+        adapter_file = OUTPUT_DIR + f"/resources/{wildcards.sample}_adapters.json"
 
         # Get base options from config (without adapter specifications)
         base_options = str(CONFIG.third_party_tools.cutadapt.command_line_arguments)
@@ -116,7 +118,7 @@ if TRIMMING_ENABLED and AUTO_DETECT_ADAPTERS:
         input:
             fq1=OUTPUT_DIR + "/fastqs/{sample}_1.fastq.gz",
             fq2=OUTPUT_DIR + "/fastqs/{sample}_2.fastq.gz",
-            adapters=OUTPUT_DIR + "/qc/adapters/{sample}_adapters.json",
+            adapters=OUTPUT_DIR + "/resources/{sample}_adapters.json",
         output:
             trimmed1=temp(OUTPUT_DIR + "/trimmed/{sample}_1.fastq.gz"),
             trimmed2=temp(OUTPUT_DIR + "/trimmed/{sample}_2.fastq.gz"),
@@ -138,7 +140,7 @@ if TRIMMING_ENABLED and AUTO_DETECT_ADAPTERS:
     rule crispr_trimming_single:
         input:
             fq=OUTPUT_DIR + "/fastqs/{sample}.fastq.gz",
-            adapters=OUTPUT_DIR + "/qc/adapters/{sample}_adapters.json",
+            adapters=OUTPUT_DIR + "/resources/{sample}_adapters.json",
         output:
             trimmed=temp(OUTPUT_DIR + "/trimmed/{sample}.fastq.gz"),
         params:
