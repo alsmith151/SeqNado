@@ -8,7 +8,6 @@ rule bcftools_annotate:
         idx=OUTPUT_DIR + "/variant/{sample}.anno.vcf.gz.tbi",
     params:
         db=CONFIG.assay_config.snp_calling.snp_database,
-        fasta=CONFIG.genome.fasta,
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
         runtime=lambda wildcards, attempt: f"{5 * 2 ** (attempt - 1)}h",

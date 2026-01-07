@@ -715,6 +715,9 @@ class BigWigSection(ProtocolSection):
     def is_applicable(self) -> bool:
         if self.assay_config is None:
             return False
+        # Skip BigWig section for MCC assays as they have their own specific BigWig generation
+        if self.assay_config.get("mcc") is not None:
+            return False
         if "bigwigs" not in self.assay_config:
             return False
         if not self.assay_config.get("create_bigwigs", True):
@@ -941,18 +944,13 @@ class MCCSection(ProtocolSection):
     def collect_versions(self) -> dict:
         versions = {}
         if self.is_applicable():
-            if tool_configured("mccnado"):
-                versions["mccnado"] = get_tool_version("mccnado")
-            if tool_configured("flash"):
-                versions["flash"] = get_tool_version("flash")
-            if tool_configured("minimap2"):
-                versions["minimap2"] = get_tool_version("minimap2")
-            if tool_configured("bowtie2"):
-                versions["bowtie2"] = get_tool_version("bowtie2")
-            if tool_configured("bedtools"):
-                versions["bedtools"] = get_tool_version("bedtools")
-            if tool_configured("cooler"):
-                versions["cooler"] = get_tool_version("cooler")
+            # Always try to get versions for essential MCC tools
+            versions["mccnado"] = get_tool_version("mccnado")
+            versions["flash"] = get_tool_version("flash")
+            versions["minimap2"] = get_tool_version("minimap2")
+            versions["bowtie2"] = get_tool_version("bowtie2")
+            versions["bedtools"] = get_tool_version("bedtools")
+            versions["cooler"] = get_tool_version("cooler")
             versions["samtools"] = get_tool_version("samtools")
             versions["bamnado"] = get_tool_version("bamnado")
             if tool_configured("lanceotron_mcc") or tool_configured("lanceotron"):
