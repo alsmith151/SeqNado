@@ -7,7 +7,7 @@ rule bcftools_annotate:
         vcf=OUTPUT_DIR + "/variant/{sample}.anno.vcf.gz",
         idx=OUTPUT_DIR + "/variant/{sample}.anno.vcf.gz.tbi",
     params:
-        dbsnp=CONFIG.assay_config.snp_database,
+        db=CONFIG.assay_config.snp_calling.snp_database,
         fasta=CONFIG.genome.fasta,
     resources:
         mem=lambda wildcards, attempt: f"{10 * 2 ** (attempt -1)}GB",
@@ -16,8 +16,8 @@ rule bcftools_annotate:
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/variant/{sample}_anno.log",
     benchmark: OUTPUT_DIR + "/.benchmark/variant/{sample}_anno.tsv",
-    message: "Annotating VCF for sample {wildcards.sample} with dbSNP"
+    message: "Annotating VCF for sample {wildcards.sample}"
     shell: """
-    bcftools annotate --threads {threads} -c ID -a {params.dbsnp} -Oz -o {output.vcf} {input.vcf} 2> {log} &&
+    bcftools annotate --threads {threads} -c ID -a {params.db} -Oz -o {output.vcf} {input.vcf} 2> {log} &&
     tabix -f {output.vcf} > {output.idx}
     """

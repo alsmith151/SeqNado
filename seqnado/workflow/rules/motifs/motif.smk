@@ -59,6 +59,7 @@ rule motif_homer:
         known_db=CONFIG.third_party_tools.homer.known_motif_db if CONFIG.third_party_tools.homer.known_motif_db else "",
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/motifs/homer/{method}/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/motifs/homer/{method}/{sample}.tsv",
