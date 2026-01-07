@@ -27,8 +27,8 @@ rule split_multiallelic:
         vcf=rules.bcftools_call_snp.output.vcf,
         idx=rules.bcftools_call_snp.output.idx,
     output:
-        vcf=OUTPUT_DIR + "/variant/{sample,(?!.*\.anno$).*}.vcf.gz",
-        idx=OUTPUT_DIR + "/variant/{sample,(?!.*\.anno$).*}.vcf.gz.tbi",
+        vcf=OUTPUT_DIR + "/variant/{sample}.vcf.gz",
+        idx=OUTPUT_DIR + "/variant/{sample}.vcf.gz.tbi",
     params:
         outdir=OUTPUT_DIR + "/variant/",
     resources:

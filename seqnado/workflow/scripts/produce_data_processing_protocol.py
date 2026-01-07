@@ -927,10 +927,22 @@ class VariantCallingSection(ProtocolSection):
         return {}
 
     def generate_text(self) -> list[str]:
-        return [
-            f"Variants were called using bcftools mpileup and bcftools call v{self.versions['bcftools']}.",
+
+        bcftools_options = tool_arguments(
+            "bcftools", "call", "command_line_arguments", default="default parameters"
+        )
+
+        text = [
+            f"Variants were called using bcftools v{self.versions['bcftools']} mpileup and call with the following parameters: {bcftools_options}.",
             "Multi-allelic variants were split using bcftools norm.",
         ]
+        
+        # Add annotation step if configured
+        if self.assay_config and self.assay_config.get("snp_calling", {}).get("annotate_snps"):
+            snp_db_file = self.assay_config["snp_calling"].get("snp_database", "SNP database")
+            text.append(f"Variants were annotated using bcftools annotate with the SNP database file: {snp_db_file}.")
+        
+        return text
 
 
 class MCCSection(ProtocolSection):
