@@ -1,6 +1,68 @@
 from pathlib import Path
 from typing import Any, List
 
+
+assay_for_protocol = ASSAY.name
+
+rule geo_protocol:
+    input:
+        [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p)],
+    output:
+        OUTPUT_DIR + "/geo_submission/data_processing_protocol.txt",
+    params:
+        assay=assay_for_protocol,
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/geo/geo_protocol.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_protocol.tsv",
+    message: "Producing data processing protocol for GEO submission",
+    script:
+        "../../scripts/produce_data_processing_protocol.py"
+
+
+rule samples_table:
+    input:
+        OUTPUT_DIR + "/geo_submission/data_processing_protocol.txt",
+    output:
+        OUTPUT_DIR + "/geo_submission/samples_table.txt",
+    params: 
+        output=OUTPUT,
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/geo/samples_table.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/samples_table.tsv",
+    message: "Generating samples table for GEO submission",
+    run:
+        from seqnado.outputs.files import GEOFiles
+        source_files = [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p)]
+
+        df = GEOFiles(make_geo_submission_files=True,
+                      assay=OUTPUT.assay,
+                      design=OUTPUT.design_dataframe,
+                      sample_names=OUTPUT.sample_names,
+                      config=OUTPUT.config,
+                      processed_files=source_files
+                      ).metadata
+
+        df.to_csv(output[0], sep="\t", index=False)
+
+
+rule geo_upload_instructions:
+    input:
+        OUTPUT_DIR + "/geo_submission/samples_table.txt",
+    output:
+        instructions=OUTPUT_DIR + "/geo_submission/upload_instructions.txt",
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/geo/geo_upload_instructions.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_upload_instructions.tsv",
+    message: "Creating GEO upload instructions",
+    run:
+        import importlib.resources
+        import seqnado.data
+
+        source = importlib.resources.files(seqnado.data) / 'geo_upload_instructions.txt'
+        with open(source, 'r') as f:
+            with open(output.instructions, 'w') as f_out:
+                f_out.write(f.read())
+
 def get_files_for_symlink(wc: Any = None) -> List[str]:
     """
     Get all files that need to be symlinked for GEO submission
@@ -147,60 +209,6 @@ rule geo_md5_table:
         for outfile, df_sub in zip([output.raw, output.processed], [df_raw, df_processed]):
             df_sub.rename(columns={"file": "file name", "md5sum": "file checksum"}).to_csv(outfile, index=False, sep="\t")
 
-rule samples_table:
-    output:
-        OUTPUT_DIR + "/geo_submission/samples_table.txt",
-    params: 
-        output=OUTPUT,
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/geo/samples_table.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/geo/samples_table.tsv",
-    message: "Generating samples table for GEO submission",
-    run:
-        from seqnado.outputs.files import GEOFiles
-        # Exclude geo_submission files to avoid circular dependencies
-        source_files = [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p)]
-
-        df = GEOFiles(make_geo_submission_files=True,
-                      assay=OUTPUT.assay,
-                      design=OUTPUT.design_dataframe,
-                      sample_names=OUTPUT.sample_names,
-                      config=OUTPUT.config,
-                      processed_files=source_files
-                      ).metadata
-
-        df.to_csv(output[0], sep="\t", index=False)
-
-assay_for_protocol = ASSAY.name
-
-rule geo_protocol:
-    output:
-        OUTPUT_DIR + "/geo_submission/protocol.txt",
-    params:
-        assay=assay_for_protocol,
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/geo/geo_protocol.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_protocol.tsv",
-    message: "Producing data processing protocol for GEO submission",
-    script:
-        "../../scripts/produce_data_processing_protocol.py"
-
-rule geo_upload_instructions:
-    output:
-        instructions=OUTPUT_DIR + "/geo_submission/upload_instructions.txt",
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/geo/geo_upload_instructions.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_upload_instructions.tsv",
-    message: "Creating GEO upload instructions",
-    run:
-        import importlib.resources
-        import seqnado.data
-
-        source = importlib.resources.files(seqnado.data) / 'geo_upload_instructions.txt'
-        with open(source, 'r') as f:
-            with open(output.instructions, 'w') as f_out:
-                f_out.write(f.read())
-
 rule move_to_upload:
     input:
         infiles = get_symlinked_files,
@@ -255,7 +263,6 @@ localrules:
     geo_symlink,
     geo_md5_table,
     samples_table,
-    geo_protocol,
     geo_upload_instructions,
     move_to_upload,
     remove_headers_for_security

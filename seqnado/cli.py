@@ -1221,7 +1221,7 @@ def design(
 # -------------------------------- pipeline ---------------------------------- #
 # Allow pass-through of *unknown* options to Snakemake via ctx.args
 @app.command(
-    help="Run the data processing pipeline for ASSAY (Snakemake under the hood).",
+    help="Run the data processing pipeline for ASSAY (Snakemake under the hood). Any additional arguments are passed to Snakemake (e.g., `seqnado pipeline rna -n` for dry-run, `--unlock`, etc.).",
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
 def pipeline(
