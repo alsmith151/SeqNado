@@ -314,11 +314,30 @@ class SeqnadoOutputBuilder:
                 self.file_collections.append(bigwig_files)
 
     def add_mcc_sentinel_pileup_files(self) -> None:
-        """Add MCC sentinel files to the output collection."""
+        """Add MCC sentinel files to the output collection.
+        The issue with MCC bigwig files is that they are generated per viewpoint group.
+        It's possible that we don't actually have the viewpoint coming through from the sample,
+        this would cause a crash and a pipeline failure. So instead we just create a sentinel file
+        to indicate that the bigwigs have been generated.
+        """
         bigwigs = [
             Path(self.output_dir) / "bigwigs/mcc/.mcc_bigwigs_generated.txt",
         ]
         sentinel_files = BasicFileCollection(files=[str(bw) for bw in bigwigs])
+        self.file_collections.append(sentinel_files)
+    
+    def add_mcc_sentinel_peak_files(self) -> None:
+        """Add MCC sentinel files to the output collection.
+
+        The issue with MCC peak files is that they are generated per viewpoint group.
+        It's possible that we don't actually have the viewpoint coming through from the sample,
+        this would cause a crash and a pipeline failure. So instead we just create a sentinel file
+        to indicate that the peaks have been called.
+        """
+        peaks = [
+            Path(self.output_dir) / "peaks/mcc/.mcc_peaks_called.txt",
+        ]
+        sentinel_files = BasicFileCollection(files=[str(pk) for pk in peaks])
         self.file_collections.append(sentinel_files)
 
     def add_peak_files(self) -> None:
@@ -631,9 +650,12 @@ class SeqnadoOutputFactory:
                 builder.add_mcc_sentinel_pileup_files()
 
         if bool(getattr(self.assay_config, "call_peaks", False)):
-            builder.add_peak_files()
-            if self.sample_groupings.groupings.get("consensus"):
-                builder.add_grouped_peak_files()
+            if not self.assay == Assay.MCC:
+                builder.add_peak_files()
+                if self.sample_groupings.groupings.get("consensus"):
+                    builder.add_grouped_peak_files()
+            else:
+                builder.add_mcc_sentinel_peak_files()
 
         if self.assay_config.create_heatmaps:
             builder.add_heatmap_files()
