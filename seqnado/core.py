@@ -156,6 +156,8 @@ class SpikeInMethod(Enum):
 
     ORLANDO = "orlando"
     WITH_INPUT = "with_input"
+    DESEQ2 = "deseq2"
+    EDGER = "edger"
 
 
 class SNPCallingMethod(Enum):

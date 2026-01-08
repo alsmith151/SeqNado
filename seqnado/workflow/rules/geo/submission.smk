@@ -1,27 +1,9 @@
 from pathlib import Path
 from typing import Any, List
 
-
-assay_for_protocol = ASSAY.name
-
-rule geo_protocol:
-    input:
-        [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p)],
-    output:
-        OUTPUT_DIR + "/geo_submission/data_processing_protocol.txt",
-    params:
-        assay=assay_for_protocol,
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/geo/geo_protocol.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_protocol.tsv",
-    message: "Producing data processing protocol for GEO submission",
-    script:
-        "../../scripts/produce_data_processing_protocol.py"
-
-
 rule samples_table:
     input:
-        OUTPUT_DIR + "/geo_submission/data_processing_protocol.txt",
+        OUTPUT_DIR + "/protocol.txt",
     output:
         OUTPUT_DIR + "/geo_submission/samples_table.txt",
     params: 

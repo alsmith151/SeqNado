@@ -91,6 +91,7 @@ INPUT_FILES.symlink_fastq_files(output_dir=fastq_dir)
 include: "rules/common/utilities.smk"
 include: "rules/common/qc.smk"
 include: "rules/fastq/screen.smk"
+include: "rules/protocol/protocol.smk"
 
 match ASSAY:
     case Assay.ATAC | Assay.CAT | Assay.CHIP:

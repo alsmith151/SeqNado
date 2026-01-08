@@ -1,18 +1,36 @@
 def get_norm_factor_spikein(wildcards, negative=False):
     import json
-    norm = int(get_norm_factor_spikein(wildcards) * 1e7)
+
+    norm_file = OUTPUT_DIR + "/resources/normalisation_factors.json"
+    with open(norm_file, 'r') as f:
+        norm_factors = json.load(f)
+
+    scale_factor = float(norm_factors.get(wildcards.sample, 1.0))
+
+    if negative:
+        scale_factor = -scale_factor
+
+    return scale_factor
+
+def get_scaling_factor(wildcards, scaling_file):
+    import pandas as pd
+
+    df = pd.read_csv(scaling_file, sep="\t")
+    scale = df.loc[df['sample'] == wildcards.sample, 'scale_factor'].values[0]
+
+    return float(scale)
     
 rule deeptools_make_bigwigs_scale:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
         bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , DESIGN)}_scaling_factors.tsv",
+        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_scaling_factors.tsv",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/csaw/{sample}.bigWig",
     params:
         scale=lambda wc: get_scaling_factor(
             wc,
-            OUTPUT_DIR + "/resources/{get_group_for_sample(wc , DESIGN)}_scaling_factors.tsv",
+            OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_scaling_factors.tsv",
         ),
         options=lambda wc: format_deeptools_bamcoverage_options(wc)
     threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
@@ -31,7 +49,7 @@ use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
         bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , DESIGN)}_normalisation_factors.json",
+        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_normalisation_factors.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}.bigWig",
     params:
@@ -45,7 +63,7 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
         bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , DESIGN)}_normalisation_factors.json",
+        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_normalisation_factors.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}_plus.bigWig",
     params:
@@ -67,7 +85,7 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
         bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , DESIGN)}_normalisation_factors.json",
+        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_normalisation_factors.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}_minus.bigWig",
     params:

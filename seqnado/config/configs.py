@@ -323,6 +323,7 @@ class SpikeInConfig(BaseModel):
     method: SpikeInMethod
     exogenous_genome: str | None = None
     endogenous_genome: str | None = None
+    control_genes: list[str] | None = None
 
 
 class UCSCHubConfig(BaseModel):

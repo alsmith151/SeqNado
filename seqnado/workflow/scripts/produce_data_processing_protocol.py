@@ -895,6 +895,94 @@ class RNAQuantificationSection(ProtocolSection):
         return lines
 
 
+class SpikeInSection(ProtocolSection):
+    """Spike-in normalization."""
+
+    def is_applicable(self) -> bool:
+        if self.assay_config is None:
+            return False
+        return self.assay_config.get("spikein") is not None
+
+    def collect_versions(self) -> dict:
+        # Spike-in uses R/DESeq2/edgeR which are already in the container
+        # We don't need to collect versions for these
+        return {}
+
+    def generate_text(self) -> list[str]:
+        if self.assay_config is None:
+            return []
+
+        spikein_config = self.assay_config.get("spikein", {})
+        method = spikein_config.get("method", "").lower()
+        endogenous = spikein_config.get("endogenous_genome", "reference")
+        exogenous = spikein_config.get("exogenous_genome", "spike-in")
+        control_genes = spikein_config.get("control_genes", [])
+
+        lines = []
+
+        # Common spike-in processing
+        lines.append(
+            f"Reads were aligned to a combined reference genome containing both {endogenous} (reference) "
+            f"and {exogenous} (spike-in) sequences."
+        )
+        lines.append(
+            f"Aligned reads were split into reference ({endogenous}) and spike-in ({exogenous}) fractions "
+            "based on their alignment coordinates."
+        )
+
+        # Method-specific normalization
+        if method == "orlando":
+            lines.append(
+                "Spike-in normalization factors were calculated using the Orlando method, where the scale factor "
+                "for each sample is 1 / (spike-in reads / 1,000,000)."
+            )
+        elif method == "with_input":
+            lines.append(
+                "Spike-in normalization factors were calculated by comparing the ratio of reference reads to spike-in reads "
+                "between IP and Input samples."
+            )
+        elif method == "deseq2":
+            if control_genes:
+                genes_str = ", ".join(control_genes[:3])
+                if len(control_genes) > 3:
+                    genes_str += f", and {len(control_genes) - 3} others"
+                lines.append(
+                    f"Spike-in normalization factors were calculated using DESeq2's estimateSizeFactors() function "
+                    f"with spike-in control genes ({genes_str}) as the basis for normalization. "
+                )
+            else:
+                lines.append(
+                    "Spike-in normalization factors were calculated using DESeq2's estimateSizeFactors() function "
+                    "with spike-in control genes as the basis for normalization."
+                )
+        elif method == "edger":
+            if control_genes:
+                genes_str = ", ".join(control_genes[:3])
+                if len(control_genes) > 3:
+                    genes_str += f", and {len(control_genes) - 3} others"
+                lines.append(
+                    f"Spike-in normalization factors were calculated using edgeR's calcNormFactors() function "
+                    f"with TMM (trimmed mean of M-values) method applied to spike-in control genes ({genes_str}). "
+                )
+            else:
+                lines.append(
+                    "Spike-in normalization factors were calculated using edgeR's calcNormFactors() function "
+                    "with TMM (trimmed mean of M-values) method applied to spike-in control genes."
+                )
+
+        # Common conclusion
+        if method in ["deseq2", "edger"]:
+            lines.append(
+                "For visualization (BigWig files), only reference genome reads were used, scaled by the spike-in normalization factors."
+            )
+        else:
+            lines.append(
+                "BigWig coverage tracks were normalized using the spike-in derived scaling factors."
+            )
+
+        return lines
+
+
 class MethylationSection(ProtocolSection):
     """Methylation calling."""
 
@@ -1042,6 +1130,7 @@ class ProtocolBuilder:
         PCRDuplicatesSection,
         Tn5ShiftSection,
         FilteringSection,
+        SpikeInSection,  # Spike-in normalization after alignment/filtering
         BigWigSection,
         RNAQuantificationSection,
         MethylationSection,

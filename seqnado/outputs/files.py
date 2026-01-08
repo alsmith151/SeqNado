@@ -98,11 +98,17 @@ class SeqNadoReportFile(BaseModel):
         return [
             f"{self.output_dir}/seqnado_report.html",
         ]
-    
+
+    @property
+    def protocol_file(self) -> list[str]:
+        return [
+            f"{self.output_dir}/protocol.txt",
+        ]
+
     @computed_field
     @property
     def files(self) -> list[str]:
-        return self.report_file
+        return [*self.report_file, *self.protocol_file]
 
 
 class BigWigFiles(BaseModel):
@@ -281,6 +287,7 @@ class HubFiles(BaseModel):
 class SpikeInFiles(BaseModel):
     assay: Assay
     names: list[str]
+    method: str  # e.g., "deseq2", "edger", "orlando", "with_input"
     output_dir: str = "seqnado_output"
 
     @field_validator("assay")
@@ -291,7 +298,7 @@ class SpikeInFiles(BaseModel):
 
     @property
     def norm_factors(self):
-        return f"{self.output_dir}/resources/normalisation_factors.tsv"
+        return f"{self.output_dir}/resources/{self.method}/normalisation_factors.tsv"
 
     @computed_field
     @property
@@ -571,7 +578,6 @@ class GeoSubmissionFiles(BaseModel):
             f"{self.output_dir}/geo_submission/raw_data_checksums.txt",
             f"{self.output_dir}/geo_submission/processed_data_checksums.txt",
             f"{self.output_dir}/geo_submission/samples_table.txt",
-            f"{self.output_dir}/geo_submission/protocol.txt",
         ]
     
     @property

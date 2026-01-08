@@ -357,10 +357,21 @@ def get_spikein_config(assay: Assay) -> Optional[SpikeInConfig]:
     reference_genome = get_user_input("Reference genome:", default="hg38")
     spikein_genome = get_user_input("Spikein genome:", default="dm6")
 
+    # Ask for control genes if using DESeq2 or edgeR methods
+    control_genes = None
+    if normalisation_method in ["deseq2", "edger"]:
+        control_genes_input = get_user_input(
+            "Spike-in control gene names (comma-separated):",
+            default="AmpR,Cas9_3p,Cas9_5p"
+        )
+        if control_genes_input:
+            control_genes = [g.strip() for g in control_genes_input.split(",")]
+
     return SpikeInConfig(
         method=SpikeInMethod(normalisation_method),
         endogenous_genome=reference_genome,
         exogenous_genome=spikein_genome,
+        control_genes=control_genes,
     )
 
 

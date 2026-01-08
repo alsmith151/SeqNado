@@ -6,7 +6,7 @@ rule save_design:
     benchmark: OUTPUT_DIR + "/.benchmark/save_design.tsv",
     message: "Saving design dataframe to metadata.csv in output directory",
     run:
-        DESIGN.to_dataframe().to_csv(OUTPUT_DIR + "/metadata.csv", index=False)
+        INPUT_FILES.to_dataframe().to_csv(OUTPUT_DIR + "/metadata.csv", index=False)
 
 
 rule make_genomic_bins:
@@ -27,7 +27,6 @@ rule make_genomic_bins:
     shell: """
     cooler makebins {input.chrom_sizes} {params.bin_size} -o {output.bed} > {log} 2>&1
     """
-
 
 
 rule bed_to_saf:

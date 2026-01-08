@@ -1,9 +1,14 @@
 from seqnado.helpers import define_time_requested, define_memory_requested
 
+def get_bams_to_count():
+    if CONFIG.assay_config.has_spikein:
+        return expand(OUTPUT_DIR + "/aligned/spikein/filtered/{sample}.bam", sample=SAMPLE_NAMES)
+    return expand(OUTPUT_DIR + "/aligned/{sample}.bam", sample=SAMPLE_NAMES)
+
 rule feature_counts:
     input:
-        bam=expand(OUTPUT_DIR + "/aligned/{sample}.bam", sample=SAMPLE_NAMES),
-        bai=expand(OUTPUT_DIR + "/aligned/{sample}.bam.bai", sample=SAMPLE_NAMES),
+        bam=get_bams_to_count(),
+        bai=[bam.replace(".bam", ".bam.bai") for bam in get_bams_to_count()],
         annotation=CONFIG.genome.gtf,
     output:
         counts=OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
