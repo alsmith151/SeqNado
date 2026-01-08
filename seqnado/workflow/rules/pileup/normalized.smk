@@ -1,7 +1,12 @@
+from seqnado.helpers import format_deeptools_options
+
 def get_norm_factor_spikein(wildcards, negative=False):
     import json
 
-    norm_file = OUTPUT_DIR + "/resources/normalisation_factors.json"
+    # Get the spike-in method from config
+    method = CONFIG.assay_config.spikein.method.value if CONFIG.assay_config.spikein else "orlando"
+    norm_file = OUTPUT_DIR + f"/resources/{method}/normalisation_factors.json"
+
     with open(norm_file, 'r') as f:
         norm_factors = json.load(f)
 
@@ -32,7 +37,7 @@ rule deeptools_make_bigwigs_scale:
             wc,
             OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_scaling_factors.tsv",
         ),
-        options=lambda wc: format_deeptools_bamcoverage_options(wc)
+        options=lambda wc: format_deeptools_options(wc, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments), INPUT_FILES, SAMPLE_GROUPINGS)
     threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -49,11 +54,11 @@ use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
         bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_normalisation_factors.json",
+        scaling_factors=lambda wc: OUTPUT_DIR + f"/resources/{CONFIG.assay_config.spikein.method.value if CONFIG.assay_config.spikein else 'orlando'}/normalisation_factors.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}.bigWig",
     params:
-        options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
+        options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments), INPUT_FILES, SAMPLE_GROUPINGS),
         scale=get_norm_factor_spikein,
     log: OUTPUT_DIR + "/logs/pileups/deeptools/spikein/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/pileups/deeptools/spikein/{sample}.tsv",
@@ -63,11 +68,11 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
         bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_normalisation_factors.json",
+        scaling_factors=lambda wc: OUTPUT_DIR + f"/resources/{CONFIG.assay_config.spikein.method.value if CONFIG.assay_config.spikein else 'orlando'}/normalisation_factors.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}_plus.bigWig",
     params:
-        options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
+        options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments), INPUT_FILES, SAMPLE_GROUPINGS),
         scale=get_norm_factor_spikein,
     threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
@@ -85,11 +90,11 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
         bai=OUTPUT_DIR + "/aligned/{sample}.bam.bai",
-        scaling_factors=lambda wc: OUTPUT_DIR + "/resources/{get_group_for_sample(wc , INPUT_FILES)}_normalisation_factors.json",
+        scaling_factors=lambda wc: OUTPUT_DIR + f"/resources/{CONFIG.assay_config.spikein.method.value if CONFIG.assay_config.spikein else 'orlando'}/normalisation_factors.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}_minus.bigWig",
     params:
-        options=lambda wildcards: format_deeptools_bamcoverage_options(wildcards),
+        options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments), INPUT_FILES, SAMPLE_GROUPINGS),
         scale=lambda wc: get_norm_factor_spikein(wc, negative=True),
     threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:

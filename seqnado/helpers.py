@@ -265,3 +265,50 @@ def get_alignment_input_single(wildcards, output_dir: str, trimming_enabled: boo
     """Return single-end input path based on trimming config."""
     directory = "trimmed" if trimming_enabled else "fastqs"
     return get_fastq_paths(wildcards, output_dir, directory, paired=False)
+
+
+def format_deeptools_options(wildcards, options, input_files, sample_groupings=None):
+    """
+    Format the command line options for deeptools based on the input files and parameters.
+
+    Mainly this removes the extend reads option if single ended.
+
+    Args:
+        wildcards: Snakemake wildcards object
+        options: CommandLineArguments or string with options
+        input_files: FastqCollection object to check if samples are paired-end
+        sample_groupings: Optional SampleGroupings object for grouped samples
+
+    Returns:
+        Formatted options string
+    """
+    from seqnado.config.third_party_tools import CommandLineArguments
+
+    # Convert string to CommandLineArguments if needed
+    if isinstance(options, str):
+        options = CommandLineArguments(value=options)
+
+    try:
+        if hasattr(wildcards, "group"):
+            if sample_groupings is None:
+                raise ValueError("sample_groupings required when wildcards has 'group' attribute")
+            sample = (
+                sample_groupings.get_grouping("consensus")
+                .get_group(wildcards.group)
+                .samples
+            )
+            if not all(input_files.is_paired_end(sample_name) for sample_name in sample):
+                options = CommandLineArguments(
+                    value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"}
+                )
+        else:
+            search_term = f"{wildcards.sample}"
+            is_paired = input_files.is_paired_end(search_term)
+            if not is_paired:
+                options = CommandLineArguments(
+                    value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"}
+                )
+    except KeyError:
+        pass
+
+    return str(options)

@@ -297,6 +297,7 @@ class BigwigConfig(BaseModel):
 
     pileup_method: list[PileupMethod] | None = None
     binsize: int | None = None
+    scale_methods: list[str] | None = None  # e.g., ["unscaled", "spikein"]
 
 
 class PlottingConfig(BaseModel):

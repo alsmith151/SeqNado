@@ -277,11 +277,20 @@ class SeqnadoOutputBuilder:
 
         # Determine scale methods from config, default to UNSCALED if not specified
         # Default to UNSCALED when scale_methods aren't provided in config
-        self.scale_methods = getattr(
+        scale_methods_config = getattr(
             getattr(self.config.assay_config, "bigwigs", object()),
             "scale_methods",
-            [DataScalingTechnique.UNSCALED],
+            None,
         )
+
+        # Convert string values to DataScalingTechnique enums if needed
+        if scale_methods_config:
+            self.scale_methods = [
+                DataScalingTechnique(m) if isinstance(m, str) else m
+                for m in scale_methods_config
+            ]
+        else:
+            self.scale_methods = [DataScalingTechnique.UNSCALED]
 
         # Initialize an empty list to hold file collections
         self.file_collections: list[FileCollection] = []
