@@ -748,6 +748,9 @@ def build_default_assay_config(
             )
             return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
         case Assay.MCC:
+            # MCC assays don't use UCSC hub
+            base_config_mcc = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
+            base_config_mcc["ucsc_hub"] = None
             # Allow override for test environment
             import os
 
@@ -758,7 +761,7 @@ def build_default_assay_config(
                 viewpoints=Path(viewpoints_path),
                 resolutions=[100, 1000],
             )
-            return MCCAssayConfig(**base_config, mcc=mcc)
+            return MCCAssayConfig(**base_config_mcc, mcc=mcc)
         case Assay.METH:
             # Methylation assays don't use UCSC hub
             base_config_meth = {k: v for k, v in base_config.items() if k != "ucsc_hub"}

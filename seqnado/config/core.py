@@ -97,6 +97,7 @@ class MCCAssayConfig(BaseAssayConfig):
     """Configuration specific to MCC (Capture-C) assays."""
 
     mcc: MCCConfig | None = None
+    ucsc_hub: None = None  # Hub generation not supported for MCC
     create_heatmaps: bool = False
 
 class MethylationAssayConfig(BaseAssayConfig, MethylationMixin):
