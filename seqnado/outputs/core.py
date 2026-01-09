@@ -454,7 +454,8 @@ class SeqnadoOutputBuilder:
     def add_spikein_files(self) -> None:
         """Add spike-in files to the output collection."""
         # Get the spike-in method from config
-        method = self.config.assay_config.spikein.method.value if self.config.assay_config.spikein else "orlando"
+        spikein_config = getattr(self.config.assay_config, 'spikein', None)
+        method = spikein_config.method.value if spikein_config else "orlando"
 
         spikein_files = SpikeInFiles(
             assay=self.assay,

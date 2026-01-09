@@ -461,7 +461,7 @@ class TestSpikeInFiles:
 
     def test_spikein_files_chip(self):
         """Test SpikeInFiles for ChIP assay."""
-        sif = SpikeInFiles(assay=Assay.CHIP, names=["sample1", "sample2"])
+        sif = SpikeInFiles(assay=Assay.CHIP, names=["sample1", "sample2"], method="orlando")
 
         files = sif.files
         assert len(files) == 1
@@ -470,15 +470,15 @@ class TestSpikeInFiles:
     def test_spikein_invalid_assay(self):
         """Test SpikeInFiles raises error for invalid assay."""
         with pytest.raises(ValueError, match="Invalid assay for spike-in"):
-            SpikeInFiles(assay=Assay.SNP, names=["sample1"])
+            SpikeInFiles(assay=Assay.SNP, names=["sample1"], method="orlando")
 
     def test_norm_factors_property(self):
         """Test norm_factors property."""
         sif = SpikeInFiles(
-            assay=Assay.CHIP, names=["sample1"], output_dir="custom_output"
+            assay=Assay.CHIP, names=["sample1"], method="orlando", output_dir="custom_output"
         )
 
-        assert sif.norm_factors == "custom_output/resources/normalisation_factors.tsv"
+        assert sif.norm_factors == "custom_output/resources/orlando/normalisation_factors.tsv"
 
 
 class TestPlotFiles:
@@ -768,10 +768,11 @@ class TestGeoSubmissionFiles:
         geo = GeoSubmissionFiles(assay=Assay.CHIP, names=["sample1"])
 
         files = geo.default_files
-        assert len(files) == 5
+        assert len(files) == 4
         assert any("md5sums.txt" in f for f in files)
         assert any("samples_table.txt" in f for f in files)
-        assert any("protocol.txt" in f for f in files)
+        assert any("raw_data_checksums.txt" in f for f in files)
+        assert any("processed_data_checksums.txt" in f for f in files)
 
     def test_geo_submission_raw_files(self):
         """Test raw_files property."""

@@ -117,7 +117,7 @@ def get_user_input(
         # Handle multi-select from choices
         if multi_select and choices:
             # Split by comma and validate each selection
-            selections = [s.strip() for s in user_input.split(',')]
+            selections = [s.strip() for s in user_input.split(",")]
             invalid_selections = [s for s in selections if s not in choices]
 
             if invalid_selections:
@@ -194,14 +194,28 @@ def get_project_config() -> ProjectConfig:
 
     return ProjectConfig(name=project_name, date=today, directory=Path(project_dir))
 
+
 def get_qc_config() -> QCConfig:
     """Get QC configuration from user input."""
-    run_fastq_screen = get_user_input("Perform FastQScreen?", default="no", is_boolean=True)
-    calculate_library_complexity = get_user_input("Calculate library complexity?", default="no", is_boolean=True)
-    calculate_fraction_of_reads_in_peaks = get_user_input("Calculate Fraction of Reads in Peaks (FRiP)?", default="no", is_boolean=True)
-    return QCConfig(run_fastq_screen=run_fastq_screen, calculate_library_complexity=calculate_library_complexity, calculate_fraction_of_reads_in_peaks=calculate_fraction_of_reads_in_peaks)
+    run_fastq_screen = get_user_input(
+        "Perform FastQScreen?", default="no", is_boolean=True
+    )
+    calculate_library_complexity = get_user_input(
+        "Calculate library complexity?", default="no", is_boolean=True
+    )
+    calculate_fraction_of_reads_in_peaks = get_user_input(
+        "Calculate Fraction of Reads in Peaks (FRiP)?", default="no", is_boolean=True
+    )
+    return QCConfig(
+        run_fastq_screen=run_fastq_screen,
+        calculate_library_complexity=calculate_library_complexity,
+        calculate_fraction_of_reads_in_peaks=calculate_fraction_of_reads_in_peaks,
+    )
 
-def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay = None) -> GenomeConfig:
+
+def select_genome_config(
+    genome_configs: Dict[str, GenomeConfig], assay: Assay = None
+) -> GenomeConfig:
     """Allow user to select a genome configuration.
 
     If assay is provided and an assay-specific genome config exists (e.g., 'meth'),
@@ -225,9 +239,7 @@ def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay =
         print(
             f"Genome '{genome_name}' is not configured. Please choose from: {', '.join(available_genomes)}"
         )
-        genome_name = get_user_input(
-            "Genome?", default=default_genome
-        )
+        genome_name = get_user_input("Genome?", default=default_genome)
 
     return genome_configs[genome_name]
 
@@ -244,7 +256,7 @@ def get_bigwig_config(assay: Assay) -> Optional[BigwigConfig]:
         "Bigwig method(s) (comma-separated for multiple):",
         choices=[m.value for m in PileupMethod],
         default="deeptools" if not assay == Assay.MCC else PileupMethod.BAMNADO.value,
-        multi_select=True
+        multi_select=True,
     )
 
     # Convert single string to list if default was used
@@ -253,7 +265,9 @@ def get_bigwig_config(assay: Assay) -> Optional[BigwigConfig]:
 
     binsize = get_user_input("Binsize for bigwigs:", default="10", required=False)
 
-    return BigwigConfig(pileup_method=[PileupMethod(m) for m in pileup_methods], binsize=binsize)
+    return BigwigConfig(
+        pileup_method=[PileupMethod(m) for m in pileup_methods], binsize=binsize
+    )
 
 
 def get_plotting_config() -> Optional[PlottingConfig]:
@@ -296,7 +310,7 @@ def get_peak_calling_config(assay: Assay) -> Optional[PeakCallingConfig]:
         "Peak calling method(s) (comma-separated for multiple):",
         choices=[m.value for m in PeakCallingMethod],
         default=default_method,
-        multi_select=True
+        multi_select=True,
     )
 
     # Convert single string to list if default was used
@@ -351,18 +365,20 @@ def get_spikein_config(assay: Assay) -> Optional[SpikeInConfig]:
     normalisation_method = get_user_input(
         "Normalisation method?",
         choices=[m.value for m in SpikeInMethod],
-        default="orlando",
+        default="deseq2" if assay == Assay.RNA else "orlando",
     )
 
     reference_genome = get_user_input("Reference genome:", default="hg38")
-    spikein_genome = get_user_input("Spikein genome:", default="dm6")
+    spikein_genome = get_user_input(
+        "Spikein genome:", default="dm6" if assay != Assay.RNA else "spikein_rna"
+    )
 
     # Ask for control genes if using DESeq2 or edgeR methods
     control_genes = None
     if normalisation_method in ["deseq2", "edger"]:
         control_genes_input = get_user_input(
             "Spike-in control gene names (comma-separated):",
-            default="AmpR,Cas9_3p,Cas9_5p"
+            default="AmpR,Cas9_3p,Cas9_5p",
         )
         if control_genes_input:
             control_genes = [g.strip() for g in control_genes_input.split(",")]
@@ -389,14 +405,14 @@ def get_ucsc_hub_config() -> Optional[UCSCHubConfig]:
     email = get_user_input(
         "What is your email address?", default=f"{username}@example.com"
     )
-    genome_name = get_user_input(
-        "Genome name for UCSC hub?", default="hg38"
-    )
+    genome_name = get_user_input("Genome name for UCSC hub?", default="hg38")
     color_by_input = get_user_input("Color by (for UCSC hub):", default="samplename")
     # Convert to list if it's a string
     color_by = [color_by_input] if isinstance(color_by_input, str) else color_by_input
 
-    return UCSCHubConfig(directory=directory, email=email, color_by=color_by, genome_name=genome_name)
+    return UCSCHubConfig(
+        directory=directory, email=email, color_by=color_by, genome_name=genome_name
+    )
 
 
 def get_ml_dataset_config(assay: Assay) -> Optional[MLDatasetConfig]:
@@ -613,8 +629,8 @@ def build_assay_config(
             rna_quantification = get_rna_quantification_config()
 
             return RNAAssayConfig(
-                **base_config, 
-                spikein=spikein, 
+                **base_config,
+                spikein=spikein,
                 rna_quantification=rna_quantification,
             )
 
@@ -878,7 +894,9 @@ def render_config(
         f.write(rendered_content)
 
 
-def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> tuple["MultiomicsConfig", dict[str, SeqnadoConfig]]:
+def build_multiomics_config(
+    seqnado_version: str, interactive: bool = True
+) -> tuple["MultiomicsConfig", dict[str, SeqnadoConfig]]:
     """Build multiomics configuration with multiple assays.
 
     Returns:
@@ -899,12 +917,12 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
 
         assay_selection = get_user_input(
             "Enter assay numbers separated by commas (e.g., 1,3,5) or assay names (e.g., atac,chip,rna)",
-            required=True
+            required=True,
         )
 
         # Parse selection
         selected_assays = []
-        for item in assay_selection.split(','):
+        for item in assay_selection.split(","):
             item = item.strip()
             # Try as number first
             try:
@@ -928,37 +946,30 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
 
         # Get multiomics-specific settings
         output_dir = get_user_input(
-            "Base output directory for all assays",
-            default="seqnado_output/"
+            "Base output directory for all assays", default="seqnado_output/"
         )
 
         create_heatmaps = get_user_input(
-            "Generate multiomics heatmaps?",
-            default="yes",
-            is_boolean=True
+            "Generate multiomics heatmaps?", default="yes", is_boolean=True
         )
 
         create_dataset = get_user_input(
-            "Generate ML-ready dataset?",
-            default="yes",
-            is_boolean=True
+            "Generate ML-ready dataset?", default="yes", is_boolean=True
         )
 
         create_summary = get_user_input(
-            "Generate summary report?",
-            default="yes",
-            is_boolean=True
+            "Generate summary report?", default="yes", is_boolean=True
         )
 
         regions_bed = get_user_input(
             "BED file with regions of interest (optional, press Enter to skip)",
             required=False,
-            is_path=False
+            is_path=False,
         )
 
         binsize = get_user_input(
             "Binsize for genome-wide analysis (optional, press Enter to skip)",
-            required=False
+            required=False,
         )
 
         binsize = int(binsize) if binsize and binsize.isdigit() else None
@@ -984,9 +995,7 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
         if interactive:
             # Ask if user wants to configure this assay now or use defaults
             configure_now = get_user_input(
-                f"Configure {assay_name} now?",
-                default="yes",
-                is_boolean=True
+                f"Configure {assay_name} now?", default="yes", is_boolean=True
             )
 
             if configure_now:
@@ -1007,7 +1016,7 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
         create_dataset=create_dataset,
         create_summary=create_summary,
         regions_bed=Path(regions_bed) if regions_bed else None,
-        binsize=binsize
+        binsize=binsize,
     )
 
     return multiomics_config, assay_configs
@@ -1049,6 +1058,7 @@ def render_multiomics_configs(
     multiomics_dict = multiomics_config.model_dump(mode="json", exclude_none=True)
 
     import yaml
+
     with open(multiomics_file, "w") as f:
         yaml.dump(multiomics_dict, f, default_flow_style=False, sort_keys=False)
 
