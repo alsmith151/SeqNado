@@ -380,9 +380,12 @@ def multiomics_configs(
 
     # Now use seqnado config in multiomics mode (--no-interactive)
     # This will create config_*.yaml for each assay and config_multiomics.yaml
+    # Even in non-interactive mode, we need to provide assay selection
+    assay_input = ",".join(multiomics) + "\n"
     result = subprocess.run(
         ["seqnado", "config", "--no-interactive", "--no-make-dirs"],
         cwd=run_dir,
+        input=assay_input,
         capture_output=True,
         text=True,
     )

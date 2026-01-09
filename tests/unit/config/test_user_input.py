@@ -309,6 +309,12 @@ class TestBuildDefaultAssayConfig:
         assert result.snp_calling is not None
         assert result.snp_calling.method == SNPCallingMethod.BCFTOOLS
         assert result.snp_calling.annotate_snps is False
+        # SNP assays should not have bigwigs, plotting, or heatmaps
+        assert result.bigwigs is None
+        assert result.plotting is None
+        assert result.create_heatmaps is False
+        # SNP assays should have ucsc_hub available
+        assert result.ucsc_hub is not None
 
     def test_build_default_mcc_config(self, mock_genome_config, test_data_dir, monkeypatch):
         """Test building default MCC assay configuration."""
@@ -321,23 +327,19 @@ class TestBuildDefaultAssayConfig:
 
         def patched_build(assay, genome_config):
             if assay == Assay.MCC:
-                from seqnado.config import BigwigConfig, PlottingConfig, UCSCHubConfig
+                from seqnado.config import BigwigConfig, PlottingConfig
 
                 bigwigs = BigwigConfig(pileup_method=[PileupMethod.DEEPTOOLS], binsize=10)
                 plotting = PlottingConfig()
-                ucsc_hub = UCSCHubConfig(
-                    directory="seqnado_output/hub/",
-                    genome=genome_config.name,
-                    email="user@example.com",
-                )
                 mcc = MCCConfig(
                     viewpoints=viewpoints_file,
                     resolutions=[100, 1000],
                 )
                 return MCCAssayConfig(
+                    genome=genome_config,
                     bigwigs=bigwigs,
                     plotting=plotting,
-                    ucsc_hub=ucsc_hub,
+                    ucsc_hub=None,  # MCC doesn't use UCSC hub
                     create_heatmaps=False,
                     create_geo_submission_files=False,
                     mcc=mcc,

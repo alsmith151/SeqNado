@@ -795,7 +795,7 @@ def config(
     interactive: bool = typer.Option(
         True,
         "--interactive/--no-interactive",
-        help="Interactively prompt for config values",
+        help="Interactively prompt for config values. Non-interactive mode only works for single assay configs (except MCC and multiomics).",
     ),
 ) -> None:
     _configure_logging(verbose)

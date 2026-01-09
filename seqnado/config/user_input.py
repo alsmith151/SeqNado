@@ -464,7 +464,7 @@ def get_rna_quantification_config() -> Optional[RNAQuantificationConfig]:
 
 def get_snp_calling_config() -> Optional[SNPCallingConfig]:
     """Get SNP calling configuration."""
-    call_snps = get_user_input("Call SNPs?", default="no", is_boolean=True)
+    call_snps = get_user_input("Call SNPs?", default="yes", is_boolean=True)
 
     if not call_snps:
         return None
@@ -544,42 +544,26 @@ def build_assay_config(
 ) -> Optional[AssaySpecificConfig]:
     """Build assay-specific configuration based on the assay type."""
 
-    # For CRISPR, skip bigwigs, plotting, UCSC hub, and heatmaps
-    if assay == Assay.CRISPR:
+    # Collect standard configuration for assays that need it
+    if assay not in [Assay.CRISPR, Assay.SNP]:
+        bigwigs = get_bigwig_config(assay=assay)
+        plotting = get_plotting_config()
+        ucsc_hub = get_ucsc_hub_config()
+        create_heatmaps = get_user_input(
+            "Make heatmaps?", default="no", is_boolean=True
+        )
         geo_files = get_user_input(
             "Generate GEO submission files?", default="no", is_boolean=True
         )
-        use_mageck = get_user_input(
-            "Use MAGeCK for guide RNA analysis?", default="no", is_boolean=True
-        )
+
         base_config = {
             "genome": genome_config,
-            "bigwigs": None,
-            "plotting": None,
-            "ucsc_hub": None,
-            "create_heatmaps": False,
+            "bigwigs": bigwigs,
+            "plotting": plotting,
+            "ucsc_hub": ucsc_hub,
+            "create_heatmaps": create_heatmaps,
             "create_geo_submission_files": geo_files,
-            "use_mageck": use_mageck,
         }
-        return CRISPRAssayConfig(**base_config)
-
-    # Get common configurations (for non-CRISPR assays)
-    bigwigs = get_bigwig_config(assay=assay)
-    plotting = get_plotting_config()
-    ucsc_hub = get_ucsc_hub_config()
-    create_heatmaps = get_user_input("Make heatmaps?", default="no", is_boolean=True)
-    geo_files = get_user_input(
-        "Generate GEO submission files?", default="no", is_boolean=True
-    )
-
-    base_config = {
-        "genome": genome_config,
-        "bigwigs": bigwigs,
-        "plotting": plotting,
-        "ucsc_hub": ucsc_hub,
-        "create_heatmaps": create_heatmaps,
-        "create_geo_submission_files": geo_files,
-    }
 
     match assay:
         case Assay.ATAC:
@@ -634,25 +618,54 @@ def build_assay_config(
                 rna_quantification=rna_quantification,
             )
 
-        case Assay.SNP:
-            base_config_snp = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
-            base_config_snp["ucsc_hub"] = None
-            snp_calling = get_snp_calling_config()
-            return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
-
         case Assay.MCC:
             mcc = get_mcc_config()
             return MCCAssayConfig(**base_config, mcc=mcc)
 
         case Assay.METH:
-            base_config_meth = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
-            base_config_meth["ucsc_hub"] = None
             methylation = get_methylation_config()
-            return MethylationAssayConfig(**base_config_meth, methylation=methylation)
+            return MethylationAssayConfig(
+                genome=genome_config,
+                bigwigs=bigwigs,
+                plotting=plotting,
+                ucsc_hub=None,
+                create_heatmaps=create_heatmaps,
+                create_geo_submission_files=geo_files,
+                methylation=methylation,
+            )
+
+        case Assay.SNP:
+            ucsc_hub = get_ucsc_hub_config()
+            geo_files = get_user_input(
+                "Generate GEO submission files?", default="no", is_boolean=True
+            )
+            snp_calling = get_snp_calling_config()
+            return SNPAssayConfig(
+                genome=genome_config,
+                bigwigs=None,
+                plotting=None,
+                ucsc_hub=ucsc_hub,
+                create_heatmaps=False,
+                create_geo_submission_files=geo_files,
+                snp_calling=snp_calling,
+            )
 
         case Assay.CRISPR:
-            # CRISPR already handled above in early return
-            raise ValueError("CRISPR should have been handled in early return")
+            geo_files = get_user_input(
+                "Generate GEO submission files?", default="no", is_boolean=True
+            )
+            use_mageck = get_user_input(
+                "Use MAGeCK for guide RNA analysis?", default="no", is_boolean=True
+            )
+            return CRISPRAssayConfig(
+                genome=genome_config,
+                bigwigs=None,
+                plotting=None,
+                ucsc_hub=None,
+                create_heatmaps=False,
+                create_geo_submission_files=geo_files,
+                use_mageck=use_mageck,
+            )
 
         case _:
             raise ValueError(f"Unsupported assay type: {assay}")
@@ -716,6 +729,7 @@ def build_default_assay_config(
                 peak_calling=peak_calling,
                 dataset_for_ml=dataset_for_ml,
             )
+        
         case Assay.CAT:
             tn5_shift = False
             spikein = None
@@ -730,6 +744,7 @@ def build_default_assay_config(
                 peak_calling=peak_calling,
                 dataset_for_ml=dataset_for_ml,
             )
+        
         case Assay.RNA:
             rna_quantification = RNAQuantificationConfig(
                 method=QuantificationMethod.FEATURE_COUNTS,
@@ -737,16 +752,22 @@ def build_default_assay_config(
                 run_deseq2=False,
             )
             return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
+        
         case Assay.SNP:
-            # SNP assays don't use UCSC hub
-            base_config_snp = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
-            base_config_snp["ucsc_hub"] = None
+            # SNP assays don't use bigwigs, plotting, or heatmaps
+            base_config_snp = {
+                k: v for k, v in base_config.items() if k not in ("bigwigs", "plotting")
+            }
+            base_config_snp["bigwigs"] = None
+            base_config_snp["plotting"] = None
+            base_config_snp["create_heatmaps"] = False
             snp_calling = SNPCallingConfig(
                 method=SNPCallingMethod.BCFTOOLS,
                 annotate_snps=False,
                 snp_database=None,
             )
             return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
+        
         case Assay.MCC:
             # MCC assays don't use UCSC hub
             base_config_mcc = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
@@ -762,12 +783,14 @@ def build_default_assay_config(
                 resolutions=[100, 1000],
             )
             return MCCAssayConfig(**base_config_mcc, mcc=mcc)
+        
         case Assay.METH:
             # Methylation assays don't use UCSC hub
             base_config_meth = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
             base_config_meth["ucsc_hub"] = None
             methylation = MethylationConfig(method=MethylationMethod.TAPS)
             return MethylationAssayConfig(**base_config_meth, methylation=methylation)
+        
         case Assay.CRISPR:
             # CRISPR assays don't use UCSC hub or bigwigs
             base_config_crispr = {
@@ -776,6 +799,7 @@ def build_default_assay_config(
             base_config_crispr["ucsc_hub"] = None
             base_config_crispr["bigwigs"] = None
             return CRISPRAssayConfig(**base_config_crispr)
+        
         case _:
             raise ValueError(f"Unsupported assay type: {assay}")
 
@@ -838,6 +862,14 @@ def build_default_workflow_config(assay: Assay) -> SeqnadoConfig:
     """Build a default workflow configuration for non-interactive mode."""
     logger.info(f"Building default workflow configuration for {assay.value} assay")
 
+    # MCC requires interactive mode to specify viewpoints file
+    if assay == Assay.MCC:
+        logger.error(
+            "MCC assay requires interactive mode to specify the viewpoints file. "
+            "Please run without --no-interactive flag."
+        )
+        sys.exit(1)
+
     # Load available genome configurations
     genome_configs = load_genome_configs(assay)
 
@@ -899,9 +931,14 @@ def render_config(
 
 
 def build_multiomics_config(
-    seqnado_version: str, interactive: bool = True
+    seqnado_version: str, interactive: bool = True, assays: list[str] | None = None
 ) -> tuple["MultiomicsConfig", dict[str, SeqnadoConfig]]:
     """Build multiomics configuration with multiple assays.
+
+    Args:
+        seqnado_version: The current version of SeqNado
+        interactive: Whether to prompt for user input
+        assays: List of assay names to include (only used in non-interactive mode)
 
     Returns:
         tuple: (MultiomicsConfig, dict of assay_name -> SeqnadoConfig)
@@ -911,8 +948,8 @@ def build_multiomics_config(
 
     logger.info("Building multiomics configuration")
 
-    # Get list of assays to include
-    available_assays = Assay.all_assay_clean_names()
+    # Get list of assays to include (exclude multiomics itself)
+    available_assays = [assay.clean_name for assay in Assay.non_multiomics_assays()]
 
     if interactive:
         print("\nAvailable assays:")
@@ -965,30 +1002,79 @@ def build_multiomics_config(
             "Generate summary report?", default="yes", is_boolean=True
         )
 
-        regions_bed = get_user_input(
-            "BED file with regions of interest (optional, press Enter to skip)",
-            required=False,
-            is_path=False,
-        )
+        # Only ask for regions_bed and binsize if creating dataset
+        regions_bed = None
+        binsize = None
+        if create_dataset:
+            regions_bed = get_user_input(
+                "BED file with regions of interest (optional, press Enter to skip)",
+                required=False,
+                is_path=False,
+            )
 
-        binsize = get_user_input(
-            "Binsize for genome-wide analysis (optional, press Enter to skip)",
-            required=False,
-        )
+            binsize_input = get_user_input(
+                "Binsize for genome-wide analysis (optional, press Enter to skip)",
+                required=False,
+            )
 
-        binsize = int(binsize) if binsize and binsize.isdigit() else None
+            binsize = int(binsize_input) if binsize_input and binsize_input.isdigit() else None
 
     else:
-        # Non-interactive mode: use default assays
-        logger.info("Non-interactive mode: using default assays")
-        selected_assays = ["atac", "chip", "rna"]
+        # Non-interactive mode: still prompt for assay selection, but use defaults for everything else
+        logger.info("Non-interactive mode: prompting for assays, using defaults for other settings")
+
+        print("\nAvailable assays:")
+        for i, assay in enumerate(available_assays, 1):
+            print(f"  {i}. {assay}")
+
+        assay_selection = get_user_input(
+            "Enter assay numbers separated by commas (e.g., 1,3,5) or assay names (e.g., atac,chip,rna)",
+            required=True,
+        )
+
+        # Parse the selection (numbers or names)
+        selected_assays = []
+        for item in assay_selection.split(","):
+            item = item.strip()
+            if item.isdigit():
+                # User entered a number
+                idx = int(item) - 1
+                if 0 <= idx < len(available_assays):
+                    selected_assays.append(available_assays[idx])
+                else:
+                    logger.warning(f"Invalid assay number: {item}")
+            else:
+                # User entered an assay name
+                if item in available_assays:
+                    selected_assays.append(item)
+                else:
+                    logger.warning(f"Invalid assay name: {item}")
+
+        if not selected_assays:
+            logger.error("No valid assays selected")
+            sys.exit(1)
+
+        # Skip MCC in non-interactive mode (requires viewpoints file)
+        if "mcc" in selected_assays:
+            logger.warning(
+                "MCC assay requires interactive mode to specify the viewpoints file. "
+                "MCC will be skipped. To configure MCC, run 'seqnado config mcc' without --no-interactive flag."
+            )
+            selected_assays = [a for a in selected_assays if a != "mcc"]
+
+        if not selected_assays:
+            logger.error("No valid assays remaining after filtering")
+            sys.exit(1)
+
+        logger.info(f"Selected assays: {', '.join(selected_assays)}")
+
+        # Use defaults for all other settings
         output_dir = "seqnado_output/"
         create_heatmaps = True
         create_dataset = True
         create_summary = True
         regions_bed = None
         binsize = None
-        logger.info(f"Selected assays: {', '.join(selected_assays)}")
 
     # Build individual assay configs
     assay_configs = {}
