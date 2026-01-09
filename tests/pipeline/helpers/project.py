@@ -196,9 +196,16 @@ def create_config_yaml(
     )
 
     with open(test_config_file) as f:
-        assay_config = yaml.safe_load(f)
+        test_overrides = yaml.safe_load(f)
 
-    config.update(assay_config)
+    # Deep merge the test config into the base config
+    for key, value in test_overrides.items():
+        if key in config and isinstance(config[key], dict) and isinstance(value, dict):
+            # Deep merge for nested dicts (like assay_config)
+            config[key].update(value)
+        else:
+            # Simple replacement for non-dict values
+            config[key] = value
 
     # Add genome directory bind mount for Singularity/Apptainer
     # This allows the container to access genome files (e.g., bt2 indexes for fastq_screen)

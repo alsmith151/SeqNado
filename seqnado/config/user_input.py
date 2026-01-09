@@ -766,11 +766,12 @@ def build_default_assay_config(
             methylation = MethylationConfig(method=MethylationMethod.TAPS)
             return MethylationAssayConfig(**base_config_meth, methylation=methylation)
         case Assay.CRISPR:
-            # CRISPR assays don't use UCSC hub
+            # CRISPR assays don't use UCSC hub or bigwigs
             base_config_crispr = {
-                k: v for k, v in base_config.items() if k != "ucsc_hub"
+                k: v for k, v in base_config.items() if k not in ("ucsc_hub", "bigwigs")
             }
             base_config_crispr["ucsc_hub"] = None
+            base_config_crispr["bigwigs"] = None
             return CRISPRAssayConfig(**base_config_crispr)
         case _:
             raise ValueError(f"Unsupported assay type: {assay}")

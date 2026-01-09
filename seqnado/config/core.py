@@ -111,7 +111,7 @@ class CRISPRAssayConfig(BaseAssayConfig):
     """Configuration specific to CRISPR assays."""
 
     # CRISPR-specific options
-    ucsc_hub: None
+    ucsc_hub: None = None
     create_heatmaps: bool = False
     use_mageck: bool = False
 

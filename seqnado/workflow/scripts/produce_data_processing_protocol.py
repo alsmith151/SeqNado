@@ -778,7 +778,7 @@ class BigWigSection(ProtocolSection):
         return lines
 
 
-class RNAQuantificationSection(ProtocolSection):
+class QuantificationSection(ProtocolSection):
     """RNA-seq and CRISPR quantification."""
 
     # Configuration mapping for RNA quantification tools
@@ -831,7 +831,8 @@ class RNAQuantificationSection(ProtocolSection):
         if assay == "CRISPR":
             if tool_configured("featurecounts"):
                 versions["featureCounts"] = get_tool_version("featureCounts")
-            if tool_configured("mageck"):
+            # Only collect mageck version if use_mageck is enabled in config
+            if tool_configured("mageck") and assay_config.get("use_mageck", False):
                 versions["mageck"] = get_tool_version("mageck")
             return versions
 
@@ -1130,9 +1131,9 @@ class ProtocolBuilder:
         PCRDuplicatesSection,
         Tn5ShiftSection,
         FilteringSection,
-        SpikeInSection,  # Spike-in normalization after alignment/filtering
         BigWigSection,
-        RNAQuantificationSection,
+        SpikeInSection,  # Spike-in normalization after alignment/filtering
+        QuantificationSection,
         MethylationSection,
         VariantCallingSection,
         MCCSection,  # MCC must come before PeakCalling to avoid conflicts
