@@ -187,8 +187,13 @@ class TestContext:
     def run_directory(self, assay: str) -> Path:
         try:
             base_temp = self.tmp_path_factory.getbasetemp()
-        except FileExistsError:
+        except (FileExistsError, AttributeError):
             base_temp = self.tmp_path_factory._basetemp
+
+        # If base_temp is still None, use mktemp to create it
+        if base_temp is None:
+            base_temp = self.tmp_path_factory.mktemp("pytest")
+
         run_dir = base_temp / assay
         run_dir.mkdir(exist_ok=True, parents=True)
         return run_dir

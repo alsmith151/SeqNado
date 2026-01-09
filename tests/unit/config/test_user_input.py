@@ -313,8 +313,8 @@ class TestBuildDefaultAssayConfig:
         assert result.bigwigs is None
         assert result.plotting is None
         assert result.create_heatmaps is False
-        # SNP assays should have ucsc_hub available
-        assert result.ucsc_hub is not None
+        # SNP assays don't generate bigwigs, so ucsc_hub should be None
+        assert result.ucsc_hub is None
 
     def test_build_default_mcc_config(self, mock_genome_config, test_data_dir, monkeypatch):
         """Test building default MCC assay configuration."""

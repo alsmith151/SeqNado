@@ -107,7 +107,12 @@ rule deeptools_make_bigwigs_consensus:
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/merged/{group}.bigWig",
     params:
-       options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments)),
+       options=lambda wildcards: format_deeptools_options(
+           wildcards,
+           str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments),
+           INPUT_FILES,
+           SAMPLE_GROUPINGS,
+       ),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),

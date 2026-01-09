@@ -635,7 +635,7 @@ def build_assay_config(
             )
 
         case Assay.SNP:
-            ucsc_hub = get_ucsc_hub_config()
+            # SNP assays don't generate bigwigs, so UCSC hub is not supported
             geo_files = get_user_input(
                 "Generate GEO submission files?", default="no", is_boolean=True
             )
@@ -644,7 +644,7 @@ def build_assay_config(
                 genome=genome_config,
                 bigwigs=None,
                 plotting=None,
-                ucsc_hub=ucsc_hub,
+                ucsc_hub=None,
                 create_heatmaps=False,
                 create_geo_submission_files=geo_files,
                 snp_calling=snp_calling,
@@ -754,12 +754,13 @@ def build_default_assay_config(
             return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
         
         case Assay.SNP:
-            # SNP assays don't use bigwigs, plotting, or heatmaps
+            # SNP assays don't use bigwigs, plotting, heatmaps, or UCSC hub
             base_config_snp = {
-                k: v for k, v in base_config.items() if k not in ("bigwigs", "plotting")
+                k: v for k, v in base_config.items() if k not in ("bigwigs", "plotting", "ucsc_hub")
             }
             base_config_snp["bigwigs"] = None
             base_config_snp["plotting"] = None
+            base_config_snp["ucsc_hub"] = None
             base_config_snp["create_heatmaps"] = False
             snp_calling = SNPCallingConfig(
                 method=SNPCallingMethod.BCFTOOLS,

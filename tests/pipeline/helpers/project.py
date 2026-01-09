@@ -355,7 +355,14 @@ def multiomics_run_directory(tmp_path_factory):
     Fixture to provide a run directory for Multiomic tests.
     Returns a Path object to a unique temp directory.
     """
-    return tmp_path_factory.mktemp("multiomics_run")
+    # Use the same pattern as TestContext.run_directory to handle FileExistsError
+    try:
+        base_temp = tmp_path_factory.getbasetemp()
+    except FileExistsError:
+        base_temp = tmp_path_factory._basetemp
+    run_dir = base_temp / "multiomics_run"
+    run_dir.mkdir(exist_ok=True, parents=True)
+    return run_dir
 
 
 def get_metadata_path(test_data_dir: Path, assay: str) -> Path:

@@ -1,8 +1,14 @@
 assay_for_protocol = ASSAY.name
 
+protocol_inputs = [
+    str(p)
+    for p in OUTPUT.files
+    if "/geo_submission/" not in str(p) and not str(p).endswith("/protocol.txt")
+]
+
 rule protocol:
     input:
-        [str(p) for p in OUTPUT.files if "/geo_submission/" not in str(p) and not str(p).endswith("/protocol.txt")],
+        protocol_inputs,
     output:
         OUTPUT_DIR + "/protocol.txt",
     params:

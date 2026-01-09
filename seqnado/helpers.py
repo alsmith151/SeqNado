@@ -299,14 +299,14 @@ def format_deeptools_options(wildcards, options, input_files, sample_groupings=N
             )
             if not all(input_files.is_paired_end(sample_name) for sample_name in sample):
                 options = CommandLineArguments(
-                    value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"}
+                    value=str(options), exclude={"--extendReads", "-e", "--samFlagInclude 3"}
                 )
         else:
             search_term = f"{wildcards.sample}"
             is_paired = input_files.is_paired_end(search_term)
             if not is_paired:
                 options = CommandLineArguments(
-                    value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"}
+                    value=str(options), exclude={"--extendReads", "-e", "--samFlagInclude 3"}
                 )
     except KeyError:
         pass
