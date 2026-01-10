@@ -280,10 +280,10 @@ def get_plotting_config() -> Optional[PlottingConfig]:
         return None
 
     coordinates = get_user_input(
-        "Path to bed file with coordinates for plotting?", required=False, is_path=True
+        "Path to bed file with coordinates for plotting?", required=False, is_path=False
     )
 
-    genes = get_user_input("Path to bed file with genes?", required=False, is_path=True)
+    genes = get_user_input("Path to bed file with genes?", required=False, is_path=False)
 
     return PlottingConfig(coordinates=coordinates, genes=genes)
 
@@ -431,9 +431,14 @@ def get_ml_dataset_config(assay: Assay) -> Optional[MLDatasetConfig]:
 
     if use_regions:
         regions_bed = get_user_input(
-            "Path to regions BED file:", default="path/to/regions.bed", is_path=True
+            "Path to regions BED file:", default="path/to/regions.bed", is_path=False
         )
-        return MLDatasetConfig(regions_bed=Path(regions_bed))
+        # Skip path validation for placeholder paths during interactive config
+        is_placeholder = regions_bed.startswith("path/to/")
+        return MLDatasetConfig.model_validate(
+            {"regions_bed": Path(regions_bed)},
+            context={"skip_path_validation": is_placeholder}
+        )
     else:
         binsize = int(get_user_input("Binsize for dataset:", default="1000"))
         return MLDatasetConfig(binsize=binsize)
@@ -455,10 +460,15 @@ def get_rna_quantification_config() -> Optional[RNAQuantificationConfig]:
 
     run_deseq2 = get_user_input("Run DESeq2?", default="no", is_boolean=True)
 
-    return RNAQuantificationConfig(
-        method=QuantificationMethod(method),
-        salmon_index=salmon_index,
-        run_deseq2=run_deseq2,
+    # Skip path validation for placeholder paths during interactive config
+    is_placeholder = salmon_index and salmon_index.startswith("path/to/")
+    return RNAQuantificationConfig.model_validate(
+        {
+            "method": QuantificationMethod(method),
+            "salmon_index": salmon_index,
+            "run_deseq2": run_deseq2,
+        },
+        context={"skip_path_validation": is_placeholder}
     )
 
 
@@ -480,20 +490,25 @@ def get_snp_calling_config() -> Optional[SNPCallingConfig]:
     snp_database = None
     if annotate_snps:
         snp_database = get_user_input(
-            "Path to SNP database:", default="path/to/snp_database", is_path=True
+            "Path to SNP database:", default="path/to/snp_database", is_path=False
         )
 
-    return SNPCallingConfig(
-        method=SNPCallingMethod(method),
-        annotate_snps=annotate_snps,
-        snp_database=snp_database,
+    # Skip path validation for placeholder paths during interactive config
+    is_placeholder = snp_database and snp_database.startswith("path/to/")
+    return SNPCallingConfig.model_validate(
+        {
+            "method": SNPCallingMethod(method),
+            "annotate_snps": annotate_snps,
+            "snp_database": snp_database,
+        },
+        context={"skip_path_validation": is_placeholder}
     )
 
 
 def get_mcc_config() -> Optional[MCCConfig]:
     """Get MCC (Capture-C) configuration."""
     viewpoints = get_user_input(
-        "Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=True
+        "Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=False
     )
 
     resolutions_str = get_user_input(
@@ -502,7 +517,12 @@ def get_mcc_config() -> Optional[MCCConfig]:
 
     resolutions = [int(r.strip()) for r in resolutions_str.split(",")]
 
-    return MCCConfig(viewpoints=Path(viewpoints), resolutions=resolutions)
+    # Skip path validation for placeholder paths during interactive config
+    is_placeholder = viewpoints.startswith("path/to/")
+    return MCCConfig.model_validate(
+        {"viewpoints": Path(viewpoints), "resolutions": resolutions},
+        context={"skip_path_validation": is_placeholder}
+    )
 
 
 def get_methylation_config() -> Optional[MethylationConfig]:
@@ -779,9 +799,14 @@ def build_default_assay_config(
             viewpoints_path = os.environ.get(
                 "SEQNADO_MCC_VIEWPOINTS", "path/to/viewpoints.bed"
             )
-            mcc = MCCConfig(
-                viewpoints=Path(viewpoints_path),
-                resolutions=[100, 1000],
+            # Skip path validation only for placeholder paths
+            is_placeholder = viewpoints_path.startswith("path/to/")
+            mcc = MCCConfig.model_validate(
+                {
+                    "viewpoints": Path(viewpoints_path),
+                    "resolutions": [100, 1000],
+                },
+                context={"skip_path_validation": is_placeholder}
             )
             return MCCAssayConfig(**base_config_mcc, mcc=mcc)
         
@@ -862,14 +887,6 @@ def build_workflow_config(assay: Assay, seqnado_version: str) -> SeqnadoConfig:
 def build_default_workflow_config(assay: Assay) -> SeqnadoConfig:
     """Build a default workflow configuration for non-interactive mode."""
     logger.info(f"Building default workflow configuration for {assay.value} assay")
-
-    # MCC requires interactive mode to specify viewpoints file
-    if assay == Assay.MCC:
-        logger.error(
-            "MCC assay requires interactive mode to specify the viewpoints file. "
-            "Please run without --no-interactive flag."
-        )
-        sys.exit(1)
 
     # Load available genome configurations
     genome_configs = load_genome_configs(assay)
@@ -1053,18 +1070,6 @@ def build_multiomics_config(
 
         if not selected_assays:
             logger.error("No valid assays selected")
-            sys.exit(1)
-
-        # Skip MCC in non-interactive mode (requires viewpoints file)
-        if "mcc" in selected_assays:
-            logger.warning(
-                "MCC assay requires interactive mode to specify the viewpoints file. "
-                "MCC will be skipped. To configure MCC, run 'seqnado config mcc' without --no-interactive flag."
-            )
-            selected_assays = [a for a in selected_assays if a != "mcc"]
-
-        if not selected_assays:
-            logger.error("No valid assays remaining after filtering")
             sys.exit(1)
 
         logger.info(f"Selected assays: {', '.join(selected_assays)}")

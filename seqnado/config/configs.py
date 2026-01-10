@@ -8,6 +8,7 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     Field,
+    ValidationInfo,
     computed_field,
     field_serializer,
     field_validator,
@@ -80,9 +81,6 @@ class BowtieIndex(BaseModel):
 
     @field_validator("prefix")
     def validate_prefix(cls, v: str) -> str:
-        # The prefix should be a valid path with a prefix for the index files.
-        # Ensure that its parent is a valid directory.
-        # Ensure that index files exist when the prefix is set.
 
         if v is None or v.strip() == "":
             return v
@@ -424,8 +422,8 @@ class RNAQuantificationConfig(BaseModel, PathValidatorMixin):
     run_deseq2: bool = False
 
     @field_validator("salmon_index")
-    def validate_salmon_index(cls, v: str | None) -> str | None:
-        return cls.validate_path_exists(v, "Salmon index path")
+    def validate_salmon_index(cls, v: str | None, info: ValidationInfo) -> str | None:
+        return cls.validate_path_exists(v, "Salmon index path", info)
 
 
 class SNPCallingConfig(BaseModel, PathValidatorMixin):
@@ -474,8 +472,8 @@ class MCCConfig(BaseModel, PathValidatorMixin):
     exclusion_zone: int = 500  # Default value, adjust as needed
 
     @field_validator("viewpoints")
-    def validate_viewpoints(cls, v: Path) -> Path:
-        return cls.validate_path_exists(v, "Viewpoints path")
+    def validate_viewpoints(cls, v: Path, info: ValidationInfo) -> Path:
+        return cls.validate_path_exists(v, "Viewpoints path", info)
 
     @field_validator("resolutions")
     def validate_resolutions(cls, v: list[int]) -> list[int]:
@@ -495,12 +493,12 @@ class MLDatasetConfig(BaseModel, PathValidatorMixin):
     binsize: int | None = None
 
     @field_validator("regions_bed")
-    def validate_regions_bed(cls, v: Path | None) -> Path | None:
+    def validate_regions_bed(cls, v: Path | None, info: ValidationInfo) -> Path | None:
         # Allow None here; the model_post_init will enforce that at least one of
         # regions_bed or binsize is provided. If a non-None value is given, validate it.
         if v is None:
             return None
-        return cls.validate_path_exists(v, "Regions BED file")
+        return cls.validate_path_exists(v, "Regions BED file", info)
 
     @field_validator("binsize")
     def validate_binsize(cls, v: int | None) -> int | None:
