@@ -396,43 +396,42 @@ rule lanceotron_no_input:
 ruleorder: lanceotron_with_input > lanceotron_no_input
 
 
-if ASSAY == Assay.CAT:
 
-    rule seacr:
-        input:
-            treatment=OUTPUT_DIR + "/bedgraphs/{sample_id}.bedGraph",
-        output:
-            peaks=OUTPUT_DIR + "/peaks/seacr/{sample_id}.bed",
-            seacr=temp(OUTPUT_DIR + "/peaks/seacr/{sample_id}_seacr.txt"),
-            noM=temp(OUTPUT_DIR + "/bedgraphs/{sample_id}.nochrM.bedGraph"),
-        wildcard_constraints:
-            sample_id=r"(?!merged/).*",
-        params:
-            threshold=CONFIG.third_party_tools.seacr.threshold,
-            norm=CONFIG.third_party_tools.seacr.normalization,
-            stringency=CONFIG.third_party_tools.seacr.stringency,
-            prefix=lambda wc, output: Path(output.peaks).parent
-            / Path(output.peaks).name,
-        threads: 1
-        resources:
-            mem=lambda wildcards, attempt: define_memory_requested(
-                initial_value=5, attempts=attempt, scale=SCALE_RESOURCES
-            ),
-            runtime=lambda wildcards, attempt: define_time_requested(
-                initial_value=2, attempts=attempt, scale=SCALE_RESOURCES
-            ),
-        container:
-            "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-        log:
-            OUTPUT_DIR + "/logs/seacr/{sample_id}.log",
-        benchmark:
-            OUTPUT_DIR + "/.benchmark/seacr/{sample_id}.tsv"
-        message:
-            "Calling peaks with SEACR for sample {wildcards.sample_id}"
-        shell:
-            """
-        awk '$1 != "chrM"' {input.treatment} > {output.noM}
-        SEACR_1.3.sh {output.noM} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1 || touch {params.prefix}.{params.stringency}.bed
-        mv {params.prefix}.{params.stringency}.bed {output.seacr}
-        cut -f 1-3 {output.seacr} > {output.peaks}
+rule seacr:
+    input:
+        treatment=OUTPUT_DIR + "/bedgraphs/{sample_id}.bedGraph",
+    output:
+        peaks=OUTPUT_DIR + "/peaks/seacr/{sample_id}.bed",
+        seacr=temp(OUTPUT_DIR + "/peaks/seacr/{sample_id}_seacr.txt"),
+        noM=temp(OUTPUT_DIR + "/bedgraphs/{sample_id}.nochrM.bedGraph"),
+    wildcard_constraints:
+        sample_id=r"(?!merged/).*",
+    params:
+        threshold=CONFIG.third_party_tools.seacr.threshold,
+        norm=CONFIG.third_party_tools.seacr.normalization,
+        stringency=CONFIG.third_party_tools.seacr.stringency,
+        prefix=lambda wc, output: Path(output.peaks).parent
+        / Path(output.peaks).name,
+    threads: 1
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(
+            initial_value=5, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+        runtime=lambda wildcards, attempt: define_time_requested(
+            initial_value=2, attempts=attempt, scale=SCALE_RESOURCES
+        ),
+    container:
+        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log:
+        OUTPUT_DIR + "/logs/seacr/{sample_id}.log",
+    benchmark:
+        OUTPUT_DIR + "/.benchmark/seacr/{sample_id}.tsv"
+    message:
+        "Calling peaks with SEACR for sample {wildcards.sample_id}"
+    shell:
         """
+    awk '$1 != "chrM"' {input.treatment} > {output.noM}
+    SEACR_1.3.sh {output.noM} {params.threshold} {params.norm} {params.stringency} {output.peaks} > {log} 2>&1 || touch {params.prefix}.{params.stringency}.bed
+    mv {params.prefix}.{params.stringency}.bed {output.seacr}
+    cut -f 1-3 {output.seacr} > {output.peaks}
+    """

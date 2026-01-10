@@ -67,19 +67,17 @@ def extract_apptainer_args(options: List[str]) -> Tuple[List[str], str]:
 
     return options, apptainer_args
 
+
 def define_memory_requested(
-    attempts: int = 1,
-    initial_value: int = 1,
-    scale: float = 1
+    attempts: int = 1, initial_value: int = 1, scale: float = 1
 ) -> str:
     """
-    Define the memory requested for the job, 
+    Define the memory requested for the job,
     returns a string like "4G" avoiding decimals for qualimap.
     """
     mem_value = int(initial_value) * 2 ** (int(attempts) - 1)
     mem_value = int(mem_value * float(scale))
     return f"{mem_value}G"
-
 
 
 def define_time_requested(
@@ -101,7 +99,9 @@ def pepe_silvia():
     return _pepe_silvia
 
 
-def get_group_for_sample(wildcards, design: Union[FastqCollection, FastqCollectionForIP], strip: str = ""):
+def get_group_for_sample(
+    wildcards, design: Union[FastqCollection, FastqCollectionForIP], strip: str = ""
+):
     from seqnado.inputs import SampleGroups
 
     scaling_groups = SampleGroups.from_sample_collection(design, include_controls=True)
@@ -126,6 +126,7 @@ def get_scale_method(config: Dict) -> List[str]:
     elif config.get("scale"):
         method.append(DataScalingTechnique.CSAW)
     return [m.value for m in method]
+
 
 def remove_unwanted_run_files():
     import glob
@@ -183,10 +184,16 @@ def extract_viewpoints(viewpoints_path: str) -> List[str]:
     try:
         df = pd.read_csv(viewpoints_path, sep="\t", header=None, comment="#")
         # Assign column names based on the number of columns
-        df.columns = bed_columns[:len(df.columns)]
+        df.columns = bed_columns[: len(df.columns)]
         # Ensure we have at least the minimum required columns
         if "Name" not in df.columns:
-            df["Name"] = df["Chromosome"] + ":" + df["Start"].astype(str) + "-" + df["End"].astype(str)
+            df["Name"] = (
+                df["Chromosome"]
+                + ":"
+                + df["Start"].astype(str)
+                + "-"
+                + df["End"].astype(str)
+            )
     except Exception as e:
         raise ValueError(f"Error reading BED file {viewpoints_path}: {e}")
 
@@ -225,24 +232,19 @@ def viewpoint_to_grouped_viewpoint(viewpoints: List[str]) -> Dict[str, str]:
 
     return viewpoint_to_grouped_mapping
 
-def should_trim_fastqs(config) -> bool:
-    """
-    Check if fastq trimming is enabled in the config.
-    Defaults to True if not specified.
-    """
-    return getattr(config.qc, "trim_fastq", True)
 
-
-def get_fastq_paths(wildcards, output_dir: str, directory: str, paired: bool = True) -> Union[dict, str]:
+def get_fastq_paths(
+    wildcards, output_dir: str, directory: str, paired: bool = True
+) -> Union[dict, str]:
     """
     Get fastq file paths for a given directory and pairing.
-    
+
     Args:
         wildcards: Snakemake wildcards object
         output_dir: Base output directory
         directory: Subdirectory ('fastqs' for raw, 'trimmed' for trimmed)
         paired: Whether to return paired-end (dict) or single-end (str) paths
-        
+
     Returns:
         dict with 'fq1' and 'fq2' keys for paired-end, or str for single-end
     """
@@ -255,16 +257,24 @@ def get_fastq_paths(wildcards, output_dir: str, directory: str, paired: bool = T
         return f"{output_dir}/{directory}/{wildcards.sample}.fastq.gz"
 
 
-def get_alignment_input_paired(wildcards, output_dir: str, trimming_enabled: bool) -> dict:
-    """Return paired-end input paths based on trimming config."""
-    directory = "trimmed" if trimming_enabled else "fastqs"
-    return get_fastq_paths(wildcards, output_dir, directory, paired=True)
+def get_alignment_input(
+    wildcards, output_dir: str, config, paired: bool = True
+) -> Union[dict, str]:
+    """Return input paths based on trimming config.
 
+    Args:
+        wildcards: Snakemake wildcards object
+        output_dir: Base output directory
+        config: Configuration object
+        paired: Whether to return paired-end (dict) or single-end (str) paths
+        
+    Returns:
+        dict with 'fq1' and 'fq2' keys for paired-end, or str for single-end
+    """
 
-def get_alignment_input_single(wildcards, output_dir: str, trimming_enabled: bool) -> str:
-    """Return single-end input path based on trimming config."""
+    trimming_enabled = getattr(config.qc, "trim_fastq", True)
     directory = "trimmed" if trimming_enabled else "fastqs"
-    return get_fastq_paths(wildcards, output_dir, directory, paired=False)
+    return get_fastq_paths(wildcards, output_dir, directory, paired=paired)
 
 
 def format_deeptools_options(wildcards, options, input_files, sample_groupings=None):
@@ -291,22 +301,28 @@ def format_deeptools_options(wildcards, options, input_files, sample_groupings=N
     try:
         if hasattr(wildcards, "group"):
             if sample_groupings is None:
-                raise ValueError("sample_groupings required when wildcards has 'group' attribute")
+                raise ValueError(
+                    "sample_groupings required when wildcards has 'group' attribute"
+                )
             sample = (
                 sample_groupings.get_grouping("consensus")
                 .get_group(wildcards.group)
                 .samples
             )
-            if not all(input_files.is_paired_end(sample_name) for sample_name in sample):
+            if not all(
+                input_files.is_paired_end(sample_name) for sample_name in sample
+            ):
                 options = CommandLineArguments(
-                    value=str(options), exclude={"--extendReads", "-e", "--samFlagInclude 3"}
+                    value=str(options),
+                    exclude={"--extendReads", "-e", "--samFlagInclude 3"},
                 )
         else:
             search_term = f"{wildcards.sample}"
             is_paired = input_files.is_paired_end(search_term)
             if not is_paired:
                 options = CommandLineArguments(
-                    value=str(options), exclude={"--extendReads", "-e", "--samFlagInclude 3"}
+                    value=str(options),
+                    exclude={"--extendReads", "-e", "--samFlagInclude 3"},
                 )
     except KeyError:
         pass

@@ -1,18 +1,13 @@
 from seqnado.helpers import (
     define_time_requested, 
     define_memory_requested,
-    should_trim_fastqs,
-    get_alignment_input_paired,
-    get_alignment_input_single,
+    get_alignment_input,
 )
-
-# Check if trimming is enabled
-TRIMMING_ENABLED = should_trim_fastqs(CONFIG)
 
 rule align_paired:
     input:
-        fq1=lambda wildcards: get_alignment_input_paired(wildcards, OUTPUT_DIR, TRIMMING_ENABLED)["fq1"],
-        fq2=lambda wildcards: get_alignment_input_paired(wildcards, OUTPUT_DIR, TRIMMING_ENABLED)["fq2"],
+        fq1=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=True)["fq1"],
+        fq2=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=True)["fq2"],
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     params:
@@ -41,7 +36,7 @@ rule align_paired:
 
 rule align_single:
     input:
-        fq1=lambda wildcards: get_alignment_input_single(wildcards, OUTPUT_DIR, TRIMMING_ENABLED),
+        fq1=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=False),
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     params:

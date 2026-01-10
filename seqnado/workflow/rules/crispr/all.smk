@@ -1,2 +1,5 @@
+include: "adapters.smk"
+include: "trim.smk"
+include: "align.smk"
 include: "feature_counts.smk"
 include: "mageck.smk"

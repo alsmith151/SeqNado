@@ -14,8 +14,8 @@ rule protocol:
     params:
         assay=assay_for_protocol,
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/geo/geo_protocol.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_protocol.tsv",
+    log: OUTPUT_DIR + "/logs/protocol.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/protocol.tsv",
     message: "Producing data processing protocol",
     script:
         "../../scripts/produce_data_processing_protocol.py"
