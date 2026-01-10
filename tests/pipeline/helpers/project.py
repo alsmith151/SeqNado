@@ -344,7 +344,19 @@ def create_design_file(
     )
 
     design_file = run_directory / f"metadata_{assay}.csv"
+
     assert design_file.exists(), f"Design file not created at {design_file}"
+
+    if assay == "rna":
+        import pandas as pd
+
+        df = pd.read_csv(design_file)
+
+        if "deseq2" in df.columns and df["deseq2"].isna().all():
+            df["deseq2"] = df["sample_id"].apply(
+                lambda x: "control" if "control" in x.lower() else "treated"
+            )
+            df.to_csv(design_file, index=False)
 
     return design_file
 
