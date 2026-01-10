@@ -294,15 +294,23 @@ def create_design_file(
         Path to the generated design file
     """
 
-    # amend -rx assays to base assay names
+    # Keep original assay name for directory and pattern lookup
+    original_assay = assay
+    
+    # Get pattern for original assay (e.g., "rna-rx" → "rna-spikein-*.fastq.gz")
+    pattern = get_fastq_pattern(original_assay)
+    
+    # Amend -rx assays to base assay names for seqnado command
     if assay.endswith("-rx"):
         assay = assay.replace("-rx", "")
 
-    # Expand the glob pattern to get actual FASTQ file paths
-    pattern = get_fastq_pattern(assay)
-
     # For multiomics, FASTQs are in fastqs/{assay}/ subdirectory
-    fastq_dir = run_directory / "fastqs" / assay
+    # Try original assay name first, then amended name
+    fastq_dir = run_directory / "fastqs" / original_assay
+
+    # Fall back to amended assay name subdirectory
+    if not fastq_dir.exists():
+        fastq_dir = run_directory / "fastqs" / assay
 
     # Fall back to fastqs/ if assay-specific directory doesn't exist
     if not fastq_dir.exists():
@@ -325,8 +333,10 @@ def create_design_file(
     ]
 
     # Add relative paths to FASTQ files
-    # For multiomics structure: fastqs/{assay}/{file}.fastq.gz
-    if (run_directory / "fastqs" / assay).exists():
+    # Determine which directory we're using
+    if (run_directory / "fastqs" / original_assay).exists():
+        cmd.extend([f"fastqs/{original_assay}/{f.name}" for f in fastq_files])
+    elif (run_directory / "fastqs" / assay).exists():
         cmd.extend([f"fastqs/{assay}/{f.name}" for f in fastq_files])
     else:
         # Fall back to old structure: fastqs/{file}.fastq.gz
@@ -346,25 +356,6 @@ def create_design_file(
     design_file = run_directory / f"metadata_{assay}.csv"
 
     assert design_file.exists(), f"Design file not created at {design_file}"
-
-    # For RNA assays using DESeq2 spike-in normalization, populate the deseq2 column
-    # by extracting group information from sample names
-    if assay == "rna":
-        import pandas as pd
-        from seqnado.cli import _extract_deseq2_groups_from_sample_names
-
-        df = pd.read_csv(design_file)
-
-        # Check if deseq2 column exists and needs population
-        if "deseq2" in df.columns and df["deseq2"].isna().all():
-            # Use the same intelligent group extraction as the CLI
-            result = _extract_deseq2_groups_from_sample_names(df["sample_id"])
-            if result is not None:
-                groups, deseq2_binary = result
-                df["group"] = groups
-                if deseq2_binary is not None:
-                    df["deseq2"] = deseq2_binary
-                df.to_csv(design_file, index=False)
 
     return design_file
 

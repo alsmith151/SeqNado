@@ -497,24 +497,24 @@ def _apply_interactive_defaults(
 
         hint = _format_col_hint(col, meta)
 
-        if accept_all_defaults and default is not None:
-            # Special handling for deseq2 column: try to extract groups from sample names (RNA only)
-            if col == "deseq2" and "sample_id" in df.columns and assay is not None:
-                from seqnado.inputs import Assay as AssayEnum
-                if assay == AssayEnum.RNA:
-                    result = _extract_deseq2_groups_from_sample_names(df["sample_id"], pattern=deseq2_pattern)
-                    if result is not None:
-                        groups, deseq2_binary = result
-                        df["group"] = groups
-                        if deseq2_binary is not None:
-                            df["deseq2"] = deseq2_binary
-                            logger.info(f"Adding 'group' and 'deseq2' columns with groups: {sorted(set(groups))}")
-                        else:
-                            # 3+ groups case - populate group column and add empty deseq2
-                            df["deseq2"] = pd.NA  # Add empty deseq2 column to prevent prompting
-                            logger.info(f"Adding 'group' column with {len(set(groups))} groups: {sorted(set(groups))}")
-                        continue
+        # Special handling for deseq2 and group columns: try to extract groups from sample names (RNA only)
+        if accept_all_defaults and col in ("deseq2", "group") and "sample_id" in df.columns and assay is not None:
+            from seqnado.inputs import Assay as AssayEnum
+            if assay == AssayEnum.RNA:
+                result = _extract_deseq2_groups_from_sample_names(df["sample_id"], pattern=deseq2_pattern)
+                if result is not None:
+                    groups, deseq2_binary = result
+                    df["group"] = groups
+                    if deseq2_binary is not None:
+                        df["deseq2"] = deseq2_binary
+                        logger.info(f"Adding 'group' and 'deseq2' columns with groups: {sorted(set(groups))}")
+                    else:
+                        # 3+ groups case - populate group column and add empty deseq2
+                        df["deseq2"] = pd.NA  # Add empty deseq2 column to prevent prompting
+                        logger.info(f"Adding 'group' column with {len(set(groups))} groups: {sorted(set(groups))}")
+                    continue
 
+        if accept_all_defaults and default is not None:
             logger.info(f"Adding '{col}' with schema default={default!r}  ({hint})")
             try:
                 df[col] = pd.Series([default] * len(df), index=df.index)

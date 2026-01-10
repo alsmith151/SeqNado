@@ -50,7 +50,7 @@ def get_fastq_pattern(assay: str) -> str:
         "mcc": "mcc_*.fastq.gz",
         "meth": "meth-*.fastq.gz",
         "rna-rx": "rna-spikein-*.fastq.gz",
-        "rna": "rna_*.fastq.gz",
+        "rna": "rna*.fastq.gz",
         "snp": "snp_*.fastq.gz",
     }
     pattern = patterns.get(assay)

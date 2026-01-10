@@ -135,13 +135,13 @@ def design(test_context: TestContext, assay: str, seqnado_run_dir: Path) -> Path
     ensure_fastqs_present(test_context.test_paths.fastq, [assay])
     fastq_source_dir = test_context.test_paths.fastq
 
-    # Use the correct pattern from get_fastq_pattern
-    pattern = get_fastq_pattern(assay_type)
+    # Use the correct pattern from get_fastq_pattern - use original assay name (e.g., "rna-rx")
+    pattern = get_fastq_pattern(assay)
     fastqs_to_copy = list(fastq_source_dir.glob(pattern))
 
     if not fastqs_to_copy:
         raise FileNotFoundError(
-            f"No FASTQ files found for assay '{assay_type}' in {fastq_source_dir}"
+            f"No FASTQ files found for assay '{assay}' in {fastq_source_dir}"
         )
 
     # Move FASTQs to the run directory
@@ -150,10 +150,10 @@ def design(test_context: TestContext, assay: str, seqnado_run_dir: Path) -> Path
     for fq in fastqs_to_copy:
         shutil.copy2(fq, fastq_dest_dir / fq.name)
 
-    # Generate design file
+    # Generate design file - use assay_type (amended name without -rx)
     design_file = create_design_file(
         run_directory=seqnado_run_dir,
-        assay=assay_type,
+        assay=assay,
     )
 
     return design_file
