@@ -1,23 +1,21 @@
+import json
+import shlex
+
 def get_cutadapt_adapter_args(wildcards):
     """
     Build cutadapt adapter arguments from detected adapters.
     Falls back to config if detection fails or returns None.
     """
     adapter_file = OUTPUT_DIR + f"/resources/{wildcards.sample}_adapters.json"
-
-    # Get base options from config (without adapter specifications)
     base_options = str(CONFIG.third_party_tools.cutadapt.command_line_arguments)
 
-    # Try to load detected adapters
     try:
-        with open(adapter_file, 'r') as f:
+        with open(adapter_file, "r") as f:
             adapters = json.load(f)
 
-        adapter_r1 = adapters.get('adapter_r1')
-        adapter_r2 = adapters.get('adapter_r2')
+        adapter_r1 = adapters.get("adapter_r1")
+        adapter_r2 = adapters.get("adapter_r2")
 
-        # Remove any existing -g/-G/-a/-A flags from base_options
-        import shlex
         tokens = shlex.split(base_options)
         filtered_tokens = []
         skip_next = False
@@ -25,16 +23,20 @@ def get_cutadapt_adapter_args(wildcards):
             if skip_next:
                 skip_next = False
                 continue
-            if token in ['-g', '-G', '-a', '-A']:
+            if token in ["-g", "-G", "-a", "-A"]:
                 skip_next = True
                 continue
-            if token.startswith('-g') or token.startswith('-G') or token.startswith('-a') or token.startswith('-A'):
+            if (
+                token.startswith("-g")
+                or token.startswith("-G")
+                or token.startswith("-a")
+                or token.startswith("-A")
+            ):
                 continue
             filtered_tokens.append(token)
 
-        base_options = ' '.join(filtered_tokens)
+        base_options = " ".join(filtered_tokens)
 
-        # Add detected adapters
         adapter_args = ""
         if adapter_r1:
             adapter_args += f" -g '{adapter_r1}'"
@@ -44,20 +46,19 @@ def get_cutadapt_adapter_args(wildcards):
         return base_options + adapter_args
 
     except (FileNotFoundError, json.JSONDecodeError, KeyError):
-        # Fall back to config if detection failed
         return base_options
-
 
 
 rule crispr_trimming_paired:
     input:
         fq1=OUTPUT_DIR + "/fastqs/{sample}_1.fastq.gz",
         fq2=OUTPUT_DIR + "/fastqs/{sample}_2.fastq.gz",
+        adapters=OUTPUT_DIR + "/resources/{sample}_adapters.json",
     output:
         trimmed1=temp(OUTPUT_DIR + "/trimmed/{sample}_1.fastq.gz"),
         trimmed2=temp(OUTPUT_DIR + "/trimmed/{sample}_2.fastq.gz"),
     params:
-        options=str(CONFIG.third_party_tools.cutadapt.command_line_arguments),
+        options=get_cutadapt_adapter_args,
         trim_dir=OUTPUT_DIR + "/trimmed",
     threads: CONFIG.third_party_tools.cutadapt.threads
     resources:
@@ -74,10 +75,11 @@ rule crispr_trimming_paired:
 rule crispr_trimming_single:
     input:
         fq=OUTPUT_DIR + "/fastqs/{sample}.fastq.gz",
+        adapters=OUTPUT_DIR + "/resources/{sample}_adapters.json",
     output:
         trimmed=temp(OUTPUT_DIR + "/trimmed/{sample}.fastq.gz"),
     params:
-        options=str(CONFIG.third_party_tools.cutadapt.command_line_arguments),
+        options=get_cutadapt_adapter_args,
         trim_dir=OUTPUT_DIR + "/trimmed",
     threads: CONFIG.third_party_tools.cutadapt.threads
     resources:
