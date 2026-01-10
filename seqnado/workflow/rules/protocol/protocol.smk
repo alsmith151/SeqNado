@@ -16,6 +16,6 @@ rule protocol:
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     log: OUTPUT_DIR + "/logs/geo/geo_protocol.log",
     benchmark: OUTPUT_DIR + "/.benchmark/geo/geo_protocol.tsv",
-    message: "Producing data processing protocol for GEO submission",
+    message: "Producing data processing protocol",
     script:
         "../../scripts/produce_data_processing_protocol.py"

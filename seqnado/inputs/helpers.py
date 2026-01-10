@@ -7,13 +7,14 @@ from .bigwigs import BigWigCollection
 from .interfaces import CollectionLike
 
 
-def get_sample_collection(assay: Assay, path: Path) -> CollectionLike:
+def get_sample_collection(assay: Assay, path: Path, config=None) -> CollectionLike:
     """
     Select the appropriate sample collection class based on the contents of the metadata file.
 
     Args:
         assay (Assay): The assay type (e.g., 'ChIP-seq', 'RNA-seq').
         path (Path): Path to the metadata file
+        config: Optional config object with has_spikein property to determine if deseq2 validation is required
 
     Returns:
         Type[Union[FastqCollection, FastqCollectionForIP, BamCollection, BigWigCollection]]: The appropriate collection class.
@@ -43,4 +44,7 @@ def get_sample_collection(assay: Assay, path: Path) -> CollectionLike:
     else:
         raise RuntimeError("Could not determine the type of collection from metadata columns.")
 
-    return type_of_collection.from_csv(assay=assay, path=path)
+    # Determine if deseq2 validation should be enforced (only for RNA with spike-in)
+    validate_deseq2 = getattr(config, 'has_spikein', False) if config else False
+    
+    return type_of_collection.from_csv(assay=assay, path=path, validate_deseq2=validate_deseq2, assay_for_validation=assay)

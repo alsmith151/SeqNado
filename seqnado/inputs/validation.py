@@ -2,6 +2,7 @@ import pandera.pandas as pa
 from pandera.typing.pandas import Series
 from typing import Optional, Union, Annotated
 import pandas as pd
+import numpy as np
 from .core import Assay
 
 AssayCategory = pd.CategoricalDtype(categories=[a.value for a in Assay])
@@ -41,8 +42,9 @@ class DesignDataFrame(pa.DataFrameModel):
         description="Experimental group name (e.g., control, treated, WT, KO), used for DESeq2 analysis",
         nullable=True,
     )
-    deseq2: Series[int] | None = pa.Field(
+    deseq2: Series[pd.Int64Dtype] | None = pa.Field(
         default=None,
+        coerce=True,
         description="DESeq2 binary encoding: 0 for control/reference group, 1 for treatment/comparison group",
         nullable=True,
     )

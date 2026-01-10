@@ -546,17 +546,27 @@ class FastqCollection(BaseFastqCollection):
 
     @classmethod
     def from_dataframe(
-        cls, assay: Assay, df: pd.DataFrame, **fastqset_kwargs: Any
+        cls, assay: Assay, df: pd.DataFrame, validate_deseq2: bool = False, assay_for_validation: Assay | None = None, **fastqset_kwargs: Any
     ) -> FastqCollection:
         """
         Build a SampleCollection from a DataFrame, validated by DataFrameDesign.
 
         Expects columns: sample_name, r1, r2, plus any metadata fields.
+        
+        Args:
+            assay: The assay type
+            df: DataFrame with sample metadata
+            validate_deseq2: If True, require deseq2 field to be non-null (for RNA assays)
+            assay_for_validation: Assay type to check in validation context
+            **fastqset_kwargs: Additional kwargs for FastqSet
         """
         df = DesignDataFrame.validate(df)
         fastq_sets: list[FastqSet] = []
         metadata: list[Metadata] = []
         metadata_fields = set(Metadata.model_fields.keys())
+        
+        # Use provided assay_for_validation or fall back to assay
+        validation_assay = assay_for_validation or assay
 
         for rec in df.to_dict(orient="records"):
             # Build FastqSet
@@ -569,9 +579,9 @@ class FastqCollection(BaseFastqCollection):
             )
             fastq_sets.append(fs)
 
-            # Collect metadata
+            # Collect metadata with validation context
             meta_fields = {k: rec.get(k) for k in metadata_fields if k in rec}
-            metadata.append(Metadata(**meta_fields))
+            metadata.append(Metadata.model_validate(meta_fields, context={'validate_deseq2': validate_deseq2, 'assay': validation_assay}))
 
         return cls(assay=assay, fastq_sets=fastq_sets, metadata=metadata)
 
@@ -993,18 +1003,28 @@ class FastqCollectionForIP(BaseFastqCollection):
 
     @classmethod
     def from_dataframe(
-        cls, assay: Assay, df: pd.DataFrame, **exp_kwargs: Any
+        cls, assay: Assay, df: pd.DataFrame, validate_deseq2: bool = False, assay_for_validation: Assay | None = None, **exp_kwargs: Any
     ) -> FastqCollectionForIP:
         """
         Build a FastqCollectionForIP from a DataFrame.
 
         Expects columns: sample_id, r1, r2 (optional), r1_control (optional),
         r2_control (optional), ip, control (optional), plus any metadata fields.
+        
+        Args:
+            assay: The assay type
+            df: DataFrame with sample metadata
+            validate_deseq2: If True, require deseq2 field to be non-null (for RNA assays)
+            assay_for_validation: Assay type to check in validation context
+            **exp_kwargs: Additional kwargs for ExperimentIP
         """
         df = DesignDataFrame.validate(df)
         experiments: list[ExperimentIP] = []
         metadata: list[Metadata] = []
         metadata_fields = set(Metadata.model_fields.keys())
+        
+        # Use provided assay_for_validation or fall back to assay
+        validation_assay = assay_for_validation or assay
 
         for rec in df.to_dict(orient="records"):
             # Build IP FastqSetIP
@@ -1032,8 +1052,8 @@ class FastqCollectionForIP(BaseFastqCollection):
                 ExperimentIP(ip=ip_set, control=control_set, **exp_kwargs)
             )
 
-            # Collect metadata
+            # Collect metadata with validation context
             meta_fields = {k: rec.get(k) for k in metadata_fields if k in rec}
-            metadata.append(Metadata(**meta_fields))
+            metadata.append(Metadata.model_validate(meta_fields, context={'validate_deseq2': validate_deseq2, 'assay': validation_assay}))
 
         return cls(assay=assay, experiments=experiments, metadata=metadata)

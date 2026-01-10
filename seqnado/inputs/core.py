@@ -5,7 +5,7 @@ import re
 from enum import Enum
 from typing import Optional, Union, Callable, Self, TYPE_CHECKING, Any
 from abc import ABC, abstractmethod
-from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator, ValidationInfo
 from seqnado import Assay, Organism
 import pandas as pd
 
@@ -51,12 +51,12 @@ class Metadata(BaseModel):
         description="DESeq2 binary encoding: 0 for control/reference group, 1 for treatment/comparison group"
     )
 
-    @field_validator("group", "deseq2")
+    @field_validator("group", "deseq2", mode="before")
     @classmethod
-    def prevent_none(cls, v):
+    def coerce_none_values(cls, v, info: ValidationInfo):
         import numpy as np
         import pandas as pd
-        """Ensure metadata fields are not set to None."""
+        """Convert none-like values to None for optional fields."""
         # Define a list of values that should be treated as 'None'
         # This includes None, pd.NA, np.nan, and common string representations of None
 
@@ -70,14 +70,30 @@ class Metadata(BaseModel):
             ".",
             "",
             "NA",
-            np.nan,
         ]
-        if any([v == n for n in none_vals]):
-            assert v is not None, "None is not allowed when setting metadata"
-
-        # Check if it a pandas NA
+        
+        # Check for pandas NA
         if v is pd.NA:
-            raise ValueError("None is not allowed when setting metadata")
+            return None
+            
+        # Check for numpy nan
+        if isinstance(v, float) and np.isnan(v):
+            return None
+            
+        # Check for string/literal None values
+        if v in none_vals:
+            return None
+        
+        # For deseq2, check if validation is required
+        # Only validate deseq2 for RNA assays when spike-in is configured
+        if info.field_name == "deseq2":
+            validate_deseq2 = info.context.get('validate_deseq2', False) if info.context else False
+            validate_assay = info.context.get('assay', None) if info.context else None
+            
+            # Only enforce deseq2 validation for RNA assays with spike-in
+            if validate_deseq2 and validate_assay == Assay.RNA and v is None:
+                raise ValueError("deseq2 field is required for RNA assay when spikein is configured")
+            
         return v
 
     @model_validator(mode='after')
@@ -146,7 +162,10 @@ class BaseCollection(BaseModel):
     def from_csv(cls, path: str | Path, *args, **kwargs) -> Self:
         """Build a collection from a CSV file by delegating to from_dataframe."""
         df = pd.read_csv(path)
-        return cls.from_dataframe(df=df, *args, **kwargs)
+        # Extract validate_deseq2 and assay_for_validation if present in kwargs for passing to from_dataframe
+        validate_deseq2 = kwargs.pop('validate_deseq2', False)
+        assay_for_validation = kwargs.pop('assay_for_validation', None)
+        return cls.from_dataframe(df=df, validate_deseq2=validate_deseq2, assay_for_validation=assay_for_validation, *args, **kwargs)
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame) -> Self:  # type: ignore[override]
