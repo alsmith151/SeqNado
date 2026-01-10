@@ -1,8 +1,9 @@
-from seqnado.helpers import (
+from seqnado.workflow.helpers.common import (
     define_memory_requested, 
     define_time_requested,
     get_alignment_input,
 )
+
 
 rule align_paired:
     input:
@@ -39,6 +40,7 @@ rule align_paired:
     > {log} 2>&1
     """
 
+
 rule align_single:
     input:
         fq1=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=False),
@@ -72,6 +74,7 @@ rule align_single:
     {params.options} \
     > {log} 2>&1
     """
+
 
 rule rename_aligned:
     input:

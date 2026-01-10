@@ -694,6 +694,15 @@ class GeoSubmissionFiles(BaseModel):
         """Return a list of all files for GEO submission."""
         return [*self.default_files, *self.raw_files, *self.processed_data_files]
 
+    @property
+    def metadata_files(self) -> list[str]:
+        """Return only the metadata files that are declared as explicit rule outputs.
+        
+        Note: The individual symlinked FASTQ and processed files are created by geo_symlink rule
+        but are not included here as they cannot be declared as dynamic rule outputs in Snakemake.
+        """
+        return self.default_files
+
 
 class GEOFiles(BaseModel):
     """

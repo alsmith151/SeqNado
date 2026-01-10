@@ -63,12 +63,14 @@ def init_seqnado_project(
     genes_bed_source = test_data_path.parent.parent / "tests" / "data" / "hg38_genes.bed"
     genes_bed = test_data_path / "hg38_genes.bed"
     if not genes_bed.exists() and genes_bed_source.exists():
+        genes_bed.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(genes_bed_source, genes_bed)
 
     # Copy plotting_coordinates.bed from tests/data to test_output/data if it doesn't exist
     plot_coords_source = test_data_path.parent.parent / "tests" / "data" / "plotting_coordinates.bed"
     plot_coords = test_data_path / "plotting_coordinates.bed"
     if not plot_coords.exists() and plot_coords_source.exists():
+        plot_coords.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(plot_coords_source, plot_coords)
 
     setup_genome_config(

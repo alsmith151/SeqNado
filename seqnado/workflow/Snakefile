@@ -12,7 +12,7 @@ from seqnado.inputs import (
     get_sample_collection,
 )
 from seqnado.outputs import SeqnadoOutputFactory, SeqnadoOutputFiles
-from seqnado.helpers import remove_unwanted_run_files
+from seqnado.utils import remove_unwanted_run_files
 
 
 ################################

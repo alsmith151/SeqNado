@@ -1,17 +1,10 @@
 # Combine bam files for merge
+from seqnado.workflow.helpers.bam import get_bam_files_for_consensus
 
-def get_bam_files_for_consensus(wildcards):
-    """Get BAM files for merging based on sample names."""
-    groups = SAMPLE_GROUPINGS.get_grouping('consensus').get_group(wildcards.group)
-    sample_names = groups.samples
-    bam_files = [
-        OUTPUT_DIR + f"/aligned/{sample}.bam" for sample in sample_names
-    ]
-    return bam_files
 
 rule merge_bams:
     input:
-        bams=get_bam_files_for_consensus,
+        bams=lambda wc: get_bam_files_for_consensus(wc, SAMPLE_GROUPINGS=SAMPLE_GROUPINGS, OUTPUT_DIR=OUTPUT_DIR),
     output:
         temp(OUTPUT_DIR + "/aligned/merged/{group}.bam"),
     threads: CONFIG.third_party_tools.samtools.merge.threads

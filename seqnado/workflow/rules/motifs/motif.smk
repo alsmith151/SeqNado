@@ -1,4 +1,6 @@
 
+
+
 rule get_fasta:
     input:
         peaks=OUTPUT_DIR + "/peaks/{method}/{sample}.bed",

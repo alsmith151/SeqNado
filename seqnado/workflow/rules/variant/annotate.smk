@@ -1,4 +1,6 @@
 
+
+
 rule bcftools_annotate:
     input:
         vcf=rules.split_multiallelic.output.vcf,
@@ -20,5 +22,6 @@ rule bcftools_annotate:
     bcftools annotate --threads {threads} -c ID -a {params.db} -Oz -o {output.vcf} {input.vcf} 2> {log} &&
     tabix -f {output.vcf} > {output.idx}
     """
+
 
 ruleorder: bcftools_annotate > split_multiallelic > bcftools_call_snp

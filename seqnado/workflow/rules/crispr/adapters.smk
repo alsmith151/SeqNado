@@ -25,6 +25,7 @@ rule detect_crispr_adapters_paired:
     script:
         "../../scripts/detect_crispr_adapters.py"
 
+
 rule detect_crispr_adapters_single:
     input:
         fq1=OUTPUT_DIR + "/fastqs/{sample}.fastq.gz",
@@ -45,5 +46,6 @@ rule detect_crispr_adapters_single:
     message: "Detecting adapters for CRISPR sample {wildcards.sample} (single-end)",
     script:
         "../../scripts/detect_crispr_adapters.py"
+
 
 ruleorder: detect_crispr_adapters_paired > detect_crispr_adapters_single

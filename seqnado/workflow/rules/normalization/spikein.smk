@@ -1,7 +1,6 @@
 from seqnado import SpikeInMethod
 
 
-
 rule calculate_normalisation_factors_orlando:
     input:
         lambda wc: expand(

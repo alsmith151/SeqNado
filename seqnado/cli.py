@@ -1530,7 +1530,7 @@ def pipeline(
         raise typer.Exit(code=127)
 
     # Local import for helper
-    from seqnado.helpers import extract_cores_from_options
+    from seqnado.utils import extract_cores_from_options
 
     extra_args = list(ctx.args)
 

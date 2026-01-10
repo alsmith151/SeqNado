@@ -6,6 +6,7 @@ protocol_inputs = [
     if "/geo_submission/" not in str(p) and not str(p).endswith("/protocol.txt")
 ]
 
+
 rule protocol:
     input:
         protocol_inputs,

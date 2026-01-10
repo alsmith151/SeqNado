@@ -3,6 +3,7 @@
 
 plot_files=OUTPUT.genome_browser_plots
 
+
 rule generate_plotnado_visualisation:
     input:
         rules.gather_bigwigs.output.bw_dir,

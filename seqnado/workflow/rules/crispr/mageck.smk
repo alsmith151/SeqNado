@@ -81,6 +81,7 @@ rule mageck_count:
     fi > {log} 2>&1
     """
 
+
 rule mageck_test:
     input:
         counts=OUTPUT_DIR + "/readcounts/mageck/mageck_count.count.txt",
@@ -113,6 +114,7 @@ rule mageck_test:
     {params.options} \
     > {log} 2>&1
     """
+
 
 rule mageck_mle:
     input:

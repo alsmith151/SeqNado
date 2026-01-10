@@ -1,8 +1,9 @@
-from seqnado.helpers import (
+from seqnado.workflow.helpers.common import (
     define_time_requested,
     define_memory_requested,
     get_alignment_input,
 )
+
 
 rule align_crispr_paired:
     input:
@@ -28,6 +29,7 @@ rule align_crispr_paired:
     samtools sort -@ {threads} {output.bam_unsorted} -o {output.bam}
     """
 
+
 rule align_crispr_single:
     input:
         fq=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=False),
@@ -51,6 +53,7 @@ rule align_crispr_single:
     samtools sort -@ {threads} {output.bam_unsorted} -o {output.bam}
     """
 
+
 rule index_crispr_bam:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
@@ -68,4 +71,6 @@ rule index_crispr_bam:
     samtools index {input.bam} {output.bai} > {log} 2>&1
     """
     
+
+
 ruleorder: align_crispr_paired > align_crispr_single

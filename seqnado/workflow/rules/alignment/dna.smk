@@ -1,8 +1,9 @@
-from seqnado.helpers import (
+from seqnado.workflow.helpers.common import (
     define_time_requested, 
     define_memory_requested,
     get_alignment_input,
 )
+
 
 rule align_paired:
     input:
@@ -33,6 +34,7 @@ rule align_paired:
         2> {log} \
     | samtools view -bS - > {output.bam}
     """
+
 
 rule align_single:
     input:

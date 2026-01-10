@@ -1,4 +1,4 @@
-from seqnado.helpers import define_memory_requested, define_time_requested
+from seqnado.workflow.helpers.common import define_memory_requested, define_time_requested
 from seqnado import PileupMethod, DataScalingTechnique
 
 

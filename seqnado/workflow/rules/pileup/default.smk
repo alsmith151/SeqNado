@@ -1,5 +1,5 @@
 import re
-from seqnado.helpers import define_time_requested, define_memory_requested, format_deeptools_options
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested, format_deeptools_options
 from seqnado.config.third_party_tools import CommandLineArguments
 
 

@@ -15,6 +15,7 @@ rule deduplicate_fastq_raw:
     script:
         "../../scripts/deduplicate_fastq.py"
 
+
 rule flash:
     input:
         fq1=OUTPUT_DIR + "/deduplicated/{sample}/{sample}_1.fastq.gz",

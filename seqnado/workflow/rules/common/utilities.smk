@@ -47,6 +47,7 @@ rule bed_to_saf:
     awk 'BEGIN{{OFS="\t"}} {{print $4, $1, $2, $3, "."}}' {input.bed} > {output.saf} 2> {log}
     """
 
+
 rule validate_peaks:
     input:
         peaks=OUTPUT.peak_files,
