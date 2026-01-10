@@ -347,16 +347,24 @@ def create_design_file(
 
     assert design_file.exists(), f"Design file not created at {design_file}"
 
+    # For RNA assays using DESeq2 spike-in normalization, populate the deseq2 column
+    # by extracting group information from sample names
     if assay == "rna":
         import pandas as pd
+        from seqnado.cli import _extract_deseq2_groups_from_sample_names
 
         df = pd.read_csv(design_file)
 
+        # Check if deseq2 column exists and needs population
         if "deseq2" in df.columns and df["deseq2"].isna().all():
-            df["deseq2"] = df["sample_id"].apply(
-                lambda x: "control" if "control" in x.lower() else "treated"
-            )
-            df.to_csv(design_file, index=False)
+            # Use the same intelligent group extraction as the CLI
+            result = _extract_deseq2_groups_from_sample_names(df["sample_id"])
+            if result is not None:
+                groups, deseq2_binary = result
+                df["group"] = groups
+                if deseq2_binary is not None:
+                    df["deseq2"] = deseq2_binary
+                df.to_csv(design_file, index=False)
 
     return design_file
 

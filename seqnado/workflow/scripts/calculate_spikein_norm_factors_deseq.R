@@ -6,7 +6,8 @@ suppressPackageStartupMessages(library(DESeq2))
 bam_dir <- normalizePath(snakemake@params$bam_dir)
 
 # Load the data
-metadata <- read_csv(snakemake@input[[2]])
+metadata <- read_csv(snakemake@input[[2]]) %>%
+  mutate(deseq2 = factor(deseq2))  # Convert to factor with 0 as reference
 counts <- read.delim(snakemake@input[[1]], comment.char = "#") %>%
   rename_with(
   ~ tools::file_path_sans_ext(basename(.)),

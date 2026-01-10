@@ -36,9 +36,14 @@ class DesignDataFrame(pa.DataFrameModel):
         description="Grouping variable for merging samples together and generating consensus tracks/peak calls/counts between samples. Leave blank to treat all samples as separate.",
         nullable=True,
     )
-    deseq2: Series[str] | None = pa.Field(
+    group: Series[str] | None = pa.Field(
         default=None,
-        description="DESeq2 metadata for sample, can be None if not applicable",
+        description="Experimental group name (e.g., control, treated, WT, KO), used for DESeq2 analysis",
+        nullable=True,
+    )
+    deseq2: Series[int] | None = pa.Field(
+        default=None,
+        description="DESeq2 binary encoding: 0 for control/reference group, 1 for treatment/comparison group",
         nullable=True,
     )
     r1: Series[str] = pa.Field(coerce=True)

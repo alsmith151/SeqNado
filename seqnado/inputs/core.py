@@ -42,12 +42,16 @@ class Metadata(BaseModel):
         default="default",
         description="Grouping variable for scaling samples, defaults to 'default' if not specified"
     )
-    deseq2: str | None = Field(
+    group: str | None = Field(
         default=None,
-        description="DESeq2 metadata for sample, can be None if not applicable"
+        description="Experimental group name (e.g., control, treated, WT, KO), used for DESeq2 analysis"
+    )
+    deseq2: int | None = Field(
+        default=None,
+        description="DESeq2 binary encoding: 0 for control/reference group, 1 for treatment/comparison group"
     )
 
-    @field_validator("deseq2")
+    @field_validator("group", "deseq2")
     @classmethod
     def prevent_none(cls, v):
         import numpy as np
