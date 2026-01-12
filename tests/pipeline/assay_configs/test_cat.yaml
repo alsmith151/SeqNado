@@ -1,0 +1,4 @@
+assay: CUT&TAG
+project:
+  name: default_project
+  description: "Test project for CUT&TAG"

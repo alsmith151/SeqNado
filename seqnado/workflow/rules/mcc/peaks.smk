@@ -1,0 +1,43 @@
+
+rule call_mcc_peaks: # TODO: ensure that we're using the GPU queue
+    input:
+        bigwig=OUTPUT_DIR + "/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig",
+    output:
+        peaks=OUTPUT_DIR + "/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
+    params:
+        options=str(CONFIG.third_party_tools.lanceotron_mcc.command_line_arguments),
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
+        viewpoint_group="|".join(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
+    container: None
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        gpu=1,
+    log: OUTPUT_DIR + "/logs/call_mcc_peaks/{group}_{viewpoint_group}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/call_mcc_peaks/{group}_{viewpoint_group}.tsv",
+    message: "Calling MCC peaks for group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
+    shell: """
+        apptainer exec \
+        --nv \
+        library://asmith151/lanceotron/lanceotron-mcc:latest \
+        lanceotron-mcc \
+        call-mcc-peaks \
+        --bigwig {input.bigwig} \
+        --outfile {output.peaks} \
+        {params.options} > {log} 2>&1
+        """
+
+
+rule confirm_peaks_generated:
+    input:
+        expand(OUTPUT_DIR + "/peaks/lanceotron-mcc/{group}_{viewpoint_group}.bed",
+               group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names,
+               viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
+    output:
+        touch(OUTPUT_DIR + "/peaks/mcc/.mcc_peaks_called.txt"),
+    message: "Confirming MCC peaks have been called for all groups and viewpoint groups",
+    shell:
+        """
+        echo "MCC peak calling completed successfully." > {output}
+        """

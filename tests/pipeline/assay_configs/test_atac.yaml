@@ -1,0 +1,4 @@
+assay: ATAC
+project:
+  name: default_project
+  description: "Test project for ATAC-seq"

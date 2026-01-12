@@ -1,0 +1,4 @@
+assay: RNA
+project:
+  name: default_project
+  description: "Test project for RNA-seq"

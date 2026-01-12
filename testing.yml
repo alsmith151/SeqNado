@@ -12,6 +12,5 @@ dependencies:
   - pexpect
   - pip:
       - snakemake
-      - snakemake-executor-plugin-slurm
       - tracknado
       - wget

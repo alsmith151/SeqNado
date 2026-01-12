@@ -1,21 +1,41 @@
-name: Python package
+name: Pipeline Tests
 
-on: [push]
+on: 
+  push
 
 jobs:
   test-pipelines:
     name: Test Pipeline - ${{ matrix.assay }}
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        assay: ["atac", "chip-rx", "chip", "rna-rx", "rna", "snp", 'cat', 'meth', 'mcc']
-
+        assay: 
+          - atac
+          - cat
+          - chip
+          - chip-rx
+          - crispr
+          - mcc
+          - meth
+          - rna
+          - rna-rx
+          - snp
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           submodules: true
+
+      - name: Free up disk space before installations
+        run: |
+          echo "Freeing up disk space..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
 
       - name: Setup Conda environment and install SeqNado
         uses: conda-incubator/setup-miniconda@v3
@@ -24,14 +44,19 @@ jobs:
           miniforge-version: latest
           use-mamba: true
 
+      - name: Clean up conda cache before container pulls
+        shell: bash -el {0}
+        run: |
+          echo "Cleaning conda cache to free space for containers..."
+          mamba clean --all -y
+
       - name: Install SeqNado package
         shell: bash -el {0}
         run: |
           pip install .
-          
-          # Verify installation
+
           python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
-          which seqnado-init
+          which seqnado
           python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
 
       - name: Setup Apptainer runtime
@@ -39,10 +64,18 @@ jobs:
         with:
           apptainer-version: 1.3.4
 
+      - name: Setup Apptainer directories
+        shell: bash -el {0}
+        run: |
+          mkdir -p "${{ github.workspace }}/.apptainer/cache"
+          mkdir -p "${{ github.workspace }}/.apptainer/tmp"
+          
       - name: Run SeqNado pipeline test for ${{ matrix.assay }}
         shell: bash -el {0}
         env:
-          TMPDIR: /tmp
+          APPTAINER_CACHEDIR: "${{ github.workspace }}/.apptainer/cache"
+          APPTAINER_TMPDIR: "${{ github.workspace }}/.apptainer/tmp"
           SEQNADO_CONFIG: "${{ github.workspace }}/tests/genome_config.json"
         run: |
-          python -m pytest tests/test_pipelines.py::test_pipeline[${{ matrix.assay }}] -vv -s --cores 4
+          python -m pytest tests/pipeline/test_pipelines.py::test_pipeline -vv \
+          -s --cores 4 --run-pipeline --assays ${{ matrix.assay }}

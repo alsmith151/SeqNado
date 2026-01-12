@@ -1,0 +1,50 @@
+name: Unit and Integration Tests
+
+on: 
+  push
+
+jobs:
+  test-fast:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        test-type: ["unit", "integration", "cli"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Setup Conda environment and install SeqNado
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: testing.yml
+          miniforge-version: latest
+          use-mamba: true
+
+      - name: Install SeqNado package
+        shell: bash -el {0}
+        run: |
+          pip install .
+          
+          # Verify installation
+          python -c "import seqnado; print(f'SeqNado installed at: {seqnado.__file__}')"
+          which seqnado
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
+
+      - name: Run Tests
+        shell: bash -el {0}
+        run: |
+          if [ "${{ matrix.test-type }}" == "unit" ]; then
+            pytest tests/unit --maxfail=1 --disable-warnings -q
+          elif [ "${{ matrix.test-type }}" == "integration" ]; then
+            pytest tests/integration --maxfail=1 --disable-warnings -q
+          elif [ "${{ matrix.test-type }}" == "cli" ]; then
+            pytest tests/cli --maxfail=1 --disable-warnings -q
+          else
+            echo "Unknown test type: ${{ matrix.test-type }}"
+            exit 1
+          fi

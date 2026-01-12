@@ -1,88 +1,127 @@
-import os
-import pandas as pd
 import itertools
-import numpy as np
-import pathlib
+import os
 import re
-from loguru import logger
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 import tracknado
+from loguru import logger
+
+# configre logger to write to snakemake log file if available
+if "snakemake" in globals():
+    logger.remove()
+    logger.add(
+        snakemake.log[0],
+        format="{time} {level} {message}",
+        level="INFO",
+    )
+    logger.add(sys.stderr, format="{time} {level} {message}", level="ERROR")
 
 
 def get_rna_samplename(path: str):
-    p = pathlib.Path(path)
+    p = Path(path)
     return re.split(r"_[plus|minus]", p.name)[0]
 
 
-# Set up details
-df = pd.DataFrame(
-    snakemake.input.data,
-    columns=["fn"],
-)
+try:
+    logger.info("Generating UCSC Genome Browser hub...")
+    logger.info(f"Assay: {snakemake.params.assay}, Files: {len(snakemake.input.data)}")
 
-
-# Use the TrackFiles class to deduplicate files and add metadata
-df = tracknado.TrackFiles(files=df, deduplicate=True).files
-
-if snakemake.params.assay in ["ChIP", 'CUT&TAG']:
-    df[["samplename", "antibody"]] = df["fn"].str.extract(
-        r".*/(.*)_(.*)\.(?:bigBed|bigWig)"
+    # Set up details
+    df = pd.DataFrame(
+        snakemake.input.data,
+        columns=["fn"],
     )
-    df["method"] = df["fn"].apply(lambda x: x.split("/")[-3])
-    df['norm'] = df['fn'].apply(lambda x: x.split("/")[-2])
 
-elif snakemake.params.assay == "ATAC":
-    df["samplename"] = df["fn"].str.extract(r".*/(.*)\.(?:bigBed|bigWig)")
-    df["method"] = df["fn"].apply(lambda x: x.split("/")[-3])
-    df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
+    # Resolve relative paths to absolute paths for consistent parsing
+    df["fn"] = df["fn"].apply(lambda x: str(Path(x).resolve()))
 
-elif snakemake.params.assay == "RNA":
-    df["samplename"] = df["fn"].apply(get_rna_samplename)
-    df["method"] = df["fn"].apply(lambda x: x.split("/")[-3])
-    df["strand"] = np.where(df["fn"].str.contains("_plus.bigWig"), "plus", "minus")
-    df["norm"] = df["fn"].apply(lambda x: x.split("/")[-2])
-
-elif snakemake.params.assay == 'MCC':
-    # Regex pattern to extract method, normalisation, sample, viewpoint
-    pattern = re.compile(
-    r'seqnado_output/(?:bigwigs|peaks)/'
-    r'(?P<method>[^/]+)/'
-    r'(?:(?P<norm>[^/]+)/)?'
-    r'(?P<samplename>.*?)_(?P<viewpoint>[^/.]+)\.(?:bigWig|bigBed)'
-)
-    # Extract the method, normalisation, sample, and viewpoint from the file path
-    df_meta = df['fn'].str.extract(pattern)
-    df = df.join(df_meta)
-
-
-# Check that the dataframe is not empty i.e. no files were found
-if df.empty:
-    raise ValueError("No bigwigs or bigbeds found in the input directory. Please ensure that make_pileups has been set to True in the config file.")
-
-# Create hub design
-design = tracknado.TrackDesign.from_design(
-    df,
-    color_by=snakemake.params.color_by,
-    subgroup_by=snakemake.params.subgroup_by
-    if any(snakemake.params.subgroup_by)
-    else None,
-    supergroup_by=snakemake.params.supergroup_by,
-    overlay_by=snakemake.params.overlay_by,
-)
+    # extract extra cols
+    def extract_metadata_from_path(path: str, key: str) -> str:
+        p = Path(path)
+        if key == "samplename":
+            return p.stem.split(".")[0]
+        elif key == "method":
+            # e.g., ATAC_Tn5, ChIP_IP, RNA_plus, RNA_minus
+            parts = p.stem.split("/")
+            if len(parts) > 1:
+                return parts[-2]
+            else:
+                return "unknown"
+        elif key == "norm":
+            # e.g., CPM, RPKM, TPM
+            parts = p.stem.split("/")
+            if len(parts) > 1:
+                return parts[-1]
+            else:
+                return "unknown"
+        else:
+            return "unknown"
+        
 
 
-outdir = pathlib.Path(snakemake.output.hub).parent
-hub = tracknado.HubGenerator(
-    track_design=design,
-    genome=snakemake.params.genome,
-    hub_name=snakemake.params.hub_name,
-    description_html=pathlib.Path(snakemake.input.report),
-    hub_email=snakemake.params.hub_email,
-    custom_genome=snakemake.params.custom_genome,
-    genome_twobit=snakemake.params.genome_twobit,
-    genome_organism=snakemake.params.genome_organism,
-    genome_default_position=snakemake.params.genome_default_position,
-    outdir=outdir,
-)
+    color_by = snakemake.params.color_by
+    subgroup_by = snakemake.params.subgroup_by if any(snakemake.params.subgroup_by) else None
+    supergroup_by = snakemake.params.supergroup_by
+    overlay_by = snakemake.params.overlay_by
 
-hub.stage_hub()
-design.to_pickle(outdir / ".track_design.pkl")
+    # Flatten all groupings to a list of strings
+    grouping_cols = []
+    if color_by:
+        if isinstance(color_by, (list, tuple)):
+            grouping_cols.extend(color_by)
+        else:
+            grouping_cols.append(color_by)
+    for group in [subgroup_by, supergroup_by, overlay_by]:
+        if group:
+            grouping_cols.extend(group)
+
+    for col in grouping_cols:
+        df[col] = df["fn"].apply(lambda x: extract_metadata_from_path(x, col))
+
+    # Create hub design
+    design = tracknado.TrackDesign.from_design(
+        df,
+        color_by=snakemake.params.color_by,
+        subgroup_by=snakemake.params.subgroup_by
+        if any(snakemake.params.subgroup_by)
+        else None,
+        supergroup_by=snakemake.params.supergroup_by,
+        overlay_by=snakemake.params.overlay_by,
+    )
+
+    
+    
+
+    # Generate hub files
+    outdir = Path(str(snakemake.output.hub)).parent
+    hub = tracknado.HubGenerator(
+        track_design=design,
+        genome=snakemake.params.genome,
+        hub_name=snakemake.params.hub_name,
+        description_html=Path(snakemake.input.report),
+        hub_email=snakemake.params.hub_email,
+        custom_genome=snakemake.params.custom_genome,
+        genome_twobit=snakemake.params.genome_twobit,
+        genome_organism=snakemake.params.genome_organism,
+        genome_default_position=snakemake.params.genome_default_position,
+        outdir=outdir,
+    )
+
+    hub.stage_hub()
+    design.to_pickle(outdir / ".track_design.pkl")
+
+    logger.info(f"✓ Hub files generated successfully in {outdir}")
+    logger.info("=" * 80)
+
+except Exception as e:
+    logger.error("=" * 80)
+    logger.error(f"ERROR: Failed to generate UCSC hub: {e}")
+    logger.error(f"Exception type: {type(e).__name__}")
+    import traceback
+
+    logger.error(f"Traceback:\n{traceback.format_exc()}")
+    logger.error("=" * 80)
+    raise

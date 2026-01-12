@@ -6,19 +6,18 @@ import pandas as pd
 import seaborn as sns
 from loguru import logger
 
-# Handle Snakemake execution context
-try:
+
+def snakemake_setup():
+    if "snakemake" not in globals():
+        raise RuntimeError("This script must be run via Snakemake.")
+    log_file = snakemake.log[0]
+    logger.remove()
+    logger.add(log_file, format="{time} {level} {message}", level="INFO")
+    logger.add(sys.stderr, format="{time} {level} {message}", level="ERROR")
     input_files = snakemake.input
     output_file = snakemake.output[0]
-    assay = snakemake.params.assay
-    log_file = snakemake.log[0]
-    logger.add(log_file, level="INFO")
-except NameError:
-    input_files = sys.argv[1:-3]  # Capture multiple input files
-    output_file = sys.argv[-3]
-    assay = sys.argv[-2]
-    log_file = sys.argv[-1]
-    logger.add(log_file, level="INFO")
+    method = snakemake.params.method
+    return input_files, output_file, method
 
 
 def plot_methylation_bias(summary_df, output_file):
@@ -29,6 +28,7 @@ def plot_methylation_bias(summary_df, output_file):
         summary_df (pd.DataFrame): DataFrame containing conversion rates.
         output_file (str): Path to save the output plot.
     """
+    logger.info(f"Generating methylation bias plot: {output_file}")
     sns.set_theme(style="whitegrid", palette="Set2")
     fig, ax = plt.subplots(1, 2, figsize=(12, 7), sharey=True)
     sns.barplot(
@@ -42,7 +42,7 @@ def plot_methylation_bias(summary_df, output_file):
     ax[0].set_ylabel("Conversion Rate (%)", fontsize=12)
     ax[0].set_xlabel("")
     ax[0].set_ylim(0, 100)
-    
+
     sns.barplot(
         data=summary_df,
         x="Sample",
@@ -77,28 +77,35 @@ def plot_methylation_bias(summary_df, output_file):
     plt.tight_layout()
     plt.savefig(output_file, bbox_extra_artists=(legend,), bbox_inches="tight")
     plt.close()
-    print(f"Methylation bias summary plot saved: {output_file}")
+    logger.info(f"Methylation bias summary plot saved: {output_file}")
 
 
-def combine_methylation_bias(input_files, output_file, assay):
+def combine_methylation_bias(input_files: list, output_file: str, method: str):
     """
     Combines methylation bias statistics from multiple samples into a single summary file.
 
     Parameters:
         input_files (list): List of input file paths containing bias statistics.
         output_file (str): Path to the output summary file.
-        assay (str): Type of assay ("bisulfite" or "taps").
+        method (METHOD): Type of method ("bisulfite" or "taps").
     """
+    logger.info(f"Combining methylation bias from {len(input_files)} input files.")
     combined_data = []
 
     for bias_file in input_files:
-        df = pd.read_csv(bias_file, sep="\t")
+        logger.info(f"Processing bias file: {bias_file}")
+        try:
+            df = pd.read_csv(bias_file, sep="\t")
+        except Exception as e:
+            logger.error(f"Failed to read {bias_file}: {e}")
+            continue
 
         # Extract sample & genome from filename
         filename = os.path.basename(bias_file).replace(".txt", "")
         parts = filename.split("_")
         sample = parts[0]
         genome = "_".join(parts[1:])  # Handle cases where genome has "_"
+        logger.debug(f"Sample: {sample}, Genome: {genome}")
 
         # Compute aggregated methylation bias for Read 1 and Read 2
         read1 = df[df["Read"] == 1].sum()
@@ -118,8 +125,8 @@ def combine_methylation_bias(input_files, output_file, assay):
             else None
         )
 
-        # Adjust for TAPS assay
-        if assay == "taps":
+        # Adjust for TAPS method
+        if method == "taps":
             read1_meth = 100 - read1_meth if read1_meth is not None else None
             read2_meth = 100 - read2_meth if read2_meth is not None else None
 
@@ -166,5 +173,12 @@ def combine_methylation_bias(input_files, output_file, assay):
         logger.error(f"Error generating plot: {e}")
 
 
+def main():
+    input_files, output_file, method = snakemake_setup()
+    logger.info(
+        f"Starting methylation conversion script with input_files={input_files}, output_file={output_file}, method={method}"
+    )
+    combine_methylation_bias(input_files, output_file, method)
+
 if __name__ == "__main__":
-    combine_methylation_bias(input_files, output_file, assay)
+    main()

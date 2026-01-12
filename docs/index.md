@@ -1,56 +1,51 @@
 # SeqNado
 
-![Seqnado Logo](https://raw.githubusercontent.com/alsmith151/SeqNado/main/containers/seqnado.png)
+# Introduction
 
-SeqNado is a Snakemake-based workflow for ChIP-seq (with optional spike-in normalisation), ATAC-seq, RNA-seq, and short-read WGS SNP calling. It is designed to be modular, reproducible, and easy to deploy using Apptainer/Singularity containers. SeqNado provides end-to-end pipelines that take you from raw FASTQ files to publication-ready results with minimal setup.
+Welcome to SeqNado! SeqNado is a powerful bioinformatics tool designed to simplify the analysis and integration of high-throughput sequencing data. It supports a wide range of sequencing assays and provides advanced features for multiomics data processing.
 
-## Quick Start
+## Key Features
+- **Multiomics Data Processing**: Analyze and integrate data from multiple omics layers.
+- **Configurable Workflows**: Predefined workflows for ATAC, ChIP, RNA, and more.
+- **Third-Party Tool Integration**: Seamless integration with popular bioinformatics tools.
+- **Advanced Data Processing**: Includes features like spike-in normalization, blacklist removal, and genome tiling.
 
-Follow the steps below to spin up a working pipeline instance. Consult the [installation](installation.md) page or other docs as needed.
+## Supported Assays
+SeqNado supports the following sequencing assays:
+- **RNA-seq**: Transcriptome analysis.
+- **ATAC-seq**: Chromatin accessibility profiling.
+- **SNP Analysis**: Single nucleotide polymorphism detection.
+- **ChIP-seq**: Protein-DNA interaction analysis.
+- **CUT&Tag**: Epigenomic profiling.
+- **Methylation**: DNA methylation analysis.
+- **MCC**: Multiplex chromatin conformation capture.
+- **CRISPR**: CRISPR screening analysis.
 
-### 1. Install SeqNado
+## Use Cases
+SeqNado is ideal for:
+- Researchers analyzing high-throughput sequencing data.
+- Bioinformaticians integrating multiomics datasets.
+- Labs requiring reproducible and scalable workflows.
 
-```bash
-mamba install -c bioconda seqnado
-```
+## Additional Features
+SeqNado includes the following advanced capabilities:
 
-The installation guide covers alternative methods, optional dependencies, and troubleshooting tips.
+- **Spike-in Normalization**: Calculate normalization factors for spike-in controls.
+- **Data Visualization**: Generate publication-ready plots and figures.
+- **UCSC Hub Generation**: Create UCSC genome browser hubs for data sharing.
+- **Genome Browser Plots**: Generate visualizations for genome-wide data, including UCSC genome browser hubs.
+- **Quantification Methods**: Comprehensive tools for read count quantification, grouped read counts, and combined read counts.
+- **Machine Learning Dataset Creation**: Prepare datasets for machine learning applications.
 
-### 2. Scaffold a working directory
+These features are fully customizable through configuration files, making SeqNado adaptable to a variety of research needs.
 
-```bash
-seqnado-config [atac|chip|rna|snp]
-```
+# Get Started with SeqNado
 
-This command creates a project directory and the configuration skeleton for the selected pipeline.
+[Quick Start](quick_start.md)
 
-### 3. Stage input data
-
-- Place or symlink raw FASTQ files into the generated `fastq/` folder.
-- Copy or create any additional resources (e.g., spike-in references) expected by your config.
-
-```bash
-ln -s /path/to/fastq/*.fastq.gz /path/to/working-directory/fastq/
-```
-
-### 4. (Optional) Supply a design file
-
-If your samples follow SeqNado naming conventions, the design table is generated automatically. Otherwise, run:
-
-```bash
-cd /path/to/working-directory
-seqnado-design [atac|chip|rna|snp]
-```
-
-### 5. Launch the workflow
-
-```bash
-cd /path/to/working-directory
-seqnado [atac|chip|rna|snp] -c <cores> --preset [ss|ls] \
-  --queue/-q [short|long] --scale-resource/-s <factor>
-
-# Example
-seqnado rna -c 8 --preset ss
-```
-
-Use `--preset ss` to submit jobs to the cluster (recommended) or `--preset ls` for local execution. Adjust `--queue` and `--scale-resource` to fit your environment. Additional usage details, presets, and pipeline-specific parameters are documented in `docs/pipeline.md` and the CLI help (`seqnado --help`).
+- [Installation](installation.md)
+- [Initialisation](initialisation.md)
+- [Genomes](genomes.md)
+- [Configuration](configuration.md)
+- [Design](design.md)
+- [Pipeline](pipeline.md)

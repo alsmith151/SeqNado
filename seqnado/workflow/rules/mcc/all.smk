@@ -1,0 +1,7 @@
+include: "identify.smk"
+include: "interactions.smk"
+include: "map_to_genome.smk"
+include: "map_to_viewpoints.smk"
+include: "peaks.smk"
+include: "pileup.smk"
+include: "stats.smk"
