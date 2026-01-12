@@ -1,4 +1,4 @@
-![Seqnado Logo](https://raw.githubusercontent.com/alsmith151/SeqNado/main/seqnado_logo.jpeg)
+# SeqNado
 
 # Introduction
 
