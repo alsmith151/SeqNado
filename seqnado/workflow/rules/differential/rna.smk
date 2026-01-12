@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 rule deseq2_report_rnaseq:
     input:
         counts=OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
@@ -21,7 +22,6 @@ rule deseq2_report_rnaseq:
     cd "$base_dir"
     quarto render {input.qmd} --no-cache --output {output.deseq2} --log {log} --execute-params {input.yml}
     """
-
 
 
 rule deseq2_params:

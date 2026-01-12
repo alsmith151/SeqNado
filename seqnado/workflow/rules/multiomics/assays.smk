@@ -61,3 +61,10 @@ if "mcc" in LOADED_CONFIGS:
         config: LOADED_CONFIGS["mcc"]
 
     use rule * from run_mcc as mcc_*
+
+if "crispr" in LOADED_CONFIGS:
+    module run_crispr:
+        snakefile: workflow.basedir + "/Snakefile"
+        config: LOADED_CONFIGS["crispr"]
+
+    use rule * from run_crispr as crispr_*

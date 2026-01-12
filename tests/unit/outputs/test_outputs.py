@@ -94,7 +94,7 @@ def _small_collection(tmp: Path) -> FastqCollection:
     r1 = FastqFile(path=r1_path)
     r2 = FastqFile(path=r2_path)
     fs = FastqSet(sample_id="s1", r1=r1, r2=r2)
-    return FastqCollection(assay=Assay.ATAC, metadata=[], fastq_sets=[fs])
+    return FastqCollection(assay=Assay.ATAC, metadata=[Metadata(assay=Assay.ATAC)], fastq_sets=[fs])
 
 
 def test_output_builder_bigwigs_only(tmp_path: Path):
@@ -461,7 +461,7 @@ class TestSpikeInFiles:
 
     def test_spikein_files_chip(self):
         """Test SpikeInFiles for ChIP assay."""
-        sif = SpikeInFiles(assay=Assay.CHIP, names=["sample1", "sample2"])
+        sif = SpikeInFiles(assay=Assay.CHIP, names=["sample1", "sample2"], method="orlando")
 
         files = sif.files
         assert len(files) == 1
@@ -470,15 +470,15 @@ class TestSpikeInFiles:
     def test_spikein_invalid_assay(self):
         """Test SpikeInFiles raises error for invalid assay."""
         with pytest.raises(ValueError, match="Invalid assay for spike-in"):
-            SpikeInFiles(assay=Assay.SNP, names=["sample1"])
+            SpikeInFiles(assay=Assay.SNP, names=["sample1"], method="orlando")
 
     def test_norm_factors_property(self):
         """Test norm_factors property."""
         sif = SpikeInFiles(
-            assay=Assay.CHIP, names=["sample1"], output_dir="custom_output"
+            assay=Assay.CHIP, names=["sample1"], method="orlando", output_dir="custom_output"
         )
 
-        assert sif.norm_factors == "custom_output/resources/normalisation_factors.tsv"
+        assert sif.norm_factors == "custom_output/resources/orlando/normalisation_factors.tsv"
 
 
 class TestPlotFiles:
@@ -768,10 +768,11 @@ class TestGeoSubmissionFiles:
         geo = GeoSubmissionFiles(assay=Assay.CHIP, names=["sample1"])
 
         files = geo.default_files
-        assert len(files) == 5
+        assert len(files) == 4
         assert any("md5sums.txt" in f for f in files)
         assert any("samples_table.txt" in f for f in files)
-        assert any("protocol.txt" in f for f in files)
+        assert any("raw_data_checksums.txt" in f for f in files)
+        assert any("processed_data_checksums.txt" in f for f in files)
 
     def test_geo_submission_raw_files(self):
         """Test raw_files property."""
@@ -992,7 +993,7 @@ class TestSeqnadoOutputBuilderCore:
 
         fs1 = FastqSet(sample_id="s1", r1=FastqFile(path=r1_path))
         fs2 = FastqSet(sample_id="s2", r1=FastqFile(path=r2_path))
-        samples = FastqCollection(assay=Assay.ATAC, metadata=[], fastq_sets=[fs1, fs2])
+        samples = FastqCollection(assay=Assay.ATAC, metadata=[Metadata(assay=Assay.ATAC), Metadata(assay=Assay.ATAC)], fastq_sets=[fs1, fs2])
 
         groups = SampleGroupings(
             groupings={
@@ -1064,7 +1065,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.ATAC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.ATAC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1107,7 +1108,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.ATAC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.ATAC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1247,7 +1248,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.SNP,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.SNP)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1281,7 +1282,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.METH,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.METH)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1321,7 +1322,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.MCC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.MCC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1354,7 +1355,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.RNA,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.RNA)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1395,7 +1396,7 @@ class TestSeqnadoOutputBuilderCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.SNP,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.SNP)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1542,7 +1543,7 @@ class TestSeqnadoOutputFactoryCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.ATAC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.ATAC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 
@@ -1586,7 +1587,7 @@ class TestSeqnadoOutputFactoryCore:
         r1.write_text("@r\nN\n+\n#\n")
         samples = FastqCollection(
             assay=Assay.ATAC,
-            metadata=[],
+            metadata=[Metadata(assay=Assay.ATAC)],
             fastq_sets=[FastqSet(sample_id="s1", r1=FastqFile(path=r1))],
         )
 

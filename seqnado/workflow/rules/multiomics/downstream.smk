@@ -1,10 +1,11 @@
-from seqnado.helpers import define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested
 from seqnado.outputs.multiomics import get_assay_bigwigs
 
 
 # def get_bigwigs_for_dataset(wildcards):
 #     """Get bigWig files at runtime after assay rules complete."""
 #     return get_assay_bigwigs(wildcards, ASSAYS=ASSAYS, rules=rules)
+
 
 rule gather_bigwigs:
     input:

@@ -1,4 +1,6 @@
 
+
+
 rule split_reads_aligned_to_viewpoints:
     input:
         bam=OUTPUT_DIR + "/aligned/aligned_to_viewpoints/{sample}.bam",
@@ -13,7 +15,6 @@ rule split_reads_aligned_to_viewpoints:
     message: "Splitting reads aligned to viewpoints for sample {wildcards.sample}",
     script:
         "../../scripts/mcc_split_reads_aligned_to_viewpoints.py"
-
 
 
 rule align_mcc_reads_to_genome:
@@ -44,6 +45,7 @@ rule align_mcc_reads_to_genome:
     | samtools view -bS - > {output.bam}
     """
 
+
 rule align_unmapped_reads_to_genome:
     input:
         bam=OUTPUT_DIR + "/aligned/initial_alignment/{sample}.bam",
@@ -67,6 +69,7 @@ rule align_unmapped_reads_to_genome:
     mv {output.bam}_sorted {output.bam} &&
     samtools index {output.bam}
     """
+
 
 rule combine_genome_mapped_reads:
     input:

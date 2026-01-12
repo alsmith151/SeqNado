@@ -1,6 +1,7 @@
 # Define rules for generating merged SAF files and counting reads using featureCounts
 # Requires a rule to generate the merged peak files beforehand
 
+
 rule merged_saf:
     input:
         peaks=OUTPUT_DIR + "/peaks/merged/lanceotron/{group}.bed",
@@ -17,6 +18,7 @@ rule merged_saf:
     shell: """
     awk 'BEGIN{{OFS="\\t"}}{{print $1":"$2"-"$3,$1,$2,$3,"\\*"}}' {input.peaks} > {output.saf}
     """
+
 
 rule merged_counts:
     input:

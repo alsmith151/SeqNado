@@ -63,12 +63,14 @@ def init_seqnado_project(
     genes_bed_source = test_data_path.parent.parent / "tests" / "data" / "hg38_genes.bed"
     genes_bed = test_data_path / "hg38_genes.bed"
     if not genes_bed.exists() and genes_bed_source.exists():
+        genes_bed.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(genes_bed_source, genes_bed)
 
     # Copy plotting_coordinates.bed from tests/data to test_output/data if it doesn't exist
     plot_coords_source = test_data_path.parent.parent / "tests" / "data" / "plotting_coordinates.bed"
     plot_coords = test_data_path / "plotting_coordinates.bed"
     if not plot_coords.exists() and plot_coords_source.exists():
+        plot_coords.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(plot_coords_source, plot_coords)
 
     setup_genome_config(
@@ -183,6 +185,7 @@ def create_config_yaml(
     fastq_screen_config_path = genome_path / "fastq_screen.conf"
 
     # Update config with test assay settings
+    config["assay_config"]["create_geo_submission_files"] = True
     config["qc"]["run_fastq_screen"] = True
 
     # Update the third_party_tools config which is what the Snakemake rule uses
@@ -195,9 +198,16 @@ def create_config_yaml(
     )
 
     with open(test_config_file) as f:
-        assay_config = yaml.safe_load(f)
+        test_overrides = yaml.safe_load(f)
 
-    config.update(assay_config)
+    # Deep merge the test config into the base config
+    for key, value in test_overrides.items():
+        if key in config and isinstance(config[key], dict) and isinstance(value, dict):
+            # Deep merge for nested dicts (like assay_config)
+            config[key].update(value)
+        else:
+            # Simple replacement for non-dict values
+            config[key] = value
 
     # Add genome directory bind mount for Singularity/Apptainer
     # This allows the container to access genome files (e.g., bt2 indexes for fastq_screen)
@@ -286,15 +296,23 @@ def create_design_file(
         Path to the generated design file
     """
 
-    # amend -rx assays to base assay names
+    # Keep original assay name for directory and pattern lookup
+    original_assay = assay
+    
+    # Get pattern for original assay (e.g., "rna-rx" → "rna-spikein-*.fastq.gz")
+    pattern = get_fastq_pattern(original_assay)
+    
+    # Amend -rx assays to base assay names for seqnado command
     if assay.endswith("-rx"):
         assay = assay.replace("-rx", "")
 
-    # Expand the glob pattern to get actual FASTQ file paths
-    pattern = get_fastq_pattern(assay)
-
     # For multiomics, FASTQs are in fastqs/{assay}/ subdirectory
-    fastq_dir = run_directory / "fastqs" / assay
+    # Try original assay name first, then amended name
+    fastq_dir = run_directory / "fastqs" / original_assay
+
+    # Fall back to amended assay name subdirectory
+    if not fastq_dir.exists():
+        fastq_dir = run_directory / "fastqs" / assay
 
     # Fall back to fastqs/ if assay-specific directory doesn't exist
     if not fastq_dir.exists():
@@ -317,8 +335,10 @@ def create_design_file(
     ]
 
     # Add relative paths to FASTQ files
-    # For multiomics structure: fastqs/{assay}/{file}.fastq.gz
-    if (run_directory / "fastqs" / assay).exists():
+    # Determine which directory we're using
+    if (run_directory / "fastqs" / original_assay).exists():
+        cmd.extend([f"fastqs/{original_assay}/{f.name}" for f in fastq_files])
+    elif (run_directory / "fastqs" / assay).exists():
         cmd.extend([f"fastqs/{assay}/{f.name}" for f in fastq_files])
     else:
         # Fall back to old structure: fastqs/{file}.fastq.gz
@@ -336,6 +356,7 @@ def create_design_file(
     )
 
     design_file = run_directory / f"metadata_{assay}.csv"
+
     assert design_file.exists(), f"Design file not created at {design_file}"
 
     return design_file
@@ -347,7 +368,14 @@ def multiomics_run_directory(tmp_path_factory):
     Fixture to provide a run directory for Multiomic tests.
     Returns a Path object to a unique temp directory.
     """
-    return tmp_path_factory.mktemp("multiomics_run")
+    # Use the same pattern as TestContext.run_directory to handle FileExistsError
+    try:
+        base_temp = tmp_path_factory.getbasetemp()
+    except FileExistsError:
+        base_temp = tmp_path_factory._basetemp
+    run_dir = base_temp / "multiomics_run"
+    run_dir.mkdir(exist_ok=True, parents=True)
+    return run_dir
 
 
 def get_metadata_path(test_data_dir: Path, assay: str) -> Path:

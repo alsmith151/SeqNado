@@ -4,8 +4,12 @@ project:
   description: "Test project for RNA-seq with spike in"
 assay_config:
   spikein:
-    method: "orlando"
-    exogenous_genome: "Cas9"
+    method: "deseq2"
+    exogenous_genome: "plasmid"
     endogenous_genome: "hg38"
+    control_genes:
+      - AmpR_seq
+      - Cas9_3p_seq
+      - Cas9_5p_seq
   plot_with_plotnado: False
   has_spikein: True

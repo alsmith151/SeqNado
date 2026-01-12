@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Union, Optional
 from enum import Enum
-from pydantic import BaseModel, computed_field, field_validator
+from pydantic import BaseModel, computed_field, field_validator, ValidationInfo
 
 
 class CommonComputedFieldsMixin:
@@ -96,10 +96,17 @@ class PathValidatorMixin:
 
     @staticmethod
     def validate_path_exists(
-        v: Path | str | None, field_name: str = "path"
+        v: Path | str | None, field_name: str = "path", info: ValidationInfo | None = None
     ) -> Path | str | None:
-        """Validate that a path exists if provided."""
+        """Validate that a path exists if provided.
+
+        Skips validation if 'skip_path_validation' is True in the validation context.
+        This allows creating template configs with placeholder paths.
+        """
         if v is not None:
+            # Skip validation if context flag is set (for template generation)
+            if info and info.context and info.context.get("skip_path_validation", False):
+                return v
             path = Path(v) if isinstance(v, str) else v
             if not path.exists():
                 raise ValueError(f"{field_name} {v} does not exist.")

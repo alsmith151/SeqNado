@@ -1,4 +1,5 @@
-from seqnado.helpers import define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested
+
 
 rule make_dataset_regions:
     """Create a dataset from bigWig files using either a BED file."""
@@ -31,6 +32,7 @@ rule make_dataset_regions:
     --blacklist {params.blacklist} \
     --log-file {log}
     """
+
 
 rule make_dataset_binsize:
     """Create a dataset from bigWig files using bin size."""

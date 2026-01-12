@@ -1,38 +1,6 @@
 import re
-from seqnado.helpers import define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested, format_deeptools_options
 from seqnado.config.third_party_tools import CommandLineArguments
-
-
-def format_deeptools_options(wildcards, options: CommandLineArguments) -> str:
-    """
-    Format the command line options for deeptools based on the input files and parameters.
-
-    Mainly this removes the extend reads option if single ended
-    """
-
-    try:
-        if hasattr(wildcards, "group"):
-            sample = (
-                SAMPLE_GROUPINGS.get_grouping("consensus")
-                .get_group(wildcards.group)
-                .samples
-            )
-            if not all(INPUT_FILES.is_paired_end(sample_name) for sample_name in sample):
-                options = CommandLineArguments(
-                    value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"}
-                )
-        else:
-            search_term = f"{wildcards.sample}"
-            is_paired = INPUT_FILES.is_paired_end(search_term)
-            if not is_paired:
-                options = CommandLineArguments(
-                    value=options, exclude={"--extendReads", "-e", "--samFlagInclude 3"}
-                )
-    except KeyError as e:
-        pass
-
-
-    return str(options)
 
 
 rule homer_make_tag_directory:
@@ -111,9 +79,9 @@ rule deeptools_make_bigwigs:
     params:
         options=lambda wildcards: format_deeptools_options(
             wildcards,
-            str(
-                CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments
-            ),
+            str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments),
+            INPUT_FILES,
+            SAMPLE_GROUPINGS,
         ),
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(

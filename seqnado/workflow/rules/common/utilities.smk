@@ -6,7 +6,7 @@ rule save_design:
     benchmark: OUTPUT_DIR + "/.benchmark/save_design.tsv",
     message: "Saving design dataframe to metadata.csv in output directory",
     run:
-        DESIGN.to_dataframe().to_csv(OUTPUT_DIR + "/metadata.csv", index=False)
+        INPUT_FILES.to_dataframe().to_csv(OUTPUT_DIR + "/metadata.csv", index=False)
 
 
 rule make_genomic_bins:
@@ -29,7 +29,6 @@ rule make_genomic_bins:
     """
 
 
-
 rule bed_to_saf:
     input:
         bed=OUTPUT_DIR + "/resources/genomic_bins.bed",
@@ -48,24 +47,6 @@ rule bed_to_saf:
     awk 'BEGIN{{OFS="\t"}} {{print $4, $1, $2, $3, "."}}' {input.bed} > {output.saf} 2> {log}
     """
 
-rule get_fasta:
-    input:
-        peaks=OUTPUT_DIR + "/peaks/{method}/{sample}.bed",
-    output:
-        fasta=OUTPUT_DIR + "/motifs/fasta/{sample}.fa",
-        bed=temp("motifs/fasta/{sample}_clean.bed"),
-    params:
-        genome=CONFIG.genome.fasta,
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    log: OUTPUT_DIR + "/logs/motifs/fasta/{sample}.log",
-    benchmark: OUTPUT_DIR + "/.benchmark/motifs/fasta/{sample}.tsv",
-    message: "Extracting FASTA sequences for peaks of sample {wildcards.sample}",
-    shell: """
-    cat {input.peaks} | cut -f 1-3 > {output.bed} &&
-    bedtools getfasta -fullHeader -fi {params.genome} -bed {output.bed} -fo {output.fasta}
-    """
 
 rule validate_peaks:
     input:

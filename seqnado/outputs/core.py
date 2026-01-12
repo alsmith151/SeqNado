@@ -1,11 +1,12 @@
 from itertools import chain
 from pathlib import Path
-from typing import List, Any
+from typing import Any, List
 
 from loguru import logger
 from pydantic import BaseModel, Field
 
 from seqnado import Assay, DataScalingTechnique, PeakCallingMethod, PileupMethod
+from seqnado import QuantificationMethod
 from seqnado.config import SeqnadoConfig
 from seqnado.inputs import (
     BamCollection,
@@ -20,6 +21,7 @@ from seqnado.outputs.files import (
     BigBedFiles,
     BigWigFiles,
     ContactFiles,
+    CRISPRFiles,
     FileCollection,
     GeoSubmissionFiles,
     HeatmapFiles,
@@ -34,6 +36,28 @@ from seqnado.outputs.files import (
     SNPFilesRaw,
     SpikeInFiles,
 )
+
+
+class GeoMetadataFilesWrapper:
+    """Wrapper that exposes only metadata files from GeoSubmissionFiles for Snakemake output tracking.
+    
+    This wrapper ensures that only the metadata files (checksums, samples table) that are
+    declared as explicit rule outputs are included in the Snakemake OUTPUT object.
+    The individual symlinked FASTQ and processed files are created by the geo_symlink rule
+    but are not tracked as explicit outputs since they cannot be declared dynamically.
+    """
+    
+    def __init__(self, geo_files: GeoSubmissionFiles):
+        self._geo_files = geo_files
+    
+    @property
+    def files(self) -> List[str]:
+        """Return only metadata files."""
+        return self._geo_files.metadata_files if self._geo_files.metadata_files else []
+    
+    def __bool__(self) -> bool:
+        """Return True if there are any metadata files."""
+        return bool(self.files)
 
 
 class SeqnadoOutputFiles(BaseModel):
@@ -54,7 +78,9 @@ class SeqnadoOutputFiles(BaseModel):
         """Return all files in the output collection."""
         return self.files
 
-    def select_files(self, suffix: str, contains: str | None = None, exclude: str | None = None) -> List[str]:
+    def select_files(
+        self, suffix: str, contains: str | None = None, exclude: str | None = None
+    ) -> List[str]:
         """Filter files by suffix and optional substring.
 
         Args:
@@ -71,7 +97,9 @@ class SeqnadoOutputFiles(BaseModel):
         return [
             f
             for f in self.files
-            if f.lower().endswith(suffix) and (contains in f if contains else True) and (exclude not in f if exclude else True)
+            if f.lower().endswith(suffix)
+            and (contains in f if contains else True)
+            and (exclude not in f if exclude else True)
         ]
 
     @property
@@ -109,7 +137,10 @@ class SeqnadoOutputFiles(BaseModel):
             return [
                 f
                 for f in self.files
-                if f.endswith(".bigWig") and (method.value in f) and (scale.value in f) and "/geo_submission/" not in f
+                if f.endswith(".bigWig")
+                and (method.value in f)
+                and (scale.value in f)
+                and "/geo_submission/" not in f
             ]
 
     @property
@@ -135,6 +166,7 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def genome_browser_plots(self):
         return self.select_files(".pdf", contains="genome_browser")
+
     @property
     def ucsc_hub_files(self):
         return self.select_files(".txt", contains="hub")
@@ -192,7 +224,21 @@ class SeqNadoReportFiles:
         ):
             builder.add_peak_files()
 
-        if (
+            # Add motif files for assays with peak calling
+            peak_config = self.config.assay_config.peak_calling
+            if peak_config and peak_config.run_motif_analysis and peak_config.motif_method:
+                from seqnado import MotifMethod
+                run_homer = MotifMethod.HOMER in peak_config.motif_method
+                run_meme = MotifMethod.MEME in peak_config.motif_method
+                builder.add_motif_files(
+                    run_homer=run_homer,
+                    run_meme=run_meme,
+                )
+
+        # Add quantification files for RNA assays with quantification method or if explicitly requested
+        if self.assay == Assay.RNA and hasattr(self.config.assay_config, "rna_quantification") and self.config.assay_config.rna_quantification:
+            builder.add_quantification_files()
+        elif (
             "create_quantification_files" in self.config.assay_config
             and self.config.assay_config.create_quantification_files
         ):
@@ -204,10 +250,10 @@ class SeqNadoReportFiles:
         ):
             builder.add_spikein_files()
 
-        if self.assay == Assay.SNP:
+        if self.assay == Assay.SNP and self.config.assay_config.call_snps:
             builder.add_snp_files()
 
-        if self.assay == Assay.METH:
+        if self.assay == Assay.METH and self.config.assay_config.call_methylation:
             builder.add_methylation_files()
 
         all_files = builder.build().all_files
@@ -253,11 +299,20 @@ class SeqnadoOutputBuilder:
 
         # Determine scale methods from config, default to UNSCALED if not specified
         # Default to UNSCALED when scale_methods aren't provided in config
-        self.scale_methods = getattr(
+        scale_methods_config = getattr(
             getattr(self.config.assay_config, "bigwigs", object()),
             "scale_methods",
-            [DataScalingTechnique.UNSCALED],
+            None,
         )
+
+        # Convert string values to DataScalingTechnique enums if needed
+        if scale_methods_config:
+            self.scale_methods = [
+                DataScalingTechnique(m) if isinstance(m, str) else m
+                for m in scale_methods_config
+            ]
+        else:
+            self.scale_methods = [DataScalingTechnique.UNSCALED]
 
         # Initialize an empty list to hold file collections
         self.file_collections: list[FileCollection] = []
@@ -370,6 +425,27 @@ class SeqnadoOutputBuilder:
         )
         self.file_collections.append(peaks)
 
+    def add_motif_files(self, run_homer: bool = True, run_meme: bool = False) -> None:
+        """Add motif analysis files to the output collection."""
+        from seqnado.outputs.files import MotifFiles
+        from seqnado.inputs import FastqCollectionForIP
+
+        # For IP-based assays, only analyze motifs from IP samples
+        if isinstance(self.samples, FastqCollectionForIP):
+            sample_names = self.samples.ip_sample_names
+        else:
+            sample_names = self.samples.sample_names
+
+        motifs = MotifFiles(
+            assay=self.assay,
+            names=sample_names,
+            peak_calling_method=self.config.assay_config.peak_calling.method,
+            output_dir=self.output_dir,
+            run_homer=run_homer,
+            run_meme=run_meme,
+        )
+        self.file_collections.append(motifs)
+
     def add_grouped_peak_files(self) -> None:
         """Add grouped peak files to the output collection."""
 
@@ -418,9 +494,14 @@ class SeqnadoOutputBuilder:
 
     def add_spikein_files(self) -> None:
         """Add spike-in files to the output collection."""
+        # Get the spike-in method from config
+        spikein_config = getattr(self.config.assay_config, 'spikein', None)
+        method = spikein_config.method.value if spikein_config else "orlando"
+
         spikein_files = SpikeInFiles(
             assay=self.assay,
             names=self.samples.sample_names,
+            method=method,
             output_dir=self.output_dir,
         )
         self.file_collections.append(spikein_files)
@@ -471,6 +552,18 @@ class SeqnadoOutputBuilder:
         )
         self.file_collections.append(contact_files)
 
+    def add_crispr_files(self) -> None:
+        """Add CRISPR-specific files (including MAGeCK outputs) to the output collection."""
+        use_mageck = False
+        if hasattr(self.config.assay_config, "use_mageck"):
+            use_mageck = self.config.assay_config.use_mageck
+
+        crispr_files = CRISPRFiles(
+            use_mageck=use_mageck,
+            output_dir=self.output_dir,
+        )
+        self.file_collections.append(crispr_files)
+
     def add_quantification_files(self) -> None:
         """Add quantification files to the output collection."""
         # Get the consensus grouping if it exists, otherwise use empty SampleGroups
@@ -483,10 +576,12 @@ class SeqnadoOutputBuilder:
 
         quantification_files = QuantificationFiles(
             assay=self.assay,
-            methods=[self.config.assay_config.rna_quantification.method],
+            methods=[self.config.assay_config.rna_quantification.method]
+            if hasattr(self.config.assay_config, "rna_quantification")
+            else [QuantificationMethod.FEATURE_COUNTS],
             names=self.samples.sample_names,
             groups=groups,
-            output_dir=f"{self.output_dir}/quantification",
+            output_dir=self.output_dir,
         )
         self.file_collections.append(quantification_files)
 
@@ -496,6 +591,10 @@ class SeqnadoOutputBuilder:
         **Note**: This method builds the output files collection
         and appends it to the file_collections list. So it should be called
         after all other file collections have been added if you want to include GEO files in the final output.
+        
+        Only the metadata files (checksums, samples table) are added to the output,
+        not the individual symlinked FASTQ and processed files, as those cannot be
+        declared as dynamic rule outputs in Snakemake.
         """
 
         if isinstance(self.samples, (BamCollection, BigWigCollection)):
@@ -509,8 +608,9 @@ class SeqnadoOutputBuilder:
             names=self.samples.sample_names,
             seqnado_files=outfiles,
             output_dir=self.output_dir,
+            samples=self.samples,  # Pass samples so we can check if paired-end
         )
-        self.file_collections.append(geo_files)
+        self.file_collections.append(GeoMetadataFilesWrapper(geo_files))
 
     def build(self) -> SeqnadoOutputFiles:
         """Builds the output files collection based on the added file collections."""
@@ -520,7 +620,7 @@ class SeqnadoOutputBuilder:
 
         # Get design dataframe from samples if available
         design_df = None
-        if hasattr(self.samples, 'to_dataframe'):
+        if hasattr(self.samples, "to_dataframe"):
             design_df = self.samples.to_dataframe()
 
         return SeqnadoOutputFiles(
@@ -638,8 +738,20 @@ class SeqnadoOutputFactory:
             output_dir=self.output_dir,
         )
 
-        builder.add_qc_files()
-        builder.add_report_files()
+        # Only add QC files and reports for assays that support them (those with QC tools configured)
+        qc_supported_assays = [
+            Assay.ATAC,
+            Assay.CHIP,
+            Assay.CAT,
+            Assay.RNA,
+            Assay.SNP,
+            Assay.METH,
+            Assay.MCC,
+            Assay.CRISPR,
+        ]
+        if self.assay in qc_supported_assays:
+            builder.add_qc_files()
+            builder.add_report_files()
 
         if self.assay_config.create_bigwigs:
             if not self.assay == Assay.MCC:
@@ -656,6 +768,17 @@ class SeqnadoOutputFactory:
                     builder.add_grouped_peak_files()
             else:
                 builder.add_mcc_sentinel_peak_files()
+
+            # Add motif files if motif analysis is enabled
+            peak_config = self.assay_config.peak_calling
+            if peak_config and peak_config.run_motif_analysis and peak_config.motif_method:
+                from seqnado import MotifMethod
+                run_homer = MotifMethod.HOMER in peak_config.motif_method
+                run_meme = MotifMethod.MEME in peak_config.motif_method
+                builder.add_motif_files(
+                    run_homer=run_homer,
+                    run_meme=run_meme,
+                )
 
         if self.assay_config.create_heatmaps:
             builder.add_heatmap_files()
@@ -677,10 +800,14 @@ class SeqnadoOutputFactory:
             case Assay.ATAC | Assay.CHIP | Assay.CAT | Assay.RNA:
                 if self.assay_config.plot_with_plotnado:
                     builder.add_plot_files()
+            case Assay.CRISPR:
+                builder.add_crispr_files()
             case Assay.SNP:
-                builder.add_snp_files()
+                if self.assay_config.call_snps:
+                    builder.add_snp_files()
             case Assay.METH:
-                builder.add_methylation_files()
+                if self.assay_config.call_methylation:
+                    builder.add_methylation_files()
             case Assay.MCC:
                 builder.add_contact_files()
             case _:

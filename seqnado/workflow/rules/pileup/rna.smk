@@ -1,4 +1,6 @@
 
+
+
 rule deeptools_make_bigwigs_rna_plus:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",

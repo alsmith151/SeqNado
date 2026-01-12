@@ -1,9 +1,14 @@
-from seqnado.helpers import define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.common import (
+    define_time_requested, 
+    define_memory_requested,
+    get_alignment_input,
+)
+
 
 rule align_paired:
     input:
-        fq1=OUTPUT_DIR + "/trimmed/{sample}_1.fastq.gz",
-        fq2=OUTPUT_DIR + "/trimmed/{sample}_2.fastq.gz",
+        fq1=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=True)["fq1"],
+        fq2=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=True)["fq2"],
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     params:
@@ -30,9 +35,10 @@ rule align_paired:
     | samtools view -bS - > {output.bam}
     """
 
+
 rule align_single:
     input:
-        fq1=OUTPUT_DIR + "/trimmed/{sample}.fastq.gz",
+        fq1=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=False),
     output:
         bam=temp(OUTPUT_DIR + "/aligned/raw/{sample}.bam"),
     params:

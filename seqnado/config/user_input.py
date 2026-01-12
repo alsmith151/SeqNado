@@ -7,7 +7,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import jinja2
 from loguru import logger
@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from seqnado import (
     Assay,
     MethylationMethod,
+    MotifMethod,
     PeakCallingMethod,
     PileupMethod,
     QuantificationMethod,
@@ -49,7 +50,6 @@ from seqnado.config import (
     SpikeInConfig,
     STARIndex,
     UCSCHubConfig,
-    UserFriendlyError,
 )
 
 
@@ -117,7 +117,7 @@ def get_user_input(
         # Handle multi-select from choices
         if multi_select and choices:
             # Split by comma and validate each selection
-            selections = [s.strip() for s in user_input.split(',')]
+            selections = [s.strip() for s in user_input.split(",")]
             invalid_selections = [s for s in selections if s not in choices]
 
             if invalid_selections:
@@ -194,14 +194,28 @@ def get_project_config() -> ProjectConfig:
 
     return ProjectConfig(name=project_name, date=today, directory=Path(project_dir))
 
+
 def get_qc_config() -> QCConfig:
     """Get QC configuration from user input."""
-    run_fastq_screen = get_user_input("Perform FastQScreen?", default="no", is_boolean=True)
-    calculate_library_complexity = get_user_input("Calculate library complexity?", default="no", is_boolean=True)
-    calculate_fraction_of_reads_in_peaks = get_user_input("Calculate Fraction of Reads in Peaks (FRiP)?", default="no", is_boolean=True)
-    return QCConfig(run_fastq_screen=run_fastq_screen, calculate_library_complexity=calculate_library_complexity, calculate_fraction_of_reads_in_peaks=calculate_fraction_of_reads_in_peaks)
+    run_fastq_screen = get_user_input(
+        "Perform FastQScreen?", default="no", is_boolean=True
+    )
+    calculate_library_complexity = get_user_input(
+        "Calculate library complexity?", default="no", is_boolean=True
+    )
+    calculate_fraction_of_reads_in_peaks = get_user_input(
+        "Calculate Fraction of Reads in Peaks (FRiP)?", default="no", is_boolean=True
+    )
+    return QCConfig(
+        run_fastq_screen=run_fastq_screen,
+        calculate_library_complexity=calculate_library_complexity,
+        calculate_fraction_of_reads_in_peaks=calculate_fraction_of_reads_in_peaks,
+    )
 
-def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay = None) -> GenomeConfig:
+
+def select_genome_config(
+    genome_configs: Dict[str, GenomeConfig], assay: Assay = None
+) -> GenomeConfig:
     """Allow user to select a genome configuration.
 
     If assay is provided and an assay-specific genome config exists (e.g., 'meth'),
@@ -225,9 +239,7 @@ def select_genome_config(genome_configs: Dict[str, GenomeConfig], assay: Assay =
         print(
             f"Genome '{genome_name}' is not configured. Please choose from: {', '.join(available_genomes)}"
         )
-        genome_name = get_user_input(
-            "Genome?", default=default_genome
-        )
+        genome_name = get_user_input("Genome?", default=default_genome)
 
     return genome_configs[genome_name]
 
@@ -244,7 +256,7 @@ def get_bigwig_config(assay: Assay) -> Optional[BigwigConfig]:
         "Bigwig method(s) (comma-separated for multiple):",
         choices=[m.value for m in PileupMethod],
         default="deeptools" if not assay == Assay.MCC else PileupMethod.BAMNADO.value,
-        multi_select=True
+        multi_select=True,
     )
 
     # Convert single string to list if default was used
@@ -253,7 +265,9 @@ def get_bigwig_config(assay: Assay) -> Optional[BigwigConfig]:
 
     binsize = get_user_input("Binsize for bigwigs:", default="10", required=False)
 
-    return BigwigConfig(pileup_method=[PileupMethod(m) for m in pileup_methods], binsize=binsize)
+    return BigwigConfig(
+        pileup_method=[PileupMethod(m) for m in pileup_methods], binsize=binsize
+    )
 
 
 def get_plotting_config() -> Optional[PlottingConfig]:
@@ -266,10 +280,10 @@ def get_plotting_config() -> Optional[PlottingConfig]:
         return None
 
     coordinates = get_user_input(
-        "Path to bed file with coordinates for plotting?", required=False, is_path=True
+        "Path to bed file with coordinates for plotting?", required=False, is_path=False
     )
 
-    genes = get_user_input("Path to bed file with genes?", required=False, is_path=True)
+    genes = get_user_input("Path to bed file with genes?", required=False, is_path=False)
 
     return PlottingConfig(coordinates=coordinates, genes=genes)
 
@@ -296,7 +310,7 @@ def get_peak_calling_config(assay: Assay) -> Optional[PeakCallingConfig]:
         "Peak calling method(s) (comma-separated for multiple):",
         choices=[m.value for m in PeakCallingMethod],
         default=default_method,
-        multi_select=True
+        multi_select=True,
     )
 
     # Convert single string to list if default was used
@@ -309,9 +323,34 @@ def get_peak_calling_config(assay: Assay) -> Optional[PeakCallingConfig]:
         is_boolean=True,
     )
 
+    # Motif analysis questions
+    run_motif_analysis = get_user_input(
+        "Run motif analysis on called peaks?",
+        default="no",
+        is_boolean=True,
+    )
+
+    motif_method = None
+
+    if run_motif_analysis:
+        motif_methods = get_user_input(
+            "Motif analysis method(s) (comma-separated for multiple):",
+            choices=[m.value for m in MotifMethod],
+            default="homer",
+            multi_select=True,
+        )
+
+        # Convert single string to list if default was used
+        if isinstance(motif_methods, str):
+            motif_methods = [motif_methods]
+
+        motif_method = [MotifMethod(m) for m in motif_methods]
+
     return PeakCallingConfig(
         method=[PeakCallingMethod(m) for m in peak_calling_methods],
         consensus_counts=consensus_counts,
+        run_motif_analysis=run_motif_analysis,
+        motif_method=motif_method,
     )
 
 
@@ -326,16 +365,29 @@ def get_spikein_config(assay: Assay) -> Optional[SpikeInConfig]:
     normalisation_method = get_user_input(
         "Normalisation method?",
         choices=[m.value for m in SpikeInMethod],
-        default="orlando",
+        default="deseq2" if assay == Assay.RNA else "orlando",
     )
 
     reference_genome = get_user_input("Reference genome:", default="hg38")
-    spikein_genome = get_user_input("Spikein genome:", default="dm6")
+    spikein_genome = get_user_input(
+        "Spikein genome:", default="dm6" if assay != Assay.RNA else "spikein_rna"
+    )
+
+    # Ask for control genes if using DESeq2 or edgeR methods
+    control_genes = None
+    if normalisation_method in ["deseq2", "edger"]:
+        control_genes_input = get_user_input(
+            "Spike-in control gene names (comma-separated):",
+            default="AmpR,Cas9_3p,Cas9_5p",
+        )
+        if control_genes_input:
+            control_genes = [g.strip() for g in control_genes_input.split(",")]
 
     return SpikeInConfig(
         method=SpikeInMethod(normalisation_method),
         endogenous_genome=reference_genome,
         exogenous_genome=spikein_genome,
+        control_genes=control_genes,
     )
 
 
@@ -353,14 +405,14 @@ def get_ucsc_hub_config() -> Optional[UCSCHubConfig]:
     email = get_user_input(
         "What is your email address?", default=f"{username}@example.com"
     )
-    genome_name = get_user_input(
-        "Genome name for UCSC hub?", default="hg38"
-    )
+    genome_name = get_user_input("Genome name for UCSC hub?", default="hg38")
     color_by_input = get_user_input("Color by (for UCSC hub):", default="samplename")
     # Convert to list if it's a string
     color_by = [color_by_input] if isinstance(color_by_input, str) else color_by_input
 
-    return UCSCHubConfig(directory=directory, email=email, color_by=color_by, genome_name=genome_name)
+    return UCSCHubConfig(
+        directory=directory, email=email, color_by=color_by, genome_name=genome_name
+    )
 
 
 def get_ml_dataset_config(assay: Assay) -> Optional[MLDatasetConfig]:
@@ -379,9 +431,14 @@ def get_ml_dataset_config(assay: Assay) -> Optional[MLDatasetConfig]:
 
     if use_regions:
         regions_bed = get_user_input(
-            "Path to regions BED file:", default="path/to/regions.bed", is_path=True
+            "Path to regions BED file:", default="path/to/regions.bed", is_path=False
         )
-        return MLDatasetConfig(regions_bed=Path(regions_bed))
+        # Skip path validation for placeholder paths during interactive config
+        is_placeholder = regions_bed.startswith("path/to/")
+        return MLDatasetConfig.model_validate(
+            {"regions_bed": Path(regions_bed)},
+            context={"skip_path_validation": is_placeholder}
+        )
     else:
         binsize = int(get_user_input("Binsize for dataset:", default="1000"))
         return MLDatasetConfig(binsize=binsize)
@@ -403,16 +460,21 @@ def get_rna_quantification_config() -> Optional[RNAQuantificationConfig]:
 
     run_deseq2 = get_user_input("Run DESeq2?", default="no", is_boolean=True)
 
-    return RNAQuantificationConfig(
-        method=QuantificationMethod(method),
-        salmon_index=salmon_index,
-        run_deseq2=run_deseq2,
+    # Skip path validation for placeholder paths during interactive config
+    is_placeholder = salmon_index and salmon_index.startswith("path/to/")
+    return RNAQuantificationConfig.model_validate(
+        {
+            "method": QuantificationMethod(method),
+            "salmon_index": salmon_index,
+            "run_deseq2": run_deseq2,
+        },
+        context={"skip_path_validation": is_placeholder}
     )
 
 
 def get_snp_calling_config() -> Optional[SNPCallingConfig]:
     """Get SNP calling configuration."""
-    call_snps = get_user_input("Call SNPs?", default="no", is_boolean=True)
+    call_snps = get_user_input("Call SNPs?", default="yes", is_boolean=True)
 
     if not call_snps:
         return None
@@ -428,20 +490,25 @@ def get_snp_calling_config() -> Optional[SNPCallingConfig]:
     snp_database = None
     if annotate_snps:
         snp_database = get_user_input(
-            "Path to SNP database:", default="path/to/snp_database", is_path=True
+            "Path to SNP database:", default="path/to/snp_database", is_path=False
         )
 
-    return SNPCallingConfig(
-        method=SNPCallingMethod(method),
-        annotate_snps=annotate_snps,
-        snp_database=snp_database,
+    # Skip path validation for placeholder paths during interactive config
+    is_placeholder = snp_database and snp_database.startswith("path/to/")
+    return SNPCallingConfig.model_validate(
+        {
+            "method": SNPCallingMethod(method),
+            "annotate_snps": annotate_snps,
+            "snp_database": snp_database,
+        },
+        context={"skip_path_validation": is_placeholder}
     )
 
 
 def get_mcc_config() -> Optional[MCCConfig]:
     """Get MCC (Capture-C) configuration."""
     viewpoints = get_user_input(
-        "Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=True
+        "Path to viewpoints file:", default="path/to/viewpoints.bed", is_path=False
     )
 
     resolutions_str = get_user_input(
@@ -450,7 +517,12 @@ def get_mcc_config() -> Optional[MCCConfig]:
 
     resolutions = [int(r.strip()) for r in resolutions_str.split(",")]
 
-    return MCCConfig(viewpoints=Path(viewpoints), resolutions=resolutions)
+    # Skip path validation for placeholder paths during interactive config
+    is_placeholder = viewpoints.startswith("path/to/")
+    return MCCConfig.model_validate(
+        {"viewpoints": Path(viewpoints), "resolutions": resolutions},
+        context={"skip_path_validation": is_placeholder}
+    )
 
 
 def get_methylation_config() -> Optional[MethylationConfig]:
@@ -492,23 +564,26 @@ def build_assay_config(
 ) -> Optional[AssaySpecificConfig]:
     """Build assay-specific configuration based on the assay type."""
 
-    # Get common configurations
-    bigwigs = get_bigwig_config(assay=assay)
-    plotting = get_plotting_config()
-    ucsc_hub = get_ucsc_hub_config()
-    create_heatmaps = get_user_input("Make heatmaps?", default="no", is_boolean=True)
-    geo_files = get_user_input(
-        "Generate GEO submission files?", default="no", is_boolean=True
-    )
+    # Collect standard configuration for assays that need it
+    if assay not in [Assay.CRISPR, Assay.SNP]:
+        bigwigs = get_bigwig_config(assay=assay)
+        plotting = get_plotting_config()
+        ucsc_hub = get_ucsc_hub_config()
+        create_heatmaps = get_user_input(
+            "Make heatmaps?", default="no", is_boolean=True
+        )
+        geo_files = get_user_input(
+            "Generate GEO submission files?", default="no", is_boolean=True
+        )
 
-    base_config = {
-        "genome": genome_config,
-        "bigwigs": bigwigs,
-        "plotting": plotting,
-        "ucsc_hub": ucsc_hub,
-        "create_heatmaps": create_heatmaps,
-        "create_geo_submission_files": geo_files,
-    }
+        base_config = {
+            "genome": genome_config,
+            "bigwigs": bigwigs,
+            "plotting": plotting,
+            "ucsc_hub": ucsc_hub,
+            "create_heatmaps": create_heatmaps,
+            "create_geo_submission_files": geo_files,
+        }
 
     match assay:
         case Assay.ATAC:
@@ -558,16 +633,10 @@ def build_assay_config(
             rna_quantification = get_rna_quantification_config()
 
             return RNAAssayConfig(
-                **base_config, 
-                spikein=spikein, 
+                **base_config,
+                spikein=spikein,
                 rna_quantification=rna_quantification,
             )
-
-        case Assay.SNP:
-            base_config_snp = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
-            base_config_snp["ucsc_hub"] = None
-            snp_calling = get_snp_calling_config()
-            return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
 
         case Assay.MCC:
             mcc = get_mcc_config()
@@ -575,13 +644,49 @@ def build_assay_config(
             return MCCAssayConfig(**base_config, mcc=mcc, peak_calling=peak_calling)
 
         case Assay.METH:
-            base_config_meth = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
-            base_config_meth["ucsc_hub"] = None
             methylation = get_methylation_config()
-            return MethylationAssayConfig(**base_config_meth, methylation=methylation)
+            return MethylationAssayConfig(
+                genome=genome_config,
+                bigwigs=bigwigs,
+                plotting=plotting,
+                ucsc_hub=None,
+                create_heatmaps=create_heatmaps,
+                create_geo_submission_files=geo_files,
+                methylation=methylation,
+            )
+
+        case Assay.SNP:
+            # SNP assays don't generate bigwigs, so UCSC hub is not supported
+            geo_files = get_user_input(
+                "Generate GEO submission files?", default="no", is_boolean=True
+            )
+            snp_calling = get_snp_calling_config()
+            return SNPAssayConfig(
+                genome=genome_config,
+                bigwigs=None,
+                plotting=None,
+                ucsc_hub=None,
+                create_heatmaps=False,
+                create_geo_submission_files=geo_files,
+                snp_calling=snp_calling,
+            )
 
         case Assay.CRISPR:
-            return CRISPRAssayConfig(**base_config)
+            geo_files = get_user_input(
+                "Generate GEO submission files?", default="no", is_boolean=True
+            )
+            use_mageck = get_user_input(
+                "Use MAGeCK for guide RNA analysis?", default="no", is_boolean=True
+            )
+            return CRISPRAssayConfig(
+                genome=genome_config,
+                bigwigs=None,
+                plotting=None,
+                ucsc_hub=None,
+                create_heatmaps=False,
+                create_geo_submission_files=geo_files,
+                use_mageck=use_mageck,
+            )
 
         case _:
             raise ValueError(f"Unsupported assay type: {assay}")
@@ -645,6 +750,7 @@ def build_default_assay_config(
                 peak_calling=peak_calling,
                 dataset_for_ml=dataset_for_ml,
             )
+        
         case Assay.CAT:
             tn5_shift = False
             spikein = None
@@ -659,6 +765,7 @@ def build_default_assay_config(
                 peak_calling=peak_calling,
                 dataset_for_ml=dataset_for_ml,
             )
+        
         case Assay.RNA:
             rna_quantification = RNAQuantificationConfig(
                 method=QuantificationMethod.FEATURE_COUNTS,
@@ -666,41 +773,60 @@ def build_default_assay_config(
                 run_deseq2=False,
             )
             return RNAAssayConfig(**base_config, rna_quantification=rna_quantification)
+        
         case Assay.SNP:
-            # SNP assays don't use UCSC hub
-            base_config_snp = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
+            # SNP assays don't use bigwigs, plotting, heatmaps, or UCSC hub
+            base_config_snp = {
+                k: v for k, v in base_config.items() if k not in ("bigwigs", "plotting", "ucsc_hub")
+            }
+            base_config_snp["bigwigs"] = None
+            base_config_snp["plotting"] = None
             base_config_snp["ucsc_hub"] = None
+            base_config_snp["create_heatmaps"] = False
             snp_calling = SNPCallingConfig(
                 method=SNPCallingMethod.BCFTOOLS,
                 annotate_snps=False,
                 snp_database=None,
             )
             return SNPAssayConfig(**base_config_snp, snp_calling=snp_calling)
+        
         case Assay.MCC:
+            # MCC assays don't use UCSC hub
+            base_config_mcc = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
+            base_config_mcc["ucsc_hub"] = None
             # Allow override for test environment
             import os
 
             viewpoints_path = os.environ.get(
                 "SEQNADO_MCC_VIEWPOINTS", "path/to/viewpoints.bed"
             )
-            mcc = MCCConfig(
-                viewpoints=Path(viewpoints_path),
-                resolutions=[100, 1000],
+            # Skip path validation only for placeholder paths
+            is_placeholder = viewpoints_path.startswith("path/to/")
+            mcc = MCCConfig.model_validate(
+                {
+                    "viewpoints": Path(viewpoints_path),
+                    "resolutions": [100, 1000],
+                },
+                context={"skip_path_validation": is_placeholder}
             )
-            return MCCAssayConfig(**base_config, mcc=mcc)
+            return MCCAssayConfig(**base_config_mcc, mcc=mcc)
+        
         case Assay.METH:
             # Methylation assays don't use UCSC hub
             base_config_meth = {k: v for k, v in base_config.items() if k != "ucsc_hub"}
             base_config_meth["ucsc_hub"] = None
             methylation = MethylationConfig(method=MethylationMethod.TAPS)
             return MethylationAssayConfig(**base_config_meth, methylation=methylation)
+        
         case Assay.CRISPR:
-            # CRISPR assays don't use UCSC hub
+            # CRISPR assays don't use UCSC hub or bigwigs
             base_config_crispr = {
-                k: v for k, v in base_config.items() if k != "ucsc_hub"
+                k: v for k, v in base_config.items() if k not in ("ucsc_hub", "bigwigs")
             }
             base_config_crispr["ucsc_hub"] = None
+            base_config_crispr["bigwigs"] = None
             return CRISPRAssayConfig(**base_config_crispr)
+        
         case _:
             raise ValueError(f"Unsupported assay type: {assay}")
 
@@ -823,8 +949,15 @@ def render_config(
         f.write(rendered_content)
 
 
-def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> tuple["MultiomicsConfig", dict[str, SeqnadoConfig]]:
+def build_multiomics_config(
+    seqnado_version: str, interactive: bool = True, assays: list[str] | None = None
+) -> tuple["MultiomicsConfig", dict[str, SeqnadoConfig]]:
     """Build multiomics configuration with multiple assays.
+
+    Args:
+        seqnado_version: The current version of SeqNado
+        interactive: Whether to prompt for user input
+        assays: List of assay names to include (only used in non-interactive mode)
 
     Returns:
         tuple: (MultiomicsConfig, dict of assay_name -> SeqnadoConfig)
@@ -834,8 +967,8 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
 
     logger.info("Building multiomics configuration")
 
-    # Get list of assays to include
-    available_assays = Assay.all_assay_clean_names()
+    # Get list of assays to include (exclude multiomics itself)
+    available_assays = [assay.clean_name for assay in Assay.non_multiomics_assays()]
 
     if interactive:
         print("\nAvailable assays:")
@@ -844,12 +977,12 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
 
         assay_selection = get_user_input(
             "Enter assay numbers separated by commas (e.g., 1,3,5) or assay names (e.g., atac,chip,rna)",
-            required=True
+            required=True,
         )
 
         # Parse selection
         selected_assays = []
-        for item in assay_selection.split(','):
+        for item in assay_selection.split(","):
             item = item.strip()
             # Try as number first
             try:
@@ -873,52 +1006,82 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
 
         # Get multiomics-specific settings
         output_dir = get_user_input(
-            "Base output directory for all assays",
-            default="seqnado_output/"
+            "Base output directory for all assays", default="seqnado_output/"
         )
 
         create_heatmaps = get_user_input(
-            "Generate multiomics heatmaps?",
-            default="yes",
-            is_boolean=True
+            "Generate multiomics heatmaps?", default="yes", is_boolean=True
         )
 
         create_dataset = get_user_input(
-            "Generate ML-ready dataset?",
-            default="yes",
-            is_boolean=True
+            "Generate ML-ready dataset?", default="yes", is_boolean=True
         )
 
         create_summary = get_user_input(
-            "Generate summary report?",
-            default="yes",
-            is_boolean=True
+            "Generate summary report?", default="yes", is_boolean=True
         )
 
-        regions_bed = get_user_input(
-            "BED file with regions of interest (optional, press Enter to skip)",
-            required=False,
-            is_path=False
-        )
+        # Only ask for regions_bed and binsize if creating dataset
+        regions_bed = None
+        binsize = None
+        if create_dataset:
+            regions_bed = get_user_input(
+                "BED file with regions of interest (optional, press Enter to skip)",
+                required=False,
+                is_path=False,
+            )
 
-        binsize = get_user_input(
-            "Binsize for genome-wide analysis (optional, press Enter to skip)",
-            required=False
-        )
+            binsize_input = get_user_input(
+                "Binsize for genome-wide analysis (optional, press Enter to skip)",
+                required=False,
+            )
 
-        binsize = int(binsize) if binsize and binsize.isdigit() else None
+            binsize = int(binsize_input) if binsize_input and binsize_input.isdigit() else None
 
     else:
-        # Non-interactive mode: use default assays
-        logger.info("Non-interactive mode: using default assays")
-        selected_assays = ["atac", "chip", "rna"]
+        # Non-interactive mode: still prompt for assay selection, but use defaults for everything else
+        logger.info("Non-interactive mode: prompting for assays, using defaults for other settings")
+
+        print("\nAvailable assays:")
+        for i, assay in enumerate(available_assays, 1):
+            print(f"  {i}. {assay}")
+
+        assay_selection = get_user_input(
+            "Enter assay numbers separated by commas (e.g., 1,3,5) or assay names (e.g., atac,chip,rna)",
+            required=True,
+        )
+
+        # Parse the selection (numbers or names)
+        selected_assays = []
+        for item in assay_selection.split(","):
+            item = item.strip()
+            if item.isdigit():
+                # User entered a number
+                idx = int(item) - 1
+                if 0 <= idx < len(available_assays):
+                    selected_assays.append(available_assays[idx])
+                else:
+                    logger.warning(f"Invalid assay number: {item}")
+            else:
+                # User entered an assay name
+                if item in available_assays:
+                    selected_assays.append(item)
+                else:
+                    logger.warning(f"Invalid assay name: {item}")
+
+        if not selected_assays:
+            logger.error("No valid assays selected")
+            sys.exit(1)
+
+        logger.info(f"Selected assays: {', '.join(selected_assays)}")
+
+        # Use defaults for all other settings
         output_dir = "seqnado_output/"
         create_heatmaps = True
         create_dataset = True
         create_summary = True
         regions_bed = None
         binsize = None
-        logger.info(f"Selected assays: {', '.join(selected_assays)}")
 
     # Build individual assay configs
     assay_configs = {}
@@ -929,9 +1092,7 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
         if interactive:
             # Ask if user wants to configure this assay now or use defaults
             configure_now = get_user_input(
-                f"Configure {assay_name} now?",
-                default="yes",
-                is_boolean=True
+                f"Configure {assay_name} now?", default="yes", is_boolean=True
             )
 
             if configure_now:
@@ -952,7 +1113,7 @@ def build_multiomics_config(seqnado_version: str, interactive: bool = True) -> t
         create_dataset=create_dataset,
         create_summary=create_summary,
         regions_bed=Path(regions_bed) if regions_bed else None,
-        binsize=binsize
+        binsize=binsize,
     )
 
     return multiomics_config, assay_configs
@@ -975,8 +1136,6 @@ def render_multiomics_configs(
     Returns:
         List of paths to generated config files
     """
-    # Import here to avoid circular import (for type checking at runtime)
-    from seqnado.config.multiomics import MultiomicsConfig
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -996,6 +1155,7 @@ def render_multiomics_configs(
     multiomics_dict = multiomics_config.model_dump(mode="json", exclude_none=True)
 
     import yaml
+
     with open(multiomics_file, "w") as f:
         yaml.dump(multiomics_dict, f, default_flow_style=False, sort_keys=False)
 

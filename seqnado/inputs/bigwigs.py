@@ -129,18 +129,28 @@ class BigWigCollection(BaseCollection):
 
 	@classmethod
 	def from_dataframe(
-		cls, assay: Assay, df: Any, **kwargs: Any
+		cls, assay: Assay, df: Any, validate_deseq2: bool = False, assay_for_validation: Assay | None = None, **kwargs: Any
 	) -> BigWigCollection:
 		"""Build a BigWigCollection from a DataFrame.
 		
 		Expects columns: sample_id, bigwig (or bigwig_plus/bigwig_minus for RNA), 
 		plus any metadata fields.
+		
+		Args:
+			assay: The assay type
+			df: DataFrame with sample metadata
+			validate_deseq2: If True, require deseq2 field to be non-null (for RNA assays)
+			assay_for_validation: Assay type to check in validation context
+			**kwargs: Additional kwargs
 		"""
 		import pandas as pd
 		
 		bigwig_files: list[BigWigFile] = []
 		metadata: list[Metadata] = []
 		metadata_fields = set(Metadata.model_fields.keys())
+		
+		# Use provided assay_for_validation or fall back to assay
+		validation_assay = assay_for_validation or assay
 
 		for rec in df.to_dict(orient="records"):
 			# Handle strand-specific RNA or single bigwig
@@ -152,9 +162,9 @@ class BigWigCollection(BaseCollection):
 			elif "bigwig" in rec and pd.notna(rec["bigwig"]):
 				bigwig_files.append(BigWigFile(path=Path(rec["bigwig"])))
 
-			# Collect metadata (one per sample, not per file)
+			# Collect metadata (one per sample, not per file) with validation context
 			meta_fields = {k: rec.get(k) for k in metadata_fields if k in rec}
-			metadata.append(Metadata(**meta_fields))
+			metadata.append(Metadata.model_validate(meta_fields, context={'validate_deseq2': validate_deseq2, 'assay': validation_assay}))
 
 		return cls(assay=assay, bigwig_files=bigwig_files, metadata=metadata)
 

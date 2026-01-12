@@ -1,35 +1,4 @@
-def identify_extracted_bam_files(wildcards):
-    from pathlib import Path
-
-    checkpoint_output = checkpoints.identify_viewpoint_reads.get(**wildcards)
-    outdir = Path(checkpoint_output.output.bams)
-    viewpoints = glob_wildcards(str(outdir / "{viewpoint}.bam")).viewpoint
-    return expand(str(outdir / "{viewpoint}.bam"), viewpoint=viewpoints)
-
-def redefine_viewpoints(samples):
-    """
-    Redefine the set of viewpoints to be the intersection of viewpoints across all samples.
-
-    The issue is that some viewpoints may not be present in all samples or may not have enough reads to be considered.
-
-    Parameters
-    ----------
-    samples : list
-        List of samples.
-    """
-
-    viewpoint_set = set()
-    
-    for ii, sample in enumerate(samples):
-        checkpoint_output = checkpoints.identify_viewpoint_reads.get(sample=sample)
-        outdir = Path(checkpoint_output.output.bams)
-        viewpoints = glob_wildcards(str(outdir / "{viewpoint}.bam")).viewpoint
-        
-        if ii == 0:
-            viewpoint_set = set(viewpoints)
-        else:
-            viewpoint_set = viewpoint_set.intersection(viewpoints)
-    return list(viewpoint_set)
+from seqnado.workflow.helpers.mcc import identify_extracted_bam_files, redefine_viewpoints
 
 
 rule identify_viewpoint_reads:

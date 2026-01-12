@@ -24,13 +24,24 @@ def ensure_fastqs_present(
     if not existing_fastqs:
         import tarfile
 
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/fastq.tar.gz"
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_data/fastq.tar.gz"
         tar_path = fastq_dir.parent / "fastq.tar.gz"
         download_with_retry(url, tar_path)
 
-        # Extract tar directly to fastq_dir
+        # Extract tar to parent directory (it contains fastq/ folder)
         with tarfile.open(tar_path) as tar:
-            tar.extractall(path=fastq_dir)
+            tar.extractall(path=fastq_dir.parent)
+
+        # Handle nested directory structure if present
+        nested_fastq = fastq_dir / "fastq"
+        if nested_fastq.exists() and nested_fastq.is_dir():
+            # Move files from fastq/fastq/ to fastq/
+            for f in nested_fastq.glob("*.fastq.gz"):
+                f.rename(fastq_dir / f.name)
+            try:
+                nested_fastq.rmdir()
+            except Exception as e:
+                print(f"[WARNING] Could not remove nested directory {nested_fastq}: {e}")
 
         # Verify extraction worked
         extracted_fastqs = list(fastq_dir.glob("*.fastq.gz"))
