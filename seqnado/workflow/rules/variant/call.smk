@@ -22,6 +22,7 @@ rule bcftools_call_snp:
     bcftools stats -F {params.fasta} -s - {output.vcf} > {output.stats}
     """
 
+
 rule split_multiallelic:
     input:
         vcf=rules.bcftools_call_snp.output.vcf,

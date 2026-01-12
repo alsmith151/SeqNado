@@ -1,7 +1,8 @@
-from seqnado.helpers import  define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested
 import shutil
 
 localrules: copy_fastq_screen_config
+
 
 rule copy_fastq_screen_config:
     input:
@@ -13,6 +14,7 @@ rule copy_fastq_screen_config:
     message: "Copying fastq_screen configuration file to output directory",
     run:
         shutil.copy(input.conf, output.conf)
+
 
 rule fastq_screen_paired:
     input:
@@ -49,5 +51,6 @@ use rule fastq_screen_paired as fastq_screen_single with:
     log: OUTPUT_DIR + "/logs/fastq_screen/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/fastq_screen/{sample}.tsv",
     message: "Running fastq_screen for sample {wildcards.sample}",
+
 
 ruleorder: fastq_screen_paired > fastq_screen_single 

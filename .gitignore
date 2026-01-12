@@ -44,3 +44,4 @@ test_run.sh
 test.json
 testing
 tests/data*
+tests/make_data*

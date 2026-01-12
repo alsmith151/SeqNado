@@ -1,4 +1,6 @@
 
+
+
 rule viewpoints_to_fasta:
     input:
         bed=str(CONFIG.assay_config.mcc.viewpoints),
@@ -26,6 +28,7 @@ rule fasta_index:
     shell: """
     samtools faidx {input.fasta} -o {output.index}
     """
+
 
 rule exclusion_regions:
     input:

@@ -1,8 +1,8 @@
+from seqnado.workflow.helpers.common import define_memory_requested, define_time_requested
+from seqnado.workflow.helpers.bam import get_split_bam
 
 REF_GENOME=CONFIG.assay_config.methylation.reference_genome if CONFIG.assay_config.methylation and CONFIG.assay_config.methylation.reference_genome else CONFIG.genome.name
-
 SPIKEIN_GENOMES=CONFIG.assay_config.methylation.spikein_genomes if CONFIG.assay_config.methylation and CONFIG.assay_config.methylation.spikein_genomes else []
-
 GENOMES=[REF_GENOME]+SPIKEIN_GENOMES
 
 checkpoint methylation_split_bams:
@@ -29,14 +29,9 @@ checkpoint methylation_split_bams:
     """
 
 
-def get_split_bam(wildcards):
-    checkpoint_output = checkpoints.methylation_split_bams.get(sample=wildcards.sample, genome=wildcards.genome).output
-    return checkpoint_output.bam
-
-
 rule methyldackel_bias:
     input:
-        bam=get_split_bam
+        bam=lambda wc: get_split_bam(wc, checkpoints)
     output:
         bias=OUTPUT_DIR + "/methylation/methyldackel/bias/{sample}_{genome}.txt",
     params:
@@ -69,7 +64,7 @@ rule calculate_conversion:
     benchmark: OUTPUT_DIR + "/.benchmark/methylation/calculate_conversion.tsv"
     message: "Calculating methylation conversion rates across all samples"
     script: "../../scripts/methylation_conversion.py"
-    
+
 
 rule methyldackel_extract:
     input:
@@ -109,7 +104,6 @@ rule taps_inverted:
     awk -v OFS="\t" '{{print $1, $2, $3, (100-$4), $5, $6}}' {input.bdg} > {output.taps} 2> {log}
     rm {input.bdg}
     """
-
 
 localrules:
     calculate_conversion

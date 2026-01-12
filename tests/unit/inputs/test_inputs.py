@@ -80,12 +80,12 @@ class TestMetadata:
             assay=Assay.RNA,
             consensus_group="group1",
             scaling_group="batch1",
-            deseq2="condition_treated"
+            deseq2=1
         )
         assert md.assay == Assay.RNA
         assert md.consensus_group == "group1"
         assert md.scaling_group == "batch1"
-        assert md.deseq2 == "condition_treated"
+        assert md.deseq2 == 1
 
     def test_metadata_optional_fields(self):
         """Test that optional fields can be omitted."""
@@ -1563,7 +1563,7 @@ class TestDesignDataFrame:
             "sample_id": ["sample1", "sample2"],
             "scaling_group": ["batch1", "batch1"],
             "consensus_group": ["group1", "group2"],
-            "deseq2": ["condition1", "condition2"],
+            "deseq2": [0, 1],
             "r1": ["read1.fq", "read2.fq"],
         }
         df = pd.DataFrame(data)

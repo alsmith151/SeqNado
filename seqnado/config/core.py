@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Union
+from typing import Annotated, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -89,7 +89,6 @@ class SNPAssayConfig(BaseAssayConfig, SNPCallingMixin):
 
     snp_calling: SNPCallingConfig | None = None
     snp_database: str | None = None
-    ucsc_hub: None
     create_heatmaps: bool = False
 
 
@@ -97,6 +96,7 @@ class MCCAssayConfig(BaseAssayConfig):
     """Configuration specific to MCC (Capture-C) assays."""
 
     mcc: MCCConfig | None = None
+    ucsc_hub: None = None  # Hub generation not supported for MCC
     create_heatmaps: bool = False
 
 class MethylationAssayConfig(BaseAssayConfig, MethylationMixin):
@@ -110,10 +110,10 @@ class MethylationAssayConfig(BaseAssayConfig, MethylationMixin):
 class CRISPRAssayConfig(BaseAssayConfig):
     """Configuration specific to CRISPR assays."""
 
-    # CRISPR-specific options can be added here
-    ucsc_hub: None
+    # CRISPR-specific options
+    ucsc_hub: None = None
     create_heatmaps: bool = False
-
+    use_mageck: bool = False
 
 # Union type for all assay-specific configurations
 AssaySpecificConfig = Union[

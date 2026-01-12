@@ -1,17 +1,11 @@
 
-def get_assay_all_inputs():
-    """Get all inputs from assay-specific 'all' rules."""
-    inputs = []
-    for assay in ASSAYS:
-        rule_name = f"{assay.clean_name}_all"
-        inputs.append(getattr(rules, rule_name).input)
-    return inputs
+from seqnado.workflow.helpers.multiomics import get_assay_all_inputs
 
 
 rule multiomics_summary:
     """Generate a summary report of all assays."""
     input:
-        get_assay_all_inputs()
+        get_assay_all_inputs(ASSAYS=ASSAYS, rules=rules)
     output:
         OUTPUT_DIR + "multiomics_summary.txt"
     message:

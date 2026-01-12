@@ -1,6 +1,6 @@
 import pandas as pd
 
-from seqnado.helpers import viewpoint_to_grouped_viewpoint, extract_viewpoints
+from seqnado.workflow.helpers.mcc import viewpoint_to_grouped_viewpoint, extract_viewpoints
 from seqnado.inputs.validation import ViewpointsFile
 
 VIEWPOINTS_FILE = ViewpointsFile.validate(
@@ -11,6 +11,7 @@ VIEWPOINTS_FILE = ViewpointsFile.validate(
 VIEWPOINT_OLIGOS = extract_viewpoints(CONFIG.assay_config.mcc.viewpoints)
 VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
 GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))
+
 
 rule identify_ligation_junctions:
     input:
@@ -54,6 +55,7 @@ rule sort_ligation_junctions:
     sort -k2,2 -k4,4 -k3,3n -k5,5n {input.pairs} > {output.pairs}
     """
 
+
 rule bgzip_pairs:
     input:
         pairs=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.pairs",
@@ -68,6 +70,7 @@ rule bgzip_pairs:
     shell: """
     bgzip -c {input.pairs} > {output.pairs}
     """
+
 
 rule make_cooler:
     input:
@@ -95,6 +98,7 @@ rule make_cooler:
     --assembly {params.genome} \
     -c1 2 -p1 3 -c2 4 -p2 5 > {log} 2>&1
     """
+
 
 rule zoomify_cooler:
     input:

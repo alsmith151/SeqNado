@@ -1,4 +1,5 @@
-from seqnado.helpers import define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested
+
 
 rule salmon_counts_paired:
     input:
@@ -23,6 +24,7 @@ rule salmon_counts_paired:
     salmon quant -i {params.index} {params.options} -1 {input.fq1} -2 {input.fq2} -p {threads} -o {output.out_dir}
     """
 
+
 rule salmon_counts_single:
     input:
         fq=OUTPUT_DIR + "/fastqs/{sample}.fastq.gz"
@@ -44,6 +46,7 @@ rule salmon_counts_single:
     salmon quant -i {params.index} {params.options} -r {input.fq} -p {threads} -o {output.out_dir}
     """
 
+
 rule get_salmon_counts:
     input:
         count_dirs=expand(OUTPUT_DIR + "/readcounts/salmon/salmon_{sample}", sample=SAMPLE_NAMES),
@@ -56,5 +59,6 @@ rule get_salmon_counts:
     message: "Aggregating Salmon counts into a single count table"
     script:
         "../../scripts/get_salmon_counts.py"
+
 
 ruleorder: salmon_counts_paired > salmon_counts_single

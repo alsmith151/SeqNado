@@ -38,7 +38,7 @@ def ensure_genome_resources(genome_path: Path, assay: str) -> dict[str, Path]:
     resources["bt2_index"] = _ensure_bt2_index(genome_path, assay)
 
     # Chromsizes
-    resources["chromsizes"] = _ensure_chromsizes(genome_path)
+    resources["chromsizes"] = _ensure_chromsizes(genome_path, assay)
 
     # GTF
     resources["gtf"] = _ensure_gtf(genome_path, assay)
@@ -88,6 +88,9 @@ def _ensure_bt2_index(genome_path: Path, assay: str) -> Path:
     if "meth" in assay.lower():
         dest = genome_path / "bt2_chr21_meth" / "chr21_meth"
         suffix = "bt2_chr21_meth.tar.gz"
+    elif "crispr" in assay.lower():
+        dest = genome_path / "bt2_TKOv3_guides_chr21" / "TKOv3_guides_chr21"
+        suffix = "bt2_TKOv3_guides_chr21.tar.gz"
     else:
         dest = genome_path / "bt2_chr21_dm6_chr2L" / "bt2_chr21_dm6_chr2L"
         suffix = "bt2_chr21_dm6_chr2L.tar.gz"
@@ -105,18 +108,35 @@ def _ensure_bt2_index(genome_path: Path, assay: str) -> Path:
     # Extract without flattening, we'll handle the directory structure manually
     extract_tar(tar_path, dest.parent, flatten=False)
 
-    # Handle nested directory structure - tar might contain bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L/*.bt2
-    # or bt2_chr21_dm6_chr2L/*.bt2, so we need to check both levels
-    nested = dest.parent / dest.name
-    if nested.exists() and nested.is_dir():
-        # Check if files are in a doubly-nested directory
-        doubly_nested = nested / dest.name
-        if doubly_nested.exists() and doubly_nested.is_dir():
-            # Move files from bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L/ to bt2_chr21_dm6_chr2L/
-            for f in doubly_nested.glob("*.bt2*"):
-                f.rename(nested / f.name)
+    # Handle nested directory structure - tar might contain several patterns:
+    # 1. bt2_chr21_dm6_chr2L/bt2_chr21_dm6_chr2L/*.bt2 (doubly nested with dest.name)
+    # 2. bt2_chr21_dm6_chr2L/*.bt2 (singly nested)
+    # 3. bt2_TKOv3_guides_chr21/bt2_TKOv3_guides_chr21/*.bt2 (doubly nested with parent.name)
+
+    # First check if files are already in the correct location (dest.parent/)
+    if not list(dest.parent.glob(f"{dest.name}.*.bt2*")):
+        # Check for pattern 1: nested in dest.parent/dest.name/dest.name/
+        nested = dest.parent / dest.name
+        if nested.exists() and nested.is_dir():
+            doubly_nested = nested / dest.name
+            if doubly_nested.exists() and doubly_nested.is_dir():
+                # Move files from nested/dest.name/ to dest.parent/
+                for f in doubly_nested.glob("*.bt2*"):
+                    f.rename(dest.parent / f.name)
+                try:
+                    doubly_nested.rmdir()
+                    nested.rmdir()
+                except OSError:
+                    pass
+
+        # Check for pattern 3: nested in dest.parent/dest.parent.name/
+        parent_nested = dest.parent / dest.parent.name
+        if parent_nested.exists() and parent_nested.is_dir():
+            # Move files from dest.parent/dest.parent.name/ to dest.parent/
+            for f in parent_nested.glob("*.bt2*"):
+                f.rename(dest.parent / f.name)
             try:
-                doubly_nested.rmdir()
+                parent_nested.rmdir()
             except OSError:
                 pass
 
@@ -138,6 +158,8 @@ def _ensure_bt2_index(genome_path: Path, assay: str) -> Path:
     # Use the index name to create a unique database identifier
     if "meth" in assay.lower():
         db_name = "hg38_meth"
+    elif "crispr" in assay.lower():
+        db_name = "TKOv3_guides"
     else:
         db_name = "hg38"
 
@@ -159,8 +181,18 @@ def _ensure_bt2_index(genome_path: Path, assay: str) -> Path:
     return dest
 
 
-def _ensure_chromsizes(genome_path: Path) -> Path:
+def _ensure_chromsizes(genome_path: Path, assay: str = None) -> Path:
     """Download chromosome sizes if not present."""
+    # CRISPR uses guide library-specific chromosome sizes
+    if assay and "crispr" in assay.lower():
+        dest = genome_path / "TKOv3_guides_chr21.fasta.fai"
+        if dest.exists():
+            return dest
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_data/TKOv3_guides_chr21.fasta.fai"
+        download_with_retry(url, dest)
+        return dest
+
+    # Standard chromsizes for other assays
     dest = genome_path / "chr21.fa.fai"
 
     # Check if already downloaded and processed
@@ -191,8 +223,19 @@ def _ensure_chromsizes(genome_path: Path) -> Path:
 
 
 def _ensure_gtf(genome_path: Path, assay: str) -> Path:
-    """Download GTF annotation file if not present."""
-    if "rna" in assay.lower():
+    """Download GTF annotation file if not present.
+
+    Note: For CRISPR assays, this returns a SAF file instead of GTF.
+    """
+    if "crispr" in assay.lower():
+        # CRISPR uses SAF format for guide annotation
+        gtf_path = genome_path / "TKOv3_guides_chr21.saf"
+        if gtf_path.exists():
+            return gtf_path
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_data/TKOv3_guides_chr21.saf"
+        download_with_retry(url, gtf_path)
+        return gtf_path
+    elif "rna" in assay.lower():
         gtf_path = genome_path / "chr21_rna_spikein.gtf"
     else:
         gtf_path = genome_path / "chr21.gtf"

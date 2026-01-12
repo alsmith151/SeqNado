@@ -129,6 +129,13 @@ class PeakCallingMethod(Enum):
     LANCEOTRON_MCC = "lanceotron-mcc"
 
 
+class MotifMethod(Enum):
+    """Methods for motif analysis."""
+
+    HOMER = "homer"
+    MEME = "meme"
+
+
 class PCRDuplicateHandling(Enum):
     """Methods for handling PCR duplicates."""
 
@@ -149,6 +156,8 @@ class SpikeInMethod(Enum):
 
     ORLANDO = "orlando"
     WITH_INPUT = "with_input"
+    DESEQ2 = "deseq2"
+    EDGER = "edger"
 
 
 class SNPCallingMethod(Enum):

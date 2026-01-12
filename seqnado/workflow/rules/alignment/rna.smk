@@ -1,9 +1,14 @@
-from seqnado.helpers import define_memory_requested, define_time_requested
+from seqnado.workflow.helpers.common import (
+    define_memory_requested, 
+    define_time_requested,
+    get_alignment_input,
+)
+
 
 rule align_paired:
     input:
-        fq1=OUTPUT_DIR + "/trimmed/{sample}_1.fastq.gz",
-        fq2=OUTPUT_DIR + "/trimmed/{sample}_2.fastq.gz",
+        fq1=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=True)["fq1"],
+        fq2=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=True)["fq2"],
     params:
         index=str(CONFIG.genome.index.prefix),
         options=str(CONFIG.third_party_tools.star.align.command_line_arguments),
@@ -35,9 +40,10 @@ rule align_paired:
     > {log} 2>&1
     """
 
+
 rule align_single:
     input:
-        fq1=OUTPUT_DIR + "/trimmed/{sample}.fastq.gz",
+        fq1=lambda wildcards: get_alignment_input(wildcards, OUTPUT_DIR, CONFIG, paired=False),
     params:
         index=str(CONFIG.genome.index.prefix),
         options=str(CONFIG.third_party_tools.star.align.command_line_arguments),
@@ -68,6 +74,7 @@ rule align_single:
     {params.options} \
     > {log} 2>&1
     """
+
 
 rule rename_aligned:
     input:

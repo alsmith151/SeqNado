@@ -46,10 +46,11 @@ def get_fastq_pattern(assay: str) -> str:
         "cat": "chip-rx_*.fastq.gz",
         "chip-rx": "chip-rx_*.fastq.gz",
         "chip": "chip-rx_*.fastq.gz",
+        "crispr": "crispr-*.fastq.gz",
         "mcc": "mcc_*.fastq.gz",
         "meth": "meth-*.fastq.gz",
         "rna-rx": "rna-spikein-*.fastq.gz",
-        "rna": "rna_*.fastq.gz",
+        "rna": "rna*.fastq.gz",
         "snp": "snp_*.fastq.gz",
     }
     pattern = patterns.get(assay)
@@ -81,7 +82,7 @@ def setup_genome_config(
 
     # Load existing config if it exists, but filter to only keep test-specific entries
     # Valid test genome keys are: assay names (atac, chip, meth, rna, snp, etc.) or "hg38"
-    valid_test_genomes = ["hg38", "atac", "chip", "cat", "chip-rx", "meth", "rna", "rna-rx", "snp", "mcc"]
+    valid_test_genomes = ["hg38", "atac", "chip", "cat", "chip-rx", "crispr", "meth", "rna", "rna-rx", "snp", "mcc"]
 
     if genome_config_file.exists():
         with open(genome_config_file, "r") as f:

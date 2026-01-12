@@ -1,4 +1,4 @@
-from seqnado.helpers import  define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested
 
 if CONFIG.shift_for_tn5_insertion:
     rule shift_atac_alignments:

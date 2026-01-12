@@ -1,40 +1,4 @@
-
-
-def get_n_cis_scaling_factor(wc):
-    import json 
-    from pathlib import Path
-
-    # Can either extract the stats for the sample or the group
-    if hasattr(wc, "group"):
-        stats_file = OUTPUT_DIR + "/resources/{wc.group}_ligation_stats.json"
-    else:
-        # If not, then use the sample
-        stats_file = OUTPUT_DIR + "/resources/{wc.sample}_ligation_stats.json"
-    
-    # Create Path object and ensure the file exists
-    stats_path = Path(stats_file)
-    if not stats_path.exists():
-        # raise FileNotFoundError(f"Stats file not found: {stats_file}")
-        return 1
-        
-    with open(stats_path, 'r') as r:
-        stats = json.load(r)
-    
-    # Check if viewpoint_group exists in stats
-    if wc.viewpoint_group not in stats:
-        raise KeyError(f"Viewpoint group '{wc.viewpoint_group}' not found in stats file")
-    
-    # Check if required keys exist in the viewpoint group stats
-    required_keys = ['n_cis', 'n_total']
-    missing_keys = [key for key in required_keys if key not in stats[wc.viewpoint_group]]
-    if missing_keys:
-        raise KeyError(f"Missing required keys in stats: {', '.join(missing_keys)}")
-    
-    # Avoid division by zero
-    if stats[wc.viewpoint_group]['n_total'] == 0:
-        return 0
-        
-    return (stats[wc.viewpoint_group]['n_cis'] / stats[wc.viewpoint_group]['n_total']) * 1e6
+from seqnado.workflow.helpers.mcc import get_n_cis_scaling_factor, get_mcc_bam_files_for_merge
 
 
 rule make_bigwigs_mcc_replicates:
@@ -47,7 +11,7 @@ rule make_bigwigs_mcc_replicates:
         bigwig=OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig"
     params:
         options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
-        scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
+        scale_factor=lambda wc: get_n_cis_scaling_factor(wc, OUTPUT_DIR=OUTPUT_DIR),
     log: OUTPUT_DIR + "/logs/bigwig/{sample}_{viewpoint_group}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{sample}_{viewpoint_group}.tsv",
     message: "Generating bigWig for MCC sample {wildcards.sample} and viewpoint group {wildcards.viewpoint_group}",
@@ -63,22 +27,11 @@ rule make_bigwigs_mcc_replicates:
     {params.options} > {log} 2>&1
     """
         
-def get_mcc_bam_files_for_merge(wildcards):
-    """Get BAM files for merging based on sample names."""
-    try:
-        group = SAMPLE_GROUPINGS.get_grouping('consensus').get_group(wildcards.group)
-        sample_names = group.samples
-        bam_files = [
-            OUTPUT_DIR + f"/mcc/replicates/{sample}/{sample}.bam" for sample in sample_names
-        ]
-        return bam_files
-    except KeyError:
-        return []
 
 
 rule merge_mcc_bams:
     input:
-        bams=get_mcc_bam_files_for_merge,
+        bams=lambda wc: get_mcc_bam_files_for_merge(wc, SAMPLE_GROUPINGS=SAMPLE_GROUPINGS, OUTPUT_DIR=OUTPUT_DIR),
     output:
         OUTPUT_DIR + "/mcc/{group}/{group}.bam",
     threads: CONFIG.third_party_tools.samtools.merge.threads
@@ -116,7 +69,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig",
     params:
-        scale_factor=lambda wc: get_n_cis_scaling_factor(wc),
+        scale_factor=lambda wc: get_n_cis_scaling_factor(wc, OUTPUT_DIR=OUTPUT_DIR),
         options=str(CONFIG.third_party_tools.bamnado.bam_coverage.command_line_arguments),
     log: OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_n_cis.tsv",
@@ -137,7 +90,6 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     log: OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_unscaled.tsv",
     message: "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
-
 
 
 rule confirm_mcc_bigwigs_generated:

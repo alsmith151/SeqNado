@@ -1,14 +1,18 @@
-from seqnado.helpers import define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested
+from seqnado.workflow.helpers.quant import get_bams_to_count
+
 
 rule feature_counts:
     input:
-        bam=expand(OUTPUT_DIR + "/aligned/{sample}.bam", sample=SAMPLE_NAMES),
-        bai=expand(OUTPUT_DIR + "/aligned/{sample}.bam.bai", sample=SAMPLE_NAMES),
+        bam=get_bams_to_count(CONFIG=CONFIG, SAMPLE_NAMES=SAMPLE_NAMES, OUTPUT_DIR=OUTPUT_DIR),
+        bai=[bam.replace(".bam", ".bam.bai") for bam in get_bams_to_count(CONFIG=CONFIG, SAMPLE_NAMES=SAMPLE_NAMES, OUTPUT_DIR=OUTPUT_DIR)],
         annotation=CONFIG.genome.gtf,
     output:
         counts=OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
     params:
         options=str(CONFIG.third_party_tools.subread.feature_counts.command_line_arguments),
+        annotation_format= "SAF" if config["genome"]["gtf"].endswith(".saf") else "GTF",
+        paired= "-p --countReadPairs" if INPUT_FILES.is_paired_end(SAMPLE_NAMES[0]) else "",
     threads: 
         CONFIG.third_party_tools.subread.feature_counts.threads
     resources:
@@ -19,15 +23,23 @@ rule feature_counts:
     benchmark: OUTPUT_DIR + "/.benchmark/readcounts/featurecounts/featurecounts.tsv",
     message: "Running featureCounts to quantify reads for all samples"
     shell: """
+    # Determine annotation format from file extension
+    annotation="{input.annotation}"
+    if [[ "$annotation" == *.saf ]]; then
+        format_flag="-F SAF"
+    else
+        format_flag="-F GTF"
+    fi
+    
     featureCounts \
-    -a \
-    {input.annotation} \
-    -T \
-    {threads} \
+    $format_flag \
+    -a {input.annotation} \
+    -F {params.annotation_format} \
+    -T {threads} \
     --donotsort \
+    {params.paired} \
     {params.options} \
-    -o \
-    {output.counts} \
+    -o {output.counts} \
     {input.bam} \
     > {log} 2>&1
     """

@@ -135,13 +135,13 @@ def design(test_context: TestContext, assay: str, seqnado_run_dir: Path) -> Path
     ensure_fastqs_present(test_context.test_paths.fastq, [assay])
     fastq_source_dir = test_context.test_paths.fastq
 
-    # Use the correct pattern from get_fastq_pattern
-    pattern = get_fastq_pattern(assay_type)
+    # Use the correct pattern from get_fastq_pattern - use original assay name (e.g., "rna-rx")
+    pattern = get_fastq_pattern(assay)
     fastqs_to_copy = list(fastq_source_dir.glob(pattern))
 
     if not fastqs_to_copy:
         raise FileNotFoundError(
-            f"No FASTQ files found for assay '{assay_type}' in {fastq_source_dir}"
+            f"No FASTQ files found for assay '{assay}' in {fastq_source_dir}"
         )
 
     # Move FASTQs to the run directory
@@ -150,10 +150,10 @@ def design(test_context: TestContext, assay: str, seqnado_run_dir: Path) -> Path
     for fq in fastqs_to_copy:
         shutil.copy2(fq, fastq_dest_dir / fq.name)
 
-    # Generate design file
+    # Generate design file - use assay_type (amended name without -rx)
     design_file = create_design_file(
         run_directory=seqnado_run_dir,
-        assay=assay_type,
+        assay=assay,
     )
 
     return design_file
@@ -177,7 +177,13 @@ def multiomics_configs(
         # Default to all assays if not parametrized
         multiomics = ["atac", "chip", "meth", "rna", "snp"]
     # Set up a run directory for the Multiomic test
-    run_dir = tmp_path_factory.mktemp("multiomics_run")
+    # Use the same pattern as TestContext.run_directory to handle FileExistsError
+    try:
+        base_temp = tmp_path_factory.getbasetemp()
+    except FileExistsError:
+        base_temp = tmp_path_factory._basetemp
+    run_dir = base_temp / "multiomics_run"
+    run_dir.mkdir(exist_ok=True, parents=True)
     configs = {}
 
     # Initialize seqnado once in the shared run_dir for all assays
@@ -380,9 +386,12 @@ def multiomics_configs(
 
     # Now use seqnado config in multiomics mode (--no-interactive)
     # This will create config_*.yaml for each assay and config_multiomics.yaml
+    # Even in non-interactive mode, we need to provide assay selection
+    assay_input = ",".join(multiomics) + "\n"
     result = subprocess.run(
         ["seqnado", "config", "--no-interactive", "--no-make-dirs"],
         cwd=run_dir,
+        input=assay_input,
         capture_output=True,
         text=True,
     )

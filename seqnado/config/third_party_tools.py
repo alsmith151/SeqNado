@@ -230,19 +230,39 @@ class MacsMode(Enum):
 # =============================================================================
 
 class Cutadapt(ToolConfig):
-    """Cutadapt adapter trimming tool configuration."""
-    
-    mode: CutadaptMode = Field(default=CutadaptMode.CRISPR)
+    """Cutadapt adapter trimming tool configuration.
+
+    When mode='crispr', adapters are auto-detected from FASTQ files.
+    Otherwise, specify adapters in command_line_arguments.
+    """
+
+    mode: CutadaptMode = Field(default=CutadaptMode.CRISPR, description="Cutadapt mode: 'crispr' for auto-detection, 'default' for manual")
 
     @model_validator(mode="before")
     @classmethod
     def set_defaults(cls, data: dict) -> dict:
         data = dict(data)
         data.setdefault("threads", 4)
-        data.setdefault(
-            "command_line_arguments",
-            CommandLineArguments(value="-g 'ACACCG' --cut 0 -l 20 -m 20 -M 20 --discard-untrimmed"),
-        )
+
+        # Set default command_line_arguments based on mode
+        mode = data.get("mode", CutadaptMode.CRISPR)
+        if isinstance(mode, str):
+            mode = CutadaptMode(mode.lower())
+
+        if mode == CutadaptMode.CRISPR:
+            # For CRISPR mode, don't include adapter specs - they'll be auto-detected
+            # Only include parameters that affect trimming behavior
+            data.setdefault(
+                "command_line_arguments",
+                CommandLineArguments(value="--cut 0 -l 20 -m 20 -M 20 --discard-untrimmed"),
+            )
+        else:
+            # For default mode, use empty defaults (user should specify adapters)
+            data.setdefault(
+                "command_line_arguments",
+                CommandLineArguments(value=""),
+            )
+
         return data
 
 
@@ -349,7 +369,7 @@ class Deeptools(BaseModel):
 
 class Homer(BaseModel):
     """HOMER motif analysis suite configuration."""
-    
+
     make_tag_directory: ToolConfig = Field(
         default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
         description="Tag directory creation configuration"
@@ -369,6 +389,23 @@ class Homer(BaseModel):
     find_motifs_genome: ToolConfig = Field(
         default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
         description="Motif finding configuration"
+    )
+    known_motif_db: Annotated[Optional[str], BeforeValidator(none_str_to_none)] = Field(
+        default=None,
+        description="Path to known motif database file"
+    )
+
+
+class Meme(BaseModel):
+    """MEME Suite motif analysis configuration."""
+
+    meme_chip: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(command_line_arguments=CommandLineArguments(value="")),
+        description="MEME-ChIP motif analysis configuration"
+    )
+    known_motif_db: Annotated[Optional[str], BeforeValidator(none_str_to_none)] = Field(
+        default=None,
+        description="Path to known motif database file"
     )
 
 
@@ -438,9 +475,97 @@ class Subread(BaseModel):
     
     feature_counts: ToolConfig = Field(
         default_factory=lambda: ToolConfig(
-            threads=16, command_line_arguments=CommandLineArguments(value="-p --countReadPairs")
+            threads=16, 
+            command_line_arguments=CommandLineArguments(value="")
         ),
         description="Feature counting configuration"
+    )
+
+
+class MageckCount(ToolConfig):
+    """MAGeCK count configuration."""
+
+    norm_method: Literal["none", "median", "total", "control"] = Field(
+        default="median",
+        description="Normalization method for read counts"
+    )
+    pdf_report: bool = Field(
+        default=False,
+        description="Generate PDF quality control report"
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 8)
+        data.setdefault("command_line_arguments", CommandLineArguments(value=""))
+        return data
+
+
+class MageckTest(ToolConfig):
+    """MAGeCK test (RRA) configuration."""
+
+    control_samples: Optional[str] = Field(
+        default=None,
+        description="Comma-separated list of control sample labels"
+    )
+    treatment_samples: Optional[str] = Field(
+        default=None,
+        description="Comma-separated list of treatment sample labels"
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 4)
+        data.setdefault("command_line_arguments", CommandLineArguments(value=""))
+        return data
+
+
+class MageckMLE(ToolConfig):
+    """MAGeCK MLE configuration."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: dict) -> dict:
+        data = dict(data)
+        data.setdefault("threads", 8)
+        data.setdefault("command_line_arguments", CommandLineArguments(value=""))
+        return data
+
+
+class Mageck(BaseModel):
+    """MAGeCK CRISPR screen analysis tool configuration."""
+
+    count: MageckCount = Field(
+        default_factory=MageckCount,
+        description="MAGeCK count configuration for guide RNA quantification"
+    )
+    test: Optional[MageckTest] = Field(
+        default=None,
+        description="MAGeCK test (RRA) configuration for comparing treatment vs control"
+    )
+    mle: MageckMLE = Field(
+        default_factory=MageckMLE,
+        description="MAGeCK MLE configuration for complex experimental designs"
+    )
+    sgrna_library: Optional[str] = Field(
+        default=None,
+        description="Path to sgRNA library file (.txt or .csv format)"
+    )
+    design_matrix: Optional[str] = Field(
+        default=None,
+        description="Path to design matrix file for MAGeCK MLE analysis"
+    )
+    control_sgrna: Optional[str] = Field(
+        default=None,
+        description="Comma-separated list of control sgRNA IDs or file path (prefix with --control-sgrna)"
+    )
+    control_gene: Optional[str] = Field(
+        default=None,
+        description="Comma-separated list of control gene names or file path (prefix with --control-gene)"
     )
 
 
@@ -569,15 +694,15 @@ class Qualimap(ToolConfig):
 
 def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
     """Get the list of tool classes appropriate for a given assay type."""
-    
-    qc_tools = [FastqScreen, FastQC, Qualimap]
 
+    qc_tools = [FastqScreen, FastQC, Qualimap]
 
     generic_dna_tools = [
         Bowtie2,
         Bamnado,
         Deeptools,
         Homer,
+        Meme,
         Lanceotron,
         Macs,
         Picard,
@@ -585,7 +710,7 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
         Trimgalore,
         Subread,
     ]
-    
+
     tools = {
         Assay.ATAC: qc_tools + generic_dna_tools,
         Assay.CHIP: qc_tools + generic_dna_tools,
@@ -593,7 +718,7 @@ def get_assay_specific_tools(assay: Assay) -> list[type[BaseModel]]:
         Assay.RNA: qc_tools + [Star, Deeptools, Samtools, Trimgalore, Salmon, Subread],
         Assay.SNP: qc_tools + [Bowtie2, Trimgalore, Samtools, BcfTools],
         Assay.METH: qc_tools + [Bowtie2, Trimgalore, Methyldackel, Samtools, Picard],
-        Assay.CRISPR: [Cutadapt, Bowtie2, Subread, Samtools],
+        Assay.CRISPR: qc_tools + [Qualimap, Cutadapt, Bowtie2, Subread, Samtools, Mageck],
         Assay.MCC: qc_tools + [Trimgalore, Bowtie2, Samtools, Deeptools, LanceotronMCC, Bamnado],
     }
     return tools.get(assay, [])
@@ -632,15 +757,14 @@ class ThirdPartyToolsConfig(BaseModel):
     # Analysis tools
     deeptools: Annotated[Optional[Deeptools], BeforeValidator(none_str_to_none)] = Field(default=None, description="Deeptools suite configuration")
     homer: Annotated[Optional[Homer], BeforeValidator(none_str_to_none)] = Field(default=None, description="HOMER suite configuration")
+    meme: Annotated[Optional[Meme], BeforeValidator(none_str_to_none)] = Field(default=None, description="MEME Suite motif analysis configuration")
     bamnado: Annotated[Optional[Bamnado], BeforeValidator(none_str_to_none)] = Field(default=None, description="Bamnado coverage analysis configuration")
     subread: Annotated[Optional[Subread], BeforeValidator(none_str_to_none)] = Field(default=None, description="Subread feature counting configuration")
     salmon: Annotated[Optional[Salmon], BeforeValidator(none_str_to_none)] = Field(default=None, description="Salmon quantification configuration")
-
-    
-    # Specialized tools
     methyldackel: Annotated[Optional[Methyldackel], BeforeValidator(none_str_to_none)] = Field(default=None, description="Methyldackel methylation analysis configuration")
     bcftools: Annotated[Optional[BcfTools], BeforeValidator(none_str_to_none)] = Field(default=None, description="BCFtools variant calling suite configuration")
-
+    mageck: Annotated[Optional[Mageck], BeforeValidator(none_str_to_none)] = Field(default=None, description="MAGeCK CRISPR screen analysis configuration")
+    
     @classmethod
     def _class_to_field_map(cls) -> dict[type[BaseModel], str]:
         """Map tool classes to the corresponding field name on this model."""

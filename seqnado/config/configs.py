@@ -8,6 +8,7 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     Field,
+    ValidationInfo,
     computed_field,
     field_serializer,
     field_validator,
@@ -17,6 +18,7 @@ from seqnado import (
     Assay,
     GenomicCoordinate,
     MethylationMethod,
+    MotifMethod,
     PCRDuplicateHandling,
     PCRDuplicateTool,
     PeakCallingMethod,
@@ -46,6 +48,7 @@ class UserFriendlyError(Exception):
 
     pass
 
+
 def validate_bowtie2_index_prefix(p: Path) -> None:
     """
     Validate that `p` looks like a valid Bowtie2 index prefix.
@@ -55,10 +58,11 @@ def validate_bowtie2_index_prefix(p: Path) -> None:
     This is lenient — it does not enforce a fixed set of suffixes.
     """
     p = Path(p)
-    pattern = re.compile(r'\.(?:[1-4]|rev\.[12])\.bt2l?$')
+    pattern = re.compile(r"\.(?:[1-4]|rev\.[12])\.bt2l?$")
 
     matches = [
-        f for f in p.parent.glob(f"{p.name}*.bt2*")
+        f
+        for f in p.parent.glob(f"{p.name}*.bt2*")
         if pattern.search(f.name) and f.is_file()
     ]
 
@@ -69,7 +73,6 @@ def validate_bowtie2_index_prefix(p: Path) -> None:
         )
 
 
-
 class BowtieIndex(BaseModel):
     """Container for Bowtie2 index files."""
 
@@ -78,10 +81,7 @@ class BowtieIndex(BaseModel):
 
     @field_validator("prefix")
     def validate_prefix(cls, v: str) -> str:
-        # The prefix should be a valid path with a prefix for the index files.
-        # Ensure that its parent is a valid directory.
-        # Ensure that index files exist when the prefix is set.
-                
+
         if v is None or v.strip() == "":
             return v
         p = Path(v)
@@ -149,20 +149,26 @@ class GenomeConfig(BaseModel):
 
     # --- Serialization helpers to avoid Pydantic union/path warnings ---
 
-    @field_serializer("fasta", "chromosome_sizes", "gtf", "genes", "blacklist", when_used="json")
+    @field_serializer(
+        "fasta", "chromosome_sizes", "gtf", "genes", "blacklist", when_used="json"
+    )
     def _serialize_optional_path(self, v):
         from pathlib import Path as _Path
+
         return str(v) if isinstance(v, _Path) else v
 
     @field_serializer("index", when_used="json")
     def _serialize_index(self, v):
         from pathlib import Path as _Path
+
         if isinstance(v, BowtieIndex):
             return {"type": v.type, "prefix": v.prefix}
         if isinstance(v, STARIndex):
-            return {"type": v.type, "prefix": str(v.prefix) if isinstance(v.prefix, _Path) else v.prefix}
+            return {
+                "type": v.type,
+                "prefix": str(v.prefix) if isinstance(v.prefix, _Path) else v.prefix,
+            }
         return v
-
 
     def model_post_init(self, context):
         if not self.organism:
@@ -259,6 +265,7 @@ class GenomeConfig(BaseModel):
         else:
             return "Unknown"
 
+
 class ProjectConfig(BaseModel):
     """Configuration for the SeqNado project."""
 
@@ -276,10 +283,11 @@ class PCRDuplicatesConfig(BaseModel):
 
 class QCConfig(BaseModel):
     """Configuration for library quality control."""
+
     run_fastq_screen: bool = True
     calculate_library_complexity: bool = False
     calculate_fraction_of_reads_in_peaks: bool = False
-
+    trim_fastq: bool = True
 
 
 class BigwigConfig(BaseModel):
@@ -287,6 +295,7 @@ class BigwigConfig(BaseModel):
 
     pileup_method: list[PileupMethod] | None = None
     binsize: int | None = None
+    scale_methods: list[str] | None = None  # e.g., ["unscaled", "spikein"]
 
 
 class PlottingConfig(BaseModel):
@@ -301,6 +310,10 @@ class PeakCallingConfig(BaseModel):
 
     method: list[PeakCallingMethod] | None = None
     consensus_counts: bool = False
+    run_motif_analysis: bool = False
+    motif_method: list[MotifMethod] | None = Field(
+        default=None, description="Motif analysis methods to run (homer, meme)"
+    )
 
 
 class SpikeInConfig(BaseModel):
@@ -309,6 +322,7 @@ class SpikeInConfig(BaseModel):
     method: SpikeInMethod
     exogenous_genome: str | None = None
     endogenous_genome: str | None = None
+    control_genes: list[str] | None = None
 
 
 class UCSCHubConfig(BaseModel):
@@ -320,12 +334,24 @@ class UCSCHubConfig(BaseModel):
     email: str = "test@example.com"
     two_bit: str | None = None
     organism: str | None = None
-    default_position: GenomicCoordinate = Field(description="Default genomic position", default_factory=lambda: GenomicCoordinate.from_string("chr1:1-1000000"))
-    color_by: list[str] = Field(default_factory=lambda: ['samplename'], description="List of fields to color the bigwigs")
-    overlay_by: list[str] | None = Field(default=None, description="List of fields to overlay the bigwigs")
-    subgroup_by: list[str] | None = Field(default_factory=lambda: ['method', "norm"], description="List of fields to subgroup the bigwigs")
-    supergroup_by: list[str] | None = Field(default=None, description="List of fields to supergroup the bigwigs")
-    
+    default_position: GenomicCoordinate = Field(
+        description="Default genomic position",
+        default_factory=lambda: GenomicCoordinate.from_string("chr1:1-1000000"),
+    )
+    color_by: list[str] = Field(
+        default_factory=lambda: ["samplename"],
+        description="List of fields to color the bigwigs",
+    )
+    overlay_by: list[str] | None = Field(
+        default=None, description="List of fields to overlay the bigwigs"
+    )
+    subgroup_by: list[str] | None = Field(
+        default_factory=lambda: ["method", "norm"],
+        description="List of fields to subgroup the bigwigs",
+    )
+    supergroup_by: list[str] | None = Field(
+        default=None, description="List of fields to supergroup the bigwigs"
+    )
 
     @field_validator("directory")
     def validate_directory(cls, v: str) -> str:
@@ -347,8 +373,10 @@ class UCSCHubConfig(BaseModel):
             raise ValueError("Name must not be empty.")
 
         if not re.match(r"^[a-zA-Z0-9_.-]+$", v):
-            raise ValueError("Name must only contain alphanumeric characters, underscores, dashes, and periods.")
-        
+            raise ValueError(
+                "Name must only contain alphanumeric characters, underscores, dashes, and periods."
+            )
+
         return v
 
     @field_validator("overlay_by", "supergroup_by", mode="before")
@@ -372,22 +400,19 @@ class UCSCHubConfig(BaseModel):
 
     @classmethod
     def for_assay(cls, assay: Assay) -> "UCSCHubConfig":
-        
         match assay:
             case Assay.RNA:
                 return cls(
                     subgroup_by=["method", "norm", "strand"],
                     overlay_by=["samplename", "method", "norm"],
                 )
-            
+
             case Assay.MCC:
-                return cls(
-                    color_by = ['viewpoint'],
-                    subgroup_by = ['norm', 'viewpoint']
-                )
-            
+                return cls(color_by=["viewpoint"], subgroup_by=["norm", "viewpoint"])
+
             case _:
-                return cls()    
+                return cls()
+
 
 class RNAQuantificationConfig(BaseModel, PathValidatorMixin):
     """Configuration for RNA quantification."""
@@ -397,13 +422,13 @@ class RNAQuantificationConfig(BaseModel, PathValidatorMixin):
     run_deseq2: bool = False
 
     @field_validator("salmon_index")
-    def validate_salmon_index(cls, v: str | None) -> str | None:
-        return cls.validate_path_exists(v, "Salmon index path")
+    def validate_salmon_index(cls, v: str | None, info: ValidationInfo) -> str | None:
+        return cls.validate_path_exists(v, "Salmon index path", info)
 
 
 class SNPCallingConfig(BaseModel, PathValidatorMixin):
     """Configuration for SNP calling."""
-    
+
     method: SNPCallingMethod
     snp_database: str | None = None
     create_heatmaps: bool = False  # Added to prevent AttributeError in output builder
@@ -411,7 +436,7 @@ class SNPCallingConfig(BaseModel, PathValidatorMixin):
     @field_validator("snp_database")
     def validate_snp_database(cls, v: str | None, info) -> str | None:
         return cls.validate_required_when(v, False, "snp_database")
-    
+
     @computed_field
     @property
     def annotate_snps(self) -> bool:
@@ -423,15 +448,21 @@ class MethylationConfig(BaseModel, PathValidatorMixin):
     """Configuration for methylation calling."""
 
     method: MethylationMethod
-    reference_genome: str = Field(default_factory=lambda: "hg38", description="Reference genome for methylation calling")
-    spikein_genomes: list[str] = Field(default_factory=lambda: ['Lambda', '250bp-v1', '2kb-unmod'], description="List of spike-in genomes")
+    reference_genome: str = Field(
+        default_factory=lambda: "hg38",
+        description="Reference genome for methylation calling",
+    )
+    spikein_genomes: list[str] = Field(
+        default_factory=lambda: ["Lambda", "250bp-v1", "2kb-unmod"],
+        description="List of spike-in genomes",
+    )
 
     @field_validator("spikein_genomes")
     def validate_spikein_genomes(cls, v: list[str]) -> list[str]:
         if not v:
             raise ValueError("spikein_genomes must contain at least one genome.")
         return v
-    
+
 
 class MCCConfig(BaseModel, PathValidatorMixin):
     """Configuration for MCC (Capture-C) analysis."""
@@ -441,8 +472,8 @@ class MCCConfig(BaseModel, PathValidatorMixin):
     exclusion_zone: int = 500  # Default value, adjust as needed
 
     @field_validator("viewpoints")
-    def validate_viewpoints(cls, v: Path) -> Path:
-        return cls.validate_path_exists(v, "Viewpoints path")
+    def validate_viewpoints(cls, v: Path, info: ValidationInfo) -> Path:
+        return cls.validate_path_exists(v, "Viewpoints path", info)
 
     @field_validator("resolutions")
     def validate_resolutions(cls, v: list[int]) -> list[int]:
@@ -456,20 +487,18 @@ class MCCConfig(BaseModel, PathValidatorMixin):
 class MLDatasetConfig(BaseModel, PathValidatorMixin):
     """Configuration for ML dataset generation."""
 
-    regions_bed:  Annotated[Path | None, BeforeValidator(none_str_to_none)] = Field(
+    regions_bed: Annotated[Path | None, BeforeValidator(none_str_to_none)] = Field(
         default=None, description="BED file with regions of interest"
     )
     binsize: int | None = None
 
-        
-
     @field_validator("regions_bed")
-    def validate_regions_bed(cls, v: Path | None) -> Path | None:
+    def validate_regions_bed(cls, v: Path | None, info: ValidationInfo) -> Path | None:
         # Allow None here; the model_post_init will enforce that at least one of
         # regions_bed or binsize is provided. If a non-None value is given, validate it.
         if v is None:
             return None
-        return cls.validate_path_exists(v, "Regions BED file")
+        return cls.validate_path_exists(v, "Regions BED file", info)
 
     @field_validator("binsize")
     def validate_binsize(cls, v: int | None) -> int | None:
@@ -481,4 +510,3 @@ class MLDatasetConfig(BaseModel, PathValidatorMixin):
         """Validate that at least one of regions_bed or binsize is provided."""
         if self.regions_bed is None and self.binsize is None:
             raise ValueError("At least one of regions_bed or binsize must be provided.")
-
