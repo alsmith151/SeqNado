@@ -92,11 +92,11 @@ class SNPAssayConfig(BaseAssayConfig, SNPCallingMixin):
     create_heatmaps: bool = False
 
 
-class MCCAssayConfig(BaseAssayConfig):
+class MCCAssayConfig(BaseAssayConfig, PeakCallingMixin):
     """Configuration specific to MCC (Capture-C) assays."""
 
     mcc: MCCConfig | None = None
-    ucsc_hub: None = None  # Hub generation not supported for MCC
+    peak_calling: PeakCallingConfig | None = None
     create_heatmaps: bool = False
 
 class MethylationAssayConfig(BaseAssayConfig, MethylationMixin):
