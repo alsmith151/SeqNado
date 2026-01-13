@@ -1,3 +1,5 @@
+[← Back to main page](index.md)
+
 # FAQ
 
 ## Pipeline initialisation
@@ -6,7 +8,7 @@
 
 This error occurs when the pipeline is run without a config file present in the working directory. Ensure that seqnado-config has been run before starting the pipeline and that you are in the new directory created by seqnado-config.
 
-Follow the [Pipeline Setup](pipeline.md#configuration) instructions to create a config file.
+Follow the [Configuration Guide](configuration.md) instructions to create a config file.
 
 
 ## Singularity configuration
@@ -19,7 +21,7 @@ remote has no library client (see https://apptainer.org/docs/user/latest/endpoin
 
 Fix:
 
-re-run seqnado-init: [Here](installation.md#seqnado-init)
+re-run seqnado init: See the [Initialisation Guide](initialisation.md)
 
 or
 

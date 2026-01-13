@@ -1,4 +1,4 @@
-[Back to Index](index.md)
+[← Back to main page](index.md)
 
 # Installation
 
@@ -31,8 +31,16 @@ SeqNado is also available on PyPI. To install:
 pip install seqnado
 ```
 
+## Initialize after install
+
+Once installed, initialize SeqNado in your environment:
+
+```bash
+seqnado init
+```
+
+For all flags and details, see the CLI reference: [seqnado init](cli.md#cli-seqnado-init).
+
 ## Next Steps
 
-Once SeqNado is installed continue to: 
-
-[Initialize](initialisation.md)
+Next: **[Initialisation](initialisation.md)**
