@@ -25,9 +25,26 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y gcc git cmake make libtool g++ perl coreutils libcurl4-openssl-dev
-      - name: Install the package
+      - name: Install the package with docs dependencies
         shell: bash -el {0}
         run: |
-          pip install .
-      - run: pip install mkdocs-material mkdocstrings-python mkdocs-click pygments mkdocs-gen-files mkdocs-jupyter mkdocs-autorefs mkdocs-literate-nav mkdocs-section-index
+          pip install ".[docs]"
+          pip install typer-cli
+      - name: Generate CLI documentation
+        shell: bash -el {0}
+        run: |
+          typer seqnado.cli utils docs --name seqnado --output docs/cli_temp.md
+          # Update cli.md with generated content, preserving header
+          echo "[← Back to main page](index.md)" > docs/cli.md
+          echo "" >> docs/cli.md
+          echo "# CLI Reference" >> docs/cli.md
+          echo "" >> docs/cli.md
+          echo "This page provides a complete reference of all available SeqNado commands and options." >> docs/cli.md
+          echo "" >> docs/cli.md
+          echo "For quick examples and typical usage patterns, see the [Quick Start Guide](quick_start.md)." >> docs/cli.md
+          echo "" >> docs/cli.md
+          echo "---" >> docs/cli.md
+          echo "" >> docs/cli.md
+          tail -n +2 docs/cli_temp.md >> docs/cli.md
+          rm docs/cli_temp.md
       - run: mkdocs gh-deploy --force

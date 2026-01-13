@@ -45,3 +45,4 @@ test.json
 testing
 tests/data*
 tests/make_data*
+site/

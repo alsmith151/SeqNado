@@ -1,10 +1,4 @@
 site_name: Seqnado Documentation
-nav:
-  - Home: index.md
-  - Installation: installation.md
-  - Pipeline: pipeline.md
-  - Cluster Setup: cluster_config.md
-  - FAQ: faq.md
 theme:
   name: material
   palette:
@@ -28,20 +22,60 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
-  - mkdocs-click
   - admonition
   - codehilite:
       guess_lang: false
+  - attr_list
 
 plugins:
   - search
-  - mkdocstrings
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            show_signature_annotations: true
+            separate_signature: true
+            merge_init_into_class: true
+            filters:
+              - "!^_"
   - literate-nav:
       nav_file: SUMMARY.md
   - section-index
   - mkdocs-jupyter
   - gen-files:
-    scripts:
-      - docs/third_party_tools_config.py
+      scripts:
+        - docs/third_party_tools_config.py
+
+nav:
+  - Home: index.md
+  - Quick Start: quick_start.md
+  - Getting Started:
+    - Installation: installation.md
+    - Initialisation: initialisation.md
+    - Genome Setup: genomes.md
+    - Configuration: configuration.md
+    - Design Guide: design.md
+  - Usage:
+    - Pipeline Overview: pipeline.md
+    - Outputs: outputs.md
+    - CLI Reference: cli.md
+  - Reference:
+    - API Overview: api/index.md
+    - Core Types: api/core.md
+    - Configuration API: api/config.md
+    - Inputs API: api/inputs.md
+    - Outputs API: api/outputs.md
+    - Tools Reference: tools.md
+  - Help:
+    - HPC Clusters: cluster_config.md
+    - FAQ: faq.md
 
 repo_url: https://github.com/alsmith151/SeqNado

@@ -1,35 +1,10 @@
-[Back to Index](index.md)
+[← Back to main page](index.md)
 
-After successful configuration of SeqNado run [Configuration](configuration.md)
-
-## Design
+# Design Guide
 
 The `seqnado design` command generates a design CSV file from FASTQ files for a specific assay. If no assay is provided, the tool operates in multiomics mode.
 
-### Arguments
-
-- **assay**: Specify the assay type. Options include:
-  - `rna`
-  - `atac`
-  - `snp`
-  - `chip`
-  - `cat`
-  - `meth`
-  - `mcc`
-  - `crispr`
-  - If omitted, multiomics mode is used.
-- **files**: Provide one or more FASTQ files.
-
-### Options
-
-- `--output`, `-o`: Specify the output CSV filename. Default: `metadata_{assay}.csv`.
-- `--ip-to-control`: List of antibody,control pairings for IP assays (e.g. ChIP). Format: 'antibody1:control1,antibody2:control2'.
-- `--group-by`: Group samples by a regular expression or a column.
-- `--auto-discover` / `--no-auto-discover`: Automatically search common folders if none are provided. Default: `auto-discover`.
-- `--interactive` / `--no-interactive`: Interactively add missing columns using schema defaults. Default: `interactive`.
-- `--accept-all-defaults`: Non-interactive mode that auto-adds only columns with schema defaults.
-- `--verbose`, `-v`: Increase logging verbosity.
-- `--help`: Display help information.
+For full arguments and flags, see the CLI reference: [seqnado design](cli.md#cli-seqnado-design).
 
 ### Example Usage
 
@@ -115,6 +90,7 @@ The tool detects groups using several strategies:
 **Example:**
 
 For samples named:
+
 - `rna-spikein-control-rep1_R1.fastq.gz`
 - `rna-spikein-treated-rep1_R1.fastq.gz`
 
@@ -172,6 +148,8 @@ For multi-group comparisons, you'll need to manually configure the `deseq2` colu
 ```bash
 seqnado design 
 ```
+
+For examples of additional options (auto-discovery, grouping, patterns), consult [seqnado design](cli.md#cli-seqnado-design).
 
 ## Next Steps
 

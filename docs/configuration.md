@@ -1,35 +1,14 @@
-[Back to Index](index.md)
+[← Back to main page](index.md)
 
 # Configuration
 
-After successful genome configuration of SeqNado [Genomes](genomes.md)
-
+After successful genome configuration of SeqNado ([Genomes](genomes.md)).
 
 ## Using `seqnado config`
 
 The `seqnado config` command builds a workflow configuration YAML file for the selected assay. If no assay is provided, the tool operates in multiomics mode.
 
-### Arguments
-
-- **assay**: Specify the assay type. Options include:
-  - `rna`
-  - `atac`
-  - `snp`
-  - `chip`
-  - `cat`
-  - `meth`
-  - `mcc`
-  - `crispr`
-  - If omitted, multiomics mode is used.
-
-### Options
-
-- `--make-dirs` / `--no-make-dirs`: Create or skip creating the output project directory or fastq subdirectory. Default: `make-dirs`.
-- `--render-options` / `--no-render-options`: Render all options, even if not used by the workflow. Default: `no-render-options`.
-- `--output`, `-o`: Specify the explicit path for the rendered configuration file.
-- `--verbose`, `-v`: Increase logging verbosity.
-- `--interactive` / `--no-interactive`: Interactively prompt for configuration values. Default: `interactive`.
-- `--help`: Display help information.
+For all available arguments and flags, see the CLI reference: [seqnado config](cli.md#cli-seqnado-config).
 
 ### Example Usage
 
@@ -135,7 +114,9 @@ Below is a categorized list of supported tools:
 - **methyldackel**: For processing bisulfite sequencing data.
 - **bcftools**: Utilities for variant calling and manipulating VCF/BCF files.
 
-For more details on configuring these tools, refer to the [Third Party Tools Configuration Guide](third_party_tools_config.md).
+For more details on configuring these tools, refer to the individual tool documentation.
+
+For configuration command options and usage patterns, see [seqnado config](cli.md#cli-seqnado-config).
 
 ## Next Steps
 
