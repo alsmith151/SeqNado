@@ -35,11 +35,14 @@ Modular, reproducible, and container-ready pipelines powered by Snakemake that t
 - **Container-Ready**: Fully containerized pipelines using Apptainer/Singularity for reproducibility
 - **HPC-Optimized**: Seamless integration with SLURM and local execution modes
 - **Advanced Analysis**: 
-  - Spike-in normalization for ChIP-seq, ATAC-seq, and RNA-seq
-  - Automated differential expression with DESeq2
-  - UCSC genome browser hub generation
-  - Peak calling with MACS2, SEACR, and LanceOtron
   - Comprehensive QC with MultiQC reports
+  - Peak calling with MACS2, SEACR, HOMER, and LanceOtron
+  - Consensus peakset generation and quantification across samples
+  - Spike-in normalization for ChIP-seq, ATAC-seq, and RNA-seq
+  - Automated differential expression with DESeq2 for RNA-seq
+  - Genome browser style plots with `PlotNado`
+  - UCSC genome browser hub generation
+  - ML-ready dataset creation
 - **Flexible Configuration**: Interactive CLI for setup, or scriptable non-interactive mode
 - **Machine Learning Ready**: Tools for preparing datasets for ML applications
 
@@ -181,12 +184,12 @@ seqnado pipeline  --preset ss# Detects all config files in current directory
 
 **Execution Presets:**
 - `--preset le` - Local execution (default, recommended for workstations)
-- `--preset ss` - SLURM scheduler (for HPC clusters)
 - `--preset lc` - Local execution using conda environments
+- `--preset ss` - SLURM scheduler (for HPC clusters)
 
 **Resource Management:**
-- `--scale-resources 1.5` - Multiply memory/time requirements by 1.5×
 - `--queue short` - Specify SLURM partition/queue name
+- `--scale-resources 1.5` - Multiply memory/time requirements by 1.5×
 
 **Debugging & Testing:**
 - `-n` - Dry run to preview commands without executing
