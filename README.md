@@ -10,7 +10,7 @@
   <img src="https://raw.githubusercontent.com/alsmith151/SeqNado/main/containers/pipeline/seqnado.png" alt="SeqNado logo" />
 </p>
 
-*A powerful, unified bioinformatics toolkit for ATAC-seq, ChIP-seq, CUT&Tag, RNA-seq, SNP analysis, Methylation, CRISPR screens, and Micro-Capture-C.*
+*A Snakemake-based bioinformatics toolkit for analyzing sequencing data from ATAC-seq, ChIP-seq, CUT&Tag, RNA-seq, SNP analysis, Methylation, CRISPR screens, and Micro-Capture-C experiments.*
 
 ## Table of Contents
 
@@ -51,8 +51,10 @@ Modular, reproducible, and container-ready pipelines powered by Snakemake that t
 - **SNP Analysis** (`snp`) - Variant detection and genotyping workflows
 - **Methylation** (`meth`) - Bisulfite/TAPS sequencing for DNA methylation analysis
 - **CRISPR Screens** (`crispr`) - Guide-level quantification and screen statistics
-- **Micro-Capture-C** (`mcc`) - Micro-Capture-C chromatin conformation capture analysis
-- **Multiomics** - Integrated analysis in parallel across multiple assay types
+- **Micro-Capture-C** (`mcc`) - Chromatin conformation capture analysis
+- **Multiomics** - Run multiple assay types together in a single integrated workflow
+
+→ [View detailed assay workflows](https://alsmith151.github.io/SeqNado/pipeline/)
 
 ## Installation
 
@@ -65,9 +67,19 @@ mamba create -n seqnado -c bioconda seqnado
 mamba activate seqnado
 ```
 
+### Via uv (Fast Alternative)
+
+Install using [uv](https://docs.astral.sh/uv/), a fast Python package installer:
+
+```bash
+uv venv seqnado-env
+source seqnado-env/bin/activate  # On macOS/Linux; use 'seqnado-env\Scripts\activate' on Windows
+uv pip install seqnado
+```
+
 ### Via Pip
 
-Alternatively, install from PyPI:
+Alternatively, install using pip:
 
 ```bash
 pip install seqnado
@@ -81,13 +93,20 @@ After installation, initialize your SeqNado environment:
 seqnado init
 ```
 
-This sets up genome configurations, Apptainer containers, and Snakemake profiles.
+**What this does:**
+- Sets up genome configuration templates in `~/.config/seqnado/`
+- Configures Apptainer/Singularity containers (if available)
+- Installs Snakemake execution profiles for local and cluster execution
+
+→ [Learn more about initialization](https://alsmith151.github.io/SeqNado/initialisation/)
 
 ## Quick Start
 
+Complete workflow from installation to results in 5 steps:
+
 ### 1. Set Up Genome References
 
-List available genomes or build a new one:
+Before processing data, configure reference genomes for alignment:
 
 ```bash
 # List available genomes
@@ -97,63 +116,82 @@ seqnado genomes list atac
 seqnado genomes build rna --fasta hg38.fasta --name hg38 --outdir /path/to/genomes
 ```
 
+→ [Complete genome setup guide](https://alsmith151.github.io/SeqNado/genomes/)
+
 ### 2. Create Project Configuration
 
-Generate a configuration file for your assay:
+Generate a configuration file and project directory for your experiment:
 
 ```bash
 seqnado config atac
 ```
 
-This creates a project directory with the structure:
+**Output:** A dated project directory with configuration file and FASTQ folder:
 ```
-YYYY-MM-DD_ASSAY_project/
-├── config_atac.yaml
-└── fastqs/
+2026-01-13_ATAC_project/
+├── config_atac.yaml    # Edit this to customize analysis parameters
+└── fastqs/             # Place your FASTQ files here
 ```
+
+→ [Configuration options guide](https://alsmith151.github.io/SeqNado/configuration/)
 
 ### 3. Add FASTQ Files
 
-Link your FASTQ files into the project:
+Symlink your raw sequencing data into the project directory:
 
 ```bash
 ln -s /path/to/fastq/*.fastq.gz YYYY-MM-DD_ATAC_project/fastqs/
 ```
 
+**Note:** Use symbolic links to avoid duplicating large files.
+
 ### 4. Generate Sample Metadata
 
-Create the experimental design:
+Create a metadata CSV that describes your experimental design:
 
 ```bash
 seqnado design atac
 ```
 
-This generates a `metadata_atac.csv` file that you can edit to specify sample groupings, conditions, and controls.
+**Output:** `metadata_atac.csv` — Edit this file to specify:
+- Sample names and groupings
+- Experimental conditions
+- Control/treatment relationships
+- DESeq2 comparisons (for RNA-seq)
+
+→ [Design file specification](https://alsmith151.github.io/SeqNado/design/)
 
 ### 5. Run the Pipeline
 
-Execute the workflow:
+Execute the analysis workflow (choose one based on your environment):
 
 ```bash
-# Local execution
+# Local machine (uses all available cores)
 seqnado pipeline atac --preset le
 
-# HPC cluster with SLURM
+# HPC cluster with SLURM scheduler
 seqnado pipeline atac --preset ss --queue short
 
-# Multiomics mode (if multiple config files present)
-seqnado pipeline
+# Multiomics mode (processes multiple assays together)
+seqnado pipeline  --preset ss# Detects all config files in current directory
 ```
-
+→ [Pipeline execution details](https://alsmith151.github.io/SeqNado/pipeline/) | [Output files explained](https://alsmith151.github.io/SeqNado/outputs/)
 ### Common Pipeline Options
 
-- `--preset le` - Local execution (default)
-- `--preset ss` - SLURM scheduler for HPC
-- `--preset lc` - Local execution with conda environment
-- `--scale-resources 1.5` - Scale memory/time by 1.5x
-- `--queue short` - Specify SLURM partition
-- `-n` - Dry run (passed to Snakemake)
-- `--unlock` - Unlock working directory (passed to Snakemake)
+**Execution Presets:**
+- `--preset le` - Local execution (default, recommended for workstations)
+- `--preset ss` - SLURM scheduler (for HPC clusters)
+- `--preset lc` - Local execution using conda environments
+
+**Resource Management:**
+- `--scale-resources 1.5` - Multiply memory/time requirements by 1.5×
+- `--queue short` - Specify SLURM partition/queue name
+
+**Debugging & Testing:**
+- `-n` - Dry run to preview commands without executing
+- `--unlock` - Unlock directory after interrupted runs
+
+→ [All CLI options](https://alsmith151.github.io/SeqNado/cli/) | [HPC cluster setup](https://alsmith151.github.io/SeqNado/cluster_config/)
 
 ## Documentation
 
