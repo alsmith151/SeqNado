@@ -32,6 +32,7 @@ from .configs import (
 )
 from .mixins import (
     CommonComputedFieldsMixin,
+    ComputedFieldOverrideMixin,
     MethylationMixin,
     PeakCallingMixin,
     SNPCallingMixin,
@@ -39,7 +40,7 @@ from .mixins import (
 from .third_party_tools import ThirdPartyToolsConfig
 
 
-class BaseAssayConfig(BaseModel, CommonComputedFieldsMixin):
+class BaseAssayConfig(CommonComputedFieldsMixin):
     """Base configuration for all assays."""
 
     bigwigs: BigwigConfig | None = None
@@ -151,8 +152,10 @@ class AssayConfig(Enum):
     CRISPR = CRISPRAssayConfig
 
 
-class SeqnadoConfig(BaseModel):
+class SeqnadoConfig(ComputedFieldOverrideMixin, BaseModel):
     """Configuration for the SeqNado workflow."""
+    
+    __computed_fields__ = {'organism', 'shift_for_tn5_insertion', 'mcc_viewpoints'}
 
     assay: Assay
     project: ProjectConfig
@@ -208,21 +211,30 @@ class SeqnadoConfig(BaseModel):
     @property
     def organism(self) -> str:
         """Return the organism (string) from the genome configuration."""
-        return self.genome.organism
+        return self._get_or_compute(
+            'organism',
+            lambda: self.genome.organism
+        )
 
     @computed_field
     @property
     def shift_for_tn5_insertion(self) -> bool:
         """Return the Tn5 shift configuration for the specified assay."""
-        return hasattr(self.assay_config, "tn5_shift") and self.assay_config.tn5_shift
+        return self._get_or_compute(
+            'shift_for_tn5_insertion',
+            lambda: hasattr(self.assay_config, "tn5_shift") and self.assay_config.tn5_shift
+        )
     
     @computed_field
     @property
     def mcc_viewpoints(self) -> str:
         """Return the MCC viewpoints file path."""
-        if self.assay_config and hasattr(self.assay_config, "mcc"):
-            return str(self.assay_config.mcc.viewpoints)
-        return ""
+        def compute():
+            if self.assay_config and hasattr(self.assay_config, "mcc"):
+                return str(self.assay_config.mcc.viewpoints)
+            return ""
+        
+        return self._get_or_compute('mcc_viewpoints', compute)
 
     @field_validator("remove_blacklist")
     def validate_remove_blacklist(cls, v):

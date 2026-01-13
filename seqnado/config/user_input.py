@@ -51,6 +51,7 @@ from seqnado.config import (
     STARIndex,
     UCSCHubConfig,
 )
+from seqnado.config.yaml_serializer import dump_config_to_yaml
 
 
 def get_user_input(
@@ -933,14 +934,18 @@ def render_config(
     """Render the workflow configuration to a file."""
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template.parent))
-    template = env.get_template(template.name)
+    template_obj = env.get_template(template.name)
 
     # Convert the Pydantic model to a dictionary for rendering
-    # Always include fields with None values to ensure required fields like ucsc_hub are present
-    config_dict = workflow_config.model_dump(mode="json", exclude_none=False)
+    # Include computed fields but exclude the private _explicit_overrides dict
+    config_dict = workflow_config.model_dump(
+        mode="json", 
+        exclude_none=False,
+        exclude={'_explicit_overrides'}
+    )
 
     try:
-        rendered_content = template.render(**config_dict)
+        rendered_content = template_obj.render(**config_dict)
     except jinja2.TemplateError as e:
         logger.error(f"Template rendering error: {e}")
         sys.exit(1)
@@ -1151,13 +1156,12 @@ def render_multiomics_configs(
     # Render multiomics config
     multiomics_file = output_dir / "config_multiomics.yaml"
 
-    # Create a simple YAML representation of multiomics config
-    multiomics_dict = multiomics_config.model_dump(mode="json", exclude_none=True)
-
-    import yaml
-
-    with open(multiomics_file, "w") as f:
-        yaml.dump(multiomics_dict, f, default_flow_style=False, sort_keys=False)
+    # Create YAML with computed field comments, excluding private fields
+    dump_config_to_yaml(
+        multiomics_config, 
+        stream=multiomics_file, 
+        add_computed_field_comments=True
+    )
 
     generated_files.append(multiomics_file)
     logger.success(f"Generated {multiomics_file}")

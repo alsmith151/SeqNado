@@ -249,3 +249,147 @@ class TestPathValidatorMixin:
             None, condition=False, field_name="test_field"
         )
         assert result is None
+
+
+class TestComputedFieldOverrides:
+    """Tests for computed field override functionality."""
+
+    def test_create_bigwigs_explicit_override_true(self):
+        """Test create_bigwigs can be explicitly set to True (with config present)."""
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            bigwigs: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        # Explicitly set create_bigwigs=True with bigwigs config
+        model = TestModel(bigwigs={"some": "config"}, create_bigwigs=True)
+        assert model.create_bigwigs is True
+
+    def test_create_bigwigs_explicit_override_false(self):
+        """Test create_bigwigs can be explicitly set to False even when config is present."""
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            bigwigs: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        # Explicitly set create_bigwigs=False despite bigwigs config
+        model = TestModel(bigwigs={"some": "config"}, create_bigwigs=False)
+        assert model.create_bigwigs is False
+
+    def test_create_bigwigs_override_validation_error(self):
+        """Test create_bigwigs=True without bigwigs config raises validation error."""
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            bigwigs: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        # Should raise error when create_bigwigs=True but no bigwigs config
+        with pytest.raises(ValueError, match="create_bigwigs=True requires 'bigwigs' configuration"):
+            TestModel(bigwigs=None, create_bigwigs=True)
+
+    def test_plot_with_plotnado_explicit_override(self):
+        """Test plot_with_plotnado can be explicitly overridden."""
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            plotting: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        # Override to False despite config present
+        model = TestModel(plotting={"some": "config"}, plot_with_plotnado=False)
+        assert model.plot_with_plotnado is False
+
+    def test_plot_with_plotnado_override_validation_error(self):
+        """Test plot_with_plotnado=True without plotting config raises error."""
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            plotting: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        with pytest.raises(ValueError, match="plot_with_plotnado=True requires 'plotting' configuration"):
+            TestModel(plotting=None, plot_with_plotnado=True)
+
+    def test_create_dataset_override_validation_error(self):
+        """Test create_dataset=True without dataset_for_ml config raises error."""
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            dataset_for_ml: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        with pytest.raises(ValueError, match="create_dataset=True requires 'dataset_for_ml' configuration"):
+            TestModel(dataset_for_ml=None, create_dataset=True)
+
+    def test_create_ucsc_hub_override_validation_error(self):
+        """Test create_ucsc_hub=True without ucsc_hub config raises error."""
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            ucsc_hub: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        with pytest.raises(ValueError, match="create_ucsc_hub=True requires 'ucsc_hub' configuration"):
+            TestModel(ucsc_hub=None, create_ucsc_hub=True)
+
+    def test_has_spikein_override_validation_error(self):
+        """Test has_spikein=True without spikein config raises error."""
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            spikein: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        with pytest.raises(ValueError, match="has_spikein=True requires 'spikein' configuration"):
+            TestModel(spikein=None, has_spikein=True)
+
+    def test_call_peaks_override_validation_error(self):
+        """Test call_peaks=True without peak_calling config raises error."""
+        
+        class TestModel(PeakCallingMixin, BaseModel):
+            peak_calling: dict | None = None
+        
+        with pytest.raises(ValueError, match="call_peaks=True requires 'peak_calling' configuration"):
+            TestModel(peak_calling=None, call_peaks=True)
+
+    def test_call_snps_override_validation_error(self):
+        """Test call_snps=True without snp_calling config raises error."""
+        
+        class TestModel(SNPCallingMixin, BaseModel):
+            snp_calling: dict | None = None
+        
+        with pytest.raises(ValueError, match="call_snps=True requires 'snp_calling' configuration"):
+            TestModel(snp_calling=None, call_snps=True)
+
+    def test_call_methylation_override_validation_error(self):
+        """Test call_methylation=True without methylation config raises error."""
+        
+        class TestModel(MethylationMixin, BaseModel):
+            methylation: dict | None = None
+        
+        with pytest.raises(ValueError, match="call_methylation=True requires 'methylation' configuration"):
+            TestModel(methylation=None, call_methylation=True)
+
+    def test_yaml_roundtrip_with_overrides(self, tmp_path):
+        """Test that YAML serialization and deserialization preserves explicit overrides."""
+        from seqnado.config.yaml_serializer import dump_config_to_yaml, load_config_from_yaml
+        
+        class TestModel(CommonComputedFieldsMixin, BaseModel):
+            bigwigs: dict | None = None
+            plotting: dict | None = None
+            create_geo_submission_files: bool = False
+        
+        # Create model with explicit override
+        original = TestModel(
+            bigwigs={"some": "config"}, 
+            plotting={"other": "config"},
+            create_bigwigs=False,  # Override to False despite config
+            plot_with_plotnado=True  # Explicitly True (matches computed)
+        )
+        
+        # Serialize to YAML
+        yaml_file = tmp_path / "test_config.yaml"
+        dump_config_to_yaml(original, stream=yaml_file)
+        
+        # Load back from YAML
+        data = load_config_from_yaml(yaml_file)
+        restored = TestModel(**data)
+        
+        # Verify overrides are preserved
+        assert restored.create_bigwigs is False  # Overridden value
+        assert restored.plot_with_plotnado is True  # Explicit value

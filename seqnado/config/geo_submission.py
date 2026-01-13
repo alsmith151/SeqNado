@@ -5,9 +5,13 @@ import pandas as pd
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator, ValidationInfo
 
 from seqnado import Assay, Molecule, Organism
+from seqnado.config.mixins import ComputedFieldOverrideMixin
 
 
-class GEOSample(BaseModel):
+class GEOSample(ComputedFieldOverrideMixin, BaseModel):
+    
+    __computed_fields__ = {'library_strategy', 'molecule'}
+    
     assay: Assay
     library_name: str
     title: str
@@ -28,7 +32,10 @@ class GEOSample(BaseModel):
     @property
     def library_strategy(self) -> str:
         """Return the library strategy based on the assay."""
-        return self.assay.value
+        return self._get_or_compute(
+            'library_strategy',
+            lambda: self.assay.value
+        )
 
     @model_validator(mode="after")
     def validate_antibody_with_assay(self) -> "GEOSample":
@@ -43,13 +50,16 @@ class GEOSample(BaseModel):
     @property
     def molecule(self) -> Molecule:
         """Return the molecule type based on the assay."""
-        match self.assay:
-            case Assay.RNA:
-                if any(n in self.title.lower() for n in ["tt-seq", "nasc", "point"]):
-                    return Molecule.rna_nuclear
-                return Molecule.rna_polya
-            case _:
-                return Molecule.dna_genomic
+        def compute():
+            match self.assay:
+                case Assay.RNA:
+                    if any(n in self.title.lower() for n in ["tt-seq", "nasc", "point"]):
+                        return Molecule.rna_nuclear
+                    return Molecule.rna_polya
+                case _:
+                    return Molecule.dna_genomic
+        
+        return self._get_or_compute('molecule', compute)
 
     def to_series(self) -> pd.Series:
         """Convert the GEOSample to a pandas Series with dynamic file columns."""
