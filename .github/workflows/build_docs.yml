@@ -9,8 +9,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
@@ -29,7 +29,7 @@ jobs:
         shell: bash -el {0}
         run: |
           pip install ".[docs]"
-          pip install typer-cli
+          pip install typer-cli black
       - name: Generate CLI documentation
         shell: bash -el {0}
         run: |
@@ -47,4 +47,16 @@ jobs:
           echo "" >> docs/cli.md
           tail -n +2 docs/cli_temp.md >> docs/cli.md
           rm docs/cli_temp.md
-      - run: mkdocs gh-deploy --force
+          # Inject stable anchors so other pages can deep-link reliably
+          sed -i.bak 's/^## `seqnado init`/## `seqnado init` {#cli-seqnado-init}/' docs/cli.md
+          sed -i.bak 's/^## `seqnado genomes`/## `seqnado genomes` {#cli-seqnado-genomes}/' docs/cli.md
+          sed -i.bak 's/^## `seqnado config`/## `seqnado config` {#cli-seqnado-config}/' docs/cli.md
+          sed -i.bak 's/^## `seqnado design`/## `seqnado design` {#cli-seqnado-design}/' docs/cli.md
+          sed -i.bak 's/^## `seqnado pipeline`/## `seqnado pipeline` {#cli-seqnado-pipeline}/' docs/cli.md
+          rm -f docs/cli.md.bak
+      - name: Build (check only)
+        env:
+          JUPYTER_PLATFORM_DIRS: "1"
+        run: mkdocs build
+      - name: Deploy
+        run: mkdocs gh-deploy --force
