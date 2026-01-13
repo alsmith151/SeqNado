@@ -28,6 +28,7 @@ Modular, reproducible, and container-ready pipelines powered by Snakemake that t
 ## Key Features
 
 - **Comprehensive Assay Support**: Single framework for multiple sequencing assays
+- **Customizable Workflows**: Easily modify parameters, use different tools for peak calling, bigwig generation etc.
 - **User-Friendly CLI**: Intuitive command-line interface that guides you through setup and execution
 - **Multiomics Support**: Analyze and integrate data from multiple sequencing assays in a single workflow
 - **Snakemake-Powered**: Modular workflows with automatic parallelization and resource management
@@ -128,7 +129,7 @@ seqnado config atac
 
 **Output:** A dated project directory with configuration file and FASTQ folder:
 ```
-2026-01-13_ATAC_project/
+YYYY-MM-DD_ATAC_project/
 ├── config_atac.yaml    # Edit this to customize analysis parameters
 └── fastqs/             # Place your FASTQ files here
 ```
