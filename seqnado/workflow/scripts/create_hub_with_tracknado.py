@@ -86,6 +86,20 @@ def create_hub_with_tracknado():
             .color_by(snakemake.params.color_by)
         )
 
+        # If we have a custom genome, set it here
+        if hasattr(snakemake.params, "custom_genome") and snakemake.params.custom_genome:
+
+            # custom_genome=lambda wc: True if CONFIG.assay_config.ucsc_hub.two_bit else False,
+            # genome_twobit=CONFIG.assay_config.ucsc_hub.two_bit,
+            # genome_organism=CONFIG.assay_config.ucsc_hub.organism,
+            # genome_default_position=CONFIG.assay_config.ucsc_hub.default_position,
+            builder = builder.with_custom_genome(
+                name=snakemake.params.genome,
+                twobit_file=snakemake.params.genome_twobit,
+                organism=snakemake.params.genome_organism,
+                default_position=snakemake.params.genome_default_position,
+            )
+
         # 4. Build and stage the hub
         # This automatically generates hub.txt, genomes.txt, trackDb.txt
         # and saves a 'tracknado_config.json' sidecar for easy merging later.
@@ -96,10 +110,6 @@ def create_hub_with_tracknado():
             outdir=outdir,
             hub_email=snakemake.params.hub_email,
             description_html=Path(snakemake.input.report) if hasattr(snakemake.input, "report") else None,
-            custom_genome=snakemake.params.custom_genome,
-            genome_twobit=snakemake.params.genome_twobit,
-            genome_organism=snakemake.params.genome_organism,
-            genome_default_position=snakemake.params.genome_default_position,
         )
 
         hub.stage_hub()

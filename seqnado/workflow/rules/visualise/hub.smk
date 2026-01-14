@@ -20,7 +20,7 @@ if CONFIG.assay_config.create_ucsc_hub and (OUTPUT.bigwig_files or OUTPUT.bigbed
             genome=CONFIG.assay_config.ucsc_hub.genome,
             hub_name=CONFIG.assay_config.ucsc_hub.name,
             hub_email=CONFIG.assay_config.ucsc_hub.email,
-            custom_genome=None,
+            custom_genome=lambda wc: True if CONFIG.assay_config.ucsc_hub.two_bit else False,
             genome_twobit=CONFIG.assay_config.ucsc_hub.two_bit,
             genome_organism=CONFIG.assay_config.ucsc_hub.organism,
             genome_default_position=CONFIG.assay_config.ucsc_hub.default_position,
