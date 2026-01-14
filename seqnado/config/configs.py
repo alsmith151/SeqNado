@@ -403,25 +403,28 @@ class UCSCHubConfig(BaseModel):
         match assay:
             case Assay.RNA:
                 return cls(
+                    supergroup_by=["file_type"],
                     subgroup_by=["method", "norm", "strand"],
                     overlay_by=["samplename", "method", "norm"],
                     color_by=["samplename", "strand"],
                 )
 
             case Assay.MCC:
-                return cls(supergroup_by=["norm"],
+                return cls(supergroup_by=["norm", "file_type"],
                            color_by=["viewpoint", 'samplename'], 
                            subgroup_by=["viewpoint"],
                            overlay_by=["samplename"])
             
             case Assay.CHIP | Assay.CAT:
                 return cls(
+                    supergroup_by=["file_type"],
                     subgroup_by=["method", "norm", 'antibody'],
                     color_by=["antibody", "samplename"],
                 )
             
             case Assay.ATAC:
                 return cls(
+                    supergroup_by=["file_type"],
                     subgroup_by=["method", "norm"],
                     color_by=["samplename"],
                 )
