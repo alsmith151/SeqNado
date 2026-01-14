@@ -405,10 +405,26 @@ class UCSCHubConfig(BaseModel):
                 return cls(
                     subgroup_by=["method", "norm", "strand"],
                     overlay_by=["samplename", "method", "norm"],
+                    color_by=["samplename", "strand"],
                 )
 
             case Assay.MCC:
-                return cls(color_by=["viewpoint"], subgroup_by=["norm", "viewpoint"])
+                return cls(supergroup_by=["norm"],
+                           color_by=["viewpoint", 'samplename'], 
+                           subgroup_by=["viewpoint"],
+                           overlay_by=["samplename"])
+            
+            case Assay.CHIP | Assay.CAT:
+                return cls(
+                    subgroup_by=["method", "norm", 'antibody'],
+                    color_by=["antibody", "samplename"],
+                )
+            
+            case Assay.ATAC:
+                return cls(
+                    subgroup_by=["method", "norm"],
+                    color_by=["samplename"],
+                )
 
             case _:
                 return cls()
