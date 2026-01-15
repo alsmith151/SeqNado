@@ -66,7 +66,6 @@ rule bgzip_pairs:
     message: "Bgzipping pairs file for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
     wildcard_constraints:
         group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
-    resources:
     shell: """
     bgzip -c {input.pairs} > {output.pairs}
     """

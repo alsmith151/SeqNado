@@ -24,7 +24,8 @@ rule make_bigwigs_mcc_replicates:
     --scale-factor {params.scale_factor} \
     --blacklisted-locations {input.excluded_regions} \
     --min-mapq 0 \
-    --read-group {wildcards.viewpoint_group} \
+    --filter-tag VP \
+    --filter-tag-value {wildcards.viewpoint_group} \
     {params.options} > {log} 2>&1
     """
         
