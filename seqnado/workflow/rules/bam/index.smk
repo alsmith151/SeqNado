@@ -22,6 +22,27 @@ rule sort_bam:
         echo -e "sort\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
     """
 
+rule sort_bam_by_qname:
+    input:
+        bam=OUTPUT_DIR + "/aligned/sorted/{sample}.bam",
+    output:
+        bam=temp(OUTPUT_DIR + "/aligned/sorted_by_qname/{sample}.bam"),
+        read_log=temp(OUTPUT_DIR + "/qc/alignment_post_process/{sample}_filter_qname.tsv"),
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=4, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    threads: CONFIG.third_party_tools.samtools.sort.threads
+    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    log: OUTPUT_DIR + "/logs/alignment_post_process/{sample}_filter_qname.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/alignment_post_process/{sample}_filter_qname.tsv",
+    message: "Sorting aligned BAM by QNAME for sample {wildcards.sample} using samtools",
+    shell: """
+        samtools sort -n {input.bam} -@ {threads} -o {output.bam} -m 900M
+        echo 'Step\tRead Count' > {output.read_log}
+        echo -e "Before QNAME sort\t$(samtools view -c {input.bam})" >> {output.read_log}
+        echo -e "After QNAME sort\t$(samtools view -c {output.bam})" >> {output.read_log} 2>&1 | tee -a {log}
+    """
+
 
 rule index_bam:
     input:
