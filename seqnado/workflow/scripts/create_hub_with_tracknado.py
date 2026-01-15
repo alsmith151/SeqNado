@@ -70,6 +70,11 @@ def create_hub_with_tracknado():
 
         # 1. Initialize the HubBuilder with the input files
         # We use the fluent API to configure everything in a single chain
+        supergroup_by = snakemake.params.supergroup_by
+        subgroup_by = snakemake.params.subgroup_by
+        overlay_by = snakemake.params.overlay_by
+        color_by = snakemake.params.color_by
+
         builder = (
             tn.HubBuilder()
             .add_tracks(snakemake.input.data)
@@ -77,14 +82,21 @@ def create_hub_with_tracknado():
             # 2. Use the built-in seqnado path extractor
             # This automatically handles directory structures like assay/method/norm/sample.bw
             .with_metadata_extractor(from_seqnado_path)
-            
-            # 3. Configure groupings based on metadata columns
-            # We use the parameters provided via Snakemake
-            .group_by(*snakemake.params.supergroup_by, as_supertrack=True)
-            .group_by(*snakemake.params.subgroup_by)
-            .overlay_by(*snakemake.params.overlay_by)
-            .color_by(snakemake.params.color_by)
         )
+
+        if supergroup_by:
+            builder = builder.group_by(*supergroup_by, as_supertrack=True)
+        
+        if subgroup_by:
+            builder = builder.group_by(*subgroup_by)
+        
+        if overlay_by:
+            builder = builder.overlay_by(*overlay_by)
+        
+        if color_by:
+            builder = builder.color_by(color_by)
+        else:
+            builder = builder.color_by("samplename")  # Default coloring by method if none provided
 
         # If we have a custom genome, set it here
         if hasattr(snakemake.params, "custom_genome") and snakemake.params.custom_genome:
