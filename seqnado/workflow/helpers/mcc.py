@@ -188,3 +188,26 @@ def viewpoint_to_grouped_viewpoint(viewpoints: List[str]) -> Dict[str, str]:
             viewpoint_to_grouped_mapping[viewpoint] = viewpoint_name
 
     return viewpoint_to_grouped_mapping
+
+
+def get_mcc_bigwig_files(wildcards):
+    """
+    Get MCC bigwig files for a given sample.
+
+    Args:
+        wildcards: Snakemake wildcards object containing 'sample'.
+    Returns:
+        list: List of bigwig file paths for the sample.
+    """
+    return rules.confirm_bigwigs_generated.input # ignore for linting 
+
+def get_mcc_peak_files(wildcards):
+    """
+    Get MCC peak files for a given sample.
+
+    Args:
+        wildcards: Snakemake wildcards object containing 'sample'.
+    Returns:
+        list: List of peak file paths for the sample.
+    """
+    return rules.confirm_peaks_generated.input  # ignore for linting

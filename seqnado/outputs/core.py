@@ -166,6 +166,10 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def genome_browser_plots(self):
         return self.select_files(".pdf", contains="genome_browser")
+    
+    @property
+    def sentinel_files(self):
+        return self.select_files(".txt", contains=".mcc_")
 
     @property
     def ucsc_hub_files(self):

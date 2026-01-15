@@ -98,7 +98,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     message: "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
 
 
-rule confirm_mcc_bigwigs_generated:
+rule confirm_bigwigs_generated:
     input:
         expand(OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig", sample=SAMPLE_NAMES, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
         expand(OUTPUT_DIR + "/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig", group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names, viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
