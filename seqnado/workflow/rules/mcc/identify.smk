@@ -18,7 +18,7 @@ rule identify_viewpoint_reads:
     message: "Identifying viewpoint reads for sample {wildcards.sample}",
     shell:
         """
-        mccnado annotate-bam-file {input.bam} {output.bam} > {log} 2>&1
+        mccnado annotate-bam {input.bam} {output.bam} > {log} 2>&1
         """
 
 rule deduplicate_bam_file:
