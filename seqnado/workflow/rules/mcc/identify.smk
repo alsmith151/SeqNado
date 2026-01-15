@@ -12,7 +12,7 @@ rule identify_viewpoint_reads:
     threads: 1
     resources:
         mem="1GB",
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    container: "oras://ghcr.io/alsmith151/mccnado:latest"
     log: OUTPUT_DIR + "/logs/identify_viewpoint_reads/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/identify_viewpoint_reads/{sample}.tsv",
     message: "Identifying viewpoint reads for sample {wildcards.sample}",
