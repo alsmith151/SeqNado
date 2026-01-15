@@ -14,7 +14,7 @@ rule make_bigwigs_mcc_replicates:
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc, OUTPUT_DIR=OUTPUT_DIR),
     log: OUTPUT_DIR + "/logs/bigwig/{sample}_{viewpoint_group}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{sample}_{viewpoint_group}.tsv",
-    container: "oras://ghcr.io/alsmith151/bamnado:latest"
+    container: "docker://ghcr.io/alsmith151/bamnado:latest"
     message: "Generating bigWig for MCC sample {wildcards.sample} and viewpoint group {wildcards.viewpoint_group}",
     shell: """
     bamnado \
@@ -76,7 +76,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     log: OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_n_cis.tsv",
     message: "Generating n_cis normalized bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
-    container: 'oras://ghcr.io/alsmith151/bamnado:latest'
+    container: 'docker://ghcr.io/alsmith151/bamnado:latest'
 
 
 use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
@@ -94,7 +94,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
         viewpoint_group="|".join(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
     log: OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_unscaled.tsv",
-    container: "oras://ghcr.io/alsmith151/bamnado:latest"
+    container: "docker://ghcr.io/alsmith151/bamnado:latest"
     message: "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
 
 
