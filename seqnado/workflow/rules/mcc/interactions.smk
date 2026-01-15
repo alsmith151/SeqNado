@@ -24,7 +24,7 @@ rule identify_ligation_junctions:
     threads: 1
     resources:
         mem="1GB",
-    container: 'oras://ghcr.io/alsmith151/seqnado_pipeline:latest',
+    container: 'docker://ghcr.io/alsmith151/mccnado:latest',
     wildcard_constraints:
         group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
     log: OUTPUT_DIR + "/logs/ligation_junctions/{group}.log",
@@ -66,7 +66,6 @@ rule bgzip_pairs:
     message: "Bgzipping pairs file for viewpoint {wildcards.viewpoint} in group {wildcards.group}",
     wildcard_constraints:
         group="|".join(SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
-    resources:
     shell: """
     bgzip -c {input.pairs} > {output.pairs}
     """
@@ -131,7 +130,7 @@ rule aggregate_coolers:
     resources:
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
-    container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    container: "docker://ghcr.io/alsmith151/mccnado:latest"
     log: OUTPUT_DIR + "/logs/{group}_aggregate_coolers.log",
     benchmark: OUTPUT_DIR + "/.benchmark/{group}_aggregate_coolers.tsv",
     message: "Aggregating cooler files for group {wildcards.group}",
