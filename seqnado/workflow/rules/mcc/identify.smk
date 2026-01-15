@@ -30,6 +30,7 @@ rule deduplicate_bam_file:
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=3, attempts=attempt, scale=SCALE_RESOURCES),
         runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+    container: "docker://ghcr.io/alsmith151/mccnado:latest"
     log: OUTPUT_DIR + "/logs/deduplicate_bam/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/deduplicate_bam/{sample}.tsv",
     message: "Deduplicating BAM file for sample {wildcards.sample}",
