@@ -16,7 +16,9 @@ rule make_bigwigs_mcc_replicates:
     benchmark: OUTPUT_DIR + "/.benchmark/bigwig/{sample}_{viewpoint_group}.tsv",
     container: "docker://ghcr.io/alsmith151/bamnado:latest"
     message: "Generating bigWig for MCC sample {wildcards.sample} and viewpoint group {wildcards.viewpoint_group}",
+    threads: 8
     shell: """
+    export RAYON_NUM_THREADS={threads} &&
     bamnado \
     bam-coverage \
     -b {input.bam} \
@@ -28,8 +30,6 @@ rule make_bigwigs_mcc_replicates:
     --filter-tag-value {wildcards.viewpoint_group} \
     {params.options} > {log} 2>&1
     """
-        
-
 
 rule merge_mcc_bams:
     input:
