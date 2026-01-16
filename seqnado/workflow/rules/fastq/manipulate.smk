@@ -13,7 +13,13 @@ rule deduplicate_fastq_raw:
     benchmark: OUTPUT_DIR + "/.benchmark/deduplication/{sample}.tsv",
     message: "Deduplicating reads for sample {wildcards.sample}",
     script:
-        "../../scripts/deduplicate_fastq.py"
+        """
+        mccnado deduplicate-fastq \
+        {input.fq1} {output.fq1} \
+        --fastq2 {input.fq2} \
+        --output2 {output.fq2}
+        2> {log}
+        """
 
 
 rule flash:
