@@ -22,12 +22,12 @@ rule make_bigwigs_mcc_replicates:
     log:
         OUTPUT_DIR + "/logs/bigwig/{sample}_{viewpoint_group}.log",
     benchmark:
-        OUTPUT_DIR + "/.benchmark/bigwig/{sample}_{viewpoint_group}.tsv"
+        OUTPUT_DIR + "/.benchmark/bigwig/{sample}_{viewpoint_group}.tsv",
     container:
-        "docker://ghcr.io/alsmith151/bamnado:latest"
+        "docker://ghcr.io/alsmith151/bamnado:latest",
     message:
-        "Generating bigWig for MCC sample {wildcards.sample} and viewpoint group {wildcards.viewpoint_group}"
-    threads: 8
+        "Generating bigWig for MCC sample {wildcards.sample} and viewpoint group {wildcards.viewpoint_group}",
+    threads: 8,
     shell:
         """
     export RAYON_NUM_THREADS={threads} &&
@@ -50,7 +50,7 @@ rule merge_mcc_bams:
             wc, SAMPLE_GROUPINGS=SAMPLE_GROUPINGS, OUTPUT_DIR=OUTPUT_DIR
         ),
     output:
-        OUTPUT_DIR + "/mcc/{group}/{group}.bam",
+        bam=temp(OUTPUT_DIR + "/mcc/{group}/{group}.bam"),
     threads: CONFIG.third_party_tools.samtools.merge.threads
     wildcard_constraints:
         group="|".join(SAMPLE_GROUPINGS.get_grouping("consensus").group_names),
@@ -64,12 +64,12 @@ rule merge_mcc_bams:
     log:
         OUTPUT_DIR + "/logs/merge_bam/{group}.log",
     benchmark:
-        OUTPUT_DIR + "/.benchmark/merge_bam/{group}.tsv"
+        OUTPUT_DIR + "/.benchmark/merge_bam/{group}.tsv",
     message:
-        "Merging BAM files for group {wildcards.group}"
+        "Merging BAM files for group {wildcards.group}",
     shell:
         """
-    samtools merge {output} {input} -@ {threads}
+    samtools merge -o {output.bam} {input.bams} -@ {threads}
     """
 
 
@@ -83,7 +83,7 @@ use rule index_bam as index_bam_merged with:
     log:
         OUTPUT_DIR + "/logs/index_bam_merged/{group}.log",
     benchmark:
-        OUTPUT_DIR + "/.benchmark/index_bam_merged/{group}.tsv"
+        OUTPUT_DIR + "/.benchmark/index_bam_merged/{group}.tsv",
     message:
         "Indexing merged BAM for group {wildcards.group}"
 
@@ -104,11 +104,11 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
     log:
         OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_n_cis.log",
     benchmark:
-        OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_n_cis.tsv"
+        OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_n_cis.tsv",
     message:
-        "Generating n_cis normalized bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}"
+        "Generating n_cis normalized bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}",
     container:
-        "docker://ghcr.io/alsmith151/bamnado:latest"
+        "docker://ghcr.io/alsmith151/bamnado:latest",
 
 
 use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
@@ -116,6 +116,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
         bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
         excluded_regions=OUTPUT_DIR + "/resources/exclusion_regions.bed",
+        cis_or_trans_stats=OUTPUT_DIR + "/resources/{group}_ligation_stats.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig",
     params:
@@ -129,9 +130,9 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
     log:
         OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_unscaled.log",
     benchmark:
-        OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_unscaled.tsv"
+        OUTPUT_DIR + "/.benchmark/bigwig/{group}_{viewpoint_group}_unscaled.tsv",
     container:
-        "docker://ghcr.io/alsmith151/bamnado:latest"
+        "docker://ghcr.io/alsmith151/bamnado:latest",
     message:
         "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}"
 
