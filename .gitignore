@@ -112,3 +112,4 @@ tests/make_data*
 *.temp
 *.cache
 testing_dir/
+update_test_data.ipynb
