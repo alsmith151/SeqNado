@@ -96,6 +96,9 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_norm with:
         cis_or_trans_stats=OUTPUT_DIR + "/resources/{group}_ligation_stats.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig",
+    wildcard_constraints:
+        group="|".join(SAMPLE_GROUPINGS.get_grouping("consensus").group_names),
+        viewpoint_group="|".join(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()),
     params:
         scale_factor=lambda wc: get_n_cis_scaling_factor(wc, OUTPUT_DIR=OUTPUT_DIR),
         options=str(
@@ -116,7 +119,6 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
         bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
         excluded_regions=OUTPUT_DIR + "/resources/exclusion_regions.bed",
-        cis_or_trans_stats=OUTPUT_DIR + "/resources/{group}_ligation_stats.json",
     output:
         bigwig=OUTPUT_DIR + "/bigwigs/mcc/unscaled/{group}_{viewpoint_group}.bigWig",
     params:
@@ -155,8 +157,7 @@ rule confirm_mcc_bigwigs_generated:
             viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values(),
         ),
         subtractions=[
-            OUTPUT_DIR
-            + "/bigwigs/mcc/subtractions/{group1}_vs_{group2}_{viewpoint_group}.bigWig"
+            str(Path(OUTPUT_DIR) / f"bigwigs/mcc/subtractions/{group1}_vs_{group2}_{viewpoint_group}.bigWig")
             for group1, group2 in itertools.product(
                 SAMPLE_GROUPINGS.get_grouping("condition").group_names,
                 SAMPLE_GROUPINGS.get_grouping("condition").group_names,

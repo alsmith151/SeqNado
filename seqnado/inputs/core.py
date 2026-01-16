@@ -50,6 +50,10 @@ class Metadata(BaseModel):
         default=None,
         description="DESeq2 binary encoding: 0 for control/reference group, 1 for treatment/comparison group"
     )
+    condition: str | None = Field(
+        default=None,
+        description="Biological condition or experimental group (e.g., control, treated, WT, KO) for differential analysis"
+    )
 
     @field_validator("group", "deseq2", mode="before")
     @classmethod

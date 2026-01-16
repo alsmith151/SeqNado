@@ -1,19 +1,18 @@
 rule make_aggregate_bigwigs:
     input:
         bigwigs=expand(
-            OUTPUT_DIR + "/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig",
-            group=SAMPLE_GROUPINGS.get_grouping("condition").group_names,
+            OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig",
+            sample=lambda wildcards: SAMPLE_GROUPINGS.get_grouping("condition").get_samples(wildcards.group),
             viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values(),
         ),
     output:
-        bigwig=OUTPUT_DIR
-        + "/bigwigs/mcc/aggregated-using-mean/{group}_{viewpoint_group}.bigWig",
+        bigwig=str(Path(OUTPUT_DIR) / "bigwigs/mcc/aggregated-using-mean/{group}_{viewpoint_group}.bigWig"),
     params:
         options=str(
             CONFIG.third_party_tools.bamnado.bigwig_aggregate.command_line_arguments
         ),
     log:
-        OUTPUT_DIR + "/logs/bigwig/{group}_{viewpoint_group}_aggregated-using-mean.log",
+        str(Path(OUTPUT_DIR) / "logs/bigwig/{group}_{viewpoint_group}_aggregated-using-mean.log"),
     benchmark:
         (
             OUTPUT_DIR
