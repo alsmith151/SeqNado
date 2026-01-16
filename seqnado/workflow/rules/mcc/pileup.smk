@@ -142,7 +142,7 @@ rule confirm_mcc_bigwigs_generated:
             OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig",
             sample=SAMPLE_NAMES,
             viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values(),
-        ),
+        ) if CONFIG.assay_config.mcc.create_replicate_bigwigs else [],
         n_cis_consensus=expand(
             OUTPUT_DIR + "/bigwigs/mcc/n_cis/{group}_{viewpoint_group}.bigWig",
             group=SAMPLE_GROUPINGS.get_grouping("consensus").group_names,
