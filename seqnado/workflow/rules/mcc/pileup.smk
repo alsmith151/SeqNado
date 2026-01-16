@@ -157,12 +157,14 @@ rule confirm_mcc_bigwigs_generated:
             OUTPUT_DIR
             + "/bigwigs/mcc/subtractions/{group1}_vs_{group2}_{viewpoint_group}.bigWig"
             for group1, group2 in itertools.product(
-                SAMPLE_GROUPINGS.get_grouping("consensus").group_names,
-                SAMPLE_GROUPINGS.get_grouping("consensus").group_names,
+                SAMPLE_GROUPINGS.get_grouping("condition").group_names,
+                SAMPLE_GROUPINGS.get_grouping("condition").group_names,
             )
             if group1 != group2
             for viewpoint_group in VIEWPOINT_TO_GROUPED_VIEWPOINT.values()
-        ],
+        ] if len(
+            SAMPLE_GROUPINGS.get_grouping("condition").group_names
+        ) >= 2 else [],
     output:
         touch(OUTPUT_DIR + "/bigwigs/mcc/.mcc_bigwigs_generated.txt"),
     message:

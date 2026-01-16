@@ -37,6 +37,11 @@ class DesignDataFrame(pa.DataFrameModel):
         description="Grouping variable for merging samples together and generating consensus tracks/peak calls/counts between samples. Leave blank to treat all samples as separate.",
         nullable=True,
     )
+    condition: Series[str] | None = pa.Field(
+        default=None,
+        description="Biological condition or experimental group (e.g., control, treated, WT, KO) for differential analysis",
+        nullable=True,
+    )
     group: Series[str] | None = pa.Field(
         default=None,
         description="Experimental group name (e.g., control, treated, WT, KO), used for DESeq2 analysis",

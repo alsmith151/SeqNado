@@ -35,24 +35,35 @@ OUTPUT_DIR = config.get("output_dir", f"seqnado_output/{ASSAY.clean_name}")
 ################################
 SAMPLE_GROUPINGS = SampleGroupings()
 
+# Defines groupings used to normalise between bigwigs
 normalisation_groups = SampleGroups.from_dataframe(
     INPUT_FILES.to_dataframe(),
     subset_column="scaling_group",
 )
 
+# Defines groupings used to scale bigwigs e.g antibody
 scaling_groups = SampleGroups.from_dataframe(
     INPUT_FILES.to_dataframe(),
     subset_column="scaling_group",
 )
 
+# Defines groupings used to call consensus peaks and aggregate samples into bigwigs
 consensus_groups = SampleGroups.from_dataframe(
     INPUT_FILES.to_dataframe(),
     subset_column="consensus_group",
 )
 
+# Defines condition-based groupings for comparison bigwigs and eventual differential analysis
+condition_groups = SampleGroups.from_dataframe(
+    INPUT_FILES.to_dataframe(),
+    subset_column="condition",
+)
+
+# Container to hold all groupings
 SAMPLE_GROUPINGS.add_grouping("normalisation", normalisation_groups)
 SAMPLE_GROUPINGS.add_grouping("scaling", scaling_groups)
 SAMPLE_GROUPINGS.add_grouping("consensus", consensus_groups)
+SAMPLE_GROUPINGS.add_grouping("condition", condition_groups)
 
 
 ################################

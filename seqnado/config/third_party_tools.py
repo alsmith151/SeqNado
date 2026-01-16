@@ -474,6 +474,12 @@ class Bamnado(BaseModel):
         ),
         description="BigWig comparison configuration"
     )
+    bigwig_aggregate: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="--bin-size 10")
+        ),
+        description="BigWig aggregation configuration"
+    )
 
 
 class Subread(BaseModel):
