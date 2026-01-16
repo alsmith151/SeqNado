@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 from typing import Dict, List
+from itertools import chain, product, combinations
+from snakemake.io import expand
 
 
 def get_n_cis_scaling_factor(wc, OUTPUT_DIR):
@@ -188,3 +190,4 @@ def viewpoint_to_grouped_viewpoint(viewpoints: List[str]) -> Dict[str, str]:
             viewpoint_to_grouped_mapping[viewpoint] = viewpoint_name
 
     return viewpoint_to_grouped_mapping
+

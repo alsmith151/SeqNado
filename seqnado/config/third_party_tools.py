@@ -468,6 +468,12 @@ class Bamnado(BaseModel):
         ),
         description="BAM coverage analysis configuration"
     )
+    bigwig_compare: ToolConfig = Field(
+        default_factory=lambda: ToolConfig(
+            threads=8, command_line_arguments=CommandLineArguments(value="--bin-size 10")
+        ),
+        description="BigWig comparison configuration"
+    )
 
 
 class Subread(BaseModel):
