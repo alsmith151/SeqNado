@@ -12,7 +12,7 @@ rule deduplicate_fastq_raw:
     log: OUTPUT_DIR + "/logs/deduplication/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/deduplication/{sample}.tsv",
     message: "Deduplicating reads for sample {wildcards.sample}",
-    script:
+    shell:
         """
         mccnado deduplicate-fastq \
         {input.fq1} {output.fq1} \
