@@ -49,11 +49,13 @@ def get_n_cis_scaling_factor(wc, OUTPUT_DIR):
 
     # Avoid division by zero
     if stats[wc.viewpoint_group]["n_total"] == 0:
-        return 0
+        return 1e-12
 
-    return (
+    factor = (
         stats[wc.viewpoint_group]["n_cis"] / stats[wc.viewpoint_group]["n_total"]
     ) * 1e6
+    scale_factor = 1 / factor
+    return scale_factor
 
 
 def get_mcc_bam_files_for_merge(wildcards, SAMPLE_GROUPINGS, OUTPUT_DIR):
@@ -190,4 +192,3 @@ def viewpoint_to_grouped_viewpoint(viewpoints: List[str]) -> Dict[str, str]:
             viewpoint_to_grouped_mapping[viewpoint] = viewpoint_name
 
     return viewpoint_to_grouped_mapping
-
