@@ -1,9 +1,10 @@
+from seqnado.workflow.helpers.common import define_time_requested, define_memory_requested 
+
 rule make_aggregate_bigwigs:
     input:
         bigwigs=expand(
-            OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig",
+            OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{{viewpoint_group}}.bigWig",
             sample=lambda wildcards: SAMPLE_GROUPINGS.get_grouping("condition").get_samples(wildcards.group),
-            viewpoint_group=VIEWPOINT_TO_GROUPED_VIEWPOINT.values(),
         ),
     output:
         bigwig=str(Path(OUTPUT_DIR) / "bigwigs/mcc/aggregated-using-mean/{group}_{viewpoint_group}.bigWig"),
@@ -22,6 +23,9 @@ rule make_aggregate_bigwigs:
         "docker://ghcr.io/alsmith151/bamnado:latest"
     message:
         "Generating consensus bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}"
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
     bamnado \
@@ -59,6 +63,9 @@ rule make_comparison_bigwigs:
         "docker://ghcr.io/alsmith151/bamnado:latest"
     message:
         "Generating comparison bigWig for MCC groups {wildcards.group1} vs {wildcards.group2} and viewpoint group {wildcards.viewpoint_group}"
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     shell:
         """
     bamnado \
