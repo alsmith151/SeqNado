@@ -10,7 +10,7 @@ if CONFIG.assay_config.create_ucsc_hub and (OUTPUT.bigwig_files or OUTPUT.bigbed
     rule generate_hub:
         input:
             data=[
-                OUTPUT.select_files(suffix=".bigwig", exclude="/geo_submission/"),
+                OUTPUT.select_files(suffix=".bigwig", exclude=["/geo_submission/"]),
                 OUTPUT.bigbed_files,
                 get_mcc_bigwig_files() if ASSAY == Assay.MCC else [],
                 get_mcc_peak_files() if ASSAY == Assay.MCC else [],

@@ -37,6 +37,8 @@ from seqnado.outputs.files import (
     SpikeInFiles,
 )
 
+from seqnado.utils import FileSelector
+
 
 class GeoMetadataFilesWrapper:
     """Wrapper that exposes only metadata files from GeoSubmissionFiles for Snakemake output tracking.
@@ -79,28 +81,37 @@ class SeqnadoOutputFiles(BaseModel):
         return self.files
 
     def select_files(
-        self, suffix: str, contains: str | None = None, exclude: str | None = None
+        self, 
+        suffix: str, 
+        include: str | None = None, 
+        exclude: str | None = None,
+        must_include_all_patterns: bool = False,
+        use_regex: bool = False,
+        case_sensitive: bool = False,
     ) -> List[str]:
         """Filter files by suffix and optional substring.
 
         Args:
-            suffix (str): The file suffix to filter by.
-            contains (str, optional): A substring that must be present in the file name.
-                Defaults to None, meaning no additional filtering.
-            exclude (str, optional): A substring that must not be present in the file name.
-                Defaults to None, meaning no exclusion filtering.
-
+            suffix (str): The file suffix to filter by (e.g. ".txt" or "csv").
+            include (str, optional): Substring or regex pattern that must be present in the file path.
+            exclude (str, optional): Substring or regex pattern that must NOT be present in the file path.
+            must_include_all_patterns (bool): If True, all include patterns must match (AND). If False, any match suffices (OR).
+            use_regex (bool): If True, treat include/exclude as regex patterns.
+            case_sensitive (bool): If True, matching is case-sensitive.
         Returns:
-            List[str]: A list of files that match the criteria.
+            List[str]: A list of file paths matching the criteria.
         """
-        suffix = suffix.lower()
-        return [
-            f
-            for f in self.files
-            if f.lower().endswith(suffix)
-            and (contains in f if contains else True)
-            and (exclude not in f if exclude else True)
-        ]
+        fs = FileSelector(self.files)
+        return fs.select(
+            suffix=suffix,
+            includes=include,
+            excludes=exclude,
+            case_sensitive=case_sensitive,
+            use_regex=use_regex,
+            includes_all=must_include_all_patterns,
+        )
+
+
 
     @property
     def bigwig_files(self):
@@ -124,24 +135,21 @@ class SeqnadoOutputFiles(BaseModel):
         """
 
         if assay is not None:
-            return [
-                f
-                for f in self.files
-                if f.endswith(".bigWig")
-                and (method.value in f)
-                and (scale.value in f)
-                and (assay.value.lower() in f.lower())
-                and "/geo_submission/" not in f
-            ]
+            return self.select_files(
+                ".bigWig",
+                include=[method.value, scale.value, assay.value.lower()],
+                exclude="/geo_submission/",
+                must_include_all_patterns=True,
+                case_sensitive=False,
+            )
         else:
-            return [
-                f
-                for f in self.files
-                if f.endswith(".bigWig")
-                and (method.value in f)
-                and (scale.value in f)
-                and "/geo_submission/" not in f
-            ]
+            return self.select_files(
+                ".bigWig",
+                include=[method.value, scale.value],
+                exclude="/geo_submission/",
+                must_include_all_patterns=True,
+                case_sensitive=False,
+            )
 
     @property
     def peak_files(self):
@@ -161,7 +169,7 @@ class SeqnadoOutputFiles(BaseModel):
 
     @property
     def heatmap_files(self):
-        return self.select_files(".pdf", contains="heatmap")
+        return self.select_files(".pdf", include="heatmap")
 
     @property
     def genome_browser_plots(self):
@@ -173,7 +181,7 @@ class SeqnadoOutputFiles(BaseModel):
 
     @property
     def ucsc_hub_files(self):
-        return self.select_files(".txt", contains="hub")
+        return self.select_files(".txt", include="hub")
 
 
 class SeqNadoReportFiles:
