@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Optional, Union
+from typing import Annotated, Union 
 
 from pydantic import (
     BaseModel,
@@ -39,7 +39,7 @@ from .mixins import (
 from .third_party_tools import ThirdPartyToolsConfig
 
 
-class BaseAssayConfig(BaseModel, CommonComputedFieldsMixin):
+class BaseAssayConfig(CommonComputedFieldsMixin):
     """Base configuration for all assays."""
 
     bigwigs: BigwigConfig | None = None
