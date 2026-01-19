@@ -1,6 +1,7 @@
 from itertools import chain
 from pathlib import Path
 from typing import Any, List
+from xml.etree.ElementInclude import include
 
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -174,6 +175,10 @@ class SeqnadoOutputFiles(BaseModel):
     @property
     def genome_browser_plots(self):
         return self.select_files(".pdf", include="genome_browser")
+    
+    @property
+    def sentinel_files(self):
+        return self.select_files(".txt", include=".mcc_")
 
     @property
     def ucsc_hub_files(self):

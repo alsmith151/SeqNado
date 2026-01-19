@@ -139,7 +139,7 @@ use rule make_bigwigs_mcc_replicates as make_bigwigs_mcc_grouped_raw with:
         "Generating unscaled bigWig for MCC group {wildcards.group} and viewpoint group {wildcards.viewpoint_group}"
 
 
-rule confirm_mcc_bigwigs_generated:
+rule confirm_bigwigs_generated:
     input:
         replicates=expand(
             OUTPUT_DIR + "/bigwigs/mcc/replicates/{sample}_{viewpoint_group}.bigWig",

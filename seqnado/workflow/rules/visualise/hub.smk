@@ -1,15 +1,19 @@
 from pathlib import Path
 import re
 import numpy as np
+from seqnado import Assay
+from seqnado.workflow.helpers.mcc import get_mcc_bigwig_files, get_mcc_peak_files
 
 # Only create hub if enabled AND bigwigs/bigbeds will be created
-if CONFIG.assay_config.create_ucsc_hub and (OUTPUT.bigwig_files or OUTPUT.bigbed_files):
+if CONFIG.assay_config.create_ucsc_hub and (OUTPUT.bigwig_files or OUTPUT.bigbed_files or OUTPUT.sentinel_files):
     
     rule generate_hub:
         input:
             data=[
                 OUTPUT.select_files(suffix=".bigwig", exclude=["/geo_submission/"]),
                 OUTPUT.bigbed_files,
+                get_mcc_bigwig_files() if ASSAY == Assay.MCC else [],
+                get_mcc_peak_files() if ASSAY == Assay.MCC else [],
             ],
             report=OUTPUT_DIR + "/seqnado_report.html",
         output:
