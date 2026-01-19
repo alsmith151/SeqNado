@@ -489,6 +489,7 @@ class MCCConfig(BaseModel, PathValidatorMixin):
     viewpoints: Path
     resolutions: list[int] = [100]
     exclusion_zone: int = 500  # Default value, adjust as needed
+    create_replicate_bigwigs: bool = False
 
     @field_validator("viewpoints")
     def validate_viewpoints(cls, v: Path, info: ValidationInfo) -> Path:

@@ -24,7 +24,7 @@ def ensure_fastqs_present(
     if not existing_fastqs:
         import tarfile
 
-        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/cchahrou/seqnado_data/fastq.tar.gz"
+        url = "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/asmith/seqnado_data/fastq.tar.gz"
         tar_path = fastq_dir.parent / "fastq.tar.gz"
         download_with_retry(url, tar_path)
 
