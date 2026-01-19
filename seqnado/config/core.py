@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Optional, Union
+from typing import Annotated, Union 
 
 from pydantic import (
     BaseModel,
