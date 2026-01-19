@@ -889,7 +889,7 @@ class TestSeqnadoOutputFilesCore:
         output = SeqnadoOutputFiles(files=files, sample_names=["sample1", "sample2"])
 
         # Test with contains parameter
-        result = output.select_files(".bigWig", contains="deeptools")
+        result = output.select_files("bigWig", include="deeptools")
         assert len(result) == 1
         assert "deeptools" in result[0]
 

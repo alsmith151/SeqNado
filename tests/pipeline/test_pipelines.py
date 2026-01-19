@@ -17,6 +17,14 @@ def test_pipeline(
 ):
     assay_type = test_context.assay_type(assay)
     cores = test_context.cores
+
+    if assay == 'mcc':
+        import pandas as pd
+        # Update the `condition` column in the design file for mcc test so we can test condition-based groupings
+        df = pd.read_csv(design)
+        df['condition'] = df['sample_id'].str.split('-').str[1].str.split('_').str[0]
+        df.to_csv(design, index=False)
+
     res = subprocess.run(
         [
             "seqnado",

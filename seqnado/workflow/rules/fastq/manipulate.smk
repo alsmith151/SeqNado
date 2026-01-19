@@ -8,12 +8,18 @@ rule deduplicate_fastq_raw:
     threads: 1
     resources:
         mem="1GB",
-    container:  "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+    container:  "docker://ghcr.io/alsmith151/mccnado:latest"
     log: OUTPUT_DIR + "/logs/deduplication/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/deduplication/{sample}.tsv",
     message: "Deduplicating reads for sample {wildcards.sample}",
-    script:
-        "../../scripts/deduplicate_fastq.py"
+    shell:
+        """
+        mccnado deduplicate-fastq \
+        {input.fq1} {output.fq1} \
+        --fastq2 {input.fq2} \
+        --output2 {output.fq2}
+        2> {log}
+        """
 
 
 rule flash:
