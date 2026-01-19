@@ -1,122 +1,207 @@
-
 from pathlib import Path
-from typing import Union, Optional
-from enum import Enum
-from pydantic import BaseModel, computed_field, field_validator, ValidationInfo
+from typing import Optional, Any
+
+from pydantic import BaseModel, field_validator, model_validator, ValidationInfo
 
 
-class CommonComputedFieldsMixin:
-    """Mixin class providing common computed fields for assay configurations."""
-
-
-    @computed_field
-    @property
-    def create_bigwigs(self) -> bool:
-        """Whether to make bigwigs 
-        (respects explicit config, else computed from bigwigs config presence).
-        Returns False for methylation and SNP assays."""
-        # If explicitly set, use that value
-        explicit = getattr(self, "_explicit_create_bigwigs", None)
-        if explicit is not None:
-            return explicit
-        # Prevent bigwigs for meth and snp assays
-        if isinstance(self, (MethylationMixin, SNPCallingMixin)):
-            return False
-        # Otherwise, fallback to old logic
-        return getattr(self, "bigwigs", None) is not None
-
-    def __init__(self, *args, **kwargs):
-        # Pop explicit create_bigwigs if present
-        explicit = kwargs.pop("create_bigwigs", None)
-        super().__init__(*args, **kwargs)
-        self._explicit_create_bigwigs = explicit
-
-    @computed_field
-    @property
-    def plot_with_plotnado(self) -> bool:
-        """Whether to perform plotting (computed from plotting config presence)."""
-        return getattr(self, "plotting", None) is not None
-
-    @computed_field
-    @property
-    def create_dataset(self) -> bool:
-        """Whether to make dataset."""
-        return getattr(self, "dataset_for_ml", None) is not None
-
-    @computed_field
-    @property
-    def create_ucsc_hub(self) -> bool:
-        """Whether to make UCSC hub (computed from ucsc_hub config presence)."""
-        
-        return getattr(self, "ucsc_hub", None) is not None
-    
-    @computed_field
-    def has_spikein(self) -> bool:
-        """Whether to use spike-in normalization (computed from spikein config presence)."""
-        return getattr(self, "spikein", None) is not None
-    
-    @field_validator("create_geo_submission_files", mode="before", check_fields=False)
-    def validate_geo_submission_files(cls, v):
-        """Ensure geo submission files are created only if the config is set."""
-        return v if v else False
-
-
-class PeakCallingMixin:
-    """Mixin for assays that support peak calling."""
-
-    @computed_field
-    @property
-    def call_peaks(self) -> bool:
-        """Whether to call peaks (computed from peak_calling config presence)."""
-        return getattr(self, "peak_calling", None) is not None
-
-
-class SNPCallingMixin:
-    """Mixin for assays that support SNP calling."""
-
-    @computed_field
-    @property
-    def call_snps(self) -> bool:
-        """Whether to call SNPs (computed from snp_calling config presence)."""
-        return getattr(self, "snp_calling", None) is not None
-
-
-class MethylationMixin:
-    """Mixin for assays that support methylation calling."""
-
-    @computed_field
-    @property
-    def call_methylation(self) -> bool:
-        """Whether to call methylation (computed from methylation config presence)."""
-        return getattr(self, "methylation", None) is not None
-
+# -----------------------------------------------------------------------------
+# Path validation helpers
+# -----------------------------------------------------------------------------
 
 class PathValidatorMixin:
-    """Mixin providing common path validation methods."""
-
     @staticmethod
     def validate_path_exists(
-        v: Path | str | None, field_name: str = "path", info: ValidationInfo | None = None
+        v: Path | str | None,
+        field_name: str = "path",
+        info: ValidationInfo | None = None,
     ) -> Path | str | None:
-        """Validate that a path exists if provided.
+        if v is None:
+            return v
 
-        Skips validation if 'skip_path_validation' is True in the validation context.
-        This allows creating template configs with placeholder paths.
-        """
-        if v is not None:
-            # Skip validation if context flag is set (for template generation)
-            if info and info.context and info.context.get("skip_path_validation", False):
-                return v
-            path = Path(v) if isinstance(v, str) else v
-            if not path.exists():
-                raise ValueError(f"{field_name} {v} does not exist.")
+        if info and info.context and info.context.get("skip_path_validation", False):
+            return v
+
+        path = Path(v) if isinstance(v, str) else v
+        if not path.exists():
+            raise ValueError(f"{field_name} {v} does not exist.")
+
         return v
 
     @staticmethod
     def validate_required_when(
-        v: str | None, condition: bool, field_name: str
+        v: str | None,
+        condition: bool,
+        field_name: str,
     ) -> str | None:
-        """Validate that a field is provided when a condition is met."""
         if condition and not v:
             raise ValueError(f"{field_name} must be provided when condition is met.")
         return v
+
+
+# -----------------------------------------------------------------------------
+# Common computed toggles
+# -----------------------------------------------------------------------------
+
+class CommonComputedFieldsMixin(BaseModel):
+    create_bigwigs: Optional[bool] = None
+    plot_with_plotnado: Optional[bool] = None
+    create_dataset: Optional[bool] = None
+    create_ucsc_hub: Optional[bool] = None
+    has_spikein: Optional[bool] = None
+
+    create_geo_submission_files: bool = False
+
+    @field_validator("create_bigwigs", mode="before")
+    def compute_create_bigwigs(
+        cls,
+        v: Optional[bool],
+        info: ValidationInfo,
+    ) -> Optional[bool]:
+        if v is not None:
+            return v
+
+        if issubclass(cls, (MethylationMixin, SNPCallingMixin)):
+            return False
+
+        return info.data.get("bigwigs") is not None
+
+    @field_validator("plot_with_plotnado", mode="before")
+    def compute_plot_with_plotnado(
+        cls,
+        v: Optional[bool],
+        info: ValidationInfo,
+    ) -> Optional[bool]:
+        if v is not None:
+            return v
+
+        return info.data.get("plotting") is not None
+
+    @field_validator("create_dataset", mode="before")
+    def compute_create_dataset(
+        cls,
+        v: Optional[bool],
+        info: ValidationInfo,
+    ) -> Optional[bool]:
+        if v is not None:
+            return v
+
+        return info.data.get("dataset_for_ml") is not None
+
+    @field_validator("create_ucsc_hub", mode="before")
+    def compute_create_ucsc_hub(
+        cls,
+        v: Optional[bool],
+        info: ValidationInfo,
+    ) -> Optional[bool]:
+        if v is not None:
+            return v
+
+        return info.data.get("ucsc_hub") is not None
+
+    @field_validator("has_spikein", mode="before")
+    def compute_has_spikein(
+        cls,
+        v: Optional[bool],
+        info: ValidationInfo,
+    ) -> Optional[bool]:
+        if v is not None:
+            return v
+
+        return info.data.get("spikein") is not None
+
+    @field_validator("create_geo_submission_files", mode="before")
+    def validate_geo_submission_files(
+        cls,
+        v: Any,
+    ) -> bool:
+        return bool(v)
+
+    @model_validator(mode="after")
+    def compute_missing_computed_fields(cls, model: "CommonComputedFieldsMixin") -> "CommonComputedFieldsMixin":
+        # Populate any computed booleans left as None based on other config fields
+        if model.create_bigwigs is None:
+            if isinstance(model, (MethylationMixin, SNPCallingMixin)):
+                model.create_bigwigs = False
+            else:
+                model.create_bigwigs = getattr(model, "bigwigs", None) is not None
+
+        if model.plot_with_plotnado is None:
+            model.plot_with_plotnado = getattr(model, "plotting", None) is not None
+
+        if model.create_dataset is None:
+            model.create_dataset = getattr(model, "dataset_for_ml", None) is not None
+
+        if model.create_ucsc_hub is None:
+            model.create_ucsc_hub = getattr(model, "ucsc_hub", None) is not None
+
+        if model.has_spikein is None:
+            model.has_spikein = getattr(model, "spikein", None) is not None
+
+        return model
+
+
+# -----------------------------------------------------------------------------
+# Assay-specific mixins
+# -----------------------------------------------------------------------------
+
+class PeakCallingMixin(BaseModel):
+    call_peaks: Optional[bool] = None
+
+    @field_validator("call_peaks", mode="before")
+    def compute_call_peaks(
+        cls,
+        v: Optional[bool],
+        info: ValidationInfo,
+    ) -> Optional[bool]:
+        if v is not None:
+            return v
+
+        return info.data.get("peak_calling") is not None
+
+    @model_validator(mode="after")
+    def compute_missing_call_peaks(cls, model: "PeakCallingMixin") -> "PeakCallingMixin":
+        if model.call_peaks is None:
+            model.call_peaks = getattr(model, "peak_calling", None) is not None
+        return model
+
+
+class SNPCallingMixin(BaseModel):
+    call_snps: Optional[bool] = None
+
+    @field_validator("call_snps", mode="before")
+    def compute_call_snps(
+        cls,
+        v: Optional[bool],
+        info: ValidationInfo,
+    ) -> Optional[bool]:
+        if v is not None:
+            return v
+
+        return info.data.get("snp_calling") is not None
+
+    @model_validator(mode="after")
+    def compute_missing_call_snps(cls, model: "SNPCallingMixin") -> "SNPCallingMixin":
+        if model.call_snps is None:
+            model.call_snps = getattr(model, "snp_calling", None) is not None
+        return model
+
+
+class MethylationMixin(BaseModel):
+    call_methylation: Optional[bool] = None
+
+    @field_validator("call_methylation", mode="before")
+    def compute_call_methylation(
+        cls,
+        v: Optional[bool],
+        info: ValidationInfo,
+    ) -> Optional[bool]:
+        if v is not None:
+            return v
+
+        return info.data.get("methylation") is not None
+
+    @model_validator(mode="after")
+    def compute_missing_call_methylation(cls, model: "MethylationMixin") -> "MethylationMixin":
+        if model.call_methylation is None:
+            model.call_methylation = getattr(model, "methylation", None) is not None
+        return model

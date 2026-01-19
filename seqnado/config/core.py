@@ -39,7 +39,7 @@ from .mixins import (
 from .third_party_tools import ThirdPartyToolsConfig
 
 
-class BaseAssayConfig(BaseModel, CommonComputedFieldsMixin):
+class BaseAssayConfig(CommonComputedFieldsMixin):
     """Base configuration for all assays."""
 
     bigwigs: BigwigConfig | None = None
