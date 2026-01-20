@@ -1,7 +1,5 @@
 from itertools import chain
 
-from build.lib.seqnado.core import Assay
-
 def get_mcc_bigwig_files(wildcards):
     """
     Get MCC bigwig files for a given sample.
