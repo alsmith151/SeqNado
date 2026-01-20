@@ -501,7 +501,7 @@ class SeqnadoOutputBuilder:
         """Add hub files to the output collection."""
         hub_files = HubFiles(
             hub_dir=Path(f"{self.output_dir}/hub"),
-            hub_name=self.config.assay_config.ucsc_hub.name,
+            hub_name=getattr(self.config.assay_config.ucsc_hub, "name", "SeqnadoHub"),
         )
         self.file_collections.append(hub_files)
 
