@@ -1,4 +1,5 @@
 from itertools import chain
+from seqnado import Assay
 
 def get_mcc_bigwig_files(wildcards):
     """
