@@ -9,7 +9,7 @@ if CONFIG.assay_config.create_ucsc_hub and (OUTPUT.bigwig_files or OUTPUT.bigbed
     
     rule generate_hub:
         input:
-            data=lambda wc: get_hub_input_files(wc, OUTPUT, ASSAY),
+            data=lambda wc: get_hub_input_files(wc, OUTPUT, ASSAY, rules),
             report=OUTPUT_DIR + "/seqnado_report.html",
         output:
             hub=OUTPUT.ucsc_hub_files,
