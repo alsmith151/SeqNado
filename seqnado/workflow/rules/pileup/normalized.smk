@@ -37,7 +37,7 @@ use rule deeptools_make_bigwigs_scale as deeptools_make_bigwigs_spikein with:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}.bigWig",
     params:
         options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments), INPUT_FILES, SAMPLE_GROUPINGS),
-        scale=get_norm_factor_spikein,
+        scale=lambda wc: get_norm_factor_spikein(wc, OUTPUT_DIR, CONFIG, negative=False),
     log: OUTPUT_DIR + "/logs/pileups/deeptools/spikein/{sample}.log",
     benchmark: OUTPUT_DIR + "/.benchmark/pileups/deeptools/spikein/{sample}.tsv",
     message: "Making spike-in normalized bigWig with deeptools for sample {wildcards.sample}"
@@ -52,7 +52,7 @@ rule deeptools_make_bigwigs_rna_spikein_plus:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}_plus.bigWig",
     params:
         options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments), INPUT_FILES, SAMPLE_GROUPINGS),
-        scale=get_norm_factor_spikein,
+        scale=lambda wc: get_norm_factor_spikein(wc, OUTPUT_DIR, CONFIG, negative=False),
     threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
@@ -75,7 +75,7 @@ rule deeptools_make_bigwigs_rna_spikein_minus:
         bigwig=OUTPUT_DIR + "/bigwigs/deeptools/spikein/{sample}_minus.bigWig",
     params:
         options=lambda wildcards: format_deeptools_options(wildcards, str(CONFIG.third_party_tools.deeptools.bam_coverage.command_line_arguments), INPUT_FILES, SAMPLE_GROUPINGS),
-        scale=lambda wc: get_norm_factor_spikein(wc, negative=True),
+        scale=lambda wc: lambda wc: get_norm_factor_spikein(wc, OUTPUT_DIR, CONFIG, negative=True),
     threads: CONFIG.third_party_tools.deeptools.bam_coverage.threads
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
