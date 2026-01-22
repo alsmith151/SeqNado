@@ -98,7 +98,7 @@ rule qualimap_rnaseq:
         html=OUTPUT_DIR + "/qc/qualimap_rnaseq/{sample}/qualimapReport.html",
     params:
         output_dir=OUTPUT_DIR + "/qc/qualimap_rnaseq/{sample}/",
-        annotation=config["genome"]["gtf"],
+        annotation=CONFIG.genome.gtf,
         options=lambda wc: format_qualimap_options(wc, CONFIG.third_party_tools.qualimap.command_line_arguments, INPUT_FILES=INPUT_FILES, ASSAY=ASSAY)
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=32, attempts=attempt, scale=SCALE_RESOURCES),

@@ -81,7 +81,7 @@ rule bed_to_bigbed:
     output:
         bigbed=OUTPUT_DIR + "/peaks/{directory}/{sample}.bigBed",
     params:
-        chrom_sizes=config["genome"]["chromosome_sizes"],
+        chrom_sizes=CONFIG.genome.chromosome_sizes,
     resources:
         mem=lambda wildcards, attempt: define_memory_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
     container: "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
