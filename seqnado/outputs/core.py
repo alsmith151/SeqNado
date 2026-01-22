@@ -359,6 +359,20 @@ class SeqnadoOutputBuilder:
             scale_methods=self.scale_methods,
             output_dir=self.output_dir,
         )
+
+        self.file_collections.append(bigwig_files)
+    
+    def add_spikein_bigwig_files(self) -> None:
+        """Add spike-in normalized bigwig files to the output collection."""
+
+        bigwig_files = BigWigFiles(
+            assay=self.assay,
+            names=self.samples.sample_names,
+            pileup_methods=self.config.assay_config.bigwigs.pileup_method,
+            scale_methods=[DataScalingTechnique.SPIKEIN],
+            output_dir=self.output_dir,
+        )
+
         self.file_collections.append(bigwig_files)
 
     def add_grouped_bigwig_files(self) -> None:
@@ -804,6 +818,8 @@ class SeqnadoOutputFactory:
 
         if getattr(self.assay_config, "has_spikein", False):
             builder.add_spikein_files()
+            if self.assay_config.create_bigwigs:
+                builder.add_spikein_bigwig_files()
 
         if getattr(self.assay_config, "create_quantification_files", False):
             builder.add_quantification_files()

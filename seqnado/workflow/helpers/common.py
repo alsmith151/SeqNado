@@ -116,7 +116,7 @@ def get_alignment_input(
     return get_fastq_paths(wildcards, output_dir, directory, paired=paired)
 
 
-def format_deeptools_options(wildcards, options, input_files, sample_groupings=None):
+def format_deeptools_options(wildcards, options, input_files, sample_groupings=None, raw_counts=False):
     """
     Format the command line options for deeptools based on the input files and parameters.
 
@@ -165,5 +165,11 @@ def format_deeptools_options(wildcards, options, input_files, sample_groupings=N
                 )
     except KeyError:
         pass
+
+    if raw_counts:
+        options = CommandLineArguments(
+            value=str(options),
+            exclude={"--scaleFactor", "--normalizeUsing", "--effectiveGenomeSize"},
+        )
 
     return str(options)
