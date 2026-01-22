@@ -1,3 +1,5 @@
+from seqnado import Assay
+
 rule save_design:
     output:
         OUTPUT_DIR + "/metadata.csv",
@@ -13,7 +15,7 @@ rule make_genomic_bins:
     input:
         chrom_sizes=CONFIG.genome.chromosome_sizes,
     params:
-        bin_size=CONFIG.genome.bin_size,
+        bin_size=CONFIG.genome.bin_size if not ASSAY == Assay.MCC else CONFIG.assay_config.mcc.resolutions[0],
     output:
         bed=OUTPUT_DIR + "/resources/genomic_bins.bed",
     container:
