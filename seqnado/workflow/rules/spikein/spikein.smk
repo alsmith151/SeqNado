@@ -61,8 +61,8 @@ rule split_bam:
         exo_bam=temp(OUTPUT_DIR + "/aligned/spikein/{sample}_exo.bam"),
         stats=OUTPUT_DIR + "/aligned/spikein/{sample}_stats.tsv",
     params:
-        genome_prefix=config.get("spikein_options", {}).get("reference_genome"),
-        exo_prefix=config.get("spikein_options", {}).get("spikein_genome"),
+        genome_prefix=CONFIG.assay_config.spikein.endogenous_genome,
+        exo_prefix=CONFIG.assay_config.spikein.exogenous_genome,
         prefix=OUTPUT_DIR + "/aligned/spikein/{sample}",
         map_qual=30,
     resources:
