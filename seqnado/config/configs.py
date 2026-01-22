@@ -501,7 +501,10 @@ class MCCConfig(BaseModel, PathValidatorMixin):
             raise ValueError("Resolutions list must not be empty.")
         if any(resolution <= 0 for resolution in v):
             raise ValueError("All resolutions must be positive integers.")
+        
+        v = list(sorted(set(v)))  # Remove duplicates and sort
         return v
+    
 
 
 class MLDatasetConfig(BaseModel, PathValidatorMixin):
