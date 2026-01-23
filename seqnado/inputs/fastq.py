@@ -516,19 +516,30 @@ class FastqCollection(BaseFastqCollection):
         import pandas as pd
 
         rows: list[dict[str, Any]] = []
-        for fs, md in zip(self.fastq_sets, self.metadata):
-            row: dict[str, Any] = {
-                "sample_id": fs.sample_id,
-                "r1": fs.r1.path,
-                "r2": fs.r2.path if fs.r2 else None,
-                "uid": f"{fs.sample_id}",
-            }
-            metadata_dict = md.model_dump(exclude_none=True)
-            # Convert Assay enum to string value for schema validation
-            if "assay" in metadata_dict and hasattr(metadata_dict["assay"], "value"):
-                metadata_dict["assay"] = metadata_dict["assay"].value
-            row.update(metadata_dict)
-            rows.append(row)
+
+        if self.metadata:
+            for fs, md in zip(self.fastq_sets, self.metadata):
+                row: dict[str, Any] = {
+                    "sample_id": fs.sample_id,
+                    "r1": fs.r1.path,
+                    "r2": fs.r2.path if fs.r2 else None,
+                    "uid": f"{fs.sample_id}",
+                }
+                metadata_dict = md.model_dump(exclude_none=True)
+                # Convert Assay enum to string value for schema validation
+                if "assay" in metadata_dict and hasattr(metadata_dict["assay"], "value"):
+                    metadata_dict["assay"] = metadata_dict["assay"].value
+                row.update(metadata_dict)
+                rows.append(row)
+        else:
+            for fs in self.fastq_sets:
+                row = {
+                    "sample_id": fs.sample_id,
+                    "r1": fs.r1.path,
+                    "r2": fs.r2.path if fs.r2 else None,
+                    "uid": f"{fs.sample_id}",
+                }
+                rows.append(row)
 
         if not rows:
             # Return empty DataFrame with expected columns
@@ -1063,7 +1074,7 @@ class FastqCollectionForIP(BaseFastqCollection):
     def symlink_fastq_files(self, output_dir):
         # Link the R1 and R2 files
         super().symlink_fastq_files(output_dir)
-        
+
         # Additionally, link control files with appropriate names
         output_dir = Path(output_dir)
         df = self.to_dataframe()
