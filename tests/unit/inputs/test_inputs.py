@@ -414,13 +414,13 @@ class TestFastqSetIP:
         """Test FastqSetIP antibody prediction."""
         r1 = FastqFileIP(path=_write_fastq(tmp_path, "sample_H3K4me3_R1.fastq.gz"))
         fs = FastqSetIP(sample_id="sample", r1=r1)
-        assert fs.antibody == "H3K4me3"
+        assert fs.ip == "H3K4me3"
 
     def test_fastqsetip_explicit_antibody(self, tmp_path):
         """Test FastqSetIP with explicit antibody."""
         r1 = FastqFileIP(path=_write_fastq(tmp_path, "sample_IGG_R1.fastq.gz"))
-        fs = FastqSetIP(sample_id="sample", r1=r1, antibody="custom_AB")
-        assert fs.antibody == "custom_AB"
+        fs = FastqSetIP(sample_id="sample", r1=r1, ip="custom_AB")
+        assert fs.ip == "custom_AB"
 
     def test_fastqsetip_full_sample_name(self, tmp_path):
         """Test FastqSetIP full_sample_name property."""
@@ -897,7 +897,7 @@ class TestFastqCollectionForIP:
         
         result = fc.query("sample_H3K4me3")
         assert isinstance(result, FastqSetIP)
-        assert result.antibody == "H3K4me3"
+        assert result.ip == "H3K4me3"
 
     def test_fastqcollectionforip_query_full(self, tmp_path):
         """Test FastqCollectionForIP query with full=True."""
@@ -1079,7 +1079,7 @@ class TestFastqCollectionForIP:
         )
         assert len(fc.experiments) == 2
         for exp in fc.experiments:
-            if exp.ip.antibody == "H3K4me3":
+            if exp.ip.ip == "H3K4me3":
                 assert exp.has_control is True
             else:
                 assert exp.has_control is False
