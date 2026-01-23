@@ -1,0 +1,1901 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../tools/">
+      
+      
+        <link rel="next" href="../faq/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>HPC Clusters - Seqnado Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#running-seqnado-on-hpc-clusters" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Seqnado Documentation" class="md-header__button md-logo" aria-label="Seqnado Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Seqnado Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              HPC Clusters
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/alsmith151/SeqNado" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Seqnado Documentation" class="md-nav__button md-logo" aria-label="Seqnado Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Seqnado Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/alsmith151/SeqNado" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../initialisation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Initialisation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../genomes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genome Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../outputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outputs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/inputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inputs API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/outputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outputs API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Help
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Help
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HPC Clusters
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HPC Clusters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start-slurm-clusters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start: SLURM Clusters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slurm-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SLURM Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SLURM Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preset-ss-slurm-singularity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preset: ss (SLURM Singularity)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#queuepartition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Queue/Partition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resource-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource Scaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verbose-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verbose Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gpu-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPU Support
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiomics-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiomics Workflows
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-execution-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Execution Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Other Execution Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-execution-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Execution Presets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local Execution Presets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#le-local-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        le (Local Execution)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lc-local-cluster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lc (Local Cluster)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ls-local-single-threaded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ls (Local Single-threaded)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#container-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#genome-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Genome Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflow-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jobs-terminated-due-to-resource-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jobs Terminated Due to Resource Limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apptainersingularity-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Apptainer/Singularity Not Found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slurm-submission-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SLURM Submission Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#container-image-download-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container Image Download Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-custom-snakemake-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced: Custom Snakemake Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start-slurm-clusters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start: SLURM Clusters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slurm-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SLURM Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SLURM Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preset-ss-slurm-singularity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preset: ss (SLURM Singularity)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#queuepartition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Queue/Partition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resource-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource Scaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verbose-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verbose Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gpu-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPU Support
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiomics-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiomics Workflows
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-execution-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Execution Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Other Execution Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-execution-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Execution Presets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local Execution Presets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#le-local-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        le (Local Execution)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lc-local-cluster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lc (Local Cluster)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ls-local-single-threaded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ls (Local Single-threaded)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#container-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#genome-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Genome Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflow-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jobs-terminated-due-to-resource-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jobs Terminated Due to Resource Limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apptainersingularity-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Apptainer/Singularity Not Found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slurm-submission-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SLURM Submission Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#container-image-download-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container Image Download Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-custom-snakemake-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced: Custom Snakemake Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<p><a href="../">← Back to main page</a></p>
+<h1 id="running-seqnado-on-hpc-clusters">Running SeqNado on HPC Clusters<a class="headerlink" href="#running-seqnado-on-hpc-clusters" title="Permanent link">&para;</a></h1>
+<p>SeqNado is designed to run efficiently on high-performance computing (HPC) clusters using job schedulers. This guide covers setting up and running SeqNado on SLURM-based clusters, which is the recommended and most thoroughly tested configuration.</p>
+<h2 id="quick-start-slurm-clusters">Quick Start: SLURM Clusters<a class="headerlink" href="#quick-start-slurm-clusters" title="Permanent link">&para;</a></h2>
+<p>To run SeqNado on a SLURM cluster with containerized environments:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>ss<span class="w"> </span>--queue<span class="w"> </span>short<span class="w"> </span>--scale-resources<span class="w"> </span><span class="m">1</span>.0
+</span></code></pre></div>
+<p>The <code>ss</code> (SLURM Singularity) preset automatically configures job submission to SLURM with container isolation.</p>
+<p>See CLI options for presets, queues, and scaling: <a href="../cli/#cli-seqnado-pipeline">seqnado pipeline</a>.</p>
+<h2 id="slurm-configuration">SLURM Configuration<a class="headerlink" href="#slurm-configuration" title="Permanent link">&para;</a></h2>
+<h3 id="preset-ss-slurm-singularity">Preset: <code>ss</code> (SLURM Singularity)<a class="headerlink" href="#preset-ss-slurm-singularity" title="Permanent link">&para;</a></h3>
+<p>The SLURM Singularity preset uses:</p>
+<ul>
+<li><strong>Executor</strong>: SLURM job scheduler</li>
+<li><strong>Containerization</strong>: Singularity/Apptainer containers (recommended for HPC environments)</li>
+<li><strong>Default partition</strong>: <code>short</code> (1 hour runtime, 3 GB memory per job)</li>
+<li><strong>Max parallel jobs</strong>: 100</li>
+</ul>
+<h3 id="key-options">Key Options<a class="headerlink" href="#key-options" title="Permanent link">&para;</a></h3>
+<p>When running with the SLURM preset:</p>
+<h4 id="queuepartition">Queue/Partition<a class="headerlink" href="#queuepartition" title="Permanent link">&para;</a></h4>
+<p>Specify the SLURM partition:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>ss<span class="w"> </span>--queue<span class="w"> </span>short
+</span></code></pre></div>
+<p>Common partitions:</p>
+<ul>
+<li><code>short</code> - Default, 1 hour runtime, general purpose</li>
+<li><code>long</code> - Extended runtime (varies by system)</li>
+<li><code>gpu</code> - GPU-enabled partition (for GPU-accelerated steps like MCC)</li>
+</ul>
+<h4 id="resource-scaling">Resource Scaling<a class="headerlink" href="#resource-scaling" title="Permanent link">&para;</a></h4>
+<p>Scale memory and runtime resources by a factor:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>ss<span class="w"> </span>--scale-resources<span class="w"> </span><span class="m">1</span>.5
+</span></code></pre></div>
+<p>A factor of 1.5 increases all memory and time allocations by 50%. Use this if jobs are being killed due to resource limits.</p>
+<h4 id="verbose-output">Verbose Output<a class="headerlink" href="#verbose-output" title="Permanent link">&para;</a></h4>
+<p>Print the generated Snakemake command before execution:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>ss<span class="w"> </span>--print-cmd
+</span></code></pre></div>
+<p>For a full list of flags, see <a href="../cli/#cli-seqnado-pipeline">seqnado pipeline</a>.</p>
+<h3 id="gpu-support">GPU Support<a class="headerlink" href="#gpu-support" title="Permanent link">&para;</a></h3>
+<p>For assays using GPU acceleration (e.g., MCC peak calling):</p>
+<ol>
+<li>
+<p>Submit to a GPU partition:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>ss<span class="w"> </span>--queue<span class="w"> </span>gpu
+</span></code></pre></div></p>
+</li>
+<li>
+<p>SeqNado automatically allocates GPU resources for GPU-enabled steps.</p>
+</li>
+</ol>
+<h3 id="multiomics-workflows">Multiomics Workflows<a class="headerlink" href="#multiomics-workflows" title="Permanent link">&para;</a></h3>
+<p>For multiomics experiments combining multiple assays:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>--preset<span class="w"> </span>ss<span class="w"> </span>--configfile<span class="w"> </span>config.yaml
+</span></code></pre></div>
+<p>Ensure your configuration file includes all assays and their respective genomes.</p>
+<h2 id="other-execution-options">Other Execution Options<a class="headerlink" href="#other-execution-options" title="Permanent link">&para;</a></h2>
+<p>While SLURM+Singularity is recommended for HPC, SeqNado provides several other profiles:</p>
+<h3 id="local-execution-presets">Local Execution Presets<a class="headerlink" href="#local-execution-presets" title="Permanent link">&para;</a></h3>
+<p>These options are useful for development, testing, or non-HPC environments:</p>
+<h4 id="le-local-execution"><code>le</code> (Local Execution)<a class="headerlink" href="#le-local-execution" title="Permanent link">&para;</a></h4>
+<p>Standard local execution with environment isolation:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>le
+</span></code></pre></div>
+<p>Suitable for:</p>
+<ul>
+<li>Development machines</li>
+<li>Local testing</li>
+<li>Systems without job schedulers</li>
+</ul>
+<h4 id="lc-local-cluster"><code>lc</code> (Local Cluster)<a class="headerlink" href="#lc-local-cluster" title="Permanent link">&para;</a></h4>
+<p>Local execution with job-level parallelization (GNU parallel):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>lc
+</span></code></pre></div>
+<p>Useful for:</p>
+<ul>
+<li>Multi-CPU workstations</li>
+<li>Quick local runs with parallelization</li>
+</ul>
+<h4 id="ls-local-single-threaded"><code>ls</code> (Local Single-threaded)<a class="headerlink" href="#ls-local-single-threaded" title="Permanent link">&para;</a></h4>
+<p>Single-threaded local execution:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>ls
+</span></code></pre></div>
+<p>Useful for:</p>
+<ul>
+<li>Debugging</li>
+<li>Testing without parallelization</li>
+</ul>
+<h3 id="container-options">Container Options<a class="headerlink" href="#container-options" title="Permanent link">&para;</a></h3>
+<p>By default, all presets use Singularity/Apptainer containers for reproducibility. To use a local Conda environment instead:</p>
+<p>Modify your workflow configuration YAML:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><span class="nt">container</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">  </span><span class="c1"># Disable containers</span>
+</span></code></pre></div>
+<p>Then run with any preset. The workflow will execute with your current Python environment.</p>
+<h2 id="configuration-files">Configuration Files<a class="headerlink" href="#configuration-files" title="Permanent link">&para;</a></h2>
+<h3 id="genome-configuration">Genome Configuration<a class="headerlink" href="#genome-configuration" title="Permanent link">&para;</a></h3>
+<p>Ensure genomes are configured before running pipelines:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1">seqnado<span class="w"> </span>genomes<span class="w"> </span>list<span class="w"> </span>atac
+</span></code></pre></div>
+<p>More details: <a href="../cli/#cli-seqnado-genomes">seqnado genomes</a>.</p>
+<h3 id="workflow-configuration">Workflow Configuration<a class="headerlink" href="#workflow-configuration" title="Permanent link">&para;</a></h3>
+<p>Generate an assay-specific configuration:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1">seqnado<span class="w"> </span>config<span class="w"> </span>atac<span class="w"> </span>--output<span class="w"> </span>config_atac.yaml
+</span></code></pre></div>
+<p>More details: <a href="../cli/#cli-seqnado-config">seqnado config</a>.</p>
+<p>Edit the YAML to customize:</p>
+<ul>
+<li>Input/output paths</li>
+<li>Reference genomes</li>
+<li>Analysis parameters</li>
+<li>Resource allocations</li>
+</ul>
+<h3 id="design-metadata">Design Metadata<a class="headerlink" href="#design-metadata" title="Permanent link">&para;</a></h3>
+<p>Generate metadata CSV from FASTQ files:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1">seqnado<span class="w"> </span>design<span class="w"> </span>atac<span class="w"> </span>/path/to/fastqs/*.fastq.gz
+</span></code></pre></div>
+<p>More details: <a href="../cli/#cli-seqnado-design">seqnado design</a>.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="jobs-terminated-due-to-resource-limits">Jobs Terminated Due to Resource Limits<a class="headerlink" href="#jobs-terminated-due-to-resource-limits" title="Permanent link">&para;</a></h3>
+<p>If Snakemake jobs are killed with <code>out of memory</code> or timeout errors:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1">seqnado<span class="w"> </span>pipeline<span class="w"> </span>atac<span class="w"> </span>--preset<span class="w"> </span>ss<span class="w"> </span>--scale-resources<span class="w"> </span><span class="m">2</span>.0<span class="w"> </span>--queue<span class="w"> </span>long
+</span></code></pre></div>
+<ul>
+<li>Increase <code>--scale-resources</code> factor</li>
+<li>Switch to a partition with longer walltime</li>
+<li>Check cluster documentation for memory limits</li>
+</ul>
+<h3 id="apptainersingularity-not-found">Apptainer/Singularity Not Found<a class="headerlink" href="#apptainersingularity-not-found" title="Permanent link">&para;</a></h3>
+<p>SeqNado prefers Apptainer (modern Singularity fork). If unavailable:</p>
+<ol>
+<li>Install Apptainer on your cluster</li>
+<li>Or switch to local environment execution (modify config YAML)</li>
+<li>Or request Singularity installation from cluster admin</li>
+</ol>
+<h3 id="slurm-submission-errors">SLURM Submission Errors<a class="headerlink" href="#slurm-submission-errors" title="Permanent link">&para;</a></h3>
+<p>Verify SLURM is available:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1">sinfo<span class="w">  </span><span class="c1"># List SLURM partitions</span>
+</span><span id="__span-14-2">squeue<span class="w"> </span><span class="c1"># Check submitted jobs</span>
+</span></code></pre></div>
+<p>Add <code>--print-cmd</code> to see the exact Snakemake command and submission details.</p>
+<h3 id="container-image-download-issues">Container Image Download Issues<a class="headerlink" href="#container-image-download-issues" title="Permanent link">&para;</a></h3>
+<p>SeqNado pulls container images on first use. If downloads fail due to network restrictions:</p>
+<ol>
+<li>Use cluster's container cache if available</li>
+<li>Pre-download and cache images on compute nodes</li>
+<li>Contact cluster support for container registry access</li>
+</ol>
+<h2 id="advanced-custom-snakemake-configuration">Advanced: Custom Snakemake Configuration<a class="headerlink" href="#advanced-custom-snakemake-configuration" title="Permanent link">&para;</a></h2>
+<p>For advanced users, profiles can be customized by editing the configuration files in:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1">~/.config/seqnado/profiles/profile_slurm_singularity/
+</span></code></pre></div>
+<p>Refer to <a href="https://snakemake.readthedocs.io/en/stable/">Snakemake documentation</a> for configuration options.</p>
+<h2 id="support">Support<a class="headerlink" href="#support" title="Permanent link">&para;</a></h2>
+<p>For issues specific to cluster execution:</p>
+<ol>
+<li>Check cluster documentation for scheduler syntax and available partitions</li>
+<li>Verify containers are accessible from compute nodes</li>
+<li>Test with <code>--preset le</code> on the login node first</li>
+<li>Use <code>--print-cmd</code> to debug generated Snakemake commands</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "header.autohide"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
