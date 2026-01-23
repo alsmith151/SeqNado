@@ -189,12 +189,12 @@ class ExperimentIP(BaseModel):
     @property
     def ip_performed(self) -> str:
         """Get the antibody used for the IP sample."""
-        return self.ip.antibody
+        return self.ip.ip
 
     @property
     def control_performed(self) -> str:
         """Get the antibody used for the control sample."""
-        return self.control.antibody if self.control else None
+        return self.control.ip if self.control else None
 
     @property
     def fastqs_are_paired(self) -> bool:
@@ -254,27 +254,27 @@ class FastqSetIP(FastqSet):
 
     r1: FastqFileIP
     r2: FastqFileIP | None = None
-    antibody: str = Field(default=None, description="IP antibody performed")
+    ip: str = Field(default=None, description="IP performed")
 
     def model_post_init(self, __context: dict[str, any] | None) -> None:
-        """Initialize and predict antibody information."""
+        """Initialize and predict information."""
         super().model_post_init(__context)
 
-        if self.antibody is None:
-            self.antibody = self._predict_antibody()
+        if self.ip is None:
+            self.ip = self._predict_ip()
 
-    def _predict_antibody(self) -> str:
-        """Predict the target antibody from the r1 file."""
+    def _predict_ip(self) -> str:
+        """Predict the target IP from the r1 file."""
         return self.r1.ip
 
     @property
     def full_sample_name(self) -> str:
-        """Get complete sample name including antibody/control information."""
-        return f"{self.sample_id}_{self.antibody}"
+        """Get complete sample name including IP/control information."""
+        return f"{self.sample_id}_{self.ip}"
 
     @property
     def base_sample_name(self) -> str:
-        """Get base sample name without antibody/IP information."""
+        """Get base sample name without IP information."""
         return self.r1.sample_base_without_ip
 
     @property
@@ -325,18 +325,21 @@ class BaseFastqCollection(BaseCollection):
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        for sample_name, paths in self.fastq_pairs.items():
+        df = self.to_dataframe()
+        for uid, row in df.iterrows():
             # For single-end data, don't add read number suffix
-            if len(paths) == 1:
-                symlink_path = output_dir / f"{sample_name}.fastq.gz"
+            if pd.isna(row["r2"]):
+                symlink_path = output_dir / f"{uid}.fastq.gz"
                 if not symlink_path.exists():
-                    symlink_path.symlink_to(paths[0].resolve().absolute())
+                    symlink_path.symlink_to(Path(row["r1"]).resolve().absolute())
             else:
                 # For paired-end data, add _1 and _2 suffixes
-                for read_number, path in enumerate(paths, start=1):
-                    symlink_path = output_dir / f"{sample_name}_{read_number}.fastq.gz"
-                    if not symlink_path.exists():
-                        symlink_path.symlink_to(path.resolve().absolute())
+                symlink_path_r1 = output_dir / f"{uid}_1.fastq.gz"
+                if not symlink_path_r1.exists():
+                    symlink_path_r1.symlink_to(Path(row["r1"]).resolve().absolute())
+                symlink_path_r2 = output_dir / f"{uid}_2.fastq.gz"
+                if not symlink_path_r2.exists():
+                    symlink_path_r2.symlink_to(Path(row["r2"]).resolve().absolute())
 
 
 class FastqCollection(BaseFastqCollection):
@@ -1055,5 +1058,25 @@ class FastqCollectionForIP(BaseFastqCollection):
             # Collect metadata with validation context
             meta_fields = {k: rec.get(k) for k in metadata_fields if k in rec}
             metadata.append(Metadata.model_validate(meta_fields, context={'validate_deseq2': validate_deseq2, 'assay': validation_assay}))
-
         return cls(assay=assay, experiments=experiments, metadata=metadata)
+
+    def symlink_fastq_files(self, output_dir):
+        # Link the R1 and R2 files
+        super().symlink_fastq_files(output_dir)
+
+        # Additionally, link control files with appropriate names
+        output_dir = Path(output_dir)
+        df = self.to_dataframe()
+        for uid, row in df.iterrows():
+            if pd.notna(row["r1_control"]):
+                symlink_path_ctrl_r1 = output_dir / f"{uid}_control_1.fastq.gz"
+                if not symlink_path_ctrl_r1.exists():
+                    symlink_path_ctrl_r1.symlink_to(
+                        Path(row["r1_control"]).resolve().absolute()
+                    )
+            if pd.notna(row["r2_control"]):
+                symlink_path_ctrl_r2 = output_dir / f"{uid}_control_2.fastq.gz"
+                if not symlink_path_ctrl_r2.exists():
+                    symlink_path_ctrl_r2.symlink_to(
+                        Path(row["r2_control"]).resolve().absolute()
+                    )
