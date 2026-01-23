@@ -1063,20 +1063,24 @@ class FastqCollectionForIP(BaseFastqCollection):
     def symlink_fastq_files(self, output_dir):
         # Link the R1 and R2 files
         super().symlink_fastq_files(output_dir)
-
+        
         # Additionally, link control files with appropriate names
         output_dir = Path(output_dir)
         df = self.to_dataframe()
-        for uid, row in df.iterrows():
-            if pd.notna(row["r1_control"]):
-                symlink_path_ctrl_r1 = output_dir / f"{uid}_control_1.fastq.gz"
+        for _, row in df.iterrows():
+            # paired-end control data needs both R1 and R2
+            if pd.notna(row["r1_control"]) and not pd.isna(row["r2_control"]):
+                symlink_path_ctrl_r1 = output_dir / f"{row['sample_id']}_{row['control']}_1.fastq.gz"
+                symlink_path_ctrl_r2 = output_dir / f"{row['sample_id']}_{row['control']}_2.fastq.gz"
+
                 if not symlink_path_ctrl_r1.exists():
                     symlink_path_ctrl_r1.symlink_to(
                         Path(row["r1_control"]).resolve().absolute()
                     )
-            if pd.notna(row["r2_control"]):
-                symlink_path_ctrl_r2 = output_dir / f"{uid}_control_2.fastq.gz"
                 if not symlink_path_ctrl_r2.exists():
                     symlink_path_ctrl_r2.symlink_to(
                         Path(row["r2_control"]).resolve().absolute()
                     )
+            # single-end control data needs only R1 - no _[12] suffix
+            elif pd.notna(row["r1_control"]):
+                symlink_path_ctrl_r1 = output_dir / f"{row['sample_id']}_{row['control']}.fastq.gz"
