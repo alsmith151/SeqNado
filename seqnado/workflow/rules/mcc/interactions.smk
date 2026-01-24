@@ -87,9 +87,9 @@ rule bgzip_pairs:
 
 rule identify_ligation_junctions_replicates:
     input:
-        bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}_qname_sorted.bam"
+        bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}_deduplicated.bam",
     output:
-        pairs=expand(OUTPUT_DIR + "/mcc/replicates/{{sample}}/ligation_junctions/{viewpoint}.pairs", viewpoint=VIEWPOINT_OLIGOS),
+        pairs=expand(OUTPUT_DIR + "/mcc/replicates/{{sample}}/ligation_junctions/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     params:
         outdir=OUTPUT_DIR + "/mcc/replicates/{sample}/ligation_junctions/",
     threads: 1
