@@ -17,7 +17,6 @@ GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))
 use rule sort_bam_by_qname as sort_mcc_annotated_bam with:
     input:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
-        bai=OUTPUT_DIR + "/mcc/{group}/{group}.bam.bai",
     output:
         bam=temp(OUTPUT_DIR + "/mcc/{group}/{group}_qname.bam"),
         read_log=temp(OUTPUT_DIR + "/qc/mcc/{group}_qname_sort.tsv"),
@@ -34,7 +33,7 @@ rule identify_ligation_junctions:
     input:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}_qname.bam"
     output:
-        pairs=temp(expand(OUTPUT_DIR + "/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS)),
+        pairs=expand(OUTPUT_DIR + "/mcc/{{group}}/ligation_junctions/raw/{viewpoint}.pairs", viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     params:
         outdir=OUTPUT_DIR + "/mcc/{group}/ligation_junctions/raw/",
     threads: 1
@@ -138,8 +137,7 @@ rule zoomify_cooler:
 
 rule aggregate_coolers:
     input:
-        mcools=expand(OUTPUT_DIR + "/mcc/{group}/ligation_junctions/{viewpoint}.mcool", 
-                    group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names, 
+        mcools=expand(OUTPUT_DIR + "/mcc/{{group}}/ligation_junctions/{viewpoint}.mcool", 
                     viewpoint=GROUPED_VIEWPOINT_OLIGOS),
     output:
         mcool=OUTPUT_DIR + "/mcc/contacts/{group}/{group}.mcool",
