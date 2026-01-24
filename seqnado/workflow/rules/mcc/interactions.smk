@@ -12,8 +12,6 @@ VIEWPOINT_OLIGOS = extract_viewpoints(CONFIG.assay_config.mcc.viewpoints)
 VIEWPOINT_TO_GROUPED_VIEWPOINT = viewpoint_to_grouped_viewpoint(VIEWPOINT_OLIGOS)
 GROUPED_VIEWPOINT_OLIGOS = list(set(VIEWPOINT_TO_GROUPED_VIEWPOINT.values()))
 
-
-
 use rule sort_bam_by_qname as sort_mcc_annotated_bam with:
     input:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}.bam",
@@ -29,7 +27,8 @@ use rule sort_bam_by_qname as sort_mcc_annotated_bam with:
     message: "Sorting aligned BAM by QNAME for group {wildcards.group} using samtools",
     benchmark: OUTPUT_DIR + "/.benchmark/mcc/sort_genomic_aligned_reads/{group}.tsv",
 
-rule identify_ligation_junctions:
+
+rule identify_ligation_junctions_grouped:
     input:
         bam=OUTPUT_DIR + "/mcc/{group}/{group}_qname.bam"
     output:
@@ -84,6 +83,49 @@ rule bgzip_pairs:
     shell: """
     bgzip -c {input.pairs} > {output.pairs}
     """
+
+
+rule identify_ligation_junctions_replicates:
+    input:
+        bam=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}_qname_sorted.bam"
+    output:
+        pairs=expand(OUTPUT_DIR + "/mcc/replicates/{{sample}}/ligation_junctions/{viewpoint}.pairs", viewpoint=VIEWPOINT_OLIGOS),
+    params:
+        outdir=OUTPUT_DIR + "/mcc/replicates/{sample}/ligation_junctions/",
+    threads: 1
+    resources:
+        mem="1GB",
+    container: 'docker://ghcr.io/alsmith151/mccnado:latest',
+    log: OUTPUT_DIR + "/logs/ligation_junctions/{sample}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/ligation_junctions/{sample}.tsv",
+    message: "Identifying ligation junctions for sample {wildcards.sample}",
+    shell: """
+    mccnado identify-ligation-junctions \
+    {input.bam} \
+    {params.outdir}
+    """
+
+use rule sort_ligation_junctions as sort_ligation_junctions_replicates with:
+    input:
+        pairs=OUTPUT_DIR + "/mcc/replicates/{sample}/ligation_junctions/{viewpoint}.pairs",
+    output:
+        pairs=temp(OUTPUT_DIR + "/mcc/replicates/{sample}/ligation_junctions/sorted/{viewpoint}.pairs"),
+    threads: 1
+    resources:
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=2, attempts=attempt, scale=SCALE_RESOURCES),
+    log: OUTPUT_DIR + "/logs/sort_ligation_junctions/{sample}_{viewpoint}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/sort_ligation_junctions/{sample}_{viewpoint}.tsv",
+    message: "Sorting ligation junctions for viewpoint {wildcards.viewpoint} in sample {wildcards.sample}",
+
+use rule bgzip_pairs as bgzip_pairs_replicates with:
+    input:
+        pairs=OUTPUT_DIR + "/mcc/replicates/{sample}/ligation_junctions/sorted/{viewpoint}.pairs",
+    output:
+        pairs=OUTPUT_DIR + "/mcc/replicates/{sample}/ligation_junctions/{viewpoint}.pairs.gz",
+    log: OUTPUT_DIR + "/logs/bgzip_pairs/{sample}_{viewpoint}.log",
+    benchmark: OUTPUT_DIR + "/.benchmark/bgzip_pairs/{sample}_{viewpoint}.tsv",
+    message: "Bgzipping pairs file for viewpoint {wildcards.viewpoint} in sample {wildcards.sample}",
 
 
 rule make_cooler:
@@ -152,4 +194,21 @@ rule aggregate_coolers:
         mccnado combine-ligation-junction-coolers \
         {input.mcools} \
         {output.mcool}
+        """
+
+
+rule create_sentinel_contact_files:
+    input:
+        mcool_grouped=expand(OUTPUT_DIR + "/mcc/contacts/{group}/{group}.mcool", 
+                    group=SAMPLE_GROUPINGS.get_grouping('consensus').group_names),
+        mcool_replicate=expand(OUTPUT_DIR + "/mcc/replicates/{sample}/ligation_junctions/{viewpoint}.pairs.gz", 
+                    viewpoint=GROUPED_VIEWPOINT_OLIGOS,
+                    sample=SAMPLE_NAMES) if CONFIG.assay_config.mcc.create_replicate_contact_files else [],
+    output:
+        sentinel_contacts=OUTPUT_DIR + "/mcc/.mcc_contacts_identified.txt",
+    resources:
+        runtime=lambda wildcards, attempt: define_time_requested(initial_value=1, attempts=attempt, scale=SCALE_RESOURCES),
+        mem=lambda wildcards, attempt: define_memory_requested(initial_value=8, attempts=attempt, scale=SCALE_RESOURCES),
+    shell: """
+        touch {output.sentinel_contacts}
         """

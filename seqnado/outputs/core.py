@@ -28,6 +28,7 @@ from seqnado.outputs.files import (
     HeatmapFiles,
     HubFiles,
     MethylationFiles,
+    PairFiles,
     PeakCallingFiles,
     PlotFiles,
     QCFiles,
@@ -428,6 +429,20 @@ class SeqnadoOutputBuilder:
         ]
         sentinel_files = BasicFileCollection(files=[str(pk) for pk in peaks])
         self.file_collections.append(sentinel_files)
+    
+    def add_mcc_sentinel_contact_files(self) -> None:
+        """Add MCC sentinel files to the output collection.
+
+        The issue with MCC contact files is that they are generated per viewpoint group.
+        It's possible that we don't actually have the viewpoint coming through from the sample,
+        this would cause a crash and a pipeline failure. So instead we just create a sentinel file
+        to indicate that the contacts have been identified.
+        """
+        contacts = [
+            Path(self.output_dir) / "mcc/.mcc_contacts_identified.txt",
+        ]
+        sentinel_files = BasicFileCollection(files=[str(ct) for ct in contacts])
+        self.file_collections.append(sentinel_files)
 
     def add_peak_files(self) -> None:
         """Add peak files to the output collection."""
@@ -579,6 +594,7 @@ class SeqnadoOutputBuilder:
 
     def add_contact_files(self) -> None:
         """Add contact files to the output collection."""
+
         contact_files = ContactFiles(
             assay=self.assay,
             names=self.samples.sample_names
@@ -852,7 +868,7 @@ class SeqnadoOutputFactory:
                 if self.assay_config.call_methylation:
                     builder.add_methylation_files()
             case Assay.MCC:
-                builder.add_contact_files()
+                builder.add_mcc_sentinel_contact_files()
             case _:
                 logger.debug(f"No additional files to add for assay {self.assay}")
 
