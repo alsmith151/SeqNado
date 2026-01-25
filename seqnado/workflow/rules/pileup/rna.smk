@@ -110,8 +110,6 @@ rule homer_make_bigwigs_minus:
     mv {params.outdir}/{wildcards.sample}.ucsc.minus.bigWig {output.homer_bigwig}
     """
 
-
-
 rule bamnado_bam_coverage_rna_plus:
     input:
         bam=OUTPUT_DIR + "/aligned/{sample}.bam",
