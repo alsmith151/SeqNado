@@ -53,7 +53,7 @@ rule homer_make_bigwigs_plus:
         options=str(CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments),
         outdir=OUTPUT_DIR + "/bigwigs/homer/",
         temp_bw=lambda wc, output: output.homer_bigwig.replace(
-            "_plus.bigWig", ".ucsc.plus.bigWig"
+            "_plus.bigWig", "pos.ucsc.bigWig"
         ),
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
@@ -87,7 +87,7 @@ rule homer_make_bigwigs_minus:
         options=str(CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments),
         outdir=OUTPUT_DIR + "/bigwigs/homer/",
         temp_bw=lambda wc, output: output.homer_bigwig.replace(
-            "_minus.bigWig", ".ucsc.minus.bigWig"
+            "_minus.bigWig", "neg.ucsc.bigWig"
         ),
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
