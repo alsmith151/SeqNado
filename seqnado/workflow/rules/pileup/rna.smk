@@ -73,7 +73,7 @@ rule homer_make_bigwigs_plus:
     shell:
         """
     makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir {params.outdir} -strand + {params.options} > {log} 2>&1 &&
-    mv {params.outdir}/{wildcards.sample}.ucsc.plus.bigWig {output.homer_bigwig}
+    mv {params.temp_bw} {output.homer_bigwig}
     """
 
 rule homer_make_bigwigs_minus:
@@ -107,7 +107,7 @@ rule homer_make_bigwigs_minus:
     shell:
         """
     makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir {params.outdir} -strand - {params.options} > {log} 2>&1 &&
-    mv {params.outdir}/{wildcards.sample}.ucsc.minus.bigWig {output.homer_bigwig}
+    mv {params.temp_bw} {output.homer_bigwig}
     """
 
 rule bamnado_bam_coverage_rna_plus:
