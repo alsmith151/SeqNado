@@ -51,7 +51,7 @@ rule homer_make_bigwigs_plus:
         genome_name=CONFIG.genome.name,
         genome_chrom_sizes=CONFIG.genome.chromosome_sizes,
         options=str(CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments),
-        outdir=OUTPUT_DIR + "/bigwigs/homer/",
+        outdir=OUTPUT_DIR + "/bigwigs/homer/unscaled/",
         temp_bw=lambda wc, output: output.homer_bigwig.replace(
             "_plus.bigWig", "pos.ucsc.bigWig"
         ),
@@ -85,7 +85,7 @@ rule homer_make_bigwigs_minus:
         genome_name=CONFIG.genome.name,
         genome_chrom_sizes=CONFIG.genome.chromosome_sizes,
         options=str(CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments),
-        outdir=OUTPUT_DIR + "/bigwigs/homer/",
+        outdir=OUTPUT_DIR + "/bigwigs/homer/unscaled/",
         temp_bw=lambda wc, output: output.homer_bigwig.replace(
             "_minus.bigWig", "neg.ucsc.bigWig"
         ),
