@@ -41,20 +41,23 @@ rule deeptools_make_bigwigs_rna_minus:
     bamCoverage {params.options} -p {threads} -b {input.bam} -o {output.bigwig} --filterRNAstrand reverse --scaleFactor -1 > {log} 2>&1
     """
 
-
-rule homer_make_bigwigs_plus:
+rule homer_make_bigwigs_rna:
     input:
         homer_tag_directory=OUTPUT_DIR + "/tag_dirs/{sample}",
     output:
-        homer_bigwig=OUTPUT_DIR + "/bigwigs/homer/unscaled/{sample}_plus.bigWig",
+        bw_plus=OUTPUT_DIR + "/bigwigs/homer/unscaled/{sample}_plus.bigWig",
+        bw_minus=OUTPUT_DIR + "/bigwigs/homer/unscaled/{sample}_minus.bigWig",
     params:
         genome_name=CONFIG.genome.name,
         genome_chrom_sizes=CONFIG.genome.chromosome_sizes,
         options=str(CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments),
         outdir=OUTPUT_DIR + "/bigwigs/homer/unscaled/",
-        temp_bw=lambda wc, output: output.homer_bigwig.replace(
+        temp_bw_plus=lambda wc, output: output.homer_bigwig.replace(
             "_plus.bigWig", "pos.ucsc.bigWig"
         ),
+        temp_bw_minus=lambda wc, output: output.homer_bigwig.replace(
+            "_plus.bigWig", "neg.ucsc.bigWig"
+        ),
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
     resources:
@@ -72,43 +75,11 @@ rule homer_make_bigwigs_plus:
         "Making bigWig with HOMER for sample {wildcards.sample}"
     shell:
         """
-    makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir {params.outdir} -strand + {params.options} > {log} 2>&1 &&
-    mv {params.temp_bw} {output.homer_bigwig}
+    makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir {params.outdir} -strand separate {params.options} > {log} 2>&1 &&
+    mv {params.temp_bw_plus} {output.bw_plus} &&
+    mv {params.temp_bw_minus} {output.bw_minus}
     """
 
-rule homer_make_bigwigs_minus:
-    input:
-        homer_tag_directory=OUTPUT_DIR + "/tag_dirs/{sample}",
-    output:
-        homer_bigwig=OUTPUT_DIR + "/bigwigs/homer/unscaled/{sample}_minus.bigWig",
-    params:
-        genome_name=CONFIG.genome.name,
-        genome_chrom_sizes=CONFIG.genome.chromosome_sizes,
-        options=str(CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments),
-        outdir=OUTPUT_DIR + "/bigwigs/homer/unscaled/",
-        temp_bw=lambda wc, output: output.homer_bigwig.replace(
-            "_minus.bigWig", "neg.ucsc.bigWig"
-        ),
-    container:
-        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
-    resources:
-        mem=lambda wildcards, attempt: define_memory_requested(
-            initial_value=4, attempts=attempt, scale=SCALE_RESOURCES
-        ),
-        runtime=lambda wildcards, attempt: define_time_requested(
-            initial_value=2, attempts=attempt, scale=SCALE_RESOURCES
-        ),
-    log:
-        OUTPUT_DIR + "/logs/homer/makebigwigs_{sample}.log",
-    benchmark:
-        OUTPUT_DIR + "/.benchmark/homer/makebigwigs_{sample}.tsv"
-    message:
-        "Making bigWig with HOMER for sample {wildcards.sample}"
-    shell:
-        """
-    makeBigWig.pl {input.homer_tag_directory} {params.genome_name} -chromSizes {params.genome_chrom_sizes} -url INSERT_URL -webdir {params.outdir} -strand - {params.options} > {log} 2>&1 &&
-    mv {params.temp_bw} {output.homer_bigwig}
-    """
 
 rule bamnado_bam_coverage_rna_plus:
     input:
