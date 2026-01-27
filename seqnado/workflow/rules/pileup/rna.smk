@@ -52,11 +52,11 @@ rule homer_make_bigwigs_rna:
         genome_chrom_sizes=CONFIG.genome.chromosome_sizes,
         options=str(CONFIG.third_party_tools.homer.make_bigwig.command_line_arguments),
         outdir=OUTPUT_DIR + "/bigwigs/homer/unscaled/",
-        temp_bw_plus=lambda wc, output: output.homer_bigwig.replace(
+        temp_bw_plus=lambda wc, output: output.bw_plus.replace(
             "_plus.bigWig", "pos.ucsc.bigWig"
         ),
-        temp_bw_minus=lambda wc, output: output.homer_bigwig.replace(
-            "_plus.bigWig", "neg.ucsc.bigWig"
+        temp_bw_minus=lambda wc, output: output.bw_minus.replace(
+            "_minus.bigWig", "neg.ucsc.bigWig"
         ),
     container:
         "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
