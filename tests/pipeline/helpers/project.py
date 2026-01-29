@@ -1,5 +1,6 @@
 import glob
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -8,7 +9,6 @@ import pytest
 import yaml
 
 from .data import GenomeResources
-
 from .utils import get_fastq_pattern
 
 
@@ -177,6 +177,18 @@ def create_config_yaml(
 
     with open(test_config_file) as f:
         test_overrides = yaml.safe_load(f)
+
+    # For MCC assays, handle the viewpoints substitution BEFORE merging test config
+    # This ensures the environment variable is used for the actual path
+    if (
+        assay.lower() == "mcc"
+        and "assay_config" in test_overrides
+        and "mcc" in test_overrides["assay_config"]
+    ):
+        # Replace the placeholder in test_mcc.yaml with the actual environment variable
+        viewpoints_env = os.environ.get("SEQNADO_MCC_VIEWPOINTS")
+        if viewpoints_env:
+            test_overrides["assay_config"]["mcc"]["viewpoints"] = viewpoints_env
 
     # Deep merge the test config into the base config
     for key, value in test_overrides.items():

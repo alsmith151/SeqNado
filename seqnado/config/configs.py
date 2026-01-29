@@ -467,7 +467,7 @@ class MethylationConfig(BaseModel, PathValidatorMixin):
 class MCCConfig(BaseModel, PathValidatorMixin):
     """Configuration for MCC (Capture-C) analysis."""
 
-    viewpoints: Path
+    viewpoints: Annotated[Path, BeforeValidator(lambda v: Path(v) if isinstance(v, str) else v)]
     resolutions: list[int] = [100]
     exclusion_zone: int = 500  # Default value, adjust as needed
 

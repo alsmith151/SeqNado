@@ -250,7 +250,10 @@ class GenomeResources(BaseModel):
             (k for k in cls.ASSAY_TEMPLATE_MAP if k in assay.lower()), "chip"
         )
         for filename in cls.EXTRA_FILES.get(assay_key, []):
-            cls._download(genome_path, filename, ref_url, required=False)
+            file_path = cls._download(genome_path, filename, ref_url, required=False)
+            # Handle special files that map to config fields
+            if filename == "mcc_viewpoints.bed":
+                config["viewpoints"] = file_path
 
         # Always download plotting_coordinates
         cls._download(genome_path, "plotting_coordinates.bed", ref_url, required=False)

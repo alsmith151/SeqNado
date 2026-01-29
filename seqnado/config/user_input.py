@@ -7,11 +7,14 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import jinja2
 from loguru import logger
 from pydantic import ValidationError
+
+if TYPE_CHECKING:
+    from seqnado.config.multiomics import MultiomicsConfig
 
 from seqnado import (
     Assay,
@@ -23,7 +26,6 @@ from seqnado import (
     SNPCallingMethod,
     SpikeInMethod,
 )
-
 from seqnado.config import (
     AssaySpecificConfig,
     ATACAssayConfig,
@@ -961,7 +963,6 @@ def build_multiomics_config(
     Returns:
         tuple: (MultiomicsConfig, dict of assay_name -> SeqnadoConfig)
     """
-    # Import here to avoid circular import
     from seqnado.config.multiomics import MultiomicsConfig
 
     logger.info("Building multiomics configuration")
