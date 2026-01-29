@@ -42,7 +42,7 @@ def init_seqnado_project(
         monkeypatch.setenv("SEQNADO_MCC_VIEWPOINTS", str(viewpoints_path))
 
         # Copy viewpoints file if available
-        if "viewpoints" in resources:
+        if "viewpoints" in resources and resources["viewpoints"] is not None:
             dest = run_directory / "mcc_viewpoints.bed"
             src = resources["viewpoints"]
             if not dest.exists() and src.exists():
