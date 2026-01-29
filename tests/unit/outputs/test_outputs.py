@@ -21,7 +21,11 @@ from seqnado.inputs.bigwigs import BigWigCollection, BigWigFile
 from seqnado.inputs.core import Metadata
 from seqnado.inputs.fastq import FastqCollection, FastqFile, FastqSet
 from seqnado.inputs.grouping import SampleGroup, SampleGroupings, SampleGroups
-from seqnado.outputs.core import SeqnadoOutputBuilder, SeqnadoOutputFactory, SeqnadoOutputFiles
+from seqnado.outputs.core import (
+    SeqnadoOutputBuilder,
+    SeqnadoOutputFactory,
+    SeqnadoOutputFiles,
+)
 from seqnado.outputs.files import (
     BigBedFiles,
     BigWigFiles,
@@ -45,10 +49,10 @@ def test_file_collection_protocol():
     """Test that FileCollection protocol can be used for type checking."""
     # Import and verify the protocol exists
     from seqnado.outputs.files import FileCollection
-    
+
     # Access the protocol's method to ensure it's covered
-    assert hasattr(FileCollection, 'files')
-    
+    assert hasattr(FileCollection, "files")
+
     # Try to instantiate the protocol directly (will call pass statement)
     try:
         # This will trigger the protocol's files property getter
@@ -56,18 +60,17 @@ def test_file_collection_protocol():
     except (AttributeError, TypeError):
         # Expected - protocols can't be instantiated
         pass
-    
+
     # Create a simple class that implements the protocol
     class TestFileCollection:
         @property
         def files(self):
             return ["file1.txt", "file2.txt"]
-    
+
     # Verify it behaves as a FileCollection
     collection = TestFileCollection()
     assert isinstance(collection.files, list)
     assert len(collection.files) == 2
-
 
 
 def _minimal_config(tmp: Path) -> SeqnadoConfig:
@@ -94,7 +97,9 @@ def _small_collection(tmp: Path) -> FastqCollection:
     r1 = FastqFile(path=r1_path)
     r2 = FastqFile(path=r2_path)
     fs = FastqSet(sample_id="s1", r1=r1, r2=r2)
-    return FastqCollection(assay=Assay.ATAC, metadata=[Metadata(assay=Assay.ATAC)], fastq_sets=[fs])
+    return FastqCollection(
+        assay=Assay.ATAC, metadata=[Metadata(assay=Assay.ATAC)], fastq_sets=[fs]
+    )
 
 
 def test_output_builder_bigwigs_only(tmp_path: Path):
@@ -216,10 +221,10 @@ class TestQCFiles:
     def test_qc_files_no_fastq_screen(self, tmp_path):
         """Test QCFiles does not include fastq_screen files when disabled."""
         samples = _create_fastq_collection(tmp_path, ["sample1"], Assay.ATAC)
-        
+
         # Create QCConfig with run_fastq_screen=False
         qc_config = QCConfig(run_fastq_screen=False)
-        
+
         qc = QCFiles(assay=Assay.ATAC, samples=samples, config=qc_config)
 
         files = qc.files
@@ -228,16 +233,15 @@ class TestQCFiles:
     def test_qc_files_with_fastq_screen(self, tmp_path):
         """Test QCFiles includes fastq_screen files when enabled."""
         samples = _create_fastq_collection(tmp_path, ["sample1"], Assay.ATAC)
-        
+
         # Create QCConfig with run_fastq_screen=True
         qc_config = QCConfig(run_fastq_screen=True)
-        
+
         qc = QCFiles(assay=Assay.ATAC, samples=samples, config=qc_config)
 
         files = qc.files
         assert any("fastq_screen" in f for f in files)
 
-    # Removed test_default_files_property: QCFiles no longer has default_files property
 
 class SeqNadoReportFileTest:
     """Tests for SeqNadoReportFiles class."""
@@ -254,6 +258,7 @@ class SeqNadoReportFileTest:
         assert isinstance(files, list)
         assert all(isinstance(f, str) for f in files)
         assert any("seqnado_report.html" in f for f in files)
+
 
 class TestBigWigFiles:
     """Tests for BigWigFiles class."""
@@ -357,10 +362,18 @@ class TestBigWigFiles:
             assay=Assay.CHIP, names=["sample1"], pileup_methods=[PileupMethod.HOMER]
         )
 
-        assert bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.UNSCALED, assay=Assay.CHIP)
-        assert not bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.CSAW, assay=Assay.CHIP)
-        assert not bw._is_compatible(PileupMethod.HOMER, DataScalingTechnique.SPIKEIN, assay=Assay.CHIP)
-        assert not bw._is_compatible(PileupMethod.DEEPTOOLS, DataScalingTechnique.UNSCALED, assay=Assay.MCC)
+        assert bw._is_compatible(
+            PileupMethod.HOMER, DataScalingTechnique.UNSCALED, assay=Assay.CHIP
+        )
+        assert not bw._is_compatible(
+            PileupMethod.HOMER, DataScalingTechnique.CSAW, assay=Assay.CHIP
+        )
+        assert not bw._is_compatible(
+            PileupMethod.HOMER, DataScalingTechnique.SPIKEIN, assay=Assay.CHIP
+        )
+        assert not bw._is_compatible(
+            PileupMethod.DEEPTOOLS, DataScalingTechnique.UNSCALED, assay=Assay.MCC
+        )
 
 
 class TestPeakCallingFiles:
@@ -461,7 +474,9 @@ class TestSpikeInFiles:
 
     def test_spikein_files_chip(self):
         """Test SpikeInFiles for ChIP assay."""
-        sif = SpikeInFiles(assay=Assay.CHIP, names=["sample1", "sample2"], method="orlando")
+        sif = SpikeInFiles(
+            assay=Assay.CHIP, names=["sample1", "sample2"], method="orlando"
+        )
 
         files = sif.files
         assert len(files) == 1
@@ -475,10 +490,16 @@ class TestSpikeInFiles:
     def test_norm_factors_property(self):
         """Test norm_factors property."""
         sif = SpikeInFiles(
-            assay=Assay.CHIP, names=["sample1"], method="orlando", output_dir="custom_output"
+            assay=Assay.CHIP,
+            names=["sample1"],
+            method="orlando",
+            output_dir="custom_output",
         )
 
-        assert sif.norm_factors == "custom_output/resources/orlando/normalisation_factors.tsv"
+        assert (
+            sif.norm_factors
+            == "custom_output/resources/orlando/normalisation_factors.tsv"
+        )
 
 
 class TestPlotFiles:
@@ -923,18 +944,18 @@ class TestSeqnadoOutputFilesCore:
 
         # Filter for ATAC
         result = output.select_bigwig_subtype(
-            method=PileupMethod.DEEPTOOLS, 
+            method=PileupMethod.DEEPTOOLS,
             scale=DataScalingTechnique.UNSCALED,
-            assay=Assay.ATAC
+            assay=Assay.ATAC,
         )
         assert len(result) == 1
         assert Assay.ATAC.value.lower() in result[0].lower()
 
         # Filter for RNA
         result = output.select_bigwig_subtype(
-            method=PileupMethod.DEEPTOOLS, 
+            method=PileupMethod.DEEPTOOLS,
             scale=DataScalingTechnique.UNSCALED,
-            assay=Assay.RNA
+            assay=Assay.RNA,
         )
         assert len(result) == 1
         assert "RNA" in result[0]
@@ -993,7 +1014,11 @@ class TestSeqnadoOutputBuilderCore:
 
         fs1 = FastqSet(sample_id="s1", r1=FastqFile(path=r1_path))
         fs2 = FastqSet(sample_id="s2", r1=FastqFile(path=r2_path))
-        samples = FastqCollection(assay=Assay.ATAC, metadata=[Metadata(assay=Assay.ATAC), Metadata(assay=Assay.ATAC)], fastq_sets=[fs1, fs2])
+        samples = FastqCollection(
+            assay=Assay.ATAC,
+            metadata=[Metadata(assay=Assay.ATAC), Metadata(assay=Assay.ATAC)],
+            fastq_sets=[fs1, fs2],
+        )
 
         groups = SampleGroupings(
             groupings={
@@ -1309,6 +1334,7 @@ class TestSeqnadoOutputBuilderCore:
 
         # MCC requires bigwigs configured
         from seqnado.config.configs import BigwigConfig
+
         assay_cfg = MCCAssayConfig(mcc=mcc_cfg, bigwigs=BigwigConfig())
         cfg = SeqnadoConfig(
             assay=Assay.MCC,
@@ -1507,8 +1533,7 @@ class TestSeqnadoOutputFilesProperties:
         )
         # Test filtering by method and scale
         deep_unscaled = output.select_bigwig_subtype(
-            method=PileupMethod.DEEPTOOLS,
-            scale=DataScalingTechnique.UNSCALED
+            method=PileupMethod.DEEPTOOLS, scale=DataScalingTechnique.UNSCALED
         )
         assert len(deep_unscaled) == 1
         assert "deeptools/unscaled" in deep_unscaled[0]

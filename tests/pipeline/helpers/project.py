@@ -7,7 +7,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from .utils import get_fastq_pattern, setup_genome_config
+from .data import GenomeResources
+
+from .utils import get_fastq_pattern
 
 
 def init_seqnado_project(
@@ -23,7 +25,7 @@ def init_seqnado_project(
     Args:
         run_directory: Directory for the test run
         assay: Assay type (e.g., 'chip', 'rna', 'mcc')
-        resources: Dict of genome resources from ensure_genome_resources()
+        resources: Dict of genome resources from GenomeResources.download().model_dump()
         test_data_path: Base path for test data
         monkeypatch: Pytest monkeypatch fixture for environment variables
 
@@ -59,31 +61,8 @@ def init_seqnado_project(
     # Write genome config
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
 
-    # Copy hg38_genes.bed from tests/data to test_output/data if it doesn't exist
-    genes_bed_source = test_data_path.parent.parent / "tests" / "data" / "hg38_genes.bed"
-    genes_bed = test_data_path / "hg38_genes.bed"
-    if not genes_bed.exists() and genes_bed_source.exists():
-        genes_bed.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(genes_bed_source, genes_bed)
-
-    # Copy plotting_coordinates.bed from tests/data to test_output/data if it doesn't exist
-    plot_coords_source = test_data_path.parent.parent / "tests" / "data" / "plotting_coordinates.bed"
-    plot_coords = test_data_path / "plotting_coordinates.bed"
-    if not plot_coords.exists() and plot_coords_source.exists():
-        plot_coords.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(plot_coords_source, plot_coords)
-
-    setup_genome_config(
-        genome_config_file,
-        star_index=resources.get("star_index"),
-        bt2_index=resources["bt2_index"],
-        chromsizes=resources["chromsizes"],
-        gtf=resources["gtf"],
-        blacklist=resources["blacklist"],
-        genes_bed=genes_bed,
-        fasta=resources.get("fasta"),
-        assay=assay,
-    )
+    resource_obj = GenomeResources(**resources)
+    resource_obj.write_config(genome_config_file, assay=assay)
 
     assert genome_config_file.exists(), "genome_config.json not created"
 
@@ -170,7 +149,6 @@ def create_config_yaml(
     else:
         config["genome"]["index"]["prefix"] = None
         config["genome"]["index"]["type"] = None
-        
 
     # Update other genome fields (chromosome_sizes from JSON maps to both field names)
     config["genome"]["chromosome_sizes"] = genome_config.get("chromosome_sizes")
@@ -226,15 +204,31 @@ def create_config_yaml(
     import sys
 
     # Try to find the seqnado package location
-    seqnado_paths = [p for p in sys.path if 'seqnado' in p and 'site-packages' in p]
+    seqnado_paths = [p for p in sys.path if "seqnado" in p and "site-packages" in p]
     if not seqnado_paths:
         # Fall back to searching site-packages
         for site_pkg in site.getsitepackages():
-            test_profile_config = Path(site_pkg) / "seqnado" / "workflow" / "envs" / "profiles" / "profile_test" / "config.v8+.yaml"
+            test_profile_config = (
+                Path(site_pkg)
+                / "seqnado"
+                / "workflow"
+                / "envs"
+                / "profiles"
+                / "profile_test"
+                / "config.v8+.yaml"
+            )
             if test_profile_config.exists():
                 break
     else:
-        test_profile_config = Path(seqnado_paths[0]) / "seqnado" / "workflow" / "envs" / "profiles" / "profile_test" / "config.v8+.yaml"
+        test_profile_config = (
+            Path(seqnado_paths[0])
+            / "seqnado"
+            / "workflow"
+            / "envs"
+            / "profiles"
+            / "profile_test"
+            / "config.v8+.yaml"
+        )
 
     # Update the profile config with apptainer-args
     if test_profile_config.exists():
@@ -249,7 +243,9 @@ def create_config_yaml(
 
         # Also bind run_dir if it's different from test_data_dir
         # This ensures the temporary test directory is accessible in the container
-        if run_dir_resolved != test_data_dir and not str(run_dir_resolved).startswith(str(test_data_dir)):
+        if run_dir_resolved != test_data_dir and not str(run_dir_resolved).startswith(
+            str(test_data_dir)
+        ):
             bind_args.append(f"--bind {run_dir_resolved}:{run_dir_resolved}")
 
         if "apptainer-args" in profile_config:
@@ -266,7 +262,10 @@ def create_config_yaml(
 
     # Fix plotting coordinates path to use test_output/data instead of package directory
     if "assay_config" in config and config["assay_config"] is not None:
-        if "plotting" in config["assay_config"] and config["assay_config"]["plotting"] is not None:
+        if (
+            "plotting" in config["assay_config"]
+            and config["assay_config"]["plotting"] is not None
+        ):
             # Get the test data directory from the genome config path
             # chromosome_sizes is in test_output/data/genome/, so go up one level to get test_output/data/
             test_data_dir = Path(genome_config.get("chromosome_sizes")).parent.parent
@@ -298,10 +297,10 @@ def create_design_file(
 
     # Keep original assay name for directory and pattern lookup
     original_assay = assay
-    
+
     # Get pattern for original assay (e.g., "rna-rx" → "rna-spikein-*.fastq.gz")
     pattern = get_fastq_pattern(original_assay)
-    
+
     # Amend -rx assays to base assay names for seqnado command
     if assay.endswith("-rx"):
         assay = assay.replace("-rx", "")
@@ -376,9 +375,3 @@ def multiomics_run_directory(tmp_path_factory):
     run_dir = base_temp / "multiomics_run"
     run_dir.mkdir(exist_ok=True, parents=True)
     return run_dir
-
-
-def get_metadata_path(test_data_dir: Path, assay: str) -> Path:
-    """Return the metadata CSV path for a given assay."""
-    # Example: test_data_dir/metadata_atac.csv
-    return test_data_dir / f"metadata_{assay}.csv"
