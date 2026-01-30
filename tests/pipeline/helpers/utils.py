@@ -51,7 +51,7 @@ def get_fastq_pattern(assay: str) -> str:
         "chip-rx": "chip-rx_*.fastq.gz",
         "chip": "chip-rx_*.fastq.gz",
         "crispr": "crispr-*.fastq.gz",
-        "mcc": "mcc_*.fastq.gz",
+        "mcc": "mcc-*.fastq.gz",
         "meth": "meth-*.fastq.gz",
         "rna-rx": "rna-spikein-*.fastq.gz",
         "rna": "rna*.fastq.gz",

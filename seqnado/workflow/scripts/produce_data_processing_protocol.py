@@ -914,17 +914,8 @@ class SpikeInSection(ProtocolSection):
             return []
 
         spikein_config = self.assay_config.get("spikein", {})
-        method_value = spikein_config.get("method", "")
-        
-        # Handle method as either a single string/enum or a list
-        if isinstance(method_value, list):
-            if not method_value:
-                method = ""
-            else:
-                # Use the first method for protocol text
-                method = str(method_value[0]).lower()
-        else:
-            method = str(method_value).lower()
+        method_list = spikein_config.get("method", [])
+        method = str(method_list[0]).lower() if method_list else ""
         
         endogenous = spikein_config.get("endogenous_genome", "reference")
         exogenous = spikein_config.get("exogenous_genome", "spike-in")
