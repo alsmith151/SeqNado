@@ -27,7 +27,7 @@ class GenomeResources(BaseModel):
 
     # Configuration constants
     REFERENCE_URL: ClassVar[str] = (
-        "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/seqnado/test_data"
+        "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/seqnado/test_data/reference"
     )
 
     # Base resources shared by multiple assays
@@ -132,7 +132,7 @@ class GenomeResources(BaseModel):
         # Look up resources for this assay
         assay_key = next((k for k in cls.RESOURCES if k in assay.lower()), "chip")
         template = cls.RESOURCES[assay_key]
-        ref_url = f"{cls.REFERENCE_URL}/reference"
+        ref_url = cls.REFERENCE_URL
         config: dict[str, Path | None] = {}
 
         for key, value in template.items():
@@ -222,6 +222,11 @@ class FastqFiles(BaseModel):
     fastq_dir: Path
     files: dict[str, list[Path]] = {}
 
+    # Configuration constants
+    FQ_URL: ClassVar[str] = (
+        "https://userweb.molbiol.ox.ac.uk/public/project/milne_group/seqnado/test_data/fastq.tar.gz"
+    )
+
     @classmethod
     def download(cls, fastq_dir: Path, selected_assays: list[str]) -> FastqFiles:
         """Download FASTQ files and organize them by assay.
@@ -241,7 +246,7 @@ class FastqFiles(BaseModel):
         if not list(fastq_dir.glob("*.fastq.gz")):
             tar_path = fastq_dir.parent / "fastq.tar.gz"
             download_with_retry(
-                f"{GenomeResources.REFERENCE_URL}/fastq.tar.gz", tar_path
+                cls.FQ_URL, tar_path
             )
             extract_tar(tar_path, fastq_dir.parent, flatten=False)
 
