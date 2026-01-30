@@ -3,55 +3,48 @@
 import json
 from pathlib import Path
 from typing import Dict, List
+from itertools import chain, product, combinations
+from snakemake.io import expand
 
+
+from pathlib import Path
+import json
 
 def get_n_cis_scaling_factor(wc, OUTPUT_DIR):
     """
-    Calculate the n_cis scaling factor for MCC normalization.
+    Return a single file-level factor F such that:
 
-    Args:
-        wc: Snakemake wildcards object containing 'viewpoint_group' and optionally 'group' or 'sample'.
-        OUTPUT_DIR: The output directory path.
+        normalized_count = raw_count * F
 
-    Returns:
-        float: The n_cis scaling factor, or 1 if stats file not found, or 0 if n_total is 0.
+    where F = 1e6 / n_cis  (CPM normalized by cis interactions).
     """
-    # Can either extract the stats for the sample or the group
     if hasattr(wc, "group"):
         stats_file = OUTPUT_DIR + f"/resources/{wc.group}_ligation_stats.json"
     else:
-        # If not, then use the sample
         stats_file = OUTPUT_DIR + f"/resources/{wc.sample}_ligation_stats.json"
 
-    # Create Path object and ensure the file exists
     stats_path = Path(stats_file)
     if not stats_path.exists():
-        return 1
+        return 1.0
 
     with open(stats_path, "r") as r:
         stats = json.load(r)
 
-    # Check if viewpoint_group exists in stats
-    if wc.viewpoint_group not in stats:
-        raise KeyError(
-            f"Viewpoint group '{wc.viewpoint_group}' not found in stats file"
-        )
+    vp = wc.viewpoint_group
+    if vp not in stats:
+        raise KeyError(f"Viewpoint group '{vp}' not found in stats file")
 
-    # Check if required keys exist in the viewpoint group stats
-    required_keys = ["n_cis", "n_total"]
-    missing_keys = [
-        key for key in required_keys if key not in stats[wc.viewpoint_group]
-    ]
-    if missing_keys:
-        raise KeyError(f"Missing required keys in stats: {', '.join(missing_keys)}")
+    if "n_cis" not in stats[vp]:
+        raise KeyError("Missing required key 'n_cis'")
 
-    # Avoid division by zero
-    if stats[wc.viewpoint_group]["n_total"] == 0:
-        return 0
+    n_cis = stats[vp]["n_cis"]
 
-    return (
-        stats[wc.viewpoint_group]["n_cis"] / stats[wc.viewpoint_group]["n_total"]
-    ) * 1e6
+    # avoid division by zero
+    if n_cis == 0:
+        return 1e-12
+
+    return 1e6 / n_cis
+
 
 
 def get_mcc_bam_files_for_merge(wildcards, SAMPLE_GROUPINGS, OUTPUT_DIR):

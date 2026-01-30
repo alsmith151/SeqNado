@@ -11,6 +11,7 @@ from seqnado.utils import (
     pepe_silvia,
     remove_unwanted_run_files,
     run_batch_job_on_error,
+    FileSelector,
 )
 
 
@@ -234,3 +235,17 @@ class TestRunBatchJobOnError:
 
         # Should not raise exception
         run_batch_job_on_error(email)
+
+class TestFileSelector:
+    """Tests for FileSelector class."""
+
+    def test_select_basic(self):
+        files = ["a.txt", "b.TXT", "c_backup.txt", "d.log"]
+        s = FileSelector(files)
+        assert set(s.select(".txt")) == {"a.txt", "b.TXT", "c_backup.txt"}
+        assert s.select(".txt", excludes="backup",) == ["a.txt", "b.TXT"]
+        assert s.select(".txt", includes="a",) == ["a.txt", 'c_backup.txt']
+        assert s.select(".txt", includes=[r"^b"], use_regex=True) == ["b.TXT"]
+
+        with pytest.raises(AssertionError):
+           assert s.select(".txt", includes=[r"^b"], use_regex=False) == ["b.TXT"]

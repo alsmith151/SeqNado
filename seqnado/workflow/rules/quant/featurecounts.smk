@@ -6,12 +6,12 @@ rule feature_counts:
     input:
         bam=get_bams_to_count(CONFIG=CONFIG, SAMPLE_NAMES=SAMPLE_NAMES, OUTPUT_DIR=OUTPUT_DIR),
         bai=[bam.replace(".bam", ".bam.bai") for bam in get_bams_to_count(CONFIG=CONFIG, SAMPLE_NAMES=SAMPLE_NAMES, OUTPUT_DIR=OUTPUT_DIR)],
-        annotation=CONFIG.genome.gtf,
+        annotation=str(CONFIG.genome.gtf),
     output:
         counts=OUTPUT_DIR + "/readcounts/feature_counts/read_counts.tsv",
     params:
         options=str(CONFIG.third_party_tools.subread.feature_counts.command_line_arguments),
-        annotation_format= "SAF" if config["genome"]["gtf"].endswith(".saf") else "GTF",
+        annotation_format= "SAF" if CONFIG.genome.gtf.suffix == ".saf" else "GTF",
         paired= "-p --countReadPairs" if INPUT_FILES.is_paired_end(SAMPLE_NAMES[0]) else "",
     threads: 
         CONFIG.third_party_tools.subread.feature_counts.threads

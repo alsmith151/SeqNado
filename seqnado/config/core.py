@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Optional, Union
+from typing import Annotated, Union 
 
 from pydantic import (
     BaseModel,
@@ -39,7 +39,7 @@ from .mixins import (
 from .third_party_tools import ThirdPartyToolsConfig
 
 
-class BaseAssayConfig(BaseModel, CommonComputedFieldsMixin):
+class BaseAssayConfig(CommonComputedFieldsMixin):
     """Base configuration for all assays."""
 
     bigwigs: BigwigConfig | None = None
@@ -92,11 +92,11 @@ class SNPAssayConfig(BaseAssayConfig, SNPCallingMixin):
     create_heatmaps: bool = False
 
 
-class MCCAssayConfig(BaseAssayConfig):
+class MCCAssayConfig(BaseAssayConfig, PeakCallingMixin):
     """Configuration specific to MCC (Capture-C) assays."""
 
     mcc: MCCConfig | None = None
-    ucsc_hub: None = None  # Hub generation not supported for MCC
+    peak_calling: PeakCallingConfig | None = None
     create_heatmaps: bool = False
 
 class MethylationAssayConfig(BaseAssayConfig, MethylationMixin):

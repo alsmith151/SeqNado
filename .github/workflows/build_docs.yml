@@ -9,8 +9,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
@@ -25,9 +25,38 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y gcc git cmake make libtool g++ perl coreutils libcurl4-openssl-dev
-      - name: Install the package
+      - name: Install the package with docs dependencies
         shell: bash -el {0}
         run: |
-          pip install .
-      - run: pip install mkdocs-material mkdocstrings-python mkdocs-click pygments mkdocs-gen-files mkdocs-jupyter mkdocs-autorefs mkdocs-literate-nav mkdocs-section-index
-      - run: mkdocs gh-deploy --force
+          pip install ".[docs]"
+          pip install typer-cli black
+      - name: Generate CLI documentation
+        shell: bash -el {0}
+        run: |
+          typer seqnado.cli utils docs --name seqnado --output docs/cli_temp.md
+          # Update cli.md with generated content, preserving header
+          echo "[← Back to main page](index.md)" > docs/cli.md
+          echo "" >> docs/cli.md
+          echo "# CLI Reference" >> docs/cli.md
+          echo "" >> docs/cli.md
+          echo "This page provides a complete reference of all available SeqNado commands and options." >> docs/cli.md
+          echo "" >> docs/cli.md
+          echo "For quick examples and typical usage patterns, see the [Quick Start Guide](quick_start.md)." >> docs/cli.md
+          echo "" >> docs/cli.md
+          echo "---" >> docs/cli.md
+          echo "" >> docs/cli.md
+          tail -n +2 docs/cli_temp.md >> docs/cli.md
+          rm docs/cli_temp.md
+          # Inject stable anchors so other pages can deep-link reliably
+          sed -i.bak 's/^## `seqnado init`/## `seqnado init` {#cli-seqnado-init}/' docs/cli.md
+          sed -i.bak 's/^## `seqnado genomes`/## `seqnado genomes` {#cli-seqnado-genomes}/' docs/cli.md
+          sed -i.bak 's/^## `seqnado config`/## `seqnado config` {#cli-seqnado-config}/' docs/cli.md
+          sed -i.bak 's/^## `seqnado design`/## `seqnado design` {#cli-seqnado-design}/' docs/cli.md
+          sed -i.bak 's/^## `seqnado pipeline`/## `seqnado pipeline` {#cli-seqnado-pipeline}/' docs/cli.md
+          rm -f docs/cli.md.bak
+      - name: Build (check only)
+        env:
+          JUPYTER_PLATFORM_DIRS: "1"
+        run: mkdocs build
+      - name: Deploy
+        run: mkdocs gh-deploy --force

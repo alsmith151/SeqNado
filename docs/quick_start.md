@@ -1,8 +1,11 @@
-[Back to Index](index.md)
+[← Back to main page](index.md)
 
 # Quick Start
 
 Get started with SeqNado in just a few steps.
+
+!!! tip
+    For a complete reference of all CLI commands and options, see the [CLI Reference](cli.md). This page provides detailed examples and common workflows.
 
 SeqNado can be run for any of the following assay types, as well as in multiomics mode:
 
@@ -50,6 +53,8 @@ Initialize SeqNado with default settings:
 seqnado init
 ```
 
+For more details, see [seqnado init](cli.md#cli-seqnado-init).
+
 ### 3. Set up genome references for SeqNado
 
 The `seqnado genomes` command manages genome configurations, including listing, editing, building, or generating `fastq-screen` configurations.
@@ -72,7 +77,7 @@ seqnado genomes [OPTIONS] SUBCOMMAND ASSAY
 #### Options
 - `--fasta, -f`: Input FASTA file (required for `build`).
 - `--name, -n`: Genome name (prefix) for the built genome.
-- `--outdir, -o`: Output directory for genome builds (default: `/ceph/project/milne_group/cchahrou/software/SeqNado/genome_build`).
+- `--outdir, -o`: Output directory for genome builds.
 - `--screen, -s`: Output path for `fastq-screen` configuration files (used in the `fastqscreen` subcommand).
 - `--threads, -t`: Number of threads for Bowtie2 (default: 8).
 - `--no-contaminants`: Exclude contaminant databases in `fastq-screen` configurations.
@@ -84,6 +89,8 @@ Build a genome configuration for RNA-seq:
 ```bash
 seqnado genomes build rna --fasta hg38.fasta --name hg38 --outdir /path/to/output
 ```
+
+For more details, see [seqnado genomes](cli.md#cli-seqnado-genomes).
 
 ### 4. Configure a SeqNado run
 
@@ -97,8 +104,6 @@ seqnado config [OPTIONS] [ASSAY]
 #### Arguments
 - **ASSAY**: Assay type. Options include `rna`, `atac`, `snp`, `chip`, `cat`, `meth`, `mcc`, `crispr`. If omitted, multiomics mode is used.
 
-
-
 #### Options
 - `--make-dirs, --no-make-dirs`: Create or skip creating the output project directory or FASTQ subdirectory (default: create).
 - `--render-options, --no-render-options`: Render all options, even if not used by the workflow (default: disabled).
@@ -109,12 +114,14 @@ seqnado config [OPTIONS] [ASSAY]
 #### Example
 Generate a configuration file:
 ```bash
-seqnado config 
+seqnado config atac
 ```
 
 You can edit the generated YAML file to customize the workflow for your specific needs.
 
-### 5. SeqNado design
+For more details, see [seqnado config](cli.md#cli-seqnado-config).
+
+### 5. Generate experiment design
 
 The `seqnado design` command generates a metadata design CSV from FASTQ files for a specific assay. If no assay is provided, the command operates in multiomics mode. The generated CSV outlines the structure of the experiment, including sample names, conditions, and other relevant metadata.
 
@@ -138,10 +145,12 @@ seqnado design [OPTIONS] [ASSAY] [FASTQ ...]
 #### Example
 Generate a design CSV for ATAC-seq:
 ```bash
-seqnado design
+seqnado design atac
 ```
 
 The generated CSV can be reviewed and edited to ensure all experimental details are correctly specified.
+
+For more details, see [seqnado design](cli.md#cli-seqnado-design).
 
 ### 6. Run SeqNado pipeline
 
@@ -161,16 +170,23 @@ seqnado pipeline [OPTIONS] [ASSAY]
   - `lc`: Local cluster
   - `le`: Local execution (default)
   - `ls`: Local single-threaded
-  - `ss`: Slurm scheduler
+  - `ss`: SLURM scheduler
   - `t`: Test mode
 - `--clean-symlinks, --no-clean-symlinks`: Remove symlinks created by previous runs (default: disabled).
 - `--scale-resources, -s`: Scale memory and time resources (default: 1.0).
 - `--verbose, -v`: Increase logging verbosity.
-- `--queue, -q`: Specify the Slurm queue/partition for the `ss` preset (default: `short`).
+- `--queue, -q`: Specify the SLURM queue/partition for the `ss` preset (default: `short`).
 - `--print-cmd`: Print the Snakemake command before running it.
 
-#### Example
-Run the pipeline for ATAC-seq with 8 cores and the `ls` preset:
+#### Examples
+Run the pipeline locally for ATAC-seq:
 ```bash
-seqnado pipeline atac --preset ls --scale-resources 1.5
+seqnado pipeline atac --preset le
 ```
+
+Run on an HPC cluster with SLURM and increased resources:
+```bash
+seqnado pipeline atac --preset ss --queue short --scale-resources 1.5
+```
+
+For more details, see [seqnado pipeline](cli.md#cli-seqnado-pipeline) or the [HPC Clusters](cluster_config.md) guide for cluster-specific configuration.

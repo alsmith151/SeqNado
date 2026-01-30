@@ -5,7 +5,7 @@ rule split_reads_aligned_to_viewpoints:
     input:
         bam=OUTPUT_DIR + "/aligned/aligned_to_viewpoints/{sample}.bam",
     output:
-        fq=OUTPUT_DIR + "/mcc/{sample}/{sample}.sliced.fastq.gz",
+        fq=temp(OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.sliced.fastq.gz"),
     threads: 1
     resources:
         mem="1GB",
@@ -19,7 +19,7 @@ rule split_reads_aligned_to_viewpoints:
 
 rule align_mcc_reads_to_genome:
     input:
-        fq1=OUTPUT_DIR + "/mcc/{sample}/{sample}.sliced.fastq.gz",
+        fq1=OUTPUT_DIR + "/mcc/replicates/{sample}/{sample}.sliced.fastq.gz",
     output:
         bam=temp(OUTPUT_DIR + "/aligned/initial_alignment/{sample}.bam"),
     params:

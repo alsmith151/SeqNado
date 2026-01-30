@@ -403,12 +403,31 @@ class UCSCHubConfig(BaseModel):
         match assay:
             case Assay.RNA:
                 return cls(
+                    supergroup_by=["file_type"],
                     subgroup_by=["method", "norm", "strand"],
                     overlay_by=["samplename", "method", "norm"],
+                    color_by=["samplename", "strand"],
                 )
 
             case Assay.MCC:
-                return cls(color_by=["viewpoint"], subgroup_by=["norm", "viewpoint"])
+                return cls(supergroup_by=["norm", "file_type"],
+                           color_by=["viewpoint", 'samplename'], 
+                           subgroup_by=["viewpoint"],
+                           overlay_by=["samplename"])
+            
+            case Assay.CHIP | Assay.CAT:
+                return cls(
+                    supergroup_by=["file_type"],
+                    subgroup_by=["method", "norm", 'antibody'],
+                    color_by=["antibody", "samplename"],
+                )
+            
+            case Assay.ATAC:
+                return cls(
+                    supergroup_by=["file_type"],
+                    subgroup_by=["method", "norm"],
+                    color_by=["samplename"],
+                )
 
             case _:
                 return cls()
@@ -467,9 +486,10 @@ class MethylationConfig(BaseModel, PathValidatorMixin):
 class MCCConfig(BaseModel, PathValidatorMixin):
     """Configuration for MCC (Capture-C) analysis."""
 
-    viewpoints: Annotated[Path, BeforeValidator(lambda v: Path(v) if isinstance(v, str) else v)]
+    viewpoints: Path
     resolutions: list[int] = [100]
     exclusion_zone: int = 500  # Default value, adjust as needed
+    create_replicate_bigwigs: bool = False
 
     @field_validator("viewpoints")
     def validate_viewpoints(cls, v: Path, info: ValidationInfo) -> Path:
@@ -481,7 +501,10 @@ class MCCConfig(BaseModel, PathValidatorMixin):
             raise ValueError("Resolutions list must not be empty.")
         if any(resolution <= 0 for resolution in v):
             raise ValueError("All resolutions must be positive integers.")
+        
+        v = list(sorted(set(v)))  # Remove duplicates and sort
         return v
+    
 
 
 class MLDatasetConfig(BaseModel, PathValidatorMixin):

@@ -45,15 +45,22 @@ class TestUCSCHubConfig:
         """Test UCSC hub config for MCC assay."""
         config = UCSCHubConfig.for_assay(Assay.MCC)
 
-        assert config.color_by == ['viewpoint']
-        assert config.subgroup_by == ['norm', 'viewpoint']
+        assert config.color_by == ['viewpoint', 'samplename']
+        assert config.subgroup_by == ['viewpoint']
 
     def test_ucsc_hub_config_for_other_assays(self):
         """Test UCSC hub config for other assays (ATAC, ChIP, etc.)."""
-        for assay in [Assay.ATAC, Assay.CHIP, Assay.CAT, Assay.SNP]:
+        # CHIP and CAT have antibody in color_by and subgroup_by, others don't
+        for assay in [Assay.ATAC, Assay.SNP]:
             config = UCSCHubConfig.for_assay(assay)
             assert config.color_by == ['samplename']
             assert config.subgroup_by == ['method', 'norm']
+        
+        # CHIP and CAT include antibody in color_by and subgroup_by
+        for assay in [Assay.CHIP, Assay.CAT]:
+            config = UCSCHubConfig.for_assay(assay)
+            assert config.color_by == ['antibody', 'samplename']
+            assert config.subgroup_by == ['method', 'norm', 'antibody']
 
     def test_ucsc_hub_config_invalid_name(self):
         """Test that invalid hub name raises error."""

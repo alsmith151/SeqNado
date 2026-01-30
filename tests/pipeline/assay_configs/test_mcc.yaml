@@ -10,6 +10,8 @@ assay_config:
       - 100
       - 1000
     exclusion_zone: 500
+    create_replicate_bigwigs: true
+    create_replicate_contacts: true
   bigwigs:
     pileup_method:
       - bamnado

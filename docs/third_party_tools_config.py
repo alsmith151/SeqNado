@@ -515,3 +515,22 @@ def mkdocs_integration_example():
     ```
     """
     pass
+# Generate documentation if running under mkdocs-gen-files
+try:
+    import mkdocs_gen_files
+    from seqnado.config.third_party_tools import ThirdPartyToolsConfig, get_assay_specific_tools
+    from seqnado import Assay
+
+    # Generate all documentation
+    docs = generate_all_documentation(
+        ThirdPartyToolsConfig, 
+        get_assay_specific_tools, 
+        Assay
+    )
+    
+    # Write files
+    for filename, content in docs.items():
+        with mkdocs_gen_files.open(filename, "w") as f:
+            f.write(content)
+except ImportError:
+    pass

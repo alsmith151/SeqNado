@@ -124,7 +124,7 @@ rule bamnado_bam_coverage:
         ),
     threads: CONFIG.third_party_tools.bamnado.bam_coverage.threads
     container:
-        "oras://ghcr.io/alsmith151/seqnado_pipeline:latest"
+        "docker://ghcr.io/alsmith151/bamnado:latest"
     log:
         OUTPUT_DIR + "/logs/pileups/bamnado/{sample}.log",
     benchmark:

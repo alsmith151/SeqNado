@@ -6,6 +6,89 @@
 *.bam*
 *.fastq.gz
 *.log
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+*.cover
+.hypothesis/
+pytestdebug.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+check_config.ipynb
+check_design.ipynb
+check_outputs.ipynb
+fastq_class_sandbox.ipynb
+test_rna_size_factors.ipynb
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Documentation builds
+site/
+docs/_build/
+old_docs/
+
+# Logs
+*.log
+logs/
+
+# Distribution / packaging specific
+**/__pycache__
+**/.pyc
+
+# Project-specific
+*.bam*
+*.fastq.gz
 *.sif
 *.tar
 *.tar.gz
@@ -37,3 +120,31 @@ sps*
 test_run.sh
 test.json
 test_output
+**GenomeDir
+*delete*
+*target/*
+202*
+containers/*.sif
+containers/push_notes.txt
+design_test/metadata_chip.csv
+lolcow.sif
+metadata.csv
+ngs_pipeline/tests/pipeline/
+output.yml
+paths.txt
+seqnado/_version.py
+snakefiles_old
+sps*
+test_output/
+test_run.sh
+test.json
+testing
+tests/data*
+tests/make_data*
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+testing_dir/
+update_test_data.ipynb

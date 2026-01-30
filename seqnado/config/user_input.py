@@ -292,7 +292,7 @@ def get_plotting_config() -> Optional[PlottingConfig]:
 
 def get_peak_calling_config(assay: Assay) -> Optional[PeakCallingConfig]:
     """Get peak calling configuration for assays that support it."""
-    if assay not in [Assay.CHIP, Assay.ATAC, Assay.CAT]:
+    if assay not in [Assay.CHIP, Assay.ATAC, Assay.CAT, Assay.MCC]:
         return None
 
     call_peaks = get_user_input("Call peaks?", default="yes", is_boolean=True)
@@ -647,7 +647,8 @@ def build_assay_config(
 
         case Assay.MCC:
             mcc = get_mcc_config()
-            return MCCAssayConfig(**base_config, mcc=mcc)
+            peak_calling = get_peak_calling_config(assay)
+            return MCCAssayConfig(**base_config, mcc=mcc, peak_calling=peak_calling)
 
         case Assay.METH:
             methylation = get_methylation_config()
@@ -968,6 +969,7 @@ def build_multiomics_config(
     Returns:
         tuple: (MultiomicsConfig, dict of assay_name -> SeqnadoConfig)
     """
+    # Import here to avoid circular import
     from seqnado.config.multiomics import MultiomicsConfig
 
     logger.info("Building multiomics configuration")

@@ -37,6 +37,8 @@ from seqnado.outputs.files import (
     SpikeInFiles,
 )
 
+from seqnado.utils import FileSelector
+
 
 class GeoMetadataFilesWrapper:
     """Wrapper that exposes only metadata files from GeoSubmissionFiles for Snakemake output tracking.
@@ -79,28 +81,37 @@ class SeqnadoOutputFiles(BaseModel):
         return self.files
 
     def select_files(
-        self, suffix: str, contains: str | None = None, exclude: str | None = None
+        self, 
+        suffix: str, 
+        include: str | None = None, 
+        exclude: str | None = None,
+        must_include_all_patterns: bool = False,
+        use_regex: bool = False,
+        case_sensitive: bool = False,
     ) -> List[str]:
         """Filter files by suffix and optional substring.
 
         Args:
-            suffix (str): The file suffix to filter by.
-            contains (str, optional): A substring that must be present in the file name.
-                Defaults to None, meaning no additional filtering.
-            exclude (str, optional): A substring that must not be present in the file name.
-                Defaults to None, meaning no exclusion filtering.
-
+            suffix (str): The file suffix to filter by (e.g. ".txt" or "csv").
+            include (str, optional): Substring or regex pattern that must be present in the file path.
+            exclude (str, optional): Substring or regex pattern that must NOT be present in the file path.
+            must_include_all_patterns (bool): If True, all include patterns must match (AND). If False, any match suffices (OR).
+            use_regex (bool): If True, treat include/exclude as regex patterns.
+            case_sensitive (bool): If True, matching is case-sensitive.
         Returns:
-            List[str]: A list of files that match the criteria.
+            List[str]: A list of file paths matching the criteria.
         """
-        suffix = suffix.lower()
-        return [
-            f
-            for f in self.files
-            if f.lower().endswith(suffix)
-            and (contains in f if contains else True)
-            and (exclude not in f if exclude else True)
-        ]
+        fs = FileSelector(self.files)
+        return fs.select(
+            suffix=suffix,
+            includes=include,
+            excludes=exclude,
+            case_sensitive=case_sensitive,
+            use_regex=use_regex,
+            includes_all=must_include_all_patterns,
+        )
+
+
 
     @property
     def bigwig_files(self):
@@ -124,24 +135,21 @@ class SeqnadoOutputFiles(BaseModel):
         """
 
         if assay is not None:
-            return [
-                f
-                for f in self.files
-                if f.endswith(".bigWig")
-                and (method.value in f)
-                and (scale.value in f)
-                and (assay.value.lower() in f.lower())
-                and "/geo_submission/" not in f
-            ]
+            return self.select_files(
+                ".bigWig",
+                include=[method.value, scale.value, assay.value.lower()],
+                exclude="/geo_submission/",
+                must_include_all_patterns=True,
+                case_sensitive=False,
+            )
         else:
-            return [
-                f
-                for f in self.files
-                if f.endswith(".bigWig")
-                and (method.value in f)
-                and (scale.value in f)
-                and "/geo_submission/" not in f
-            ]
+            return self.select_files(
+                ".bigWig",
+                include=[method.value, scale.value],
+                exclude="/geo_submission/",
+                must_include_all_patterns=True,
+                case_sensitive=False,
+            )
 
     @property
     def peak_files(self):
@@ -161,15 +169,19 @@ class SeqnadoOutputFiles(BaseModel):
 
     @property
     def heatmap_files(self):
-        return self.select_files(".pdf", contains="heatmap")
+        return self.select_files(".pdf", include="heatmap")
 
     @property
     def genome_browser_plots(self):
-        return self.select_files(".pdf", contains="genome_browser")
+        return self.select_files(".pdf", include="genome_browser")
+    
+    @property
+    def sentinel_files(self):
+        return self.select_files(".txt", include=".mcc_")
 
     @property
     def ucsc_hub_files(self):
-        return self.select_files(".txt", contains="hub")
+        return self.select_files(".txt", include="hub")
 
 
 class SeqNadoReportFiles:
@@ -346,6 +358,20 @@ class SeqnadoOutputBuilder:
             scale_methods=self.scale_methods,
             output_dir=self.output_dir,
         )
+
+        self.file_collections.append(bigwig_files)
+    
+    def add_spikein_bigwig_files(self) -> None:
+        """Add spike-in normalized bigwig files to the output collection."""
+
+        bigwig_files = BigWigFiles(
+            assay=self.assay,
+            names=self.samples.sample_names,
+            pileup_methods=self.config.assay_config.bigwigs.pileup_method,
+            scale_methods=[DataScalingTechnique.SPIKEIN],
+            output_dir=self.output_dir,
+        )
+
         self.file_collections.append(bigwig_files)
 
     def add_grouped_bigwig_files(self) -> None:
@@ -369,11 +395,30 @@ class SeqnadoOutputBuilder:
                 self.file_collections.append(bigwig_files)
 
     def add_mcc_sentinel_pileup_files(self) -> None:
-        """Add MCC sentinel files to the output collection."""
+        """Add MCC sentinel files to the output collection.
+        The issue with MCC bigwig files is that they are generated per viewpoint group.
+        It's possible that we don't actually have the viewpoint coming through from the sample,
+        this would cause a crash and a pipeline failure. So instead we just create a sentinel file
+        to indicate that the bigwigs have been generated.
+        """
         bigwigs = [
             Path(self.output_dir) / "bigwigs/mcc/.mcc_bigwigs_generated.txt",
         ]
         sentinel_files = BasicFileCollection(files=[str(bw) for bw in bigwigs])
+        self.file_collections.append(sentinel_files)
+    
+    def add_mcc_sentinel_peak_files(self) -> None:
+        """Add MCC sentinel files to the output collection.
+
+        The issue with MCC peak files is that they are generated per viewpoint group.
+        It's possible that we don't actually have the viewpoint coming through from the sample,
+        this would cause a crash and a pipeline failure. So instead we just create a sentinel file
+        to indicate that the peaks have been called.
+        """
+        peaks = [
+            Path(self.output_dir) / "peaks/mcc/.mcc_peaks_called.txt",
+        ]
+        sentinel_files = BasicFileCollection(files=[str(pk) for pk in peaks])
         self.file_collections.append(sentinel_files)
 
     def add_peak_files(self) -> None:
@@ -469,7 +514,7 @@ class SeqnadoOutputBuilder:
         """Add hub files to the output collection."""
         hub_files = HubFiles(
             hub_dir=Path(f"{self.output_dir}/hub"),
-            hub_name=self.config.assay_config.ucsc_hub.name,
+            hub_name=getattr(self.config.assay_config.ucsc_hub, "name", "SeqnadoHub"),
         )
         self.file_collections.append(hub_files)
 
@@ -477,18 +522,7 @@ class SeqnadoOutputBuilder:
         """Add spike-in files to the output collection."""
         # Get the spike-in method from config
         spikein_config = getattr(self.config.assay_config, 'spikein', None)
-        
-        if spikein_config:
-            # Handle method as either single enum or list of enums
-            methods = spikein_config.method
-            if not isinstance(methods, list):
-                methods = [methods]
-            
-            # For now, use the first method for file generation
-            # (spike-in normalization can use multiple methods but outputs one set of factors)
-            method = methods[0].value
-        else:
-            method = "orlando"
+        method = spikein_config.method.value if spikein_config else "orlando"
 
         spikein_files = SpikeInFiles(
             assay=self.assay,
@@ -754,9 +788,12 @@ class SeqnadoOutputFactory:
                 builder.add_mcc_sentinel_pileup_files()
 
         if bool(getattr(self.assay_config, "call_peaks", False)):
-            builder.add_peak_files()
-            if self.sample_groupings.groupings.get("consensus"):
-                builder.add_grouped_peak_files()
+            if not self.assay == Assay.MCC:
+                builder.add_peak_files()
+                if self.sample_groupings.groupings.get("consensus"):
+                    builder.add_grouped_peak_files()
+            else:
+                builder.add_mcc_sentinel_peak_files()
 
             # Add motif files if motif analysis is enabled
             peak_config = self.assay_config.peak_calling
@@ -780,6 +817,8 @@ class SeqnadoOutputFactory:
 
         if getattr(self.assay_config, "has_spikein", False):
             builder.add_spikein_files()
+            if self.assay_config.create_bigwigs:
+                builder.add_spikein_bigwig_files()
 
         if getattr(self.assay_config, "create_quantification_files", False):
             builder.add_quantification_files()

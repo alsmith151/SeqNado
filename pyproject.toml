@@ -31,9 +31,25 @@ dependencies = [
     "seaborn<=0.13.2",
     "snakemake-wrapper-utils<=0.8.0",
     "snakemake>=9.12.0,<=9.14.5",
-    "tracknado<=0.2.4",
-    "typer<=0.20.0",
+    "tracknado>=0.3.0,<1.0.0",
+    "typer<=0.21.1",
     "wget<=3.2",
+]
+
+[project.optional-dependencies]
+slurm = ["snakemake-executor-plugin-slurm<=2.0.3"]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.1",
+    "mkdocstrings>=1.0.0",
+    "mkdocstrings-python>=2.0.1",
+    "mkdocs-typer2>=0.1.6",
+    "mkdocs-gen-files>=0.6.0",
+    "mkdocs-jupyter>=0.25.1",
+    "mkdocs-autorefs>=1.4.3",
+    "mkdocs-literate-nav>=0.6.2",
+    "mkdocs-section-index>=0.3.10",
+    "pygments>=2.19.2",
 ]
 
 [project.optional-dependencies]
