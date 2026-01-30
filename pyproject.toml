@@ -52,9 +52,6 @@ docs = [
     "pygments>=2.19.2",
 ]
 
-[project.optional-dependencies]
-slurm = ["snakemake-executor-plugin-slurm<=2.0.3"]
-
 [project.scripts]
 seqnado = "seqnado.cli:app"
 
