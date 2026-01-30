@@ -25,7 +25,7 @@ def init_seqnado_project(
     Args:
         run_directory: Directory for the test run
         assay: Assay type (e.g., 'chip', 'rna', 'mcc')
-        resources: Dict of genome resources from GenomeResources.download().model_dump()
+        resources: Dict of genome resources from GenomeResources.download_resources().model_dump()
         test_data_path: Base path for test data
         monkeypatch: Pytest monkeypatch fixture for environment variables
 
@@ -62,7 +62,7 @@ def init_seqnado_project(
     genome_config_file = run_directory / ".config" / "seqnado" / "genome_config.json"
 
     resource_obj = GenomeResources(**resources)
-    resource_obj.write_config(genome_config_file, assay=assay)
+    resource_obj.write_config(genome_config_file)
 
     assert genome_config_file.exists(), "genome_config.json not created"
 
@@ -272,18 +272,15 @@ def create_config_yaml(
         with open(test_profile_config, "w") as f:
             yaml.dump(profile_config, f, sort_keys=False)
 
-    # Fix plotting coordinates path to use test_output/data instead of package directory
+    # Fix plotting coordinates path to use the genome directory where it was downloaded
     if "assay_config" in config and config["assay_config"] is not None:
         if (
             "plotting" in config["assay_config"]
             and config["assay_config"]["plotting"] is not None
         ):
-            # Get the test data directory from the genome config path
-            # chromosome_sizes is in test_output/data/genome/, so go up one level to get test_output/data/
-            test_data_dir = Path(genome_config.get("chromosome_sizes")).parent.parent
-            plot_coords = test_data_dir / "plotting_coordinates.bed"
-            # Always update the path to point to test_output/data, regardless of whether it exists yet
-            # The conftest fixture will ensure the file is copied before the test runs
+            # chromosome_sizes is in test_output/data/genome/, same as plotting_coordinates.bed
+            genome_dir = Path(genome_config.get("chromosome_sizes")).parent
+            plot_coords = genome_dir / "plotting_coordinates.bed"
             config["assay_config"]["plotting"]["coordinates"] = str(plot_coords)
 
     with open(config_path, "w") as f:

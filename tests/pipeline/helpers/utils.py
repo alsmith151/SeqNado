@@ -148,4 +148,4 @@ class TestContext:
         return run_dir
 
     def plot_bed(self, test_data_path: Path):
-        return test_data_path / "plotting_coordinates.bed"
+        return test_data_path / "genome" / "plotting_coordinates.bed"

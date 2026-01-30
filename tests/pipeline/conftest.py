@@ -29,7 +29,7 @@ def genome_resources(test_context: TestContext) -> dict:
     """
 
     def _get_resources(assay: str) -> dict:
-        return GenomeResources.download(test_context.test_paths.genome, assay).model_dump()
+        return GenomeResources.download_resources(test_context.test_paths.genome, assay).model_dump()
 
     return _get_resources
 
@@ -222,10 +222,7 @@ def multiomics_configs(
     for assay in multiomics:
         if assay != init_assay:
             resource_obj = GenomeResources(**all_resources[assay])
-            resource_obj.write_config(
-                genome_config_file,
-                assay=assay,
-            )
+            resource_obj.write_config(genome_config_file)
 
     # Create assay-specific fastq subdirectories and copy FASTQ files
     # This creates the fastqs/{assay}/ structure expected by multiomics mode
