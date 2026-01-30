@@ -75,8 +75,8 @@ tryCatch({
     } else {
       cat("  Using spike-in genes for size factor estimation\n")
       dds <- estimateSizeFactors(dds, controlGenes = spikein_genes)
-      # Remove spike-in genes from count matrix
-      counts(dds) <- counts(dds)[!rownames(counts(dds)) %in% spikein_gene_names, ]
+      # Remove spike-in genes from DESeqDataSet
+      dds <- dds[!rownames(dds) %in% spikein_gene_names, ]
     }
   }
 

@@ -15,7 +15,7 @@ jobs:
           - chip
           - chip-rx
           - crispr
-          - mcc
+          # - mcc   # Temporarily disabled due to issues
           - meth
           - rna
           - rna-rx

@@ -477,7 +477,18 @@ class SeqnadoOutputBuilder:
         """Add spike-in files to the output collection."""
         # Get the spike-in method from config
         spikein_config = getattr(self.config.assay_config, 'spikein', None)
-        method = spikein_config.method.value if spikein_config else "orlando"
+        
+        if spikein_config:
+            # Handle method as either single enum or list of enums
+            methods = spikein_config.method
+            if not isinstance(methods, list):
+                methods = [methods]
+            
+            # For now, use the first method for file generation
+            # (spike-in normalization can use multiple methods but outputs one set of factors)
+            method = methods[0].value
+        else:
+            method = "orlando"
 
         spikein_files = SpikeInFiles(
             assay=self.assay,
